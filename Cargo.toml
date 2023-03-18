@@ -17,3 +17,4 @@ catppuccin-egui = "2.0"
 ehttp = "0.2.0"
 #sunk = "0.1.2"
 sunk = { path = "lib/sunk" }
+config = "0.13.3"
