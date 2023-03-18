@@ -1,9 +1,13 @@
 use egui_extras::RetainedImage;
 use rand::prelude::*;
+use sunk::search::SearchPage;
+use sunk::{Album, ListType, search, Media};
 use std::fs::File;
 use std::io::prelude::*;
 use std::sync::Arc;
 use rand::seq::SliceRandom;
+
+// TODO check out bliss and bliss-rs https://github.com/Polochon-street/bliss-rs
 
 #[derive(Default)]
 pub struct MusicLibrary {
@@ -46,9 +50,37 @@ pub struct Lyrics {
 }
 
 impl MusicLibrary {
-    // pub fn from_navidrome(url: &str, username: &str, password: &str) {
+    pub fn from_navidrome(site: &str, username: &str, password: &str) -> Self {
+        let mut music_library = Self::default();
 
-    // }
+        music_library.images = load_sample_images();
+       
+        // TODO error unwrap
+        let client = sunk::Client::new(site, username, password).unwrap();
+        println!("ping? {:?}", client.ping());
+        if let Ok(albums) = Album::list(&client, ListType::default(), SearchPage { count : 40, offset : 0 }, 0) {
+            for album in albums {
+                let mut release = Release::default();
+                release.title = album.name.clone();
+                if let Ok(cover_art) = album.cover_art(&client, 0) {
+                    if let Ok(image) = RetainedImage::from_image_bytes("art", &cover_art) {
+                        release.cover_image = Some(Arc::new(image));
+                    }
+                }
+                // TODO else default image? or handle at the rendering point?
+                if let Some(artist) = album.artist {
+                    release.artist = artist.clone();
+                }
+                if let Some(year) = album.year {
+                    release.release_year = year as u32;
+                }
+                
+                music_library.releases.push(release);
+            }
+        }
+
+        return music_library;
+    }
 
     pub fn example() -> Self {
         let _num_artists = 706;
