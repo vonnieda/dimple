@@ -19,7 +19,7 @@ impl ExampleMusicLibrary {
     pub fn new() -> Self {
         let mut music_library = Self::default();
         music_library.images = load_sample_images();
-        music_library.releases = create_sample_releases(10000, &music_library);
+        music_library.releases = create_sample_releases(1000, &music_library);
 
         return music_library;
     }
