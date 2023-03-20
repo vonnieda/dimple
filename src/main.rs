@@ -1,9 +1,6 @@
-use std::sync::{Arc, Mutex};
-
 use eframe::egui::{self, Grid, ImageButton, Link, Response, ScrollArea, TextEdit, Ui, Context};
-use eframe::epaint::{FontFamily, FontId, ColorImage};
+use eframe::epaint::{FontFamily, FontId};
 use egui_extras::RetainedImage;
-// use music_library::example::ExampleMusicLibrary;
 use music_library::{MusicLibrary, Release, EmptyMusicLibrary};
 use music_library::navidrome::NavidromeMusicLibrary;
 mod music_library;
@@ -15,16 +12,6 @@ use config::{Config, File, FileFormat};
 // TODO make number of columns adapt to window width and tile size
 // TODO tile size slider
 // TODO check out bliss and bliss-rs https://github.com/Polochon-street/bliss-rs
-// TODO I think it makes sense for the libraries to be as simple and generic
-// as possible, and this app just synchronizes their objects to the local store.
-// The local store is, I think, the definitive list because we want the user to
-// be able to update album art, lyrics, etc. even if the library doesn't support
-// writing those properties.
-// Shit, no. I'm stupid. I've been forgetting that I'll need to interest with
-// the source again later to stream music, write back changes, refresh, etc.
-// So, for tonight I think just get it working and then tomorrow I figure out how
-// to have a merged view of library releases and to keep the ownership of those
-// objects in the library. Or at least a reference.
 
 fn main() {
     let native_options = eframe::NativeOptions {
@@ -138,9 +125,10 @@ fn release_grid(releases: &Vec<CachedRelease>, ctx: &Context, ui: &mut Ui) {
 fn release_card(release: &CachedRelease, ctx: &Context, ui: &mut Ui) -> Response {
     ui.vertical(|ui| {
         if let Some(cover_image) = &release.cover_image {
-            ui.add(ImageButton::new(
+            let button = ImageButton::new(
                 cover_image.texture_id(ctx), 
-                egui::vec2(200.0, 200.0)));
+                egui::vec2(200.0, 200.0));
+            ui.add(button);
         }
         // TODO default image
         ui.add_space(8.0);

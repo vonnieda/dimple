@@ -8,8 +8,11 @@
 // how to cache them.
 // TODO how does the UI change the credentials and other settings?
 // Gonna need some generic UI thinger?
+// TODO it's possible that images are so special, because they are so
+// heavy, that the main program DOES need to do the caching and I need
+// to make the libraries support that.
 
-use std::{sync::{Mutex, Arc}, fs, time::Instant};
+use std::{fs};
 
 use image::DynamicImage;
 use sunk::{search::SearchPage, Album, Client, ListType, Media};
@@ -20,9 +23,10 @@ use crate::MusicLibrary;
 use super::Release;
 
 // TODO Takes ~0.5ms 100x vs. 5-20ms for original. So, this is going to be
-// super fun because we can load in the higher res ones dynnamically.
+// super fun because we can load in the higher res ones dynamically.
 // It's about 19MB vs. 500MB
 // Also, I bet if those loaded on the thread pool it would be super fast.
+// Used mogrify -resize 200x *.png to resize
 const CACHE_DIR: &str = "art/cache/navidrome/100x";
 
 #[derive(Default)]
@@ -30,6 +34,7 @@ pub struct NavidromeMusicLibrary {
     site: String,
     username: String,
     password: String,
+    thread_pool: ThreadPool,
 }
 
 impl NavidromeMusicLibrary {
@@ -38,6 +43,7 @@ impl NavidromeMusicLibrary {
             site: String::from(site),
             username: String::from(username),
             password: String::from(password),
+            thread_pool: ThreadPool::new(10),
         }
     }
 
@@ -88,6 +94,9 @@ fn albums_to_releases(albums: &Vec<Album>, client: &Client) -> Vec<Release> {
     releases
 }
 
+// TODO add width param and auto resize and cache as needed
+// TODO move all the caching stuff into a couple functions that
+// other implementations can use. Probably just stick em in MusicLibrary.
 fn get_image<M: Media>(media: &M, client: &Client) -> Option<DynamicImage> {
     if let Some(image) = load_image(media) {
         return Some(image);
