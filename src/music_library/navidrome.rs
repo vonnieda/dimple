@@ -12,7 +12,7 @@
 // heavy, that the main program DOES need to do the caching and I need
 // to make the libraries support that.
 
-use std::{fs};
+use std::{fs, sync::mpsc::{channel, Sender, Receiver}, ops::Deref, time::Instant};
 
 use image::DynamicImage;
 use sunk::{search::SearchPage, Album, Client, ListType, Media};
@@ -27,14 +27,16 @@ use super::Release;
 // It's about 19MB vs. 500MB
 // Also, I bet if those loaded on the thread pool it would be super fast.
 // Used mogrify -resize 200x *.png to resize
-const CACHE_DIR: &str = "art/cache/navidrome/100x";
+// const CACHE_DIR: &str = "art/cache/navidrome/50x"; // 94ms
+// const CACHE_DIR: &str = "art/cache/navidrome/100x"; // 130ms
+const CACHE_DIR: &str = "art/cache/navidrome/200x"; // 211ms
+// const CACHE_DIR: &str = "art/cache/navidrome/original"; // 1400ms
 
 #[derive(Default)]
 pub struct NavidromeMusicLibrary {
     site: String,
     username: String,
     password: String,
-    thread_pool: ThreadPool,
 }
 
 impl NavidromeMusicLibrary {
@@ -43,18 +45,8 @@ impl NavidromeMusicLibrary {
             site: String::from(site),
             username: String::from(username),
             password: String::from(password),
-            thread_pool: ThreadPool::new(10),
         }
     }
-
-    // fn sync(self: &Self) {
-    //     if let Ok(client) = self.new_client() {
-    //         if let Ok(new_releases) = get_all_releases(&client) {
-    //             // TODO sync not extend
-    //             self.releases.lock().unwrap().extend(new_releases);
-    //         }
-    //     }
-    // }
 
     fn new_client(self: &Self) -> Result<Client, sunk::Error> {
         sunk::Client::new(
@@ -63,34 +55,80 @@ impl NavidromeMusicLibrary {
             self.password.as_str(),
         )
     }
+
+    fn new_client_info(self: &Self) -> ClientInfo {
+        ClientInfo {
+            site: self.site.clone(),
+            username: self.username.clone(),
+            password: self.password.clone(),
+        }
+    }
 }
 
 impl MusicLibrary for NavidromeMusicLibrary {
     fn releases(self: &Self) -> Vec<Release> {
-        if let Ok(client) = self.new_client() {
-            if let Ok(releases) = get_all_releases(&client) {
-                return releases;
-            }
+        if let Ok(releases) = get_all_releases(&self.new_client_info()) {
+            return releases;
         }
         return Vec::new();
     }
 }
 
-fn get_all_releases(client: &Client) -> Result<Vec<Release>, sunk::Error> {
-    let albums = get_all_albums(client)?;
-    Ok(albums_to_releases(&albums, client))
+#[derive(Default, Clone)]
+struct ClientInfo {
+    site: String,
+    username: String,
+    password: String,
 }
 
-fn albums_to_releases(albums: &Vec<Album>, client: &Client) -> Vec<Release> {
-    let mut releases = Vec::new();
+fn get_all_releases(client_info: &ClientInfo) -> Result<Vec<Release>, sunk::Error> {
+    let client = sunk::Client::new(
+        client_info.site.as_str(),
+        client_info.username.as_str(),
+        client_info.password.as_str(),
+    )?;
+    let albums = get_all_albums(&client)?;
+    return Ok(albums_to_releases(&albums, client_info));
+}
+
+fn albums_to_releases(albums: &Vec<Album>, client_info: &ClientInfo) -> Vec<Release> {
+    let thread_pool = ThreadPool::new(4);
+    let (tx, rx): (Sender<Release>, Receiver<Release>) = channel();
     for album in albums {
-        let release = Release {
-            title: album.name.clone(),
-            artist: album.artist.clone(),
-            cover_image: get_image(album, &client),
-        };
-        releases.push(release);
+        let tx = tx.clone();
+        let album = album.clone();
+        let client_info = client_info.clone();
+        thread_pool.execute(move || {
+            let client = sunk::Client::new(
+                client_info.site.as_str(),
+                client_info.username.as_str(),
+                client_info.password.as_str(),
+            );
+
+            if let Ok(client) = client {
+                let release = Release {
+                    title: album.name.clone(),
+                    artist: album.artist.clone(),
+                    cover_image: get_image(&album, &client),
+                };
+                tx.send(release);
+            }        
+        });
     }
+    let start = Instant::now();
+    thread_pool.join();
+    println!("Loaded images in {}ms", start.elapsed().as_millis());
+    // TODO Refactor messy
+    let mut releases = Vec::new();
+    loop {
+        if let Ok(release) = rx.try_recv() {
+            releases.push(release);
+        }
+        else {
+            break;
+        }
+    }
+
     releases
 }
 

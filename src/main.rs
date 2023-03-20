@@ -39,9 +39,11 @@ struct App {
 
 impl Default for App {
     fn default() -> Self {
+        // load config
         let builder = Config::builder()
             .add_source(File::new("config", FileFormat::Toml));
     
+        // load a music library
         let music_library:Box<dyn MusicLibrary> = match builder.build() {
             Ok(config) => {
                 Box::new(NavidromeMusicLibrary::new(
@@ -54,22 +56,30 @@ impl Default for App {
             }
         };
 
+        // collect the releases from the music library
         let mut releases = Vec::new();
         for release in music_library.releases() {
             let mut cached_release = CachedRelease::default();
             if let Some(image) = &release.cover_image {
+                // TODO functionize
                 let size = [image.width() as _, image.height() as _];
                 let image_buffer = image.to_rgba8();
                 let pixels = image_buffer.as_flat_samples();
                 let color = egui::ColorImage::from_rgba_unmultiplied(
                     size,
                     pixels.as_slice());
-                let retained = RetainedImage::from_color_image("asad", color);
+                let retained = RetainedImage::from_color_image("", color);
                 cached_release.cover_image = Some(retained);
             }
             cached_release.release = release;
             releases.push(cached_release);
         }
+
+        // sort the releases
+        releases.sort_by(|a, b| {
+            a.release.title.cmp(&b.release.title)
+        });
+
         return Self {
             query_string: String::from(""),
             releases: releases,
