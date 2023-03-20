@@ -18,3 +18,5 @@ ehttp = "0.2.0"
 #sunk = "0.1.2"
 sunk = { path = "lib/sunk" }
 config = "0.13.3"
+threadpool = "1.8.1"
+crossbeam = { version = "0.8.2", features = ["crossbeam-channel"] }

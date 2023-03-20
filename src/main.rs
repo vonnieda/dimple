@@ -1,7 +1,7 @@
 use eframe::egui::{self, Grid, ImageButton, Link, Response, ScrollArea, TextEdit, Ui};
 use eframe::epaint::{FontFamily, FontId};
-use music_library::example::ExampleMusicLibrary;
-use music_library::{MusicLibrary, Release};
+// use music_library::example::ExampleMusicLibrary;
+use music_library::{MusicLibrary, Release, EmptyMusicLibrary};
 use music_library::navidrome::NavidromeMusicLibrary;
 mod music_library;
 use config::{Config, File, FileFormat};
@@ -33,23 +33,24 @@ struct App {
 
 impl Default for App {
     fn default() -> Self {
-        let mut builder = Config::builder()
+        let builder = Config::builder()
             .add_source(File::new("config", FileFormat::Toml));
     
         if let Ok(config) = builder.build() {
             // TODO this is all trash
+            let library = NavidromeMusicLibrary::new(
+                config.get_string("navidrome.site").unwrap().as_str(),
+                config.get_string("navidrome.username").unwrap().as_str(),
+                config.get_string("navidrome.password").unwrap().as_str());
             return Self {
                 query_string: String::from(""),
-                music_library: Box::new(NavidromeMusicLibrary::new(
-                    config.get_string("navidrome.site").unwrap().as_str(),
-                    config.get_string("navidrome.username").unwrap().as_str(),
-                    config.get_string("navidrome.password").unwrap().as_str())),
+                music_library: Box::new(library),
             }
         }
         else {
             return Self {
                 query_string: String::from(""),
-                music_library: Box::new(ExampleMusicLibrary::new()),
+                music_library: Box::new(EmptyMusicLibrary::default()),
             }
         }
     }
@@ -62,7 +63,7 @@ impl eframe::App for App {
             ui.vertical(|ui| {
                 search_bar(&mut self.query_string, ui);
                 ui.add_space(16.0);
-                release_grid(self.music_library.releases(), ctx, ui);
+                release_grid(&self.music_library.releases(), ui);
             });
         });
     }
@@ -81,7 +82,7 @@ fn search_bar(query_string: &mut String, ui: &mut Ui) -> Response {
     .response
 }
 
-fn release_grid(releases: &[Release], ctx: &egui::Context, ui: &mut Ui) {
+fn release_grid(releases: &Vec<Release>, ui: &mut Ui) {
     let num_columns = 6;
     // TODO use show_rows to improve performance. I 
     // tried previously and I couldn't get the rendering right.
@@ -91,7 +92,7 @@ fn release_grid(releases: &[Release], ctx: &egui::Context, ui: &mut Ui) {
             .spacing(egui::vec2(16.0, 16.0))
             .show(ui, |ui| {
                 for (i, release) in releases.iter().enumerate() {
-                    release_card(&release, ctx, ui);
+                    release_card(&release, ui);
                     if i % num_columns == num_columns - 1 {
                         ui.end_row();
                     }
@@ -100,19 +101,25 @@ fn release_grid(releases: &[Release], ctx: &egui::Context, ui: &mut Ui) {
     });
 }
 
-fn release_card(release: &Release, ctx: &egui::Context, ui: &mut Ui) -> Response {
+fn release_card(release: &Release, ui: &mut Ui) -> Response {
     ui.vertical(|ui| {
-        if let Some(cover_image) = &release.cover_image {
-            ui.add(ImageButton::new(cover_image.texture_id(ctx), egui::vec2(200.0, 200.0)));
-        }
+        // if let Some(cover_image) = release.cover_image {
+        //     ui.add(ImageButton::new(cover_image.texture_id(ctx), egui::vec2(200.0, 200.0)));
+        // }
         // else {
-            // TODO default image
+        // TODO default image - I wasn't sure if I wanted it here, or wanted to
+        // guarantee the release always had one, but I think it's better to
+        // leave it out, cause then we can have a generic release one we show
+        // here but if the provider wants to include a more specific generic
+        // image that's fine too
         //     ui.add()
         // }
         ui.add_space(8.0);
         ui.add(Link::new(&release.title));
-        ui.add_space(2.0);
-        ui.add(Link::new(&release.artist));
+        if let Some(artist) = &release.artist {
+            ui.add_space(2.0);
+            ui.add(Link::new(artist));
+            }
     })
     .response
 }
