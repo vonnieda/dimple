@@ -27,9 +27,9 @@ use super::Release;
 // It's about 19MB vs. 500MB
 // Also, I bet if those loaded on the thread pool it would be super fast.
 // Used mogrify -resize 200x *.png to resize
-// const CACHE_DIR: &str = "art/cache/navidrome/50x"; // 94ms
+const CACHE_DIR: &str = "art/cache/navidrome/50x"; // 94ms
 // const CACHE_DIR: &str = "art/cache/navidrome/100x"; // 130ms
-const CACHE_DIR: &str = "art/cache/navidrome/200x"; // 211ms
+// const CACHE_DIR: &str = "art/cache/navidrome/200x"; // 211ms
 // const CACHE_DIR: &str = "art/cache/navidrome/original"; // 1400ms
 
 #[derive(Default)]
