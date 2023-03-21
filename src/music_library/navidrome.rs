@@ -12,7 +12,7 @@
 // heavy, that the main program DOES need to do the caching and I need
 // to make the libraries support that.
 
-use std::{fs, sync::mpsc::{channel, Sender, Receiver}, ops::Deref, time::Instant};
+use std::{fs, sync::mpsc::{channel, Sender, Receiver}, time::Instant};
 
 use image::DynamicImage;
 use sunk::{search::SearchPage, Album, Client, ListType, Media};
@@ -27,10 +27,10 @@ use super::Release;
 // It's about 19MB vs. 500MB
 // Also, I bet if those loaded on the thread pool it would be super fast.
 // Used mogrify -resize 200x *.png to resize
-const CACHE_DIR: &str = "art/cache/navidrome/50x"; // 94ms
+// const CACHE_DIR: &str = "art/cache/navidrome/50x"; // 94ms
 // const CACHE_DIR: &str = "art/cache/navidrome/100x"; // 130ms
 // const CACHE_DIR: &str = "art/cache/navidrome/200x"; // 211ms
-// const CACHE_DIR: &str = "art/cache/navidrome/original"; // 1400ms
+const CACHE_DIR: &str = "data/navidrome/images/original"; // 1400ms
 
 #[derive(Default)]
 pub struct NavidromeMusicLibrary {
@@ -48,13 +48,13 @@ impl NavidromeMusicLibrary {
         }
     }
 
-    fn new_client(self: &Self) -> Result<Client, sunk::Error> {
-        sunk::Client::new(
-            self.site.as_str(),
-            self.username.as_str(),
-            self.password.as_str(),
-        )
-    }
+    // fn new_client(self: &Self) -> Result<Client, sunk::Error> {
+    //     sunk::Client::new(
+    //         self.site.as_str(),
+    //         self.username.as_str(),
+    //         self.password.as_str(),
+    //     )
+    // }
 
     fn new_client_info(self: &Self) -> ClientInfo {
         ClientInfo {
@@ -107,17 +107,17 @@ fn albums_to_releases(albums: &Vec<Album>, client_info: &ClientInfo) -> Vec<Rele
 
             if let Ok(client) = client {
                 let release = Release {
+                    id: album.id_string.clone(),
                     title: album.name.clone(),
                     artist: album.artist.clone(),
                     cover_image: get_image(&album, &client),
                 };
-                tx.send(release);
+                tx.send(release).unwrap();
             }        
         });
     }
     let start = Instant::now();
     thread_pool.join();
-    println!("Loaded images in {}ms", start.elapsed().as_millis());
     // TODO Refactor messy
     let mut releases = Vec::new();
     loop {
@@ -197,11 +197,17 @@ fn get_all_albums(client: &Client) -> Result<Vec<Album>, sunk::Error> {
         count: 500,
         offset: 0,
     };
-    let mut albums = get_albums(page.count, page.offset, client)?;
-    while albums.len() >= page.count {
-        all_albums.extend(albums);
-        page.offset += page.count;
-        albums = get_albums(page.count, page.offset, client)?;
+    loop {
+        if let Ok(albums) = get_albums(page.count, page.offset, client) {
+            if albums.len() == 0 {
+                break;
+            }
+            all_albums.extend(albums);
+            page.offset += page.count;
+        }
+        else {
+            break;
+        }
     }
     Ok(all_albums)
 }

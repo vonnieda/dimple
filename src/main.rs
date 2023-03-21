@@ -1,16 +1,16 @@
-use eframe::egui::{self, Grid, ImageButton, Link, Response, ScrollArea, TextEdit, Ui, Context, ProgressBar, Slider};
-use eframe::epaint::{FontFamily, FontId, Rect};
+use eframe::egui::{self, Grid, ImageButton, Link, Response, ScrollArea, TextEdit, Ui, Context};
+use eframe::epaint::{FontFamily, FontId};
 use egui_extras::RetainedImage;
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use image::DynamicImage;
+use music_library::local::LocalMusicLibrary;
 use music_library::{MusicLibrary, Release, EmptyMusicLibrary};
 use music_library::navidrome::NavidromeMusicLibrary;
 mod music_library;
 use config::{Config, File, FileFormat};
 
-// TODO go through https://github.com/catppuccin/egui/blob/main/examples/todo.rs
-// for ideas.
+// TODO go through https://github.com/catppuccin/egui/blob/main/examples/todo.rs for ideas.
 // TODO make grid full width
 // TODO make number of columns adapt to window width and tile size
 // TODO tile size slider
@@ -18,6 +18,9 @@ use config::{Config, File, FileFormat};
 // TODO how to load a custom font and use it globally https://github.com/catppuccin/egui/blob/main/examples/todo.rs#L77
 // TODO info on how to do something on first frame: https://github.com/emilk/eframe_template/blob/master/src/app.rs#L24
 // TODO escape should clear search
+// TODO Continuous updates when downloading and loading libraries
+
+
 
 fn main() {
     let native_options = eframe::NativeOptions {
@@ -31,6 +34,11 @@ fn main() {
     )
     .expect("eframe: pardon me, but no thank you");
 }
+
+// trait Card {
+//     id: String,
+
+// }
 
 #[derive(Default)]
 struct CachedRelease {
@@ -48,26 +56,41 @@ impl Default for App {
         // load config
         let builder = Config::builder()
             .add_source(File::new("config", FileFormat::Toml));
-    
-        // load a music library
-        let music_library:Box<dyn MusicLibrary> = match builder.build() {
-            Ok(config) => {
-                Box::new(NavidromeMusicLibrary::new(
-                    config.get_string("navidrome.site").unwrap().as_str(),
-                    config.get_string("navidrome.username").unwrap().as_str(),
-                    config.get_string("navidrome.password").unwrap().as_str()))
-            },
-            Err(_) => {
-                Box::new(EmptyMusicLibrary::default())
-            }
-        };
+
+        // load the local music library
+        println!("Loading local library");
+        let local_library = LocalMusicLibrary::new("data/library");
+        let local_releases = local_library.releases();
+        println!("Local library contains {} releases", local_releases.len());
+
+        // // load a remote music library
+        // let remote_library:Box<dyn MusicLibrary> = match builder.build() {
+        //     Ok(config) => {
+        //         Box::new(NavidromeMusicLibrary::new(
+        //             config.get_string("navidrome.site").unwrap().as_str(),
+        //             config.get_string("navidrome.username").unwrap().as_str(),
+        //             config.get_string("navidrome.password").unwrap().as_str()))
+        //     },
+        //     Err(_) => {
+        //         Box::new(EmptyMusicLibrary::default())
+        //     }
+        // };
+        // let releases = remote_library.releases();
+        // println!("Remote library contains {} releases", releases.len());
+
+        // // merge all the remote releases into the local
+        // for (i, release) in releases.iter().enumerate() {
+        //     println!("Merging {}/{}: {}", i + 1, releases.len(), release.title);
+        //     local_library.merge_release(&release).expect("merge error");
+        // }        
 
         // collect the releases from the music library
         // TODO parallelize the textures, although I think it might all
         // happen on the first frame, in which case we could still do it
         // somehow. Or just do whatever RetainedImage does.
+        println!("Loading releases");
         let mut releases = Vec::new();
-        for release in music_library.releases() {
+        for release in local_releases {
             let mut cached_release = CachedRelease::default();
             if let Some(image) = &release.cover_image {
                 cached_release.cover_image = Some(dynamic_to_retained("debug_name", &image));
@@ -77,34 +100,37 @@ impl Default for App {
         }
 
         // sort the releases
+        println!("Sorting releases");
         releases.sort_by(|a, b| {
-            a.release.title.cmp(&b.release.title)
+            if let Some(aa) = &a.release.artist {
+                if let Some(bb) = &b.release.artist {
+                    return aa.to_uppercase().cmp(&bb.to_uppercase());
+                }    
+            }
+            a.release.title.to_uppercase().cmp(&b.release.title.to_uppercase())
         });
 
         // off we go
+        println!("Done");
         return Self {
             query_string: String::from(""),
-            releases: releases,
+            releases,
         };
     }
 }
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
+        // catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
         
-        ctx.set_debug_on_hover(true);
+        // ctx.set_debug_on_hover(true);
 
         egui::TopBottomPanel::top("search_bar").show(ctx, |ui| {
-            ui.add_space(12.0);
             search_bar(&mut self.query_string, ui);
-            ui.add_space(4.0);
         });
 
         egui::TopBottomPanel::bottom("player").show(ctx, |ui| {
-            ui.add_space(4.0);
-            player_bar(&self.releases[1], ctx, ui);
-            ui.add_space(4.0);
+            player_bar(&self.releases[259], ctx, ui);
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -124,8 +150,29 @@ impl eframe::App for App {
                     ).is_some();
                 })
                 .collect();
-            release_grid(&releases, ctx, ui);
+            release_grid(&releases, ctx, ui)
         });
+
+        // egui::Window::new("🔧 Settings")
+        //     // .open(settings)
+        //     .vscroll(true)
+        //     .show(ctx, |ui| {
+        //         ctx.settings_ui(ui);
+        //     });
+
+        // egui::Window::new("🔍 Inspection")
+        //     // .open(inspection)
+        //     .vscroll(true)
+        //     .show(ctx, |ui| {
+        //         ctx.inspection_ui(ui);
+        //     });
+
+        // egui::Window::new("📝 Memory")
+        //     // .open(memory)
+        //     .resizable(false)
+        //     .show(ctx, |ui| {
+        //         ctx.memory_ui(ui);
+        //     });
     }
 }
 
@@ -144,9 +191,7 @@ fn search_bar(query_string: &mut String, ui: &mut Ui) -> Response {
 
 fn player_bar(release: &CachedRelease, ctx: &Context, ui: &mut Ui) -> Response {
     ui.vertical(|ui| {
-        ui.add_space(4.0);
         ui.horizontal(|ui| {
-            ui.add_space(4.0);
             if let Some(cover_image) = &release.cover_image {
                 let button = ImageButton::new(
                     cover_image.texture_id(ctx), 
@@ -162,7 +207,6 @@ fn player_bar(release: &CachedRelease, ctx: &Context, ui: &mut Ui) -> Response {
                 slider_scrubber(release, ctx, ui);
             });
             up_next(release, ctx, ui);
-            ui.add_space(4.0);
         })    
     })
     .response
@@ -188,23 +232,26 @@ fn release_grid(releases: &Vec<&CachedRelease>, ctx: &Context, ui: &mut Ui) {
     // Oh, a hint, might also need Grid::show_rows
 
     ui.vertical_centered_justified(|ui| {
+        ui.spacing_mut().scroll_bar_width = 24.0;
+        ui.spacing_mut().scroll_handle_min_length = 24.0;
+        ui.spacing_mut().scroll_bar_outer_margin = 16.0;
+        ui.spacing_mut().scroll_bar_inner_margin = 16.0;
+
         ScrollArea::vertical()
-        // .auto_shrink([false, false])
-        .show(ui, |ui| {
-            ui.vertical_centered_justified(|ui| {
-                Grid::new("release_grid")
-                // .num_columns(num_columns)
-                .spacing(egui::vec2(16.0, 16.0))
-                .show(ui, |ui| {
-                    for (i, release) in releases.iter().enumerate() {
-                        release_card(&release, ctx, ui);
-                        if i % num_columns == num_columns - 1 {
-                            ui.end_row();
+            .show(ui, |ui| {
+                ui.vertical_centered_justified(|ui| {
+                    Grid::new("release_grid")
+                    .spacing(egui::vec2(16.0, 16.0))
+                    .show(ui, |ui| {
+                        for (i, release) in releases.iter().enumerate() {
+                            release_card(&release, ctx, ui);
+                            if i % num_columns == num_columns - 1 {
+                                ui.end_row();
+                            }
                         }
-                    }
+                    });
                 });
             });
-        });
     });
 }
 
@@ -219,12 +266,10 @@ fn up_next(release: &CachedRelease, ctx: &Context, ui: &mut Ui) -> Response {
             ui.add(button);
         }
         // TODO default image
-        ui.add_space(4.0);
         ui.add(Link::new(&release.release.title));
         if let Some(artist) = &release.release.artist {
-            // ui.add_space(2.0);
             ui.add(Link::new(artist));
-            }
+        }
     })
     .response
 }
@@ -238,10 +283,8 @@ fn release_card(release: &CachedRelease, ctx: &Context, ui: &mut Ui) -> Response
             ui.add(button);
         }
         // TODO default image
-        ui.add_space(8.0);
         ui.add(Link::new(&release.release.title));
         if let Some(artist) = &release.release.artist {
-            ui.add_space(2.0);
             ui.add(Link::new(artist));
             }
     })
