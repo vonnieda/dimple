@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use eframe::egui::{self, Grid, ImageButton, Link, Response, ScrollArea, TextEdit, Ui, Context};
 use eframe::epaint::{FontFamily, FontId, ColorImage};
 use egui_extras::RetainedImage;
@@ -35,7 +37,8 @@ struct Card {
 impl Default for Card {
     fn default() -> Self {
         Self { 
-            image: RetainedImage::from_color_image("default", ColorImage::example()),
+            image: RetainedImage::from_color_image("default", 
+                ColorImage::example()),
             title: Default::default(), 
             subtitle: Default::default() 
         }
@@ -51,35 +54,50 @@ struct App {
 
 impl Default for App {
     fn default() -> Self {
-        // load the local music library
+        // Load the local library
         println!("Loading local library");
         let library = LocalMusicLibrary::new("data/library");
         let releases = library.releases();
         println!("Local library contains {} releases", releases.len());
 
-        // collect the releases from the music library
+        // Convert all the releases into Cards
         println!("Releases -> Cards");
         let mut cards = Vec::new();
+        let mut artists: HashSet<String> = HashSet::new();
+        let mut genres: HashSet<String> = HashSet::new();
         for release in releases {
             let image = match release.cover_image {
                 Some(image) => image,
-                None => create_release_image(&release),
+                None => generate_release_image(&release),
             };
             let card = Card {
                 title: release.title.clone(),
                 subtitle: release.artist.unwrap_or(String::from("")),
                 image: dynamic_to_retained(&release.title, &image),
             };
+
+            artists.insert(card.subtitle.clone());
+            // genres.insert(card..clone());
+
             cards.push(card);
         }
 
-        // sort the cards
+        // Add some derived Cards
+        for artist in artists {
+            cards.push(Card {
+                title: artist.clone(),
+                subtitle: artist.clone(),
+                ..Default::default()
+            });
+        }
+
+        // Sort the cards
         println!("Sorting Cards");
         cards.sort_by(|a, b| {
             a.subtitle.to_uppercase().cmp(&b.subtitle.to_uppercase())
         });
 
-        // off we go
+        // Go!
         println!("Done");
         return Self {
             query_string: String::from(""),
@@ -209,7 +227,6 @@ impl eframe::App for App {
     }
 }
 
-
 fn dynamic_to_retained(debug_name: &str, image: &DynamicImage) -> RetainedImage {
     let size = [image.width() as _, image.height() as _];
     let image_buffer = image.to_rgba8();
@@ -224,9 +241,22 @@ fn dynamic_to_retained(debug_name: &str, image: &DynamicImage) -> RetainedImage 
 // TODO it would be fun to generate a cool artwork for the release
 // based on maybe a similar function that generates artwork for a genre
 // like use the genre as a background for a stylized title or something
-fn create_release_image(_release: &Release) -> DynamicImage {
+fn generate_release_image(_release: &Release) -> DynamicImage {
     DynamicImage::new_rgba8(200, 200)
 }
+
+fn generate_artist_image(artist: &str) -> DynamicImage {
+    DynamicImage::new_rgba8(200, 200)
+}
+
+// impl From<&Release> for DynamicImage {
+//     fn from(value: &Release) -> Self {
+//         // TODO whoa, cool. From, maybe, is great?
+//         // So check if the release has a cover image and if not generate
+//         // a default one?
+//         DynamicImage::new_rgba8(200, 200)
+//     }
+// }
 
 
         // load config
