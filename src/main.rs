@@ -20,8 +20,6 @@ use config::{Config, File, FileFormat};
 // TODO escape should clear search
 // TODO Continuous updates when downloading and loading libraries
 
-
-
 fn main() {
     let native_options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(1440.0, 1024.0)),
@@ -58,6 +56,8 @@ impl Default for App {
             .add_source(File::new("config", FileFormat::Toml));
 
         // load the local music library
+        // TODO i wonder if it would be more Rusty if I return an iterator so
+        // I only download / load the stuff the consumer actually grabs?
         println!("Loading local library");
         let local_library = LocalMusicLibrary::new("data/library");
         let local_releases = local_library.releases();

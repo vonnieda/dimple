@@ -116,7 +116,6 @@ fn albums_to_releases(albums: &Vec<Album>, client_info: &ClientInfo) -> Vec<Rele
             }        
         });
     }
-    let start = Instant::now();
     thread_pool.join();
     // TODO Refactor messy
     let mut releases = Vec::new();

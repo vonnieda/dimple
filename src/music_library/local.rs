@@ -9,6 +9,13 @@ use serde::{Deserialize, Serialize};
 /// This music library is how the app stores its local cache of all other
 /// libraries and for that reason it is considered the reference implementation.
 
+// TODO think about storing the images apart from the releases so that I can
+// load images lazy, on a threadpool, and at different sizes.  Sled will make
+// it super easy to cache at different sizes.
+
+// TODO actually, now that I think of it... I should just use Sled for the
+// image stuff in general. It seems to be working great.
+
 use crate::MusicLibrary;
 
 use super::Release;
