@@ -1,14 +1,13 @@
-use std::io::Cursor;
-
-use image::{ImageOutputFormat, DynamicImage, imageops::FilterType};
-use serde::{Deserialize, Serialize};
-use sled::Tree;
-
-/// A local music library living in a directory. Stores metadata in TBD
-/// and media (art and music) in TBD. Currently exploring Sled.
-/// 
+/// A local music library living in a directory. Stores data with Sled.
+///
 /// This music library is how the app stores its local cache of all other
 /// libraries and for that reason it is considered the reference implementation.
+use std::io::Cursor;
+
+use image::{imageops::FilterType, DynamicImage, ImageOutputFormat};
+use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
+use sled::Tree;
 
 use crate::MusicLibrary;
 
@@ -23,40 +22,40 @@ impl LocalMusicLibrary {
     pub fn new(path: &str) -> Self {
         let db = sled::open(path).unwrap();
         let images = ImageCache::new(db.open_tree("images").unwrap());
-        Self {
-            db,
-            images,
-        }
+        Self { db, images }
     }
 }
 
 impl MusicLibrary for LocalMusicLibrary {
     fn releases(self: &Self) -> Vec<Release> {
-        if let Ok(releases) = self.db.open_tree("releases") {
-            let mut results = Vec::new();
-            for release in releases.iter() {
-                // Grab the serialized data
-                let (_key, bin) = release.unwrap();
+        let internal_releases: Vec<InternalRelease> = self
+            .db
+            .open_tree("releases")
+            .unwrap()
+            .iter()
+            .map(|kv| {
+                let (_key, bin) = kv.unwrap();
+                bincode::deserialize(&bin[..]).unwrap()
+            })
+            .collect();
 
-                // Deserialize
-                let internal: InternalRelease = bincode::deserialize(&bin[..]).unwrap();
+        // TODO I think this can be done further in parallel by doing the
+        // deserialization here.
+        let releases: Vec<Release> = internal_releases
+            .par_iter()
+            .map(|internal_release| Release {
+                id: internal_release.id.clone(),
+                title: internal_release.title.clone(),
+                artist: internal_release.artist.clone(),
+                cover_image: self.images.get(&internal_release.id, 200, 200),
+                genre: internal_release.genre.clone(),
+            })
+            .collect();
 
-                // Create release from InternalRelease and pull in image.
-                let release = Release {
-                    id: internal.id.clone(),
-                    title: internal.title.clone(),
-                    artist: internal.artist.clone(),
-                    cover_image: self.images.get(&internal.id, 200, 200),
-                    genre: internal.genre,
-                };
-                results.push(release);
-            }
-            return results;
-        }
-        
-        Vec::new()
+        releases
     }
 
+    // TODO change this to merge_releases and I can use Rayon here.
     fn merge_release(self: &Self, release: &Release) -> Result<Release, String> {
         if let Ok(releases) = self.db.open_tree("releases") {
             // Store the original cover image
@@ -66,7 +65,7 @@ impl MusicLibrary for LocalMusicLibrary {
             }
 
             // Create a serializable release
-            let internal:InternalRelease = InternalRelease::from(release);
+            let internal: InternalRelease = InternalRelease::from(release);
 
             // Store the release
             if let Ok(bin) = bincode::serialize(&internal) {
@@ -106,13 +105,11 @@ pub struct ImageCache {
 
 impl ImageCache {
     fn new(tree: Tree) -> Self {
-        Self {
-            tree,
-        }
+        Self { tree }
     }
 
     /// Stores an image in the cache, making it available for fast retrieval
-    /// at any size. 
+    /// at any size.
     pub fn insert(self: &Self, id: &str, image: &DynamicImage) {
         // TODO note this will also need to rescale, or better, delete all
         // the previously scaled ones for the same id.
@@ -121,7 +118,7 @@ impl ImageCache {
 
     /// Get an image from the cache, scaled to the given size. If the image
     /// does not exist at that size the original is scaled. If there is no
-    /// original for the id None is returned. 
+    /// original for the id None is returned.
     pub fn get(self: &Self, id: &str, width: u32, height: u32) -> Option<DynamicImage> {
         let scaled_id = format!("{}:{}x{}", id, width, height);
         if let Some(scaled) = self._get(&scaled_id) {
@@ -137,7 +134,10 @@ impl ImageCache {
 
     fn _set(self: &Self, key: &str, image: &DynamicImage) {
         let mut bytes = Vec::new();
-        if image.write_to(&mut Cursor::new(&mut bytes), ImageOutputFormat::Png).is_ok() {
+        if image
+            .write_to(&mut Cursor::new(&mut bytes), ImageOutputFormat::Png)
+            .is_ok()
+        {
             self.tree.insert(key, bytes).unwrap();
         }
     }
@@ -153,3 +153,38 @@ impl ImageCache {
         None
     }
 }
+
+// if let Ok(releases) = self.db.open_tree("releases") {
+//     for kv in releases.iter() {
+//         let (_key, value) = kv.unwrap();
+//     }
+// }
+//     let mut results = Vec::new();
+//     results.extend(releases.iter());
+//     results = results.par_iter().map(|release| {
+//         release
+//     }).collect();
+
+//     for release in releases.iter() {
+//         // Grab the serialized data
+//         let (_key, bin) = release.unwrap();
+
+//         // Deserialize
+//         // TODO error checking
+//         let internal: InternalRelease = bincode::deserialize(&bin[..]).unwrap();
+
+//         // Create release from InternalRelease and pull in image.
+//         let release = Release {
+//             id: internal.id.clone(),
+//             title: internal.title.clone(),
+//             artist: internal.artist.clone(),
+//             cover_image: self.images.get(&internal.id, 200, 200),
+//             genre: internal.genre,
+//         };
+//         results.push(release);
+//     }
+//     return results;
+
+// }
+
+// Vec::new()

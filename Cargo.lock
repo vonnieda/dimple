@@ -857,6 +857,7 @@ dependencies = [
  "egui_extras",
  "fuzzy-matcher",
  "image",
+ "rayon",
  "serde",
  "sled",
  "sunk",

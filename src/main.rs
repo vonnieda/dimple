@@ -1,18 +1,23 @@
 use std::collections::HashSet;
+use std::sync::Mutex;
+use std::thread;
 
 use config::{Config, File, FileFormat};
-use eframe::egui::{self, Grid, ImageButton, Link, Response, ScrollArea, TextEdit, Ui, Context};
-use eframe::epaint::{FontFamily, FontId, ColorImage};
+use eframe::egui::{self, Context, Grid, ImageButton, Link, Response, ScrollArea, TextEdit, Ui};
+use eframe::epaint::{ColorImage, FontFamily, FontId};
+use eframe::glow::INTERNALFORMAT_ALPHA_TYPE;
 use egui_extras::RetainedImage;
-use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use image::DynamicImage;
 use music_library::local::LocalMusicLibrary;
 use music_library::{MusicLibrary, Release};
 
-use crate::music_library::EmptyMusicLibrary;
 use crate::music_library::navidrome::NavidromeMusicLibrary;
+use crate::music_library::EmptyMusicLibrary;
 mod music_library;
+
+use rayon::prelude::*;
 
 // TODO make grid full width
 // TODO make number of columns adapt to window width and tile size
@@ -24,159 +29,85 @@ mod music_library;
 // TODO Continuous updates when downloading and loading libraries
 // TODO search is sensitive to word order, i.e. infected shawarma vs. shawarma infected
 // TODO parallelize the textures, although I think it might all happen on the
-// first frame, in which case we could still do it somehow. Or just do whatever 
+// first frame, in which case we could still do it somehow. Or just do whatever
 // RetainedImage does.
 
-
-// TODO someday this is a Trait that lays it's own UI out so that we can have
-// more than just title and subtitle.
-struct Card {
-    // TODO id?
-    // TODO reference to object
-    image: RetainedImage,
-    title: String,
-    subtitle: String,
+fn main() {
+    let native_options = eframe::NativeOptions {
+        initial_window_size: Some(egui::vec2(1440.0, 1024.0)),
+        ..Default::default()
+    };
+    eframe::run_native(
+        "Music",
+        native_options,
+        Box::new(|_cc| Box::new(App::default())),
+    )
+    .expect("eframe: pardon me, but no thank you");
 }
-
-impl Default for Card {
-    fn default() -> Self {
-        Self { 
-            image: RetainedImage::from_color_image("default", 
-                ColorImage::example()),
-            title: Default::default(), 
-            subtitle: Default::default() 
-        }
-    }
-}
-
 struct App {
     query_string: String,
-    cards: Vec<Card>,
+    cards: Mutex<Vec<Card>>,
     now_playing: Card,
     up_next: Card,
 }
 
+impl eframe::App for App {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
+
+        // egui::Window::new("🔧 Settings")
+        //     .vscroll(true)
+        //     .show(ctx, |ui| {
+        //         ctx.settings_ui(ui);
+        //     });
+
+        self.browser(ctx);
+    }
+}
+
 impl Default for App {
     fn default() -> Self {
-        // Load the local library
-        println!("Loading local library");
-        let library = LocalMusicLibrary::new("data/library");
-        println!("Scanning");
-        let releases = library.releases();
-        println!("Local library contains {} releases", releases.len());
-
-        // // load config
-        // let builder = Config::builder()
-        //     .add_source(File::new("config", FileFormat::Toml));
-
-        // // load a remote music library
-        // let remote_library:Box<dyn MusicLibrary> = match builder.build() {
-        //     Ok(config) => {
-        //         Box::new(NavidromeMusicLibrary::new(
-        //             config.get_string("navidrome.site").unwrap().as_str(),
-        //             config.get_string("navidrome.username").unwrap().as_str(),
-        //             config.get_string("navidrome.password").unwrap().as_str()))
-        //     },
-        //     Err(_) => {
-        //         Box::new(EmptyMusicLibrary::default())
-        //     }
-        // };
-        // println!("Loading remote library");
-        // let releases = remote_library.releases();
-        // println!("Remote library contains {} releases", releases.len());
-
-        // // merge all the remote releases into the local
-        // for (i, release) in releases.iter().enumerate() {
-        //     println!("Merging {}/{}: {}", i + 1, releases.len(), release.title);
-        //     library.merge_release(&release).expect("merge error");
-        // }        
-        // let releases = library.releases();
-        // println!("Local library now contains {} releases", releases.len());
-
-        // Convert all the releases into Cards
-        println!("Convert Releases to Cards");
-        let mut cards = Vec::new();
-        let mut artists: HashSet<String> = HashSet::new();
-        let mut genres: HashSet<String> = HashSet::new();
-        for release in releases {
-            let image = match release.cover_image {
-                Some(image) => image,
-                None => generate_release_image(&release),
-            };
-            let card = Card {
-                title: release.title.clone(),
-                subtitle: release.artist.clone().unwrap_or(String::from("")),
-                image: dynamic_to_retained(&release.title, &image),
-            };
-
-            if let Some(artist) = &release.artist {
-                artists.insert(artist.clone());
-            }
-            if let Some(genre) = &release.genre {
-                genres.insert(genre.clone());
-            }
-
-            cards.push(card);
-        }
-
-        // Add some derived Cards
-        println!("Generate Artist Cards");
-        for artist in artists {
-            cards.push(Card {
-                title: "Artist".to_string(),
-                subtitle: artist.clone(),
-                ..Default::default()
-            });
-        }
-        println!("Generate Genre Cards");
-        for genre in genres {
-            cards.push(Card {
-                title: "Genre".to_string(),
-                subtitle: genre.clone(),
-                ..Default::default()
-            });
-        }
-
-        // Sort the cards
-        println!("Sorting Cards");
-        cards.sort_by(|a, b| {
-            a.subtitle.to_uppercase().cmp(&b.subtitle.to_uppercase())
-        });
-
-        // Go!
-        println!("Done");
-        return Self {
-            query_string: String::from(""),
-            cards,
+        let mut app = Self {
+            query_string: Default::default(),
+            cards: Default::default(),
             now_playing: Default::default(),
             up_next: Default::default(),
         };
+
+        app.load_local_library();
+
+        app
     }
 }
 
 impl App {
     fn browser(self: &mut Self, ctx: &Context) {
         egui::TopBottomPanel::top("search_bar").show(ctx, |ui| {
+            ui.add_space(8.0);
             self.search_bar(ui);
+            ui.add_space(8.0);
         });
 
         egui::TopBottomPanel::bottom("player").show(ctx, |ui| {
             self.player_bar(ctx, ui);
+            ui.add_space(8.0);
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let matcher = SkimMatcherV2::default();
-            let cards: Vec<&Card> = self.cards
-                .iter()
-                .filter(|card| {
-                    let haystack = card.title.clone() + " " + &card.subtitle;
-                    return matcher.fuzzy_match(
-                        haystack.as_str(), 
-                        &self.query_string
-                    ).is_some();
-                })
-                .collect();
-            self.card_grid(&cards, ctx, ui)
+            if let Ok(cards) = self.cards.lock() {
+                let matcher = SkimMatcherV2::default();
+                // TODO just do this when search changes, not every frame
+                let cards: Vec<&Card> = cards
+                    .iter()
+                    .filter(|card| {
+                        let haystack = card.title.clone() + " " + &card.subtitle;
+                        return matcher
+                            .fuzzy_match(haystack.as_str(), &self.query_string)
+                            .is_some();
+                    })
+                    .collect();
+                self.card_grid(&cards, ctx, ui);
+            }
         });
     }
 
@@ -196,47 +127,59 @@ impl App {
     fn card_grid(self: &Self, cards: &Vec<&Card>, ctx: &Context, ui: &mut Ui) -> Response {
         let num_columns = 6;
 
-        // TODO use ScrollArea::show_rows to improve performance. I 
+        // TODO use ScrollArea::show_rows to improve performance. I
         // tried previously and I couldn't get the rendering right.
         // Oh, a hint, might also need Grid::show_rows
         ui.vertical_centered_justified(|ui| {
             ui.spacing_mut().scroll_bar_width = 20.0;
-            ui.spacing_mut().scroll_handle_min_length = 28.0;
-            ui.spacing_mut().scroll_bar_outer_margin = 10.0;
-            ui.spacing_mut().scroll_bar_inner_margin = 10.0;
+            // ui.spacing_mut().scroll_handle_min_length = 28.0;
+            // ui.spacing_mut().scroll_bar_outer_margin = 10.0;
+            // ui.spacing_mut().scroll_bar_inner_margin = 10.0;
             ScrollArea::vertical().show(ui, |ui| {
                 ui.vertical_centered_justified(|ui| {
                     Grid::new("card_grid")
-                    .spacing(egui::vec2(16.0, 16.0))
-                    .show(ui, |ui| {
-                        for (i, card) in cards.iter().enumerate() {
-                            self.card(&card, 200.0, 200.0, ctx, ui);
-                            if i % num_columns == num_columns - 1 {
-                                ui.end_row();
+                        // .spacing(egui::vec2(16.0, 16.0))
+                        .show(ui, |ui| {
+                            for (i, card) in cards.iter().enumerate() {
+                                self.card(&card, 200.0, 200.0, ctx, ui);
+                                if i % num_columns == num_columns - 1 {
+                                    ui.end_row();
+                                }
                             }
-                        }
-                    });
+                        });
                 });
             });
-        }).response
+        })
+        .response
     }
-    
-    fn card(self: &Self, card: &Card, width: f32, height: f32, ctx: &Context, ui: &mut Ui) -> Response {
+
+    fn card(
+        self: &Self,
+        card: &Card,
+        width: f32,
+        height: f32,
+        ctx: &Context,
+        ui: &mut Ui,
+    ) -> Response {
         ui.vertical(|ui| {
-            ui.add(ImageButton::new(card.image.texture_id(ctx), 
-                egui::vec2(width, height)));
+            ui.add(ImageButton::new(
+                card.image.texture_id(ctx),
+                egui::vec2(width, height),
+            ));
             ui.add(Link::new(&card.title));
             ui.add(Link::new(&card.subtitle));
         })
         .response
     }
-    
+
     fn player_bar(self: &Self, ctx: &Context, ui: &mut Ui) -> Response {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 let np = &self.now_playing;
-                ui.add(ImageButton::new(np.image.texture_id(ctx), 
-                    egui::vec2(120.0, 120.0)));
+                ui.add(ImageButton::new(
+                    np.image.texture_id(ctx),
+                    egui::vec2(120.0, 120.0),
+                ));
                 ui.vertical(|ui| {
                     ui.link(&np.title);
                     ui.link(&np.subtitle);
@@ -244,32 +187,79 @@ impl App {
                     self.slider_scrubber(ctx, ui);
                 });
                 self.card(&self.up_next, 60.0, 60.0, ctx, ui);
-            })    
+            })
         })
         .response
     }
-    
+
     // fn visual_scrubber(release: &CachedRelease, ctx: &Context, ui: &mut Ui) -> Response {
     // }
-    
+
     fn slider_scrubber(self: &Self, ctx: &Context, ui: &mut Ui) -> Response {
-        // TODO magic
-        ui.spacing_mut().slider_width = 1000.0;
-        let mut my_f32:f32 = 0.33;
-        ui.add(egui::Slider::new(&mut my_f32, 0.0..=1.0)
-            .show_value(false)
-            .trailing_fill(true)
+        let mut my_f32: f32 = 0.33;
+        ui.add(
+            egui::Slider::new(&mut my_f32, 0.0..=1.0)
+                .show_value(false)
+                .trailing_fill(true),
         )
     }
-}
 
-impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
-        
-        // ctx.set_debug_on_hover(true);
+    fn load_local_library(self: &mut Self) {
+        let library = LocalMusicLibrary::new("data/library");
+        let releases = library.releases();
 
-        self.browser(ctx);
+        // Convert all the Releases to Cards
+        let cards: Vec<Card> = releases.par_iter()
+            .map(|release| {
+                self.card_from_release(&release)
+            })
+            .collect();
+        self.cards.lock().unwrap().extend(cards);
+
+        // Create artist and genre cards
+        let mut artists: HashSet<String> = HashSet::new();
+        let mut genres: HashSet<String> = HashSet::new();
+        for release in &releases {
+            if let Some(artist) = &release.artist {
+                artists.insert(artist.clone());
+            }
+
+            if let Some(genre) = &release.genre {
+                genres.insert(genre.clone());
+            }
+        }
+        for artist in artists {
+            self.cards.lock().unwrap().push(Card {
+                title: "Artist".to_string(),
+                subtitle: artist.clone(),
+                ..Default::default()
+            });
+        }
+        for genre in genres {
+            self.cards.lock().unwrap().push(Card {
+                title: "Genre".to_string(),
+                subtitle: genre.clone(),
+                ..Default::default()
+            });
+        }
+
+        // Sort the cards
+        self.cards
+            .lock()
+            .unwrap()
+            .sort_by(|a, b| a.subtitle.to_uppercase().cmp(&b.subtitle.to_uppercase()));
+    }
+
+    fn card_from_release(self: &Self, release: &Release) -> Card {
+        let image = match &release.cover_image {
+            Some(image) => image.clone(),
+            None => generate_release_image(&release),
+        };
+        Card {
+            title: release.title.clone(),
+            subtitle: release.artist.clone().unwrap_or_default(),
+            image: dynamic_to_retained(&release.title, &image),
+        }
     }
 }
 
@@ -277,11 +267,27 @@ fn dynamic_to_retained(debug_name: &str, image: &DynamicImage) -> RetainedImage 
     let size = [image.width() as _, image.height() as _];
     let image_buffer = image.to_rgba8();
     let pixels = image_buffer.as_flat_samples();
-    let color = egui::ColorImage::from_rgba_unmultiplied(
-        size,
-        pixels.as_slice());
+    let color = egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
     let retained = RetainedImage::from_color_image(debug_name, color);
     retained
+}
+
+struct Card {
+    // TODO id?
+    // TODO reference to object
+    image: RetainedImage,
+    title: String,
+    subtitle: String,
+}
+
+impl Default for Card {
+    fn default() -> Self {
+        Self {
+            image: RetainedImage::from_color_image("default", ColorImage::example()),
+            title: Default::default(),
+            subtitle: Default::default(),
+        }
+    }
 }
 
 struct RetainedImageButCool(RetainedImage);
@@ -303,76 +309,128 @@ fn generate_artist_image(artist: &str) -> DynamicImage {
     DynamicImage::new_rgba8(200, 200)
 }
 
-// impl From<&Release> for DynamicImage {
-//     fn from(value: &Release) -> Self {
-//         // TODO whoa, cool. From, maybe, is great?
-//         // So check if the release has a cover image and if not generate
-//         // a default one?
-//         DynamicImage::new_rgba8(200, 200)
+// egui::Window::new("🔧 Settings")
+//     // .open(settings)
+//     .vscroll(true)
+//     .show(ctx, |ui| {
+//         ctx.settings_ui(ui);
+//     });
+
+// egui::Window::new("🔍 Inspection")
+//     // .open(inspection)
+//     .vscroll(true)
+//     .show(ctx, |ui| {
+//         ctx.inspection_ui(ui);
+//     });
+
+// egui::Window::new("📝 Memory")
+//     // .open(memory)
+//     .resizable(false)
+//     .show(ctx, |ui| {
+//         ctx.memory_ui(ui);
+//     });
+
+// impl Default for App {
+// fn default() -> Self {
+//     return Self {
+//         query_string: String::from(""),
+//         cards,
+//         now_playing: Default::default(),
+//         up_next: Default::default(),
+//     };
+
+//     // Load the local library
+//     println!("Loading local library");
+//     let library = LocalMusicLibrary::new("data/library");
+
+//     // load config
+//     let builder = Config::builder()
+//         .add_source(File::new("config", FileFormat::Toml));
+
+//     if false {
+//         // load a remote music library
+//         let remote_library:Box<dyn MusicLibrary> = match builder.build() {
+//             Ok(config) => {
+//                 Box::new(NavidromeMusicLibrary::new(
+//                     config.get_string("navidrome.site").unwrap().as_str(),
+//                     config.get_string("navidrome.username").unwrap().as_str(),
+//                     config.get_string("navidrome.password").unwrap().as_str()))
+//             },
+//             Err(_) => {
+//                 Box::new(EmptyMusicLibrary::default())
+//             }
+//         };
+//         println!("Loading remote library");
+//         let releases = remote_library.releases();
+//         println!("Remote library contains {} releases", releases.len());
+
+//         // merge all the remote releases into the local
+//         for (i, release) in releases.iter().enumerate() {
+//             println!("Merging {}/{}: {}", i + 1, releases.len(), release.title);
+//             library.merge_release(&release).expect("merge error");
+//         }
 //     }
+
+//     let releases = library.releases();
+//     println!("Local library contains {} releases", releases.len());
+
+//     // Convert all the releases into Cards
+//     println!("Convert Releases to Cards");
+//     let mut cards = Vec::new();
+//     let mut artists: HashSet<String> = HashSet::new();
+//     let mut genres: HashSet<String> = HashSet::new();
+//     for release in releases {
+//         let image = match release.cover_image {
+//             Some(image) => image,
+//             None => generate_release_image(&release),
+//         };
+//         let card = Card {
+//             title: release.title.clone(),
+//             subtitle: release.artist.clone().unwrap_or(String::from("")),
+//             image: dynamic_to_retained(&release.title, &image),
+//         };
+
+//         if let Some(artist) = &release.artist {
+//             artists.insert(artist.clone());
+//         }
+//         if let Some(genre) = &release.genre {
+//             genres.insert(genre.clone());
+//         }
+
+//         cards.push(card);
+//     }
+
+//     // Add some derived Cards
+//     println!("Generate Artist Cards");
+//     for artist in artists {
+//         cards.push(Card {
+//             title: "Artist".to_string(),
+//             subtitle: artist.clone(),
+//             ..Default::default()
+//         });
+//     }
+//     println!("Generate Genre Cards");
+//     for genre in genres {
+//         cards.push(Card {
+//             title: "Genre".to_string(),
+//             subtitle: genre.clone(),
+//             ..Default::default()
+//         });
+//     }
+
+//     // Sort the cards
+//     println!("Sorting Cards");
+//     cards.sort_by(|a, b| {
+//         a.subtitle.to_uppercase().cmp(&b.subtitle.to_uppercase())
+//     });
+
+//     // Go!
+//     println!("Done");
+//     return Self {
+//         query_string: String::from(""),
+//         cards,
+//         now_playing: Default::default(),
+//         up_next: Default::default(),
+//     };
 // }
-
-
-        // load config
-        // let builder = Config::builder()
-        //     .add_source(File::new("config", FileFormat::Toml));
-
-
-        // // load a remote music library
-        // let remote_library:Box<dyn MusicLibrary> = match builder.build() {
-        //     Ok(config) => {
-        //         Box::new(NavidromeMusicLibrary::new(
-        //             config.get_string("navidrome.site").unwrap().as_str(),
-        //             config.get_string("navidrome.username").unwrap().as_str(),
-        //             config.get_string("navidrome.password").unwrap().as_str()))
-        //     },
-        //     Err(_) => {
-        //         Box::new(EmptyMusicLibrary::default())
-        //     }
-        // };
-        // let releases = remote_library.releases();
-        // println!("Remote library contains {} releases", releases.len());
-
-        // // merge all the remote releases into the local
-        // for (i, release) in releases.iter().enumerate() {
-        //     println!("Merging {}/{}: {}", i + 1, releases.len(), release.title);
-        //     local_library.merge_release(&release).expect("merge error");
-        // }        
-
-        // egui::Window::new("🔧 Settings")
-        //     // .open(settings)
-        //     .vscroll(true)
-        //     .show(ctx, |ui| {
-        //         ctx.settings_ui(ui);
-        //     });
-
-        // egui::Window::new("🔍 Inspection")
-        //     // .open(inspection)
-        //     .vscroll(true)
-        //     .show(ctx, |ui| {
-        //         ctx.inspection_ui(ui);
-        //     });
-
-        // egui::Window::new("📝 Memory")
-        //     // .open(memory)
-        //     .resizable(false)
-        //     .show(ctx, |ui| {
-        //         ctx.memory_ui(ui);
-        //     });
-
-
-
-fn main() {
-    let native_options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(1440.0, 1024.0)),
-        ..Default::default()
-    };
-    eframe::run_native(
-        "Music",
-        native_options,
-        Box::new(|_cc| Box::new(App::default())),
-    )
-    .expect("eframe: pardon me, but no thank you");
-}
-        
-        
+// }
