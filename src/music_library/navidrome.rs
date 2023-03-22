@@ -111,6 +111,7 @@ fn albums_to_releases(albums: &Vec<Album>, client_info: &ClientInfo) -> Vec<Rele
                     title: album.name.clone(),
                     artist: album.artist.clone(),
                     cover_image: get_image(&album, &client),
+                    genre: album.genre.clone(),
                 };
                 tx.send(release).unwrap();
             }        

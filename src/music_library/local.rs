@@ -44,6 +44,7 @@ impl MusicLibrary for LocalMusicLibrary {
                     title: internal.title,
                     artist: internal.artist,
                     cover_image: None,
+                    genre: internal.genre,
                 };
                 if let Ok(cover_image) = image::load_from_memory(&internal.cover_image) {
                     release.cover_image = Some(cover_image);
@@ -63,6 +64,7 @@ impl MusicLibrary for LocalMusicLibrary {
                 title: release.title.clone(),
                 artist: release.artist.clone(),
                 cover_image: Vec::new(),
+                genre: release.genre.clone(),
             };
             if let Some(cover_image) = &release.cover_image {
                 cover_image.write_to(&mut Cursor::new(&mut internal.cover_image), 
@@ -82,4 +84,5 @@ struct InternalRelease {
     title: String,
     artist: Option<String>,
     cover_image: Vec<u8>,
+    genre: Option<String>,
 }

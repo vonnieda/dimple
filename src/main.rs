@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use config::{Config, File, FileFormat};
 use eframe::egui::{self, Grid, ImageButton, Link, Response, ScrollArea, TextEdit, Ui, Context};
 use eframe::epaint::{FontFamily, FontId, ColorImage};
 use egui_extras::RetainedImage;
@@ -8,6 +9,9 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use image::DynamicImage;
 use music_library::local::LocalMusicLibrary;
 use music_library::{MusicLibrary, Release};
+
+use crate::music_library::EmptyMusicLibrary;
+use crate::music_library::navidrome::NavidromeMusicLibrary;
 mod music_library;
 
 // TODO make grid full width
@@ -60,6 +64,32 @@ impl Default for App {
         let releases = library.releases();
         println!("Local library contains {} releases", releases.len());
 
+        // // load config
+        // let builder = Config::builder()
+        //     .add_source(File::new("config", FileFormat::Toml));
+
+        // // load a remote music library
+        // let remote_library:Box<dyn MusicLibrary> = match builder.build() {
+        //     Ok(config) => {
+        //         Box::new(NavidromeMusicLibrary::new(
+        //             config.get_string("navidrome.site").unwrap().as_str(),
+        //             config.get_string("navidrome.username").unwrap().as_str(),
+        //             config.get_string("navidrome.password").unwrap().as_str()))
+        //     },
+        //     Err(_) => {
+        //         Box::new(EmptyMusicLibrary::default())
+        //     }
+        // };
+        // println!("Loading remote library");
+        // let releases = remote_library.releases();
+        // println!("Remote library contains {} releases", releases.len());
+
+        // // merge all the remote releases into the local
+        // for (i, release) in releases.iter().enumerate() {
+        //     println!("Merging {}/{}: {}", i + 1, releases.len(), release.title);
+        //     library.merge_release(&release).expect("merge error");
+        // }        
+
         // Convert all the releases into Cards
         println!("Releases -> Cards");
         let mut cards = Vec::new();
@@ -72,12 +102,16 @@ impl Default for App {
             };
             let card = Card {
                 title: release.title.clone(),
-                subtitle: release.artist.unwrap_or(String::from("")),
+                subtitle: release.artist.clone().unwrap_or(String::from("")),
                 image: dynamic_to_retained(&release.title, &image),
             };
 
-            artists.insert(card.subtitle.clone());
-            // genres.insert(card..clone());
+            if let Some(artist) = &release.artist {
+                artists.insert(artist.clone());
+            }
+            if let Some(genre) = &release.genre {
+                genres.insert(genre.clone());
+            }
 
             cards.push(card);
         }
@@ -85,8 +119,15 @@ impl Default for App {
         // Add some derived Cards
         for artist in artists {
             cards.push(Card {
-                title: artist.clone(),
+                title: "Artist".to_string(),
                 subtitle: artist.clone(),
+                ..Default::default()
+            });
+        }
+        for genre in genres {
+            cards.push(Card {
+                title: "Genre".to_string(),
+                subtitle: genre.clone(),
                 ..Default::default()
             });
         }

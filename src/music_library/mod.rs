@@ -25,6 +25,7 @@ pub struct Release {
     pub title: String,
     pub artist: Option<String>,
     pub cover_image: Option<DynamicImage>,
+    pub genre: Option<String>,
 }
 
 #[derive(Default)]
