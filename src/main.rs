@@ -61,6 +61,7 @@ impl Default for App {
         // Load the local library
         println!("Loading local library");
         let library = LocalMusicLibrary::new("data/library");
+        println!("Scanning");
         let releases = library.releases();
         println!("Local library contains {} releases", releases.len());
 
@@ -89,9 +90,11 @@ impl Default for App {
         //     println!("Merging {}/{}: {}", i + 1, releases.len(), release.title);
         //     library.merge_release(&release).expect("merge error");
         // }        
+        // let releases = library.releases();
+        // println!("Local library now contains {} releases", releases.len());
 
         // Convert all the releases into Cards
-        println!("Releases -> Cards");
+        println!("Convert Releases to Cards");
         let mut cards = Vec::new();
         let mut artists: HashSet<String> = HashSet::new();
         let mut genres: HashSet<String> = HashSet::new();
@@ -117,6 +120,7 @@ impl Default for App {
         }
 
         // Add some derived Cards
+        println!("Generate Artist Cards");
         for artist in artists {
             cards.push(Card {
                 title: "Artist".to_string(),
@@ -124,6 +128,7 @@ impl Default for App {
                 ..Default::default()
             });
         }
+        println!("Generate Genre Cards");
         for genre in genres {
             cards.push(Card {
                 title: "Genre".to_string(),
@@ -277,6 +282,14 @@ fn dynamic_to_retained(debug_name: &str, image: &DynamicImage) -> RetainedImage 
         pixels.as_slice());
     let retained = RetainedImage::from_color_image(debug_name, color);
     retained
+}
+
+struct RetainedImageButCool(RetainedImage);
+
+impl From<&DynamicImage> for RetainedImageButCool {
+    fn from(value: &DynamicImage) -> Self {
+        RetainedImageButCool(dynamic_to_retained("", value))
+    }
 }
 
 // TODO it would be fun to generate a cool artwork for the release
