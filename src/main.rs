@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::sync::Mutex;
+use std::sync::{Mutex, Arc};
 use std::thread;
 
 use config::{Config, File, FileFormat};
@@ -46,9 +46,9 @@ fn main() {
 }
 struct App {
     query_string: String,
-    cards: Mutex<Vec<Card>>,
-    now_playing: Card,
-    up_next: Card,
+    cards: Mutex<Vec<Arc<Card>>>,
+    now_playing: Arc<Card>,
+    up_next: Arc<Card>,
 }
 
 impl eframe::App for App {
@@ -60,6 +60,8 @@ impl eframe::App for App {
         //     .show(ctx, |ui| {
         //         ctx.settings_ui(ui);
         //     });
+
+        ctx.set_debug_on_hover(true);
 
         self.browser(ctx);
     }
@@ -89,16 +91,21 @@ impl App {
         });
 
         egui::TopBottomPanel::bottom("player").show(ctx, |ui| {
-            self.player_bar(ctx, ui);
-            ui.add_space(8.0);
+            ui.vertical_centered_justified(|ui| {
+                self.player_bar(ctx, ui);
+                ui.add_space(8.0);    
+            });
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             if let Ok(cards) = self.cards.lock() {
                 let matcher = SkimMatcherV2::default();
                 // TODO just do this when search changes, not every frame
-                let cards: Vec<&Card> = cards
+                let cards: Vec<Arc<Card>> = cards
                     .iter()
+                    .map(|arc| {
+                        arc.clone()
+                    })
                     .filter(|card| {
                         let haystack = card.title.clone() + " " + &card.subtitle;
                         return matcher
@@ -124,24 +131,24 @@ impl App {
         .response
     }
 
-    fn card_grid(self: &Self, cards: &Vec<&Card>, ctx: &Context, ui: &mut Ui) -> Response {
+    fn card_grid(self: &Self, cards: &Vec<Arc<Card>>, ctx: &Context, ui: &mut Ui) -> Response {
         let num_columns = 6;
 
         // TODO use ScrollArea::show_rows to improve performance. I
         // tried previously and I couldn't get the rendering right.
         // Oh, a hint, might also need Grid::show_rows
         ui.vertical_centered_justified(|ui| {
-            ui.spacing_mut().scroll_bar_width = 20.0;
-            // ui.spacing_mut().scroll_handle_min_length = 28.0;
+            ui.spacing_mut().scroll_bar_width = 16.0;
+            ui.spacing_mut().scroll_handle_min_length = 22.0;
             // ui.spacing_mut().scroll_bar_outer_margin = 10.0;
             // ui.spacing_mut().scroll_bar_inner_margin = 10.0;
             ScrollArea::vertical().show(ui, |ui| {
                 ui.vertical_centered_justified(|ui| {
                     Grid::new("card_grid")
-                        // .spacing(egui::vec2(16.0, 16.0))
+                        .spacing(egui::vec2(16.0, 16.0))
                         .show(ui, |ui| {
                             for (i, card) in cards.iter().enumerate() {
-                                self.card(&card, 200.0, 200.0, ctx, ui);
+                                self.card(card, 200.0, 200.0, ctx, ui);
                                 if i % num_columns == num_columns - 1 {
                                     ui.end_row();
                                 }
@@ -155,25 +162,25 @@ impl App {
 
     fn card(
         self: &Self,
-        card: &Card,
+        card: &Arc<Card>,
         width: f32,
         height: f32,
         ctx: &Context,
         ui: &mut Ui,
     ) -> Response {
         ui.vertical(|ui| {
-            ui.add(ImageButton::new(
+            let image_button = ImageButton::new(
                 card.image.texture_id(ctx),
-                egui::vec2(width, height),
-            ));
-            ui.add(Link::new(&card.title));
-            ui.add(Link::new(&card.subtitle));
+                egui::vec2(width, height));
+            ui.add(image_button);
+            ui.link(&card.title);
+            ui.link(&card.subtitle);
         })
         .response
     }
 
-    fn player_bar(self: &Self, ctx: &Context, ui: &mut Ui) -> Response {
-        ui.vertical(|ui| {
+    fn player_bar(self: &mut Self, ctx: &Context, ui: &mut Ui) -> Response {
+        ui.vertical_centered_justified(|ui| {
             ui.horizontal(|ui| {
                 let np = &self.now_playing;
                 ui.add(ImageButton::new(
@@ -187,21 +194,22 @@ impl App {
                     self.slider_scrubber(ctx, ui);
                 });
                 self.card(&self.up_next, 60.0, 60.0, ctx, ui);
-            })
-        })
-        .response
+            }).response
+        }).response
     }
 
     // fn visual_scrubber(release: &CachedRelease, ctx: &Context, ui: &mut Ui) -> Response {
     // }
 
     fn slider_scrubber(self: &Self, ctx: &Context, ui: &mut Ui) -> Response {
-        let mut my_f32: f32 = 0.33;
-        ui.add(
-            egui::Slider::new(&mut my_f32, 0.0..=1.0)
-                .show_value(false)
-                .trailing_fill(true),
-        )
+        ui.vertical_centered_justified(|ui| {
+            let mut my_f32: f32 = 0.33;
+            ui.add(
+                egui::Slider::new(&mut my_f32, 0.0..=1.0)
+                    .show_value(false)
+                    .trailing_fill(true),
+            );
+        }).response
     }
 
     fn load_local_library(self: &mut Self) {
@@ -209,9 +217,9 @@ impl App {
         let releases = library.releases();
 
         // Convert all the Releases to Cards
-        let cards: Vec<Card> = releases.par_iter()
+        let cards: Vec<Arc<Card>> = releases.par_iter()
             .map(|release| {
-                self.card_from_release(&release)
+                Arc::new(self.card_from_release(&release))
             })
             .collect();
         self.cards.lock().unwrap().extend(cards);
@@ -229,18 +237,18 @@ impl App {
             }
         }
         for artist in artists {
-            self.cards.lock().unwrap().push(Card {
+            self.cards.lock().unwrap().push(Arc::new(Card {
                 title: "Artist".to_string(),
                 subtitle: artist.clone(),
                 ..Default::default()
-            });
+            }));
         }
         for genre in genres {
-            self.cards.lock().unwrap().push(Card {
+            self.cards.lock().unwrap().push(Arc::new(Card {
                 title: "Genre".to_string(),
                 subtitle: genre.clone(),
                 ..Default::default()
-            });
+            }));
         }
 
         // Sort the cards
@@ -248,6 +256,9 @@ impl App {
             .lock()
             .unwrap()
             .sort_by(|a, b| a.subtitle.to_uppercase().cmp(&b.subtitle.to_uppercase()));
+
+        // self.now_playing = self.cards.lock().unwrap()[4].clone();
+        // self.up_next = self.cards.lock().unwrap()[55].clone();
     }
 
     fn card_from_release(self: &Self, release: &Release) -> Card {
