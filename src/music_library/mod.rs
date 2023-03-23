@@ -2,6 +2,7 @@ use image::DynamicImage;
 
 pub mod navidrome;
 pub mod local;
+pub mod image_cache;
 
 pub trait MusicLibrary {
     /// All of the releases in the library. This function may block for
@@ -38,3 +39,38 @@ impl MusicLibrary for EmptyMusicLibrary  {
         Vec::new()
     }
 }
+
+
+// #[derive(Default, Clone)]
+// pub struct Release {
+//     pub id: String,
+//     pub title: String,
+//     pub artists: Vec<String>,
+//     pub cover_art: Option<DynamicImage>,
+//     pub genres: Vec<String>,
+//     pub tracks: Vec<Track>,
+// }
+
+// #[derive(Default, Clone)]
+// struct Artist {
+//     id: String,
+//     name: String,
+//     releases: Vec<Release>,
+// }
+
+// #[derive(Default, Clone)]
+// struct Track {
+//     title: String,
+//     stream: Vec<u8>,
+//     artists: Vec<Artist>,
+// }
+
+// #[derive(Default, Clone)]
+// struct Genre {
+//     name: String,
+// }
+
+// #[derive(Default)]
+// pub struct EmptyMusicLibrary {
+
+// }

@@ -1,38 +1,15 @@
-// TODO before I can do any id stuff I need to fix sunk to support
-// string IDs. I need to do that so I can reference images by
-// id.
-// TODO I'm going to have to end up having, I guess, a complete database
-// of all the data stored local for offline support, so might as well
-// think about how to get the releases once and not over and over.
-// But for now, I just wanna see images, so I should at least figure out
-// how to cache them.
-// TODO how does the UI change the credentials and other settings?
-// Gonna need some generic UI thinger?
-// TODO it's possible that images are so special, because they are so
-// heavy, that the main program DOES need to do the caching and I need
-// to make the libraries support that.
-
-use std::{fs, sync::mpsc::{channel, Sender, Receiver}, time::Instant};
+use std::fs;
 
 use image::DynamicImage;
+use rayon::prelude::*;
 use sunk::{search::SearchPage, Album, Client, ListType, Media};
-use threadpool::ThreadPool;
 
 use crate::MusicLibrary;
 
-use super::Release;
+use super::{Release};
 
-// TODO Takes ~0.5ms 100x vs. 5-20ms for original. So, this is going to be
-// super fun because we can load in the higher res ones dynamically.
-// It's about 19MB vs. 500MB
-// Also, I bet if those loaded on the thread pool it would be super fast.
-// Used mogrify -resize 200x *.png to resize
-// const CACHE_DIR: &str = "art/cache/navidrome/50x"; // 94ms
-// const CACHE_DIR: &str = "art/cache/navidrome/100x"; // 130ms
-// const CACHE_DIR: &str = "art/cache/navidrome/200x"; // 211ms
-const CACHE_DIR: &str = "data/navidrome/images/original"; // 1400ms
+const CACHE_DIR: &str = "data/navidrome/images/original";
 
-#[derive(Default)]
 pub struct NavidromeMusicLibrary {
     site: String,
     username: String,
@@ -47,14 +24,6 @@ impl NavidromeMusicLibrary {
             password: String::from(password),
         }
     }
-
-    // fn new_client(self: &Self) -> Result<Client, sunk::Error> {
-    //     sunk::Client::new(
-    //         self.site.as_str(),
-    //         self.username.as_str(),
-    //         self.password.as_str(),
-    //     )
-    // }
 
     fn new_client_info(self: &Self) -> ClientInfo {
         ClientInfo {
@@ -92,49 +61,22 @@ fn get_all_releases(client_info: &ClientInfo) -> Result<Vec<Release>, sunk::Erro
 }
 
 fn albums_to_releases(albums: &Vec<Album>, client_info: &ClientInfo) -> Vec<Release> {
-    let thread_pool = ThreadPool::new(4);
-    let (tx, rx): (Sender<Release>, Receiver<Release>) = channel();
-    for album in albums {
-        let tx = tx.clone();
-        let album = album.clone();
-        let client_info = client_info.clone();
-        thread_pool.execute(move || {
-            let client = sunk::Client::new(
-                client_info.site.as_str(),
-                client_info.username.as_str(),
-                client_info.password.as_str(),
-            );
-
-            if let Ok(client) = client {
-                let release = Release {
-                    id: album.id_string.clone(),
-                    title: album.name.clone(),
-                    artist: album.artist.clone(),
-                    cover_image: get_image(&album, &client),
-                    genre: album.genre.clone(),
-                };
-                tx.send(release).unwrap();
-            }        
-        });
-    }
-    thread_pool.join();
-    // TODO Refactor messy
-    let mut releases = Vec::new();
-    loop {
-        if let Ok(release) = rx.try_recv() {
-            releases.push(release);
+    albums.par_iter().map(|album| {
+        let client = sunk::Client::new(
+            client_info.site.as_str(),
+            client_info.username.as_str(),
+            client_info.password.as_str(),
+        ).unwrap();
+        Release {
+            id: album.id_string.clone(),
+            title: album.name.clone(),
+            artist: album.artist.clone(),
+            cover_image: get_image(album, &client),
+            genre: album.genre.clone(),
         }
-        else {
-            break;
-        }
-    }
-
-    releases
+    }).collect()
 }
 
-// TODO add width param and auto resize and cache as needed
-// TODO move all the caching stuff into a couple functions that
-// other implementations can use. Probably just stick em in MusicLibrary.
 fn get_image<M: Media>(media: &M, client: &Client) -> Option<DynamicImage> {
     if let Some(image) = load_image(media) {
         return Some(image);
@@ -151,6 +93,7 @@ fn get_image<M: Media>(media: &M, client: &Client) -> Option<DynamicImage> {
 }
 
 fn load_image<M: Media>(media: &M) -> Option<DynamicImage> {
+
     if let Some(cover_id) = media.cover_id() {
         let path = format!("{}/{}.png", CACHE_DIR, cover_id);
         if let Ok(image) = image::open(&path) {

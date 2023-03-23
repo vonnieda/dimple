@@ -1,11 +1,9 @@
 use std::collections::HashSet;
 use std::sync::{Mutex, Arc};
-use std::thread;
+use std::time::Instant;
 
-use config::{Config, File, FileFormat};
-use eframe::egui::{self, Context, Grid, ImageButton, Link, Response, ScrollArea, TextEdit, Ui};
+use eframe::egui::{self, Context, Grid, ImageButton, ScrollArea, TextEdit, Ui};
 use eframe::epaint::{ColorImage, FontFamily, FontId};
-use eframe::glow::INTERNALFORMAT_ALPHA_TYPE;
 use egui_extras::RetainedImage;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
@@ -13,13 +11,11 @@ use image::DynamicImage;
 use music_library::local::LocalMusicLibrary;
 use music_library::{MusicLibrary, Release};
 
-use crate::music_library::navidrome::NavidromeMusicLibrary;
-use crate::music_library::EmptyMusicLibrary;
 mod music_library;
 
 use rayon::prelude::*;
 
-// TODO make grid full width
+// TODO BLOCKED make grid full width https://github.com/emilk/egui/discussions/1144#discussioncomment-2035457
 // TODO make number of columns adapt to window width and tile size
 // TODO tile size slider
 // TODO check out bliss and bliss-rs https://github.com/Polochon-street/bliss-rs for smart playlist generation
@@ -38,7 +34,7 @@ fn main() {
         ..Default::default()
     };
     eframe::run_native(
-        "Music",
+        "Dimple",
         native_options,
         Box::new(|_cc| Box::new(App::default())),
     )
@@ -61,7 +57,7 @@ impl eframe::App for App {
         //         ctx.settings_ui(ui);
         //     });
 
-        ctx.set_debug_on_hover(true);
+        // ctx.set_debug_on_hover(true);
 
         self.browser(ctx);
     }
@@ -118,7 +114,7 @@ impl App {
         });
     }
 
-    fn search_bar(self: &mut Self, ui: &mut Ui) -> Response {
+    fn search_bar(self: &mut Self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.add(
                 TextEdit::singleline(&mut self.query_string)
@@ -127,12 +123,17 @@ impl App {
                     .font(FontId::new(28.0, FontFamily::Proportional))
                     .desired_width(f32::INFINITY),
             );
-        })
-        .response
+        });
     }
 
-    fn card_grid(self: &Self, cards: &Vec<Arc<Card>>, ctx: &Context, ui: &mut Ui) -> Response {
+    fn card_grid(self: &Self, cards: &Vec<Arc<Card>>, ctx: &Context, ui: &mut Ui) {
         let num_columns = 6;
+
+        // https://github.com/a-liashenko/TinyPomodoro/blob/main/app/src/app/widgets/styled_slider.rs#L55
+        // Ugh. This makes me wanna use something more mature. The weird mix of modifying
+        // context styles and some widgets having their own styles is weird.
+        // It kinda seems like I will need to cultivate my own set of extended
+        // widgets, maybe. Stuff that works reasonably.
 
         // TODO use ScrollArea::show_rows to improve performance. I
         // tried previously and I couldn't get the rendering right.
@@ -142,32 +143,31 @@ impl App {
             ui.spacing_mut().scroll_handle_min_length = 22.0;
             // ui.spacing_mut().scroll_bar_outer_margin = 10.0;
             // ui.spacing_mut().scroll_bar_inner_margin = 10.0;
-            ScrollArea::vertical().show(ui, |ui| {
+            ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
                 ui.vertical_centered_justified(|ui| {
-                    Grid::new("card_grid")
-                        .spacing(egui::vec2(16.0, 16.0))
-                        .show(ui, |ui| {
-                            for (i, card) in cards.iter().enumerate() {
-                                self.card(card, 200.0, 200.0, ctx, ui);
-                                if i % num_columns == num_columns - 1 {
-                                    ui.end_row();
+                    ui.horizontal(|ui| {
+                        // TODO magic yeesh.
+                        ui.add_space(40.0);
+                        Grid::new("card_grid")
+                            .spacing(egui::vec2(16.0, 16.0))
+                            .show(ui, |ui| {
+                                for (i, card) in cards.iter().enumerate() {
+                                    self.card(card, 200.0, 200.0, ctx, ui);
+                                    if i % num_columns == num_columns - 1 {
+                                        ui.end_row();
+                                    }
                                 }
-                            }
-                        });
+                            });
+                    })
                 });
             });
-        })
-        .response
+        });
     }
 
-    fn card(
-        self: &Self,
-        card: &Arc<Card>,
-        width: f32,
-        height: f32,
-        ctx: &Context,
-        ui: &mut Ui,
-    ) -> Response {
+    fn card(self: &Self, card: &Arc<Card>, width: f32, height: f32, 
+            ctx: &Context, ui: &mut Ui) {
         ui.vertical(|ui| {
             let image_button = ImageButton::new(
                 card.image.texture_id(ctx),
@@ -175,11 +175,10 @@ impl App {
             ui.add(image_button);
             ui.link(&card.title);
             ui.link(&card.subtitle);
-        })
-        .response
+        });
     }
 
-    fn player_bar(self: &mut Self, ctx: &Context, ui: &mut Ui) -> Response {
+    fn player_bar(self: &mut Self, ctx: &Context, ui: &mut Ui) {
         ui.vertical_centered_justified(|ui| {
             ui.horizontal(|ui| {
                 let np = &self.now_playing;
@@ -190,72 +189,61 @@ impl App {
                 ui.vertical(|ui| {
                     ui.link(&np.title);
                     ui.link(&np.subtitle);
-                    // visual_scrubber(release, ctx, ui);
+                    self.plot_scrubber(ctx, ui);
                     self.slider_scrubber(ctx, ui);
                 });
                 self.card(&self.up_next, 60.0, 60.0, ctx, ui);
-            }).response
-        }).response
+            });
+        });
     }
 
-    // fn visual_scrubber(release: &CachedRelease, ctx: &Context, ui: &mut Ui) -> Response {
-    // }
+    fn plot_scrubber(self: &Self, ctx: &Context, ui: &mut Ui) {
+        // let sin: PlotPoints = (0..1000).map(|i| {
+        //     let x = i as f64 * 0.01;
+        //     [x, x.sin()]
+        // }).collect();
+        // let line = Line::new(sin);
+        // Plot::new("my_plot")
+        //     .view_aspect(1.0)
+        //     .show(ui, |plot_ui| plot_ui.line(line));
+    }
 
-    fn slider_scrubber(self: &Self, ctx: &Context, ui: &mut Ui) -> Response {
+    fn slider_scrubber(self: &Self, ctx: &Context, ui: &mut Ui) {
         ui.vertical_centered_justified(|ui| {
             let mut my_f32: f32 = 0.33;
-            ui.add(
-                egui::Slider::new(&mut my_f32, 0.0..=1.0)
-                    .show_value(false)
-                    .trailing_fill(true),
+            ui.add(egui::Slider::new(&mut my_f32, 0.0..=1.0)
+                .show_value(false)
+                .trailing_fill(true),
             );
-        }).response
+        });
     }
 
     fn load_local_library(self: &mut Self) {
+        let t = Instant::now();
         let library = LocalMusicLibrary::new("data/library");
         let releases = library.releases();
+        println!("loaded local releases in {}ms", Instant::now().duration_since(t).as_millis());
 
         // Convert all the Releases to Cards
+        let t = Instant::now();
         let cards: Vec<Arc<Card>> = releases.par_iter()
             .map(|release| {
                 Arc::new(self.card_from_release(&release))
             })
             .collect();
+        println!("converted to cards in {}ms", Instant::now().duration_since(t).as_millis());
+
+        let t = Instant::now();
         self.cards.lock().unwrap().extend(cards);
-
-        // Create artist and genre cards
-        let mut artists: HashSet<String> = HashSet::new();
-        let mut genres: HashSet<String> = HashSet::new();
-        for release in &releases {
-            if let Some(artist) = &release.artist {
-                artists.insert(artist.clone());
-            }
-
-            if let Some(genre) = &release.genre {
-                genres.insert(genre.clone());
-            }
-        }
-        for artist in artists {
-            self.cards.lock().unwrap().push(Arc::new(Card {
-                title: "Artist".to_string(),
-                subtitle: artist.clone(),
-                ..Default::default()
-            }));
-        }
-        for genre in genres {
-            self.cards.lock().unwrap().push(Arc::new(Card {
-                title: "Genre".to_string(),
-                subtitle: genre.clone(),
-                ..Default::default()
-            }));
-        }
+        println!("set the cards in {}ms", Instant::now().duration_since(t).as_millis());
 
         // Sort the cards
+        let t = Instant::now();
         self.cards
             .lock()
             .unwrap()
             .sort_by(|a, b| a.subtitle.to_uppercase().cmp(&b.subtitle.to_uppercase()));
+        println!("sorted the cards in {}ms", Instant::now().duration_since(t).as_millis());
 
         // self.now_playing = self.cards.lock().unwrap()[4].clone();
         // self.up_next = self.cards.lock().unwrap()[55].clone();
@@ -274,6 +262,8 @@ impl App {
     }
 }
 
+// TODO take a look at how RetainedImage does it's loading and see if I can
+// optimize or remove this.
 fn dynamic_to_retained(debug_name: &str, image: &DynamicImage) -> RetainedImage {
     let size = [image.width() as _, image.height() as _];
     let image_buffer = image.to_rgba8();
