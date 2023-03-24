@@ -4,9 +4,7 @@ use image::DynamicImage;
 use rayon::prelude::*;
 use sunk::{search::SearchPage, Album, Client, ListType, Media};
 
-use crate::MusicLibrary;
-
-use super::{Release};
+use super::{Release, MusicLibrary};
 
 const CACHE_DIR: &str = "data/navidrome/images/original";
 

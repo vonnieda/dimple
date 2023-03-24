@@ -2,20 +2,19 @@ use std::sync::Arc;
 
 use image::DynamicImage;
 
-pub mod navidrome;
+// pub mod navidrome;
 pub mod local;
 pub mod image_cache;
+// pub mod directory_library;
 
 pub trait MusicLibrary {
     /// All of the releases in the library. This function may block for a long
     /// time if resources need to be loaded from disk or network. 
     fn releases(&self) -> Vec<Arc<Release>>;
 
-    /// Add or update a release into the library. Returns the merged release.
-    /// If data in the existing release and the new one differ the new data
-    /// are preferred.
+    /// Add or update a release into the library.
     fn merge_release(&self, _release: &Release) -> Result<(), String> {
-        Err("not implemented".to_string())
+        todo!();
     }
 }
 
@@ -29,7 +28,7 @@ impl MusicLibrary for MemoryMusicLibrary {
         return self.releases.clone();
     }
 
-    fn merge_release(&self, release: &Release) -> Result<(), String> {
+    fn merge_release(&self, _release: &Release) -> Result<(), String> {
         Ok(())
     }
 }
@@ -39,28 +38,36 @@ pub struct Release {
     pub id: String,
     pub title: String,
     pub artist: Option<String>,
-    pub cover_art: Option<DynamicImage>,
+    pub cover_art: Option<Arc<dyn ScaledImage>>,
     pub genre: Option<String>,
-    pub tracks: Vec<Track>,
+    pub tracks: Vec<Arc<Track>>,
 }
 
-#[derive(Default, Clone)]
-pub struct Artist {
-    pub id: String,
-    pub name: String,
-    pub cover_art: Option<DynamicImage>,
-    // releases: Vec<Release>,
+pub trait ScaledImage: Send {
+    fn image(&self, width: u32, height: u32) -> Option<DynamicImage>;
 }
+
+// #[derive(Default, Clone, Debug)]
+// pub struct Artist {
+//     pub id: String,
+//     pub name: String,
+//     // pub cover_art: Option<Arc<dyn ScaledImage>>,
+//     releases: Vec<Arc<Release>>,
+// }
 
 #[derive(Default, Clone)]
 pub struct Track {
     pub title: String,
-    pub stream: Vec<u8>,
-    pub artists: Vec<Artist>,
+    // pub stream: Option<Arc<dyn Stream>>,
+    // pub artists: Vec<Arc<Artist>>,
 }
 
-#[derive(Default, Clone)]
-pub struct Genre {
-    pub name: String,
-    pub cover_art: Option<DynamicImage>,
+trait Stream {
+    fn stream(&self) -> dyn Iterator<Item = u8>;
 }
+
+// #[derive(Default, Clone)]
+// pub struct Genre {
+//     pub name: String,
+//     pub cover_art: Option<DynamicImage>,
+// }

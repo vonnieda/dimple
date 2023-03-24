@@ -1,15 +1,13 @@
 use std::sync::Arc;
 
-use eframe::egui::{self, Context, Grid, ImageButton, ScrollArea, TextEdit, Ui};
+use dimple::music_library::local::LocalMusicLibrary;
+use dimple::music_library::{MusicLibrary, Track, Release};
+use eframe::egui::{self, Context, Grid, ImageButton, ScrollArea, TextEdit, Ui, Response};
 use eframe::epaint::{ColorImage, FontFamily, FontId};
 use egui_extras::RetainedImage;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use image::DynamicImage;
-use music_library::local::LocalMusicLibrary;
-use music_library::{MusicLibrary, Release, Track};
-
-mod music_library;
 
 use rayon::prelude::*;
 
@@ -83,18 +81,24 @@ impl eframe::App for App {
 
 impl App {
     fn cards_from_releases(releases: Vec<Arc<Release>>) -> Vec<ReleaseCard> {
-        releases.into_par_iter()
+        releases.iter()
             .map(|release| {
-                App::card_from_release(release)
+                App::card_from_release(release.clone())
             })
             .collect()
     }
 
     fn card_from_release(release: Arc<Release>) -> ReleaseCard {
         let image = match &release.cover_art {
-            Some(image) => dynamic_to_retained(&release.title, image),
-            None => RetainedImage::from_color_image("default", ColorImage::example()),
+            Some(cover_art) => {
+                match cover_art.image(200, 200) {
+                    Some(dynamic) => dynamic_to_retained(&release.title, &dynamic),
+                    None => RetainedImage::from_color_image("default", ColorImage::example())
+                }
+            }
+            None => RetainedImage::from_color_image("default", ColorImage::example())
         };
+
         ReleaseCard {
             release,
             image
@@ -102,7 +106,7 @@ impl App {
     }
 
     // it's not really the browser, it's more like the main screen.
-    fn browser(self: &mut Self, ctx: &Context) {
+    fn browser(&mut self, ctx: &Context) {
         egui::TopBottomPanel::top("search_bar").show(ctx, |ui| {
             ui.add_space(8.0);
             self.search_bar(ui);
@@ -118,19 +122,19 @@ impl App {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let matcher = SkimMatcherV2::default();
-            // TODO just do this when search changes, not every frame
-            let cards: Vec<&ReleaseCard> = self.cards.iter().filter(|card| {
-                let haystack = format!("{} {}", card.title(), card.subtitle());
-                return matcher
-                    .fuzzy_match(haystack.as_str(), &self.query_string)
-                    .is_some();
-            })
-            .collect();
-            self.card_grid(&cards, ctx, ui);
+            // // TODO just do this when search changes, not every frame
+            // let cards: Vec<&ReleaseCard> = self.cards.iter().filter(|card| {
+            //     let haystack = format!("{} {}", card.title(), card.subtitle());
+            //     return matcher
+            //         .fuzzy_match(haystack.as_str(), &self.query_string)
+            //         .is_some();
+            // })
+            // .collect();
+            self.card_grid(ctx, ui);
         });
     }
 
-    fn search_bar(self: &mut Self, ui: &mut Ui) {
+    fn search_bar(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             ui.add(
                 TextEdit::singleline(&mut self.query_string)
@@ -142,7 +146,7 @@ impl App {
         });
     }
 
-    fn card_grid(self: &Self, cards: &Vec<&ReleaseCard>, ctx: &Context, ui: &mut Ui) {
+    fn card_grid(&mut self, ctx: &Context, ui: &mut Ui) {
         let num_columns = 6;
 
         // https://github.com/a-liashenko/TinyPomodoro/blob/main/app/src/app/widgets/styled_slider.rs#L55
@@ -169,8 +173,12 @@ impl App {
                         Grid::new("card_grid")
                             .spacing(egui::vec2(16.0, 16.0))
                             .show(ui, |ui| {
-                                for (i, card) in cards.iter().enumerate() {
-                                    self.card(card, 200.0, 200.0, ctx, ui);
+                                for (i, card) in self.cards.iter().enumerate() {
+                                    if self.card(card, 200.0, 200.0, ctx, ui).clicked() {
+                                        // let tracks = card.release.tracks.clone();
+                                        // self.playlist.extend(tracks);
+                                        // println!("{:?}", self.playlist);
+                                    }
                                     if i % num_columns == num_columns - 1 {
                                         ui.end_row();
                                     }
@@ -182,18 +190,17 @@ impl App {
         });
     }
 
-    fn card(self: &Self, card: &ReleaseCard, width: f32, height: f32, 
-            ctx: &Context, ui: &mut Ui) {
+    fn card(&self, card: &ReleaseCard, width: f32, height: f32, 
+            ctx: &Context, ui: &mut Ui) -> Response {
         ui.vertical(|ui| {
             let image_button = ImageButton::new(
                 card.image().texture_id(ctx),
                 egui::vec2(width, height));
-            if ui.add(image_button).clicked() {
-                println!("You clicked {}", card.title());
-            }
+            let response = ui.add(image_button);
             ui.link(card.title());
             ui.link(card.subtitle());
-        });
+            return response;
+        }).inner
     }
 
     fn player_bar(self: &mut Self, ctx: &Context, ui: &mut Ui) {

@@ -4,6 +4,7 @@ use image::{imageops::FilterType, DynamicImage, ImageOutputFormat};
 use sled::Tree;
 
 /// Caches and scales downloaded images using Sled
+#[derive(Clone)]
 pub struct ImageCache {
     tree: Tree,
 }
