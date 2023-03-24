@@ -1,7 +1,3 @@
-use std::collections::HashSet;
-use std::sync::{Mutex, Arc};
-use std::time::Instant;
-
 use eframe::egui::{self, Context, Grid, ImageButton, ScrollArea, TextEdit, Ui};
 use eframe::epaint::{ColorImage, FontFamily, FontId};
 use egui_extras::RetainedImage;
@@ -9,7 +5,7 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use image::DynamicImage;
 use music_library::local::LocalMusicLibrary;
-use music_library::{MusicLibrary, Release, Track, Artist, Genre};
+use music_library::{MusicLibrary, Release, Track};
 
 mod music_library;
 
