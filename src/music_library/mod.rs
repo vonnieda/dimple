@@ -56,7 +56,7 @@ pub trait ScaledImage {
 //     releases: Vec<Arc<Release>>,
 // }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Track {
     pub title: String,
     // pub stream: Option<Arc<dyn Stream>>,

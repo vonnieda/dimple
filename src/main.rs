@@ -49,7 +49,7 @@ struct App {
     music_library: Box<dyn MusicLibrary>,
     cards: Vec<ReleaseCard>,
     query_string: String,
-    playlist: Vec<Track>,
+    playlist: Vec<Arc<Track>>,
 }
 
 // TODO okay, I still think this becomes a Trait and then we have like ReleaseCard,
@@ -188,9 +188,9 @@ impl App {
                                 .show(ui, |ui| {
                                     for (i, card) in self.cards.iter().enumerate() {
                                         if self.card(card, 200.0, 200.0, ctx, ui).clicked() {
-                                            // let tracks = card.release.tracks.clone();
-                                            // self.playlist.extend(tracks);
-                                            // println!("{:?}", self.playlist);
+                                            let tracks = card.release.tracks.clone();
+                                            self.playlist.extend(tracks);
+                                            println!("{:?}", self.playlist);
                                         }
                                         if i % num_columns == num_columns - 1 {
                                             ui.end_row();
