@@ -5,9 +5,8 @@ pub mod local;
 pub mod image_cache;
 
 pub trait MusicLibrary {
-    /// All of the releases in the library. This function may block for
-    /// a long time while it retrieves information. The caller should
-    /// cache the information.
+    /// All of the releases in the library. This function may block for a long
+    /// time if resources need to be loaded from disk or network. 
     fn releases(self: &Self) -> Vec<Release>;
 
     /// Add or update a release into the library. Returns the merged release.
@@ -17,6 +16,7 @@ pub trait MusicLibrary {
         Err("not implemented".to_string())
     }
 }
+
 
 #[derive(Default, Clone)]
 pub struct Release {
@@ -96,3 +96,4 @@ impl MusicLibrary for EmptyMusicLibrary  {
 // pub struct EmptyMusicLibrary {
 
 // }
+

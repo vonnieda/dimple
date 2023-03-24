@@ -38,9 +38,16 @@ fn main() {
 }
 struct App {
     music_library: Box<dyn MusicLibrary>,
-    cards: Vec<Card>,
+    cards: Vec<ReleaseCard>,
     query_string: String,
     playlist: Vec<Track>,
+}
+
+// TODO okay, I still think this becomes a Trait and then we have like ReleaseCard,
+// and ArtistCard, and etc.
+struct ReleaseCard {
+    release: Release,
+    image: RetainedImage,
 }
 
 impl Default for App {
@@ -67,7 +74,7 @@ impl eframe::App for App {
 }
 
 impl App {
-    fn cards_from_releases(releases: Vec<Release>) -> Vec<Card> {
+    fn cards_from_releases(releases: Vec<Release>) -> Vec<ReleaseCard> {
         releases.into_par_iter()
             .map(|release| {
                 App::card_from_release(release)
@@ -75,14 +82,13 @@ impl App {
             .collect()
     }
 
-    fn card_from_release(release: Release) -> Card {
+    fn card_from_release(release: Release) -> ReleaseCard {
         let image = match &release.cover_art {
             Some(image) => dynamic_to_retained(&release.title, image),
             None => RetainedImage::from_color_image("default", ColorImage::example()),
         };
-        Card {
+        ReleaseCard {
             release,
-            // TODO unwrap
             image
         }
     }
@@ -105,7 +111,7 @@ impl App {
         egui::CentralPanel::default().show(ctx, |ui| {
             let matcher = SkimMatcherV2::default();
             // TODO just do this when search changes, not every frame
-            let cards: Vec<&Card> = self.cards.iter().filter(|card| {
+            let cards: Vec<&ReleaseCard> = self.cards.iter().filter(|card| {
                 let haystack = format!("{} {}", card.title(), card.subtitle());
                 return matcher
                     .fuzzy_match(haystack.as_str(), &self.query_string)
@@ -115,9 +121,6 @@ impl App {
             self.card_grid(&cards, ctx, ui);
         });
     }
-
-
-
 
     fn search_bar(self: &mut Self, ui: &mut Ui) {
         ui.horizontal(|ui| {
@@ -131,7 +134,7 @@ impl App {
         });
     }
 
-    fn card_grid(self: &Self, cards: &Vec<&Card>, ctx: &Context, ui: &mut Ui) {
+    fn card_grid(self: &Self, cards: &Vec<&ReleaseCard>, ctx: &Context, ui: &mut Ui) {
         let num_columns = 6;
 
         // https://github.com/a-liashenko/TinyPomodoro/blob/main/app/src/app/widgets/styled_slider.rs#L55
@@ -171,13 +174,15 @@ impl App {
         });
     }
 
-    fn card(self: &Self, card: &Card, width: f32, height: f32, 
+    fn card(self: &Self, card: &ReleaseCard, width: f32, height: f32, 
             ctx: &Context, ui: &mut Ui) {
         ui.vertical(|ui| {
             let image_button = ImageButton::new(
                 card.image().texture_id(ctx),
                 egui::vec2(width, height));
-            ui.add(image_button);
+            if ui.add(image_button).clicked() {
+                println!("You clicked {}", card.title());
+            }
             ui.link(card.title());
             ui.link(card.subtitle());
         });
@@ -235,12 +240,7 @@ fn dynamic_to_retained(debug_name: &str, image: &DynamicImage) -> RetainedImage 
     retained
 }
 
-struct Card {
-    release: Release,
-    image: RetainedImage,
-}
-
-impl Card {
+impl ReleaseCard {
     fn image(&self) -> &RetainedImage {
         return &self.image;
     }
