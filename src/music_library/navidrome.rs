@@ -71,8 +71,9 @@ fn albums_to_releases(albums: &Vec<Album>, client_info: &ClientInfo) -> Vec<Rele
             id: album.id_string.clone(),
             title: album.name.clone(),
             artist: album.artist.clone(),
-            cover_image: get_image(album, &client),
+            cover_art: get_image(album, &client),
             genre: album.genre.clone(),
+            tracks: Vec::new(),
         }
     }).collect()
 }

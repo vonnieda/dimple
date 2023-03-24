@@ -18,16 +18,38 @@ pub trait MusicLibrary {
     }
 }
 
-// TODO becomes a Trait so that libraries can return their own implementation
-// that can call back for e.g. stream, save, whatever.
 #[derive(Default, Clone)]
 pub struct Release {
     pub id: String,
     pub title: String,
     pub artist: Option<String>,
-    pub cover_image: Option<DynamicImage>,
+    pub cover_art: Option<DynamicImage>,
     pub genre: Option<String>,
+    pub tracks: Vec<Track>,
 }
+
+#[derive(Default, Clone)]
+pub struct Artist {
+    pub id: String,
+    pub name: String,
+    pub cover_art: Option<DynamicImage>,
+    // releases: Vec<Release>,
+}
+
+#[derive(Default, Clone)]
+pub struct Track {
+    pub title: String,
+    pub stream: Vec<u8>,
+    pub artists: Vec<Artist>,
+}
+
+#[derive(Default, Clone)]
+pub struct Genre {
+    pub name: String,
+    pub cover_art: Option<DynamicImage>,
+}
+
+
 
 #[derive(Default)]
 pub struct EmptyMusicLibrary {

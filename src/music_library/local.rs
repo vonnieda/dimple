@@ -43,8 +43,9 @@ impl MusicLibrary for LocalMusicLibrary {
                 id: internal_release.id.clone(),
                 title: internal_release.title.clone(),
                 artist: internal_release.artist.clone(),
-                cover_image: self.images.get(&internal_release.id, 200, 200),
+                cover_art: self.images.get(&internal_release.id, 200, 200),
                 genre: internal_release.genre.clone(),
+                tracks: Vec::new(),
             })
             .collect();
 
@@ -55,7 +56,7 @@ impl MusicLibrary for LocalMusicLibrary {
     fn merge_release(self: &Self, release: &Release) -> Result<Release, String> {
         if let Ok(releases) = self.db.open_tree("releases") {
             // Store the original cover image
-            if let Some(cover_image) = &release.cover_image {
+            if let Some(cover_image) = &release.cover_art {
                 // TODO error checking
                 self.images.insert(&release.id, &cover_image);
             }

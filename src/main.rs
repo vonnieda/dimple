@@ -9,7 +9,7 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use image::DynamicImage;
 use music_library::local::LocalMusicLibrary;
-use music_library::{MusicLibrary, Release};
+use music_library::{MusicLibrary, Release, Track, Artist, Genre};
 
 mod music_library;
 
@@ -41,44 +41,57 @@ fn main() {
     .expect("eframe: pardon me, but no thank you");
 }
 struct App {
+    music_library: Box<dyn MusicLibrary>,
+    cards: Vec<Card>,
     query_string: String,
-    cards: Mutex<Vec<Arc<Card>>>,
-    now_playing: Arc<Card>,
-    up_next: Arc<Card>,
+    playlist: Vec<Track>,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        let library = LocalMusicLibrary::new("data/library");
+        let releases = library.releases();
+        let mut cards = App::cards_from_releases(releases);
+        cards.sort_by(|a, b| a.subtitle().to_uppercase().cmp(&b.subtitle().to_uppercase()));
+
+        Self {
+            music_library: Box::new(library),
+            cards: cards,
+            query_string: "".to_string(),
+            playlist: Vec::new(),
+        }
+    }
 }
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
-
-        // egui::Window::new("🔧 Settings")
-        //     .vscroll(true)
-        //     .show(ctx, |ui| {
-        //         ctx.settings_ui(ui);
-        //     });
-
-        // ctx.set_debug_on_hover(true);
-
         self.browser(ctx);
     }
 }
 
-impl Default for App {
-    fn default() -> Self {
-        let mut app = Self {
-            query_string: Default::default(),
-            cards: Default::default(),
-            now_playing: Default::default(),
-            up_next: Default::default(),
-        };
-
-        app.load_local_library();
-
-        app
-    }
-}
-
 impl App {
+    fn cards_from_releases(releases: Vec<Release>) -> Vec<Card> {
+        releases.into_par_iter()
+            .map(|release| {
+                App::card_from_release(release)
+            })
+            .collect()
+    }
+
+    fn card_from_release(release: Release) -> Card {
+        let image = match &release.cover_art {
+            Some(image) => dynamic_to_retained(&release.title, image),
+            None => RetainedImage::from_color_image("default", ColorImage::example()),
+        };
+        Card {
+            release,
+            // TODO unwrap
+            image
+        }
+    }
+
+    // it's not really the browser, it's more like the main screen.
     fn browser(self: &mut Self, ctx: &Context) {
         egui::TopBottomPanel::top("search_bar").show(ctx, |ui| {
             ui.add_space(8.0);
@@ -94,25 +107,21 @@ impl App {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let Ok(cards) = self.cards.lock() {
-                let matcher = SkimMatcherV2::default();
-                // TODO just do this when search changes, not every frame
-                let cards: Vec<Arc<Card>> = cards
-                    .iter()
-                    .map(|arc| {
-                        arc.clone()
-                    })
-                    .filter(|card| {
-                        let haystack = card.title.clone() + " " + &card.subtitle;
-                        return matcher
-                            .fuzzy_match(haystack.as_str(), &self.query_string)
-                            .is_some();
-                    })
-                    .collect();
-                self.card_grid(&cards, ctx, ui);
-            }
+            let matcher = SkimMatcherV2::default();
+            // TODO just do this when search changes, not every frame
+            let cards: Vec<&Card> = self.cards.iter().filter(|card| {
+                let haystack = format!("{} {}", card.title(), card.subtitle());
+                return matcher
+                    .fuzzy_match(haystack.as_str(), &self.query_string)
+                    .is_some();
+            })
+            .collect();
+            self.card_grid(&cards, ctx, ui);
         });
     }
+
+
+
 
     fn search_bar(self: &mut Self, ui: &mut Ui) {
         ui.horizontal(|ui| {
@@ -126,7 +135,7 @@ impl App {
         });
     }
 
-    fn card_grid(self: &Self, cards: &Vec<Arc<Card>>, ctx: &Context, ui: &mut Ui) {
+    fn card_grid(self: &Self, cards: &Vec<&Card>, ctx: &Context, ui: &mut Ui) {
         let num_columns = 6;
 
         // https://github.com/a-liashenko/TinyPomodoro/blob/main/app/src/app/widgets/styled_slider.rs#L55
@@ -166,35 +175,35 @@ impl App {
         });
     }
 
-    fn card(self: &Self, card: &Arc<Card>, width: f32, height: f32, 
+    fn card(self: &Self, card: &Card, width: f32, height: f32, 
             ctx: &Context, ui: &mut Ui) {
         ui.vertical(|ui| {
             let image_button = ImageButton::new(
-                card.image.texture_id(ctx),
+                card.image().texture_id(ctx),
                 egui::vec2(width, height));
             ui.add(image_button);
-            ui.link(&card.title);
-            ui.link(&card.subtitle);
+            ui.link(card.title());
+            ui.link(card.subtitle());
         });
     }
 
     fn player_bar(self: &mut Self, ctx: &Context, ui: &mut Ui) {
-        ui.vertical_centered_justified(|ui| {
-            ui.horizontal(|ui| {
-                let np = &self.now_playing;
-                ui.add(ImageButton::new(
-                    np.image.texture_id(ctx),
-                    egui::vec2(120.0, 120.0),
-                ));
-                ui.vertical(|ui| {
-                    ui.link(&np.title);
-                    ui.link(&np.subtitle);
-                    self.plot_scrubber(ctx, ui);
-                    self.slider_scrubber(ctx, ui);
-                });
-                self.card(&self.up_next, 60.0, 60.0, ctx, ui);
-            });
-        });
+        // ui.vertical_centered_justified(|ui| {
+        //     ui.horizontal(|ui| {
+        //         let np = &self.now_playing;
+        //         ui.add(ImageButton::new(
+        //             np.image.texture_id(ctx),
+        //             egui::vec2(120.0, 120.0),
+        //         ));
+        //         ui.vertical(|ui| {
+        //             ui.link(&np.title);
+        //             ui.link(&np.subtitle);
+        //             self.plot_scrubber(ctx, ui);
+        //             self.slider_scrubber(ctx, ui);
+        //         });
+        //         self.card(&self.up_next, 60.0, 60.0, ctx, ui);
+        //     });
+        // });
     }
 
     fn plot_scrubber(self: &Self, ctx: &Context, ui: &mut Ui) {
@@ -217,49 +226,6 @@ impl App {
             );
         });
     }
-
-    fn load_local_library(self: &mut Self) {
-        let t = Instant::now();
-        let library = LocalMusicLibrary::new("data/library");
-        let releases = library.releases();
-        println!("loaded local releases in {}ms", Instant::now().duration_since(t).as_millis());
-
-        // Convert all the Releases to Cards
-        let t = Instant::now();
-        let cards: Vec<Arc<Card>> = releases.par_iter()
-            .map(|release| {
-                Arc::new(self.card_from_release(&release))
-            })
-            .collect();
-        println!("converted to cards in {}ms", Instant::now().duration_since(t).as_millis());
-
-        let t = Instant::now();
-        self.cards.lock().unwrap().extend(cards);
-        println!("set the cards in {}ms", Instant::now().duration_since(t).as_millis());
-
-        // Sort the cards
-        let t = Instant::now();
-        self.cards
-            .lock()
-            .unwrap()
-            .sort_by(|a, b| a.subtitle.to_uppercase().cmp(&b.subtitle.to_uppercase()));
-        println!("sorted the cards in {}ms", Instant::now().duration_since(t).as_millis());
-
-        // self.now_playing = self.cards.lock().unwrap()[4].clone();
-        // self.up_next = self.cards.lock().unwrap()[55].clone();
-    }
-
-    fn card_from_release(self: &Self, release: &Release) -> Card {
-        let image = match &release.cover_image {
-            Some(image) => image.clone(),
-            None => generate_release_image(&release),
-        };
-        Card {
-            title: release.title.clone(),
-            subtitle: release.artist.clone().unwrap_or_default(),
-            image: dynamic_to_retained(&release.title, &image),
-        }
-    }
 }
 
 // TODO take a look at how RetainedImage does it's loading and see if I can
@@ -274,79 +240,27 @@ fn dynamic_to_retained(debug_name: &str, image: &DynamicImage) -> RetainedImage 
 }
 
 struct Card {
-    // TODO id?
-    // TODO reference to object
+    release: Release,
     image: RetainedImage,
-    title: String,
-    subtitle: String,
 }
 
-impl Default for Card {
-    fn default() -> Self {
-        Self {
-            image: RetainedImage::from_color_image("default", ColorImage::example()),
-            title: Default::default(),
-            subtitle: Default::default(),
+impl Card {
+    fn image(&self) -> &RetainedImage {
+        return &self.image;
+    }
+
+    fn title(&self) -> &str {
+        return &self.release.title;
+    }
+
+    fn subtitle(&self) -> &str {
+        match self.release.artist.as_ref() {
+            Some(artist) => artist,
+            None => "",
         }
     }
 }
 
-struct RetainedImageButCool(RetainedImage);
-
-impl From<&DynamicImage> for RetainedImageButCool {
-    fn from(value: &DynamicImage) -> Self {
-        RetainedImageButCool(dynamic_to_retained("", value))
-    }
-}
-
-// TODO it would be fun to generate a cool artwork for the release
-// based on maybe a similar function that generates artwork for a genre
-// like use the genre as a background for a stylized title or something
-fn generate_release_image(_release: &Release) -> DynamicImage {
-    DynamicImage::new_rgba8(200, 200)
-}
-
-fn generate_artist_image(artist: &str) -> DynamicImage {
-    DynamicImage::new_rgba8(200, 200)
-}
-
-// egui::Window::new("🔧 Settings")
-//     // .open(settings)
-//     .vscroll(true)
-//     .show(ctx, |ui| {
-//         ctx.settings_ui(ui);
-//     });
-
-// egui::Window::new("🔍 Inspection")
-//     // .open(inspection)
-//     .vscroll(true)
-//     .show(ctx, |ui| {
-//         ctx.inspection_ui(ui);
-//     });
-
-// egui::Window::new("📝 Memory")
-//     // .open(memory)
-//     .resizable(false)
-//     .show(ctx, |ui| {
-//         ctx.memory_ui(ui);
-//     });
-
-// impl Default for App {
-// fn default() -> Self {
-//     return Self {
-//         query_string: String::from(""),
-//         cards,
-//         now_playing: Default::default(),
-//         up_next: Default::default(),
-//     };
-
-//     // Load the local library
-//     println!("Loading local library");
-//     let library = LocalMusicLibrary::new("data/library");
-
-//     // load config
-//     let builder = Config::builder()
-//         .add_source(File::new("config", FileFormat::Toml));
 
 //     if false {
 //         // load a remote music library
@@ -371,67 +285,3 @@ fn generate_artist_image(artist: &str) -> DynamicImage {
 //             library.merge_release(&release).expect("merge error");
 //         }
 //     }
-
-//     let releases = library.releases();
-//     println!("Local library contains {} releases", releases.len());
-
-//     // Convert all the releases into Cards
-//     println!("Convert Releases to Cards");
-//     let mut cards = Vec::new();
-//     let mut artists: HashSet<String> = HashSet::new();
-//     let mut genres: HashSet<String> = HashSet::new();
-//     for release in releases {
-//         let image = match release.cover_image {
-//             Some(image) => image,
-//             None => generate_release_image(&release),
-//         };
-//         let card = Card {
-//             title: release.title.clone(),
-//             subtitle: release.artist.clone().unwrap_or(String::from("")),
-//             image: dynamic_to_retained(&release.title, &image),
-//         };
-
-//         if let Some(artist) = &release.artist {
-//             artists.insert(artist.clone());
-//         }
-//         if let Some(genre) = &release.genre {
-//             genres.insert(genre.clone());
-//         }
-
-//         cards.push(card);
-//     }
-
-//     // Add some derived Cards
-//     println!("Generate Artist Cards");
-//     for artist in artists {
-//         cards.push(Card {
-//             title: "Artist".to_string(),
-//             subtitle: artist.clone(),
-//             ..Default::default()
-//         });
-//     }
-//     println!("Generate Genre Cards");
-//     for genre in genres {
-//         cards.push(Card {
-//             title: "Genre".to_string(),
-//             subtitle: genre.clone(),
-//             ..Default::default()
-//         });
-//     }
-
-//     // Sort the cards
-//     println!("Sorting Cards");
-//     cards.sort_by(|a, b| {
-//         a.subtitle.to_uppercase().cmp(&b.subtitle.to_uppercase())
-//     });
-
-//     // Go!
-//     println!("Done");
-//     return Self {
-//         query_string: String::from(""),
-//         cards,
-//         now_playing: Default::default(),
-//         up_next: Default::default(),
-//     };
-// }
-// }
