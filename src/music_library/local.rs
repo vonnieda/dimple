@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 /// A local music library living in a directory. Stores data with Sled.
 ///
 /// This music library is how the app stores its local cache of all other
@@ -22,7 +24,7 @@ impl LocalMusicLibrary {
 }
 
 impl MusicLibrary for LocalMusicLibrary {
-    fn releases(&self) -> Vec<Release> {
+    fn releases(&self) -> Vec<Arc<Release>> {
         let internal_releases: Vec<InternalRelease> = self
             .db
             .open_tree("releases")
@@ -37,23 +39,22 @@ impl MusicLibrary for LocalMusicLibrary {
 
         // TODO I think this can be done further in parallel by doing the
         // deserialization here.
-        let releases: Vec<Release> = internal_releases
+        let releases: Vec<Arc<Release>> = internal_releases
             .par_iter()
-            .map(|internal_release| Release {
+            .map(|internal_release| Arc::new(Release {
                 id: internal_release.id.clone(),
                 title: internal_release.title.clone(),
                 artist: internal_release.artist.clone(),
                 cover_art: self.images.get(&internal_release.id, 200, 200),
                 genre: internal_release.genre.clone(),
                 tracks: Vec::new(),
-            })
+            }))
             .collect();
 
-        releases
+        return releases;
     }
 
-    // TODO change this to merge_releases and I can use Rayon here.
-    fn merge_release(self: &Self, release: &Release) -> Result<Release, String> {
+    fn merge_release(self: &Self, release: &Release) -> Result<(), String> {
         if let Ok(releases) = self.db.open_tree("releases") {
             // Store the original cover image
             if let Some(cover_image) = &release.cover_art {
@@ -70,7 +71,7 @@ impl MusicLibrary for LocalMusicLibrary {
             }
         }
         // TODO return hydrated object
-        return Ok(Release::default());
+        return Ok(());
     }
 }
 

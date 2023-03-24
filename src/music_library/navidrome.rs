@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, sync::Arc};
 
 use image::DynamicImage;
 use rayon::prelude::*;
@@ -35,9 +35,11 @@ impl NavidromeMusicLibrary {
 }
 
 impl MusicLibrary for NavidromeMusicLibrary {
-    fn releases(self: &Self) -> Vec<Release> {
+    fn releases(self: &Self) -> Vec<Arc<Release>> {
         if let Ok(releases) = get_all_releases(&self.new_client_info()) {
-            return releases;
+            return releases.into_iter().map(|release| {
+                Arc::new(release)
+            }).collect();
         }
         return Vec::new();
     }

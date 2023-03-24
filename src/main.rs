@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use eframe::egui::{self, Context, Grid, ImageButton, ScrollArea, TextEdit, Ui};
 use eframe::epaint::{ColorImage, FontFamily, FontId};
 use egui_extras::RetainedImage;
@@ -46,9 +48,15 @@ struct App {
 // TODO okay, I still think this becomes a Trait and then we have like ReleaseCard,
 // and ArtistCard, and etc.
 struct ReleaseCard {
-    release: Release,
+    release: Arc<Release>,
     image: RetainedImage,
 }
+
+// impl ReleaseCard {
+//     fn new(release: &Release) {
+
+//     }
+// }
 
 impl Default for App {
     fn default() -> Self {
@@ -74,7 +82,7 @@ impl eframe::App for App {
 }
 
 impl App {
-    fn cards_from_releases(releases: Vec<Release>) -> Vec<ReleaseCard> {
+    fn cards_from_releases(releases: Vec<Arc<Release>>) -> Vec<ReleaseCard> {
         releases.into_par_iter()
             .map(|release| {
                 App::card_from_release(release)
@@ -82,7 +90,7 @@ impl App {
             .collect()
     }
 
-    fn card_from_release(release: Release) -> ReleaseCard {
+    fn card_from_release(release: Arc<Release>) -> ReleaseCard {
         let image = match &release.cover_art {
             Some(image) => dynamic_to_retained(&release.title, image),
             None => RetainedImage::from_color_image("default", ColorImage::example()),

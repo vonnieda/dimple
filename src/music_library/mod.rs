@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use image::DynamicImage;
 
 pub mod navidrome;
@@ -7,16 +9,30 @@ pub mod image_cache;
 pub trait MusicLibrary {
     /// All of the releases in the library. This function may block for a long
     /// time if resources need to be loaded from disk or network. 
-    fn releases(self: &Self) -> Vec<Release>;
+    fn releases(&self) -> Vec<Arc<Release>>;
 
     /// Add or update a release into the library. Returns the merged release.
     /// If data in the existing release and the new one differ the new data
     /// are preferred.
-    fn merge_release(self: &Self, _release: &Release) -> Result<Release, String> {
+    fn merge_release(&self, _release: &Release) -> Result<(), String> {
         Err("not implemented".to_string())
     }
 }
 
+#[derive(Default, Clone)]
+pub struct MemoryMusicLibrary {
+    releases: Vec<Arc<Release>>,
+}
+
+impl MusicLibrary for MemoryMusicLibrary {
+    fn releases(&self) -> Vec<Arc<Release>> {
+        return self.releases.clone();
+    }
+
+    fn merge_release(&self, release: &Release) -> Result<(), String> {
+        Ok(())
+    }
+}
 
 #[derive(Default, Clone)]
 pub struct Release {
@@ -48,52 +64,3 @@ pub struct Genre {
     pub name: String,
     pub cover_art: Option<DynamicImage>,
 }
-
-
-
-#[derive(Default)]
-pub struct EmptyMusicLibrary {
-
-}
-
-impl MusicLibrary for EmptyMusicLibrary  {
-    fn releases(self: &Self) -> Vec<Release> {
-        Vec::new()
-    }
-}
-
-
-// #[derive(Default, Clone)]
-// pub struct Release {
-//     pub id: String,
-//     pub title: String,
-//     pub artists: Vec<String>,
-//     pub cover_art: Option<DynamicImage>,
-//     pub genres: Vec<String>,
-//     pub tracks: Vec<Track>,
-// }
-
-// #[derive(Default, Clone)]
-// struct Artist {
-//     id: String,
-//     name: String,
-//     releases: Vec<Release>,
-// }
-
-// #[derive(Default, Clone)]
-// struct Track {
-//     title: String,
-//     stream: Vec<u8>,
-//     artists: Vec<Artist>,
-// }
-
-// #[derive(Default, Clone)]
-// struct Genre {
-//     name: String,
-// }
-
-// #[derive(Default)]
-// pub struct EmptyMusicLibrary {
-
-// }
-
