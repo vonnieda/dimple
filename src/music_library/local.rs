@@ -29,8 +29,12 @@ struct LocalScaledImage {
 }
 
 impl ScaledImage for LocalScaledImage {
-    fn image(&self, width: u32, height: u32) -> Option<DynamicImage> {
+    fn scaled(&self, width: u32, height: u32) -> Option<DynamicImage> {
         self.images.get(&self.id, width, height)
+    }
+
+    fn original(&self) -> Option<DynamicImage> {
+        self.images.get_original(&self.id)
     }
 }
 
@@ -76,35 +80,30 @@ impl MusicLibrary for LocalMusicLibrary {
 
     fn merge_release(self: &Self, release: &Release) -> Result<(), String> {
         if let Ok(releases) = self.db.open_tree("releases") {
-            // TODO
-            // // Store the original cover image
-            // if let Some(cover_image) = release.cover_art {
-            //     // TODO error checking
-            //     self.images.insert(&release.id, &cover_image);
-            // }
+            // If there is cover art, store it.
+            let cover_art_id = release.cover_art.as_ref()
+                .map_or(None, |cover_art| cover_art.original())
+                .map_or(None, |original| {
+                    self.images.insert(&release.id, &original);
+                    return Some(release.id.clone());
+            });
 
-            // Create a serializable release
-            let internal: InternalRelease = InternalRelease::from(release);
+            // Create serializable version.
+            let internal_release = InternalRelease {
+                id: release.id.clone(),
+                title: release.title.clone(),
+                artist: release.artist.clone(),
+                cover_image_id: cover_art_id,
+                genre: release.genre.clone(),
+            };
 
-            // Store the release
-            if let Ok(bin) = bincode::serialize(&internal) {
+            // Store the release.
+            if let Ok(bin) = bincode::serialize(&internal_release) {
                 releases.insert(&release.id, bin).expect("insert failed");
             }
         }
         // TODO return hydrated object
         return Ok(());
-    }
-}
-
-impl From<&Release> for InternalRelease {
-    fn from(release: &Release) -> Self {
-        InternalRelease {
-            id: release.id.clone(),
-            title: release.title.clone(),
-            artist: release.artist.clone(),
-            cover_image_id: Some(release.id.clone()),
-            genre: release.genre.clone(),
-        }
     }
 }
 

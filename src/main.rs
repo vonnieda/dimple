@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use dimple::music_library::local::LocalMusicLibrary;
-use dimple::music_library::{MusicLibrary, Track, Release};
-use eframe::egui::{self, Context, Grid, ImageButton, ScrollArea, TextEdit, Ui, Response};
+use dimple::music_library::{MusicLibrary, Release, Track};
+use eframe::egui::{self, Context, Grid, ImageButton, Response, ScrollArea, TextEdit, Ui};
 use eframe::epaint::{ColorImage, FontFamily, FontId};
 use egui_extras::RetainedImage;
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -10,6 +10,10 @@ use fuzzy_matcher::FuzzyMatcher;
 use image::DynamicImage;
 
 use rayon::prelude::*;
+
+#[macro_use]
+extern crate log;
+extern crate env_logger;
 
 // TODO BLOCKED make grid full width https://github.com/emilk/egui/discussions/1144#discussioncomment-2035457
 // TODO make number of columns adapt to window width and tile size
@@ -25,6 +29,11 @@ use rayon::prelude::*;
 // RetainedImage does.
 
 fn main() {
+    let mut builder = env_logger::Builder::new();
+    builder.filter_level(log::LevelFilter::Info);
+    builder.format_timestamp_millis();
+    builder.init();
+
     let native_options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(1440.0, 1024.0)),
         ..Default::default()
@@ -58,10 +67,19 @@ struct ReleaseCard {
 
 impl Default for App {
     fn default() -> Self {
+        info!("Opening library");
         let library = LocalMusicLibrary::new("data/library");
+        info!("Reading releases");
         let releases = library.releases();
+        info!("Building cards");
         let mut cards = App::cards_from_releases(releases);
-        cards.sort_by(|a, b| a.subtitle().to_uppercase().cmp(&b.subtitle().to_uppercase()));
+        info!("Sorting cards");
+        cards.sort_by(|a, b| {
+            a.subtitle()
+                .to_uppercase()
+                .cmp(&b.subtitle().to_uppercase())
+        });
+        info!("Done!");
 
         Self {
             music_library: Box::new(library),
@@ -81,28 +99,22 @@ impl eframe::App for App {
 
 impl App {
     fn cards_from_releases(releases: Vec<Arc<Release>>) -> Vec<ReleaseCard> {
-        releases.iter()
-            .map(|release| {
-                App::card_from_release(release.clone())
-            })
+        releases
+            .iter()
+            .map(|release| App::card_from_release(release.clone()))
             .collect()
     }
 
     fn card_from_release(release: Arc<Release>) -> ReleaseCard {
         let image = match &release.cover_art {
-            Some(cover_art) => {
-                match cover_art.image(200, 200) {
-                    Some(dynamic) => dynamic_to_retained(&release.title, &dynamic),
-                    None => RetainedImage::from_color_image("default", ColorImage::example())
-                }
-            }
-            None => RetainedImage::from_color_image("default", ColorImage::example())
+            Some(cover_art) => match cover_art.scaled(200, 200) {
+                Some(dynamic) => dynamic_to_retained(&release.title, &dynamic),
+                None => RetainedImage::from_color_image("default", ColorImage::example()),
+            },
+            None => RetainedImage::from_color_image("default", ColorImage::example()),
         };
 
-        ReleaseCard {
-            release,
-            image
-        }
+        ReleaseCard { release, image }
     }
 
     // it's not really the browser, it's more like the main screen.
@@ -116,13 +128,14 @@ impl App {
         egui::TopBottomPanel::bottom("player").show(ctx, |ui| {
             ui.vertical_centered_justified(|ui| {
                 self.player_bar(ctx, ui);
-                ui.add_space(8.0);    
+                ui.add_space(8.0);
             });
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             let matcher = SkimMatcherV2::default();
-            // // TODO just do this when search changes, not every frame
+            // TODO just do this when search changes, not every frame
+            // TODO STOPSHIP search is still broken
             // let cards: Vec<&ReleaseCard> = self.cards.iter().filter(|card| {
             //     let haystack = format!("{} {}", card.title(), card.subtitle());
             //     return matcher
@@ -166,41 +179,47 @@ impl App {
             ScrollArea::vertical()
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
-                ui.vertical_centered_justified(|ui| {
-                    ui.horizontal(|ui| {
-                        // TODO magic yeesh.
-                        ui.add_space(40.0);
-                        Grid::new("card_grid")
-                            .spacing(egui::vec2(16.0, 16.0))
-                            .show(ui, |ui| {
-                                for (i, card) in self.cards.iter().enumerate() {
-                                    if self.card(card, 200.0, 200.0, ctx, ui).clicked() {
-                                        // let tracks = card.release.tracks.clone();
-                                        // self.playlist.extend(tracks);
-                                        // println!("{:?}", self.playlist);
+                    ui.vertical_centered_justified(|ui| {
+                        ui.horizontal(|ui| {
+                            // TODO magic yeesh.
+                            ui.add_space(40.0);
+                            Grid::new("card_grid")
+                                .spacing(egui::vec2(16.0, 16.0))
+                                .show(ui, |ui| {
+                                    for (i, card) in self.cards.iter().enumerate() {
+                                        if self.card(card, 200.0, 200.0, ctx, ui).clicked() {
+                                            // let tracks = card.release.tracks.clone();
+                                            // self.playlist.extend(tracks);
+                                            // println!("{:?}", self.playlist);
+                                        }
+                                        if i % num_columns == num_columns - 1 {
+                                            ui.end_row();
+                                        }
                                     }
-                                    if i % num_columns == num_columns - 1 {
-                                        ui.end_row();
-                                    }
-                                }
-                            });
-                    })
+                                });
+                        })
+                    });
                 });
-            });
         });
     }
 
-    fn card(&self, card: &ReleaseCard, width: f32, height: f32, 
-            ctx: &Context, ui: &mut Ui) -> Response {
+    fn card(
+        &self,
+        card: &ReleaseCard,
+        width: f32,
+        height: f32,
+        ctx: &Context,
+        ui: &mut Ui,
+    ) -> Response {
         ui.vertical(|ui| {
-            let image_button = ImageButton::new(
-                card.image().texture_id(ctx),
-                egui::vec2(width, height));
+            let image_button =
+                ImageButton::new(card.image().texture_id(ctx), egui::vec2(width, height));
             let response = ui.add(image_button);
             ui.link(card.title());
             ui.link(card.subtitle());
             return response;
-        }).inner
+        })
+        .inner
     }
 
     fn player_bar(self: &mut Self, ctx: &Context, ui: &mut Ui) {
@@ -236,9 +255,10 @@ impl App {
     fn slider_scrubber(self: &Self, ctx: &Context, ui: &mut Ui) {
         ui.vertical_centered_justified(|ui| {
             let mut my_f32: f32 = 0.33;
-            ui.add(egui::Slider::new(&mut my_f32, 0.0..=1.0)
-                .show_value(false)
-                .trailing_fill(true),
+            ui.add(
+                egui::Slider::new(&mut my_f32, 0.0..=1.0)
+                    .show_value(false)
+                    .trailing_fill(true),
             );
         });
     }
@@ -271,7 +291,6 @@ impl ReleaseCard {
         }
     }
 }
-
 
 //     if false {
 //         // load a remote music library

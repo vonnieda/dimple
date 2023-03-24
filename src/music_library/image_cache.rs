@@ -38,6 +38,13 @@ impl ImageCache {
         None
     }
 
+    pub fn get_original(self: &Self, id: &str) -> Option<DynamicImage> {
+        if let Some(original) = self.load(id) {
+            return Some(original);
+        }
+        None
+    }
+
     fn save(self: &Self, key: &str, image: &DynamicImage) {
         let mut bytes = Vec::new();
         if image

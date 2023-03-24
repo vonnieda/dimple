@@ -1,8 +1,8 @@
-use dimple::music_library::{local::LocalMusicLibrary, directory_library::DirectoryMusicLibrary, MusicLibrary};
+use dimple::music_library::{local::LocalMusicLibrary, MusicLibrary};
 
 fn main() {
-    let source = DirectoryMusicLibrary::new("music");
-    let dest = LocalMusicLibrary::new("data/library");
+    let source = LocalMusicLibrary::new("data/library");
+    let dest = LocalMusicLibrary::new("data/library2");
 
     let releases = source.releases();
     for release in releases {

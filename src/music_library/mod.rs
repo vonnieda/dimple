@@ -43,8 +43,9 @@ pub struct Release {
     pub tracks: Vec<Arc<Track>>,
 }
 
-pub trait ScaledImage: Send {
-    fn image(&self, width: u32, height: u32) -> Option<DynamicImage>;
+pub trait ScaledImage {
+    fn scaled(&self, width: u32, height: u32) -> Option<DynamicImage>;
+    fn original(&self) -> Option<DynamicImage>;
 }
 
 // #[derive(Default, Clone, Debug)]
