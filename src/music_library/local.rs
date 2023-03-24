@@ -7,7 +7,7 @@ use image::DynamicImage;
 
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use super::{Release, image_cache::ImageCache, MusicLibrary, ScaledImage};
+use super::{Release, image_cache::ImageCache, MusicLibrary, ScaledImage, Track};
 
 pub struct LocalMusicLibrary {
     db: sled::Db,
@@ -71,7 +71,10 @@ impl MusicLibrary for LocalMusicLibrary {
                     None => None,
                 },
                 genre: internal_release.genre.clone(),
-                tracks: Vec::new(),
+                tracks: vec![
+                    Arc::new(Track { title: "Once Upon".to_owned() }), 
+                    Arc::new(Track { title: "Holy Smokes".to_owned() })
+                ],
             }))
             .collect();
 

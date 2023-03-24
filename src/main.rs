@@ -59,28 +59,25 @@ struct ReleaseCard {
     image: RetainedImage,
 }
 
-// impl ReleaseCard {
-//     fn new(release: &Release) {
-
-//     }
-// }
-
 impl Default for App {
     fn default() -> Self {
         info!("Opening library");
         let library = LocalMusicLibrary::new("data/library");
+
         info!("Reading releases");
         let releases = library.releases();
+
         info!("Building cards");
         let mut cards = App::cards_from_releases(releases);
+
         info!("Sorting cards");
         cards.sort_by(|a, b| {
             a.subtitle()
                 .to_uppercase()
                 .cmp(&b.subtitle().to_uppercase())
         });
+        
         info!("Done!");
-
         Self {
             music_library: Box::new(library),
             cards: cards,
@@ -161,12 +158,6 @@ impl App {
 
     fn card_grid(&mut self, ctx: &Context, ui: &mut Ui) {
         let num_columns = 6;
-
-        // https://github.com/a-liashenko/TinyPomodoro/blob/main/app/src/app/widgets/styled_slider.rs#L55
-        // Ugh. This makes me wanna use something more mature. The weird mix of modifying
-        // context styles and some widgets having their own styles is weird.
-        // It kinda seems like I will need to cultivate my own set of extended
-        // widgets, maybe. Stuff that works reasonably.
 
         // TODO use ScrollArea::show_rows to improve performance. I
         // tried previously and I couldn't get the rendering right.
@@ -291,27 +282,3 @@ impl ReleaseCard {
         }
     }
 }
-
-//     if false {
-//         // load a remote music library
-//         let remote_library:Box<dyn MusicLibrary> = match builder.build() {
-//             Ok(config) => {
-//                 Box::new(NavidromeMusicLibrary::new(
-//                     config.get_string("navidrome.site").unwrap().as_str(),
-//                     config.get_string("navidrome.username").unwrap().as_str(),
-//                     config.get_string("navidrome.password").unwrap().as_str()))
-//             },
-//             Err(_) => {
-//                 Box::new(EmptyMusicLibrary::default())
-//             }
-//         };
-//         println!("Loading remote library");
-//         let releases = remote_library.releases();
-//         println!("Remote library contains {} releases", releases.len());
-
-//         // merge all the remote releases into the local
-//         for (i, release) in releases.iter().enumerate() {
-//             println!("Merging {}/{}: {}", i + 1, releases.len(), release.title);
-//             library.merge_release(&release).expect("merge error");
-//         }
-//     }

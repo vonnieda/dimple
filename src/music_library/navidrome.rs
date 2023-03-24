@@ -1,3 +1,29 @@
+
+//     if false {
+//         // load a remote music library
+//         let remote_library:Box<dyn MusicLibrary> = match builder.build() {
+//             Ok(config) => {
+//                 Box::new(NavidromeMusicLibrary::new(
+//                     config.get_string("navidrome.site").unwrap().as_str(),
+//                     config.get_string("navidrome.username").unwrap().as_str(),
+//                     config.get_string("navidrome.password").unwrap().as_str()))
+//             },
+//             Err(_) => {
+//                 Box::new(EmptyMusicLibrary::default())
+//             }
+//         };
+//         println!("Loading remote library");
+//         let releases = remote_library.releases();
+//         println!("Remote library contains {} releases", releases.len());
+
+//         // merge all the remote releases into the local
+//         for (i, release) in releases.iter().enumerate() {
+//             println!("Merging {}/{}: {}", i + 1, releases.len(), release.title);
+//             library.merge_release(&release).expect("merge error");
+//         }
+//     }
+
+
 use std::{fs, sync::Arc};
 
 use image::DynamicImage;
