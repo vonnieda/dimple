@@ -1,12 +1,12 @@
-use std::{fs, sync::Arc};
+use std::{fs};
 
 use config::Config;
-use image::{DynamicImage, imageops::FilterType};
+use image::{DynamicImage};
 use log::debug;
 use rayon::prelude::*;
 use sunk::{search::SearchPage, Album, Client, ListType, Media};
 
-use super::{Library, Release, Image};
+use super::{Library, Release};
 
 const CACHE_DIR: &str = "data/navidrome/images/original";
 
@@ -70,29 +70,6 @@ fn albums_to_releases(albums: &Vec<Album>, client: &Client) -> Vec<Release> {
             }
         }).collect()
 }
-
-// struct NavidromeImage {
-//     client_info: ClientInfo,
-//     // TODO it's late and I cannot figure out how to make this generic.
-//     media: Album,
-// }
-
-// impl Image for NavidromeImage {
-//     fn scaled(&self, width: u32, height: u32) -> Option<DynamicImage> {
-//         self.original().map_or(None, |original| {
-//             Some(original.resize(width, height, FilterType::CatmullRom))
-//         })
-//     }
-
-//     fn original(&self) -> Option<DynamicImage> {
-//         if let Ok(client) = Client::new(&self.client_info.site, 
-//             &self.client_info.username, 
-//             &self.client_info.password) {
-//             return get_image(&self.media, &client);
-//         }
-//         None
-//     }
-// }
 
 fn get_image<M: Media>(media: &M, client: &Client) -> Option<DynamicImage> {
     if let Some(image) = load_image(media) {

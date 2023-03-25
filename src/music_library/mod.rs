@@ -1,4 +1,4 @@
-use std::{sync::Arc, fmt::Debug};
+use std::{fmt::Debug};
 
 use image::DynamicImage;
 
