@@ -34,88 +34,65 @@ impl NavidromeLibrary {
         }
     }
 
-    fn new_client_info(self: &Self) -> ClientInfo {
-        ClientInfo {
-            site: self.site.clone(),
-            username: self.username.clone(),
-            password: self.password.clone(),
-        }
+    fn new_client(&self) -> Result<Client, String> {
+        sunk::Client::new(
+            self.site.as_str(),
+            self.username.as_str(),
+            self.password.as_str(),
+        ).map_err(|err| err.to_string())
     }
+
 }
 
 impl Library for NavidromeLibrary {
-    fn releases(self: &Self) -> Vec<Arc<Release>> {
-        // TODO cleanup
-        if let Ok(releases) = get_all_releases(&self.new_client_info()) {
-            return releases.into_iter().map(|release| {
-                Arc::new(release)
-            }).collect();
-        }
-        return Vec::new();
+    fn releases(self: &Self) -> Result<Vec<Release>, String> {
+        let client = self.new_client()?;
+        get_all_releases(&client).map_err(|x| x.to_string())
     }
 }
 
-#[derive(Default, Clone)]
-struct ClientInfo {
-    site: String,
-    username: String,
-    password: String,
-}
-
-fn get_all_releases(client_info: &ClientInfo) -> Result<Vec<Release>, sunk::Error> {
-    let client = sunk::Client::new(
-        client_info.site.as_str(),
-        client_info.username.as_str(),
-        client_info.password.as_str(),
-    )?;
+fn get_all_releases(client: &Client) -> Result<Vec<Release>, sunk::Error> {
     let albums = get_all_albums(&client)?;
-    return Ok(albums_to_releases(&albums, client_info));
+    return Ok(albums_to_releases(&albums, client));
 }
 
-fn albums_to_releases(albums: &Vec<Album>, client_info: &ClientInfo) -> Vec<Release> {
-    // TODO had to remove another par_iter
+fn albums_to_releases(albums: &Vec<Album>, client: &Client) -> Vec<Release> {
     albums
-        // .par_iter()
-        .iter()
+        .par_iter()
         .map(|album| {
             Release {
                 id: album.id_string.clone(),
                 title: album.name.clone(),
                 artist: album.artist.clone(),
-                cover_art: album.cover_id().map_or(None, |_| {
-                    Some(Arc::new(NavidromeImage {
-                        client_info: client_info.clone(),
-                        media: album.clone(),
-                    }))
-                }),
+                cover_art: get_image(album, client),
                 genre: album.genre.clone(),
-                tracks: Vec::new(),
+                tracks: Default::default(),
             }
         }).collect()
 }
 
-struct NavidromeImage {
-    client_info: ClientInfo,
-    // TODO it's late and I cannot figure out how to make this generic.
-    media: Album,
-}
+// struct NavidromeImage {
+//     client_info: ClientInfo,
+//     // TODO it's late and I cannot figure out how to make this generic.
+//     media: Album,
+// }
 
-impl Image for NavidromeImage {
-    fn scaled(&self, width: u32, height: u32) -> Option<DynamicImage> {
-        self.original().map_or(None, |original| {
-            Some(original.resize(width, height, FilterType::CatmullRom))
-        })
-    }
+// impl Image for NavidromeImage {
+//     fn scaled(&self, width: u32, height: u32) -> Option<DynamicImage> {
+//         self.original().map_or(None, |original| {
+//             Some(original.resize(width, height, FilterType::CatmullRom))
+//         })
+//     }
 
-    fn original(&self) -> Option<DynamicImage> {
-        if let Ok(client) = Client::new(&self.client_info.site, 
-            &self.client_info.username, 
-            &self.client_info.password) {
-            return get_image(&self.media, &client);
-        }
-        None
-    }
-}
+//     fn original(&self) -> Option<DynamicImage> {
+//         if let Ok(client) = Client::new(&self.client_info.site, 
+//             &self.client_info.username, 
+//             &self.client_info.password) {
+//             return get_image(&self.media, &client);
+//         }
+//         None
+//     }
+// }
 
 fn get_image<M: Media>(media: &M, client: &Client) -> Option<DynamicImage> {
     if let Some(image) = load_image(media) {

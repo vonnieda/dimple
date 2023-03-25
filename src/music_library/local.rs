@@ -36,83 +36,78 @@ impl LocalMusicLibrary {
 /// I think I don't like the bincode stuff.
 /// 
 impl Library for LocalMusicLibrary {
-    fn releases(&self) -> Vec<Arc<Release>> {
-        let internal_releases: Vec<InternalRelease> = self.releases
-            .iter()
-            .par_bridge()
-            .map(|kv| {
-                let (_key, bin) = kv.unwrap();
-                bincode::deserialize(&bin[..]).unwrap()
-            })
-            .collect();
+    fn releases(&self) -> Result<Vec<Release>, String> {
+        // let internal_releases: Vec<InternalRelease> = self.releases
+        //     .iter()
+        //     .par_bridge()
+        //     .map(|kv| {
+        //         let (_key, bin) = kv.unwrap();
+        //         bincode::deserialize(&bin[..]).unwrap()
+        //     })
+        //     .collect();
 
-        // TODO I think this can be done further in parallel by doing the
-        // deserialization here.
-        // TODO removed the parallization here temporary cause I can't get it
-        // to work with all my custom types.
-        let releases: Vec<Arc<Release>> = internal_releases
-            .iter()
-            // .par_iter()
-            .map(|internal_release| Arc::new(Release {
-                id: internal_release.id.clone(),
-                title: internal_release.title.clone(),
-                artist: internal_release.artist.clone(),
-                cover_art: match &internal_release.cover_image_id { 
-                    Some(cover_art_id) => Some(Arc::new(LocalScaledImage { 
-                        images: self.images.clone(),
-                        id: cover_art_id.clone(), 
-                    })),
-                    None => None,
-                },
-                genre: internal_release.genre.clone(),
-                tracks: Default::default(),
-            }))
-            .collect();
+        // // TODO I think this can be done further in parallel by doing the
+        // // deserialization here.
+        // // TODO removed the parallization here temporary cause I can't get it
+        // // to work with all my custom types.
+        // let releases: Vec<Arc<Release>> = internal_releases
+        //     .iter()
+        //     // .par_iter()
+        //     .map(|internal_release| Arc::new(Release {
+        //         id: internal_release.id.clone(),
+        //         title: internal_release.title.clone(),
+        //         artist: internal_release.artist.clone(),
+        //         cover_art: None,
+        //         genre: internal_release.genre.clone(),
+        //         tracks: Default::default(),
+        //     }))
+        //     .collect();
 
-        return releases;
+        // return releases;
+        Ok(Default::default())
     }
 
     fn merge_release(self: &Self, release: &Release) -> Result<(), String> {
         // If there is cover art, store it.
-        let cover_art_id = release.cover_art.as_ref()
-            .map_or(None, |cover_art| cover_art.original())
-            .map_or(None, |original| {
-                self.images.insert(&release.id, &original);
-                return Some(release.id.clone());
-        });
+        // let cover_art_id = release.cover_art.as_ref()
+        //     .map_or(None, |cover_art| cover_art.original())
+        //     .map_or(None, |original| {
+        //         self.images.insert(&release.id, &original);
+        //         return Some(release.id.clone());
+        // });
 
         // Store the tracks and create InternalTrack objects for each
         // TODO parallel download
-        let internal_tracks = release.tracks
-            .iter()
-            // Filter out any tracks that don't have a stream
-            .filter_map(|track| {
-                return match &track.stream {
-                    Some(stream) => Some((track, stream)),
-                    None => None
-                };
-            })
-            // Store the stream and create an InternalTrack to represent it
-            .map(|(track, stream)| {
-                // TODO YOU FOOL! Someone is gonna have the same track title.
-                // Will fix when we have more track data.
-                let id = format!("{}:{}", release.id, track.title);
-                println!("Downloading {} {}", release.title, track.title);
-                self.audio.insert(id, stream.stream()).expect("self.audio.insert");
-                return Some(InternalTrack { title: track.title.clone() });
-            })
-            // Clear out any that failed
-            .filter_map(|x| x)
-            .collect();
+        // let internal_tracks = release.tracks
+        //     .iter()
+        //     // Filter out any tracks that don't have a stream
+        //     .filter_map(|track| {
+        //         return match &track.stream {
+        //             Some(stream) => Some((track, stream)),
+        //             None => None
+        //         };
+        //     })
+        //     // Store the stream and create an InternalTrack to represent it
+        //     .map(|(track, stream)| {
+        //         // TODO YOU FOOL! Someone is gonna have the same track title.
+        //         // Will fix when we have more track data.
+        //         let id = format!("{}:{}", release.id, track.title);
+        //         println!("Downloading {} {}", release.title, track.title);
+        //         self.audio.insert(id, stream.stream()).expect("self.audio.insert");
+        //         return Some(InternalTrack { title: track.title.clone() });
+        //     })
+        //     // Clear out any that failed
+        //     .filter_map(|x| x)
+        //     .collect();
 
         // Create serializable version.
         let internal_release = InternalRelease {
             id: release.id.clone(),
             title: release.title.clone(),
             artist: release.artist.clone(),
-            cover_image_id: cover_art_id,
+            cover_image_id: Default::default(),
             genre: release.genre.clone(),
-            tracks: internal_tracks,
+            tracks: Default::default(),
         };
 
         // Store the release.

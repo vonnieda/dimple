@@ -8,7 +8,7 @@ pub mod navidrome;
 // pub mod directory_library;
 
 pub trait Library {
-    fn releases(&self) -> Vec<Arc<Release>>;
+    fn releases(&self) -> Result<Vec<Release>, String>;
 
     fn merge_release(&self, _release: &Release) -> Result<(), String> {
         todo!();
@@ -17,14 +17,12 @@ pub trait Library {
 
 #[derive(Default, Clone)]
 pub struct Release {
-    // TODO Remove after converting to trait. Implementations should handle
-    // their own IDs. 
     pub id: String,
     pub title: String,
     pub artist: Option<String>,
-    pub cover_art: Option<Arc<dyn Image>>,
+    pub cover_art: Option<DynamicImage>,
     pub genre: Option<String>,
-    pub tracks: Vec<Arc<Track>>,
+    pub tracks: Vec<Track>,
 }
 
 pub trait Image {
@@ -35,7 +33,7 @@ pub trait Image {
 #[derive(Default, Clone)]
 pub struct Track {
     pub title: String,
-    pub stream: Option<Arc<dyn Stream>>,
+    // pub stream: Option<Arc<dyn Stream>>,
     // pub artists: Vec<Arc<Artist>>,
 }
 
@@ -49,7 +47,7 @@ pub trait Stream {
 #[derive(Default, Clone)]
 pub struct Genre {
     pub name: String,
-    pub cover_art: Option<Arc<dyn Image>>,
+    pub cover_art: Option<DynamicImage>,
 }
 
 impl Debug for Track {

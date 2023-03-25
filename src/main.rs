@@ -50,13 +50,13 @@ struct App {
     _library: Box<dyn Library>,
     cards: Vec<ReleaseCard>,
     query_string: String,
-    playlist: Vec<Arc<Track>>,
+    playlist: Vec<Track>,
 }
 
 // TODO okay, I still think this becomes a Trait and then we have like ReleaseCard,
 // and ArtistCard, and etc.
 struct ReleaseCard {
-    release: Arc<Release>,
+    release: Release,
     image: RetainedImage,
 }
 
@@ -72,7 +72,7 @@ impl Default for App {
         let library = NavidromeLibrary::from_config(&config);
 
         info!("Reading releases");
-        let releases = library.releases();
+        let releases = library.releases().unwrap();
 
         info!("Building cards");
         let mut cards = App::cards_from_releases(releases);
@@ -102,23 +102,23 @@ impl eframe::App for App {
 }
 
 impl App {
-    fn cards_from_releases(releases: Vec<Arc<Release>>) -> Vec<ReleaseCard> {
+    fn cards_from_releases(releases: Vec<Release>) -> Vec<ReleaseCard> {
         releases
-            .iter()
-            .map(|release| App::card_from_release(release.clone()))
+            .par_iter()
+            .map(|release| App::card_from_release(release))
             .collect()
     }
 
-    fn card_from_release(release: Arc<Release>) -> ReleaseCard {
+    fn card_from_release(release: &Release) -> ReleaseCard {
         let image = match &release.cover_art {
-            Some(cover_art) => match cover_art.scaled(200, 200) {
-                Some(dynamic) => dynamic_to_retained(&release.title, &dynamic),
-                None => RetainedImage::from_color_image("default", ColorImage::example()),
-            },
+            Some(dynamic) => dynamic_to_retained(&release.title, dynamic),
             None => RetainedImage::from_color_image("default", ColorImage::example()),
         };
 
-        ReleaseCard { release, image }
+        ReleaseCard { 
+            release: release.clone(), 
+            image 
+        }
     }
 
     // it's not really the browser, it's more like the main screen.
