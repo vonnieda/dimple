@@ -7,34 +7,25 @@ use image::DynamicImage;
 
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use super::{Release, image_cache::ImageCache, MusicLibrary, ScaledImage, Track};
+use sled::Tree;
+use super::{Release, image_cache::ImageCache, MusicLibrary, ScaledImage, Stream};
 
 pub struct LocalMusicLibrary {
     db: sled::Db,
     images: Arc<ImageCache>,
+    audio: Tree,
 }
 
 impl LocalMusicLibrary {
     pub fn new(path: &str) -> Self {
         let db = sled::open(path).unwrap();
-        let images = ImageCache::new(db.open_tree("images").unwrap());
-        Self { db, images: Arc::new(images) }
-    }
-}
-
-#[derive(Clone)]
-struct LocalScaledImage {
-    images: Arc<ImageCache>,
-    id: String,
-}
-
-impl ScaledImage for LocalScaledImage {
-    fn scaled(&self, width: u32, height: u32) -> Option<DynamicImage> {
-        self.images.get(&self.id, width, height)
-    }
-
-    fn original(&self) -> Option<DynamicImage> {
-        self.images.get_original(&self.id)
+        let images = Arc::new(ImageCache::new(db.open_tree("images").unwrap()));
+        let audio = db.open_tree("audio").unwrap();
+        Self { 
+            db, 
+            images, 
+            audio 
+        }
     }
 }
 
@@ -71,10 +62,7 @@ impl MusicLibrary for LocalMusicLibrary {
                     None => None,
                 },
                 genre: internal_release.genre.clone(),
-                tracks: vec![
-                    Arc::new(Track { title: "Once Upon".to_owned() }), 
-                    Arc::new(Track { title: "Holy Smokes".to_owned() })
-                ],
+                tracks: Default::default(),
             }))
             .collect();
 
@@ -91,6 +79,30 @@ impl MusicLibrary for LocalMusicLibrary {
                     return Some(release.id.clone());
             });
 
+            // Store the tracks and create InternalTrack objects for each
+            // TODO parallel download
+            let internal_tracks = release.tracks
+                .iter()
+                // Filter out any tracks that don't have a stream
+                .filter_map(|track| {
+                    return match &track.stream {
+                        Some(stream) => Some((track, stream)),
+                        None => None
+                    };
+                })
+                // Store the stream and create an InternalTrack to represent it
+                .map(|(track, stream)| {
+                    // TODO YOU FOOL! Someone is gonna have the same track title.
+                    // Will fix when we have more track data.
+                    let id = format!("{}:{}", release.id, track.title);
+                    println!("Downloading {} {}", release.title, track.title);
+                    self.audio.insert(id, stream.stream()).expect("self.audio.insert");
+                    return Some(InternalTrack { title: track.title.clone() });
+                })
+                // Clear out any that failed
+                .filter_map(|x| x)
+                .collect();
+
             // Create serializable version.
             let internal_release = InternalRelease {
                 id: release.id.clone(),
@@ -98,6 +110,7 @@ impl MusicLibrary for LocalMusicLibrary {
                 artist: release.artist.clone(),
                 cover_image_id: cover_art_id,
                 genre: release.genre.clone(),
+                tracks: internal_tracks,
             };
 
             // Store the release.
@@ -110,6 +123,33 @@ impl MusicLibrary for LocalMusicLibrary {
     }
 }
 
+#[derive(Clone)]
+struct LocalScaledImage {
+    images: Arc<ImageCache>,
+    id: String,
+}
+
+impl ScaledImage for LocalScaledImage {
+    fn scaled(&self, width: u32, height: u32) -> Option<DynamicImage> {
+        self.images.get(&self.id, width, height)
+    }
+
+    fn original(&self) -> Option<DynamicImage> {
+        self.images.get_original(&self.id)
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+struct LocalStream {
+    id: String,
+}
+
+impl Stream for LocalStream {
+    fn stream(&self) -> Vec<u8> {
+        todo!()
+    }
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 struct InternalRelease {
     id: String,
@@ -117,4 +157,10 @@ struct InternalRelease {
     artist: Option<String>,
     cover_image_id: Option<String>,
     genre: Option<String>,
+    tracks: Vec<InternalTrack>,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+struct InternalTrack {
+    title: String,    
 }

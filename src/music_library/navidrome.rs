@@ -87,21 +87,25 @@ fn get_all_releases(client_info: &ClientInfo) -> Result<Vec<Release>, sunk::Erro
 }
 
 fn albums_to_releases(albums: &Vec<Album>, client_info: &ClientInfo) -> Vec<Release> {
-    albums.par_iter().map(|album| {
-        let client = sunk::Client::new(
-            client_info.site.as_str(),
-            client_info.username.as_str(),
-            client_info.password.as_str(),
-        ).unwrap();
-        Release {
-            id: album.id_string.clone(),
-            title: album.name.clone(),
-            artist: album.artist.clone(),
-            cover_art: get_image(album, &client),
-            genre: album.genre.clone(),
-            tracks: Vec::new(),
-        }
-    }).collect()
+    // TODO had to remove another par_iter
+    albums
+        // .par_iter()
+        .iter()
+        .map(|album| {
+            let client = sunk::Client::new(
+                client_info.site.as_str(),
+                client_info.username.as_str(),
+                client_info.password.as_str(),
+            ).unwrap();
+            Release {
+                id: album.id_string.clone(),
+                title: album.name.clone(),
+                artist: album.artist.clone(),
+                cover_art: get_image(album, &client),
+                genre: album.genre.clone(),
+                tracks: Vec::new(),
+            }
+        }).collect()
 }
 
 fn get_image<M: Media>(media: &M, client: &Client) -> Option<DynamicImage> {

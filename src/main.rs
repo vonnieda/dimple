@@ -46,7 +46,7 @@ fn main() {
     .expect("eframe: pardon me, but no thank you");
 }
 struct App {
-    music_library: Box<dyn MusicLibrary>,
+    _music_library: Box<dyn MusicLibrary>,
     cards: Vec<ReleaseCard>,
     query_string: String,
     playlist: Vec<Arc<Track>>,
@@ -79,7 +79,7 @@ impl Default for App {
         
         info!("Done!");
         Self {
-            music_library: Box::new(library),
+            _music_library: Box::new(library),
             cards: cards,
             query_string: "".to_string(),
             playlist: Vec::new(),
@@ -130,7 +130,7 @@ impl App {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let matcher = SkimMatcherV2::default();
+            // let matcher = SkimMatcherV2::default();
             // TODO just do this when search changes, not every frame
             // TODO STOPSHIP search is still broken
             // let cards: Vec<&ReleaseCard> = self.cards.iter().filter(|card| {
