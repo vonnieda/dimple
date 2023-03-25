@@ -1,4 +1,4 @@
-use dimple::music_library::{local::LocalMusicLibrary, MusicLibrary};
+use dimple::music_library::{local::LocalMusicLibrary, Library};
 
 fn main() {
     let source = LocalMusicLibrary::new("data/library");

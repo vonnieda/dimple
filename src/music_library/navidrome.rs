@@ -1,51 +1,36 @@
-
-//     if false {
-//         // load a remote music library
-//         let remote_library:Box<dyn MusicLibrary> = match builder.build() {
-//             Ok(config) => {
-//                 Box::new(NavidromeMusicLibrary::new(
-//                     config.get_string("navidrome.site").unwrap().as_str(),
-//                     config.get_string("navidrome.username").unwrap().as_str(),
-//                     config.get_string("navidrome.password").unwrap().as_str()))
-//             },
-//             Err(_) => {
-//                 Box::new(EmptyMusicLibrary::default())
-//             }
-//         };
-//         println!("Loading remote library");
-//         let releases = remote_library.releases();
-//         println!("Remote library contains {} releases", releases.len());
-
-//         // merge all the remote releases into the local
-//         for (i, release) in releases.iter().enumerate() {
-//             println!("Merging {}/{}: {}", i + 1, releases.len(), release.title);
-//             library.merge_release(&release).expect("merge error");
-//         }
-//     }
-
-
 use std::{fs, sync::Arc};
 
-use image::DynamicImage;
+use config::Config;
+use image::{DynamicImage, imageops::FilterType};
+use log::debug;
 use rayon::prelude::*;
 use sunk::{search::SearchPage, Album, Client, ListType, Media};
 
-use super::{Release, MusicLibrary};
+use super::{Library, Release, Image};
 
 const CACHE_DIR: &str = "data/navidrome/images/original";
 
-pub struct NavidromeMusicLibrary {
+pub struct NavidromeLibrary {
+    // TODO add path, or just take a sled?
     site: String,
     username: String,
     password: String,
 }
 
-impl NavidromeMusicLibrary {
+impl NavidromeLibrary {
     pub fn new(site: &str, username: &str, password: &str) -> Self {
         Self {
             site: String::from(site),
             username: String::from(username),
             password: String::from(password),
+        }
+    }
+
+    pub fn from_config(config: &Config) -> Self {
+        Self {
+            site: config.get_string("navidrome.site").unwrap(),
+            username: config.get_string("navidrome.username").unwrap(),
+            password: config.get_string("navidrome.password").unwrap(),
         }
     }
 
@@ -58,8 +43,9 @@ impl NavidromeMusicLibrary {
     }
 }
 
-impl MusicLibrary for NavidromeMusicLibrary {
+impl Library for NavidromeLibrary {
     fn releases(self: &Self) -> Vec<Arc<Release>> {
+        // TODO cleanup
         if let Ok(releases) = get_all_releases(&self.new_client_info()) {
             return releases.into_iter().map(|release| {
                 Arc::new(release)
@@ -92,20 +78,43 @@ fn albums_to_releases(albums: &Vec<Album>, client_info: &ClientInfo) -> Vec<Rele
         // .par_iter()
         .iter()
         .map(|album| {
-            let client = sunk::Client::new(
-                client_info.site.as_str(),
-                client_info.username.as_str(),
-                client_info.password.as_str(),
-            ).unwrap();
             Release {
                 id: album.id_string.clone(),
                 title: album.name.clone(),
                 artist: album.artist.clone(),
-                cover_art: get_image(album, &client),
+                cover_art: album.cover_id().map_or(None, |_| {
+                    Some(Arc::new(NavidromeImage {
+                        client_info: client_info.clone(),
+                        media: album.clone(),
+                    }))
+                }),
                 genre: album.genre.clone(),
                 tracks: Vec::new(),
             }
         }).collect()
+}
+
+struct NavidromeImage {
+    client_info: ClientInfo,
+    // TODO it's late and I cannot figure out how to make this generic.
+    media: Album,
+}
+
+impl Image for NavidromeImage {
+    fn scaled(&self, width: u32, height: u32) -> Option<DynamicImage> {
+        self.original().map_or(None, |original| {
+            Some(original.resize(width, height, FilterType::CatmullRom))
+        })
+    }
+
+    fn original(&self) -> Option<DynamicImage> {
+        if let Ok(client) = Client::new(&self.client_info.site, 
+            &self.client_info.username, 
+            &self.client_info.password) {
+            return get_image(&self.media, &client);
+        }
+        None
+    }
 }
 
 fn get_image<M: Media>(media: &M, client: &Client) -> Option<DynamicImage> {
@@ -124,7 +133,6 @@ fn get_image<M: Media>(media: &M, client: &Client) -> Option<DynamicImage> {
 }
 
 fn load_image<M: Media>(media: &M) -> Option<DynamicImage> {
-
     if let Some(cover_id) = media.cover_id() {
         let path = format!("{}/{}.png", CACHE_DIR, cover_id);
         if let Ok(image) = image::open(&path) {
@@ -138,7 +146,7 @@ fn save_image<M: Media>(media: &M, image: &DynamicImage) {
     if let Some(cover_id) = media.cover_id() {
         let path = format!("{}/{}.png", CACHE_DIR, cover_id);
         let image_format = image::ImageFormat::Png;
-        println!("Saving {}", path);
+        debug!("Saving {}", path);
         match fs::create_dir_all(CACHE_DIR) {
             Ok(_) => {},
             Err(error) => eprintln!("Error: {}", error),
@@ -154,7 +162,7 @@ fn save_image<M: Media>(media: &M, image: &DynamicImage) {
 fn download_image<M: Media>(media: &M, client: &Client) -> Option<DynamicImage> {
     if let Some(cover_id) = media.cover_id() {
         if let Ok(cover_url) = media.cover_art_url(client, 0) {
-            println!("Downloading {} from {}", cover_id, cover_url);
+            debug!("Downloading {} from {}", cover_id, cover_url);
         }
     }
     if let Ok(image_data) = media.cover_art(client, 0) {
@@ -187,7 +195,7 @@ fn get_all_albums(client: &Client) -> Result<Vec<Album>, sunk::Error> {
 }
 
 fn get_albums(count: usize, offset: usize, client: &Client) -> Result<Vec<Album>, sunk::Error> {
-    println!("getting albums {} through {}", offset, offset + count - 1);
+    debug!("getting albums {} through {}", offset, offset + count - 1);
     let page = SearchPage { count, offset };
     let list_type = ListType::default();
     let albums = Album::list(&client, list_type, page, 0)?;

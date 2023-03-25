@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use dimple::music_library::local::LocalMusicLibrary;
-use dimple::music_library::{MusicLibrary, Release, Track};
+use config::FileFormat;
+use dimple::music_library::navidrome::NavidromeLibrary;
+use dimple::music_library::{Library, Release, Track};
 use eframe::egui::{self, Context, Grid, ImageButton, Response, ScrollArea, TextEdit, Ui};
 use eframe::epaint::{ColorImage, FontFamily, FontId};
 use egui_extras::RetainedImage;
@@ -46,7 +47,7 @@ fn main() {
     .expect("eframe: pardon me, but no thank you");
 }
 struct App {
-    _music_library: Box<dyn MusicLibrary>,
+    _library: Box<dyn Library>,
     cards: Vec<ReleaseCard>,
     query_string: String,
     playlist: Vec<Arc<Track>>,
@@ -61,8 +62,14 @@ struct ReleaseCard {
 
 impl Default for App {
     fn default() -> Self {
+        info!("Loading config");
+        let config = config::Config::builder()
+            .add_source(config::File::with_name("config"))
+            .build().expect("Config error");
+
         info!("Opening library");
-        let library = LocalMusicLibrary::new("data/library");
+        // let library = LocalMusicLibrary::new("data/library");
+        let library = NavidromeLibrary::from_config(&config);
 
         info!("Reading releases");
         let releases = library.releases();
@@ -76,10 +83,10 @@ impl Default for App {
                 .to_uppercase()
                 .cmp(&b.subtitle().to_uppercase())
         });
-        
+
         info!("Done!");
         Self {
-            _music_library: Box::new(library),
+            _library: Box::new(library),
             cards: cards,
             query_string: "".to_string(),
             playlist: Vec::new(),
