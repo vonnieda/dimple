@@ -110,8 +110,9 @@ impl App {
     }
 
     fn card_from_release(release: &Release) -> ReleaseCard {
-        let image = match &release.cover_art {
-            Some(dynamic) => dynamic_to_retained(&release.title, dynamic),
+        let image = match release.art.first() {
+            // Some(image) => dynamic_to_retained(&release.title, image.),
+            Some(image) => RetainedImage::from_color_image("default", ColorImage::example()),
             None => RetainedImage::from_color_image("default", ColorImage::example()),
         };
 
@@ -283,9 +284,6 @@ impl ReleaseCard {
     }
 
     fn subtitle(&self) -> &str {
-        match self.release.artist.as_ref() {
-            Some(artist) => artist,
-            None => "",
-        }
+        self.release.artists.first().map_or("Unknown", |artist| artist.name.as_str())
     }
 }
