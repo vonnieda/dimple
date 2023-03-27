@@ -1,5 +1,6 @@
 use std::{fs};
 
+use bincode::de;
 use config::Config;
 use log::{debug, info};
 use rayon::prelude::*;
@@ -37,35 +38,28 @@ impl NavidromeLibrary {
         }
     }
 
-    // // TODO write the functions that grab the different types and everything
-    // // else will fall in place.
-    // fn get_artist(&self, artist: &Artist) -> Result<Artist, Error> {
-    //     let url = Url::parse(&artist.url).map_err(|err| err.);
-
-    //     Ok(Artist::default())
-    // }
-
     fn url(&self, path: &str) -> String {
         format!("navidrome://{}@{}", self.username, path)
     }
 
-    fn new_client(&self) -> Result<Client, Error> {
+    fn new_client(&self) -> Result<Client, String> {
         sunk::Client::new(
             self.site.as_str(),
             self.username.as_str(),
             self.password.as_str(),
-        )
+        ).map_err(|e| e.to_string())
     }
 
-    fn get_albums(&self, count: usize, offset: usize) -> Result<Vec<Album>, Error> {
+    fn get_albums(&self, count: usize, offset: usize) -> Result<Vec<Album>, String> {
         debug!("getting albums {} through {}", offset, offset + count - 1);
         let page = SearchPage { count, offset };
         let list_type = ListType::default();
         let client = self.new_client()?;
         sunk::Album::list(&client, list_type, page, 0)
+            .map_err(|e| e.to_string())
     }
 
-    fn get_all_albums(&self) -> Result<Vec<Album>, Error> {
+    fn get_all_albums(&self) -> Result<Vec<Album>, String> {
         let mut all_albums: Vec<Album> = Vec::new();
         let mut page = SearchPage {
             count: 500,
@@ -87,6 +81,38 @@ impl NavidromeLibrary {
         Ok(all_albums)
     }
 
+    fn album_to_release(album: &Album) -> Release {
+        let UNKNOWN_ARTIST:Artist = Artist {
+            url: "navidrome://artist/UNKNOWN".to_string(),
+            name: "UNKNOWN".to_string(),
+            ..Default::default()
+        };
+        Release {
+            url: "".to_string(),
+            title: album.name.clone(),
+            artists: vec![album.artist.as_ref().map_or(
+                UNKNOWN_ARTIST,
+                |artist| Artist {
+                    name: artist.to_string(),
+                    ..Default::default()
+                })],
+            ..Default::default()
+        }
+
+        // pub struct Release {
+        //     pub url: String,
+        //     pub title: String,
+        //     pub artists: Vec<Artist>,
+        //     pub art: Vec<Image>,
+        //     pub genres: Vec<Genre>,
+        //     pub tracks: Vec<Track>,
+        // }
+        
+        
+
+
+    }
+
     // fn get_release(&self, album: &Album) -> Result<Release, Error> {
     //     let client = self.new_client()?;
     //     album.get
@@ -94,175 +120,29 @@ impl NavidromeLibrary {
 }
 
 impl Library for NavidromeLibrary {
+    /// Get all albums as releases. Fully populates all objects by calling
+    /// getAlbum for each.
     fn releases(self: &Self) -> Result<Vec<Release>, String> {
+        // TODO this chain could populate the artists too by branching out
+        // to fetch their art and such. Or maybe better to just drop artist
+        // for now and go with Strings.
         let client = self.new_client().map_err(|err| err.to_string())?;
-        let albums = self.get_all_albums().map_err(|err| err.to_string())?;
-        let _releases: Vec<_> = albums.par_iter()
-            .map(|album| Album::get(&client, &album.id))
-            .collect();
-
-        // TODO stopped here. this is working. lots of requests. some failed
-        // cause of int parse errors, so probably more ids to convert.
-
-        Ok(Default::default())
+        let albums = self.get_all_albums()
+            .map_err(|err| err.to_string())?
+            .par_iter()
+            // .inspect(|shallow_album| println!("{:?}", shallow_album))
+            .map(|shallow_album| {
+                Album::get(&client, &shallow_album.id).map_err(|err| err.to_string())
+            })
+            // .inspect(|deep_album| println!("{:?}", deep_album))
+            .collect::<Result<Vec<Album>, String>>()?;
+        Ok(albums.par_iter()
+            .map(|album| Self::album_to_release(album))
+            .collect::<Vec<Release>>())
     }
 }
 
-// fn get_all_releases(client: &Client) -> Result<Vec<Release>, sunk::Error> {
-//     let albums = get_all_albums(&client)?;
-//     return Ok(albums_to_releases(&albums, client));
-// }
 
-// fn albums_to_releases(albums: &Vec<Album>, client: &Client) -> Vec<Release> {
-//     albums
-//         .par_iter()
-//         .map(|album| {
-//             let title = album.name.clone();
-
-//             let artist = album.artist_id_string.as_ref()
-//                 .map_or(new_artist("UNKNOWN"), 
-//                     |artist_id| new_artist(&artist_id));
-//             let artists = vec![artist];
-
-//             let art = album.cover_id()
-//                 .map_or(Vec::new(), 
-//                     |cover_id| vec![new_image(&cover_id)]);
-
-//             let genres = album.genre.as_ref()
-//                 .map_or(Vec::new(), |genre| vec![new_genre(&genre)]);
-
-//             let tracks = vec![];
-
-//             Release {
-//                 title,
-//                 artists,
-//                 art,
-//                 genres,
-//                 tracks,
-//                 ..new_release(&album.id_string)
-//             }
-//         }).collect()
-// }
-
-// fn new_release(album_id: &str) -> Release {
-//     Release {
-//         url: format!("{}@navidrome://album/{}", "TODO_username", album_id),
-//         ..Default::default()
-//     }
-// }
-
-// fn new_artist(artist_id: &str) -> Artist {
-//     Artist {
-//         url: format!("{}@navidrome://artist/{}", "TODO_username", artist_id),
-//         ..Default::default()
-//     }
-// }
-
-// fn new_image(image_id: &str) -> Image {
-//     Image {
-//         url: format!("{}@navidrome://image/{}", "TODO_username", image_id),
-//         ..Default::default()
-//     }
-// }
-
-// fn new_genre(genre_id: &str) -> Genre {
-//     Genre {
-//         url: format!("{}@navidrome://genre/{}", "TODO_username", genre_id),
-//         ..Default::default()
-//     }
-// }
-
-// fn new_track(track_id: &str) -> Track {
-//     Track {
-//         url: format!("{}@navidrome://track/{}", "TODO_username", track_id),
-//         ..Default::default()
-//     }
-// }
-
-// fn get_image<M: Media>(media: &M, client: &Client) -> Option<DynamicImage> {
-//     if let Some(image) = load_image(media) {
-//         return Some(image);
-//     }
-//     else {
-//         if let Some(image) = download_image(media, client) {
-//             save_image(media, &image);
-//             return Some(image);
-//         }
-//         else {
-//             return None;
-//         }
-//     }
-// }
-
-// fn load_image<M: Media>(media: &M) -> Option<DynamicImage> {
-//     if let Some(cover_id) = media.cover_id() {
-//         let path = format!("{}/{}.png", CACHE_DIR, cover_id);
-//         if let Ok(image) = image::open(&path) {
-//             return Some(image);
-//         }
-//     }
-//     return None;
-// }
-
-// fn save_image<M: Media>(media: &M, image: &DynamicImage) {
-//     if let Some(cover_id) = media.cover_id() {
-//         let path = format!("{}/{}.png", CACHE_DIR, cover_id);
-//         let image_format = image::ImageFormat::Png;
-//         debug!("Saving {}", path);
-//         match fs::create_dir_all(CACHE_DIR) {
-//             Ok(_) => {},
-//             Err(error) => eprintln!("Error: {}", error),
-//         }
-
-//         match image.save_with_format(path, image_format) {
-//             Ok(_) => return,
-//             Err(error) => eprintln!("Error: {}", error),
-//         }
-//     }
-// }
-
-// fn download_image<M: Media>(media: &M, client: &Client) -> Option<DynamicImage> {
-//     if let Some(cover_id) = media.cover_id() {
-//         if let Ok(cover_url) = media.cover_art_url(client, 0) {
-//             debug!("Downloading {} from {}", cover_id, cover_url);
-//         }
-//     }
-//     if let Ok(image_data) = media.cover_art(client, 0) {
-//         if let Ok(image) = image::load_from_memory(&image_data) {
-//             return Some(image);
-//         }
-//     }
-//     return None;
-// }
-
-// fn get_all_albums(client: &Client) -> Result<Vec<Album>, sunk::Error> {
-//     let mut all_albums: Vec<Album> = Vec::new();
-//     let mut page = SearchPage {
-//         count: 500,
-//         offset: 0,
-//     };
-//     loop {
-//         if let Ok(albums) = get_albums(page.count, page.offset, client) {
-//             if albums.len() == 0 {
-//                 break;
-//             }
-//             all_albums.extend(albums);
-//             page.offset += page.count;
-//         }
-//         else {
-//             break;
-//         }
-//     }
-//     Ok(all_albums)
-// }
-
-// fn get_albums(count: usize, offset: usize, client: &Client) -> Result<Vec<Album>, sunk::Error> {
-//     debug!("getting albums {} through {}", offset, offset + count - 1);
-//     let page = SearchPage { count, offset };
-//     let list_type = ListType::default();
-//     let albums = Album::list(&client, list_type, page, 0)?;
-//     Ok(albums)
-// }
 
 // http://your-server/rest/getAlbumList2
 // <subsonic-response status="ok" version="1.8.0">
