@@ -9,13 +9,13 @@ pub mod navidrome;
 
 pub trait Library {
     fn releases(&self) -> Result<Vec<Release>, String>;
-
+    
     fn merge_release(&self, _release: &Release) -> Result<(), String> {
         todo!();
     }
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct Release {
     pub url: String,
     pub title: String,
@@ -25,14 +25,14 @@ pub struct Release {
     pub tracks: Vec<Track>,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct Artist {
     pub url: String,
     pub name: String,
     pub art: Vec<Image>,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct Track {
     pub url: String,
     pub title: String,
@@ -40,27 +40,16 @@ pub struct Track {
 }
 
 
-#[derive(Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct Genre {
     pub url: String,
     pub name: String,
     pub art: Vec<Image>,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct Image {
     pub url: String,
-}
-
-impl Image {
-    pub fn get(&self, library: &dyn Library) -> Option<DynamicImage> {
-        None
-    }
-}
-
-impl Track {
-    pub fn get(&self, library: &dyn Library) -> Option<Vec<u8>> {
-        None
-    }
+    pub original: DynamicImage,
 }
 

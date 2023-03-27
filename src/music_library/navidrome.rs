@@ -2,12 +2,13 @@ use std::{fs};
 
 use bincode::de;
 use config::Config;
+use image::DynamicImage;
 use log::{debug, info};
 use rayon::prelude::*;
-use sunk::{Client, search::SearchPage, ListType, Error, Album};
+use sunk::{Client, search::SearchPage, ListType, Error, Album, Media};
 use url::Url;
 
-use super::{Library, Release, Artist, Image, Genre, Track};
+use super::{Library, Release, Artist, Image, Genre, Track, image_cache::ImageCache};
 
 const CACHE_DIR: &str = "data/navidrome/images/original";
 
@@ -15,31 +16,43 @@ const CACHE_DIR: &str = "data/navidrome/images/original";
 // http://www.subsonic.org/pages/api.jsp#getIndexes
 
 pub struct NavidromeLibrary {
-    // TODO add path, or just take a sled?
     site: String,
     username: String,
     password: String,
+    image_cache: ImageCache,
 }
 
 impl NavidromeLibrary {
     pub fn new(site: &str, username: &str, password: &str) -> Self {
+        let db = sled::open("data/navidrome").unwrap();
         Self {
             site: String::from(site),
             username: String::from(username),
             password: String::from(password),
+            image_cache: ImageCache::new(db.open_tree("image_cache").unwrap()),
         }
     }
 
     pub fn from_config(config: &Config) -> Self {
-        Self {
-            site: config.get_string("navidrome.site").unwrap(),
-            username: config.get_string("navidrome.username").unwrap(),
-            password: config.get_string("navidrome.password").unwrap(),
-        }
+        Self::new(config.get_string("navidrome.site").unwrap().as_str(),
+            config.get_string("navidrome.username").unwrap().as_str(),
+            config.get_string("navidrome.password").unwrap().as_str())
     }
 
-    fn url(&self, path: &str) -> String {
-        format!("navidrome://{}@{}", self.username, path)
+    // Let's think about this URL. I need to be able to get the object type
+    // and the ID back and that's it. It's up to the caller to ensure the
+    // rest is right.
+    fn url(&self, object_type: &str, id: &str) -> String {
+        format!("navidrome:///{}/{}/{}", self.username, object_type, id)
+    }
+
+    fn de_url(&self, url: &str) -> (String, String) {
+        let url = Url::parse(url).unwrap();
+        let mut path_segments = url.path_segments().unwrap();
+        let username = path_segments.next().unwrap().to_string();
+        let object_type = path_segments.next().unwrap().to_string();
+        let id = path_segments.next().unwrap().to_string();
+        return (object_type, id);
     }
 
     fn new_client(&self) -> Result<Client, String> {
@@ -81,68 +94,105 @@ impl NavidromeLibrary {
         Ok(all_albums)
     }
 
-    fn album_to_release(album: &Album) -> Release {
-        let UNKNOWN_ARTIST:Artist = Artist {
-            url: "navidrome://artist/UNKNOWN".to_string(),
-            name: "UNKNOWN".to_string(),
-            ..Default::default()
-        };
+    fn album_to_release(&self, album: &Album) -> Release {
+        let artists = album.artist.as_ref().map_or(vec![], |artist| {
+            vec![Artist {
+                // TODO need ID
+                url: self.url("artist", artist),
+                name: artist.to_string(),
+                // TODO get artist art
+                art: vec![],
+            }]
+        });
+        let tracks: Vec<Track> = album.songs
+            .par_iter()
+            .map(|song| {
+                Track {
+                    url: self.url("track", &song.id),
+                    title: song.title.clone(),
+                    ..Default::default() 
+                }
+            })
+            .collect();
+        // .map_or(None, |cover_id| self.get_image(&cover_id).map_or_else(|_| None, |image| Some(image)))
+        let art = album.cover_id.as_ref()
+            .map_or(None, |cover_id| self.get_image(&cover_id).map_or_else(|_| None, |image| Some((cover_id, image))))
+            .map_or(None, |(cover_id, image)| Some(Image {
+                url: self.url("image", cover_id),
+                original: image,
+            }))
+            .map_or(None, |image| Some(image))
+            .map_or(vec![], |image| vec![image]);
+
+
+        let genres = album.genre.as_ref().map_or(vec![], |genre| 
+            vec![Genre {
+                // TODO ID
+                url: self.url("genre", &genre),
+                name: genre.clone(),
+                art: vec![],
+            }]
+        );
         Release {
-            url: "".to_string(),
+            url: self.url("release", &album.id),
             title: album.name.clone(),
-            artists: vec![album.artist.as_ref().map_or(
-                UNKNOWN_ARTIST,
-                |artist| Artist {
-                    name: artist.to_string(),
-                    ..Default::default()
-                })],
-            ..Default::default()
+            artists: artists,
+            tracks: tracks,
+            art: art,
+            genres: genres,
         }
-
-        // pub struct Release {
-        //     pub url: String,
-        //     pub title: String,
-        //     pub artists: Vec<Artist>,
-        //     pub art: Vec<Image>,
-        //     pub genres: Vec<Genre>,
-        //     pub tracks: Vec<Track>,
-        // }
-        
-        
-
-
     }
 
-    // fn get_release(&self, album: &Album) -> Result<Release, Error> {
-    //     let client = self.new_client()?;
-    //     album.get
-    // }
+    fn get_image(&self, id: &str) -> Result<DynamicImage, String> {
+        // check cache first
+        if let Some(image) = self.image_cache.get_original(id) {
+            return Ok(image);
+        }
+
+        // not found, download it
+        let album = sunk::Album {
+            id: Default::default(),
+            name: Default::default(),
+            artist: Default::default(),
+            artist_id: Default::default(),
+            duration: Default::default(),
+            song_count: Default::default(),
+            songs: Default::default(),
+            year: Default::default(),
+            genre: Default::default(),
+            cover_id: Some(id.to_string()),
+        };
+        let client = self.new_client()?;
+        info!("Downloading {}", id);
+        let bytes = album.cover_art(&client, 0).map_err(|e| e.to_string())?;
+        let dynamic_image = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
+
+        // cache it
+        self.image_cache.insert(id, &dynamic_image);
+
+        // return it
+        return Ok(dynamic_image);
+    }
 }
 
 impl Library for NavidromeLibrary {
-    /// Get all albums as releases. Fully populates all objects by calling
-    /// getAlbum for each.
     fn releases(self: &Self) -> Result<Vec<Release>, String> {
-        // TODO this chain could populate the artists too by branching out
-        // to fetch their art and such. Or maybe better to just drop artist
-        // for now and go with Strings.
         let client = self.new_client().map_err(|err| err.to_string())?;
-        let albums = self.get_all_albums()
-            .map_err(|err| err.to_string())?
+        let releases = self.get_all_albums()
+            .map_err(|err| err.to_string())?[0..100]
             .par_iter()
-            // .inspect(|shallow_album| println!("{:?}", shallow_album))
             .map(|shallow_album| {
-                Album::get(&client, &shallow_album.id).map_err(|err| err.to_string())
+                Album::get(&client, &shallow_album.id)
+                    .map_err(|err| err.to_string())
             })
-            // .inspect(|deep_album| println!("{:?}", deep_album))
-            .collect::<Result<Vec<Album>, String>>()?;
-        Ok(albums.par_iter()
-            .map(|album| Self::album_to_release(album))
-            .collect::<Vec<Release>>())
+            .collect::<Result<Vec<Album>, String>>()?
+            .par_iter()
+            .map(|album| self.album_to_release(album))
+            // .inspect(|release| println!("{:?}", release))
+            .collect::<Vec<Release>>();
+        Ok(releases)
     }
 }
-
-
 
 // http://your-server/rest/getAlbumList2
 // <subsonic-response status="ok" version="1.8.0">

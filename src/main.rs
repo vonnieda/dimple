@@ -28,6 +28,14 @@ extern crate env_logger;
 // TODO parallelize the textures, although I think it might all happen on the
 // first frame, in which case we could still do it somehow. Or just do whatever
 // RetainedImage does.
+// TODO Dashboard makes sense actually, and in fact, I can have as wild a tree
+// as I want as long as:
+// 1. Clicking anything updates the search bar with the terms needed to get to
+//    where we are.
+// 2. Hitting escape clears search.
+// Dashbaord can contain "Artists", "Albums", "For You", "Today In", "Genres",
+// etc. A bunch of derived stuff. And then scrolling down can include favorites
+// and recents and such.
 
 fn main() {
     let mut builder = env_logger::Builder::new();
@@ -111,8 +119,7 @@ impl App {
 
     fn card_from_release(release: &Release) -> ReleaseCard {
         let image = match release.art.first() {
-            // Some(image) => dynamic_to_retained(&release.title, image.),
-            Some(image) => RetainedImage::from_color_image("default", ColorImage::example()),
+            Some(image) => dynamic_to_retained(&image.url, &image.original),
             None => RetainedImage::from_color_image("default", ColorImage::example()),
         };
 
