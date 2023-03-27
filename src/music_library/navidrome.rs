@@ -179,7 +179,7 @@ impl Library for NavidromeLibrary {
     fn releases(self: &Self) -> Result<Vec<Release>, String> {
         let client = self.new_client().map_err(|err| err.to_string())?;
         let releases = self.get_all_albums()
-            .map_err(|err| err.to_string())?[0..100]
+            .map_err(|err| err.to_string())?
             .par_iter()
             .map(|shallow_album| {
                 Album::get(&client, &shallow_album.id)
