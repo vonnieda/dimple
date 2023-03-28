@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use dimple::music_library::local::LocalMusicLibrary;
+use dimple::music_library::local::{LocalMusicLibrary, self};
 use dimple::music_library::navidrome::NavidromeLibrary;
 use dimple::music_library::{Library, Release, Track};
 use eframe::egui::{self, Context, Grid, ImageButton, Response, ScrollArea, TextEdit, Ui};
@@ -63,12 +63,11 @@ fn main() {
     .expect("eframe: pardon me, but no thank you");
 }
 struct App {
-    local_library: Box<dyn Library>,
-    remote_library: Box<dyn Library>,
+    local_library: Arc<Box<dyn Library>>,
+    remote_library: Arc<Box<dyn Library>>,
     cards: Vec<ReleaseCard>,
     query_string: String,
-    playlist: Vec<Track>,
-    sink: Arc<Sink>,
+    player: Player,
 }
 
 // TODO okay, I still think this becomes a Trait and then we have like ReleaseCard,
@@ -86,10 +85,10 @@ impl App {
             .build().expect("Config error");
 
         info!("Opening local library");
-        let local_library = LocalMusicLibrary::new("data/library");
+        let local_library = Arc::new(Box::new(LocalMusicLibrary::new("data/library")) as Box<dyn Library>);
 
         info!("Opening remote library");
-        let remote_library = NavidromeLibrary::from_config(&_config);
+        let remote_library = Arc::new(Box::new(NavidromeLibrary::from_config(&_config)) as Box<dyn Library>);
 
         info!("Reading releases");
         let releases = local_library.releases().unwrap();
@@ -106,12 +105,11 @@ impl App {
 
         info!("Done!");
         Self {
-            local_library: Box::new(local_library),
-            remote_library: Box::new(remote_library),
+            local_library: local_library.clone(),
+            remote_library: remote_library.clone(),
             cards,
             query_string: "".to_string(),
-            playlist: Vec::new(),
-            sink,
+            player: Player::new(sink, remote_library.clone())
         }
     }
 }
@@ -208,11 +206,7 @@ impl App {
                                 .show(ui, |ui| {
                                     for (i, card) in _cards.iter().enumerate() {
                                         if Self::card(card, 200.0, 200.0, ctx, ui).clicked() {
-                                            let tracks = card.release.tracks.clone();
-                                            self.remote_library.stream(&tracks[0], &self.sink);
-                                            
-                                            self.playlist.extend(tracks);
-                                            println!("{:?}", self.playlist);
+                                            self.player.add_release(&card.release);
                                         }
                                         if i % num_columns == num_columns - 1 {
                                             ui.end_row();
@@ -244,22 +238,37 @@ impl App {
     }
 
     fn player_bar(self: &mut Self, ctx: &Context, ui: &mut Ui) {
-    //     ui.vertical_centered_justified(|ui| {
-    //         ui.horizontal(|ui| {
-    //             let np = &self.now_playing;
-    //             ui.add(ImageButton::new(
-    //                 np.image.texture_id(ctx),
-    //                 egui::vec2(120.0, 120.0),
-    //             ));
-    //             ui.vertical(|ui| {
-    //                 ui.link(&np.title);
-    //                 ui.link(&np.subtitle);
-    //                 self.plot_scrubber(ctx, ui);
-    //                 self.slider_scrubber(ctx, ui);
-    //             });
-    //             self.card(&self.up_next, 60.0, 60.0, ctx, ui);
-    //         });
-    //     });
+        ui.vertical_centered_justified(|ui| {
+            ui.horizontal(|ui| {
+                let track = self.player.current_track();
+                let image = RetainedImage::from_color_image("default", ColorImage::example());
+                let title = track.map_or("".to_string(), |track| track.title.to_string());
+                // TODO till we know what album it's from
+                let subtitle = title.clone();
+
+                ui.add(ImageButton::new(
+                    image.texture_id(ctx),
+                    egui::vec2(120.0, 120.0),
+                ));
+                ui.vertical(|ui| {
+                    ui.link(&title);
+                    ui.link(&subtitle);
+                    self.plot_scrubber(ctx, ui);
+                    self.slider_scrubber(ctx, ui);
+                    if ui.button("Play").clicked() {
+                        self.player.play();
+                    }
+                    if ui.button("Pause").clicked() {
+                        self.player.pause();
+                    }
+                    if ui.button("Next").clicked() {
+                        self.player.next();
+                    }
+                    
+                });
+                // self.card(&self.up_next, 60.0, 60.0, ctx, ui);
+            });
+        });
     }
 
     fn plot_scrubber(self: &Self, ctx: &Context, ui: &mut Ui) {
@@ -307,5 +316,90 @@ impl ReleaseCard {
 
     fn subtitle(&self) -> &str {
         self.release.artists.first().map_or("Unknown", |artist| artist.name.as_str())
+    }
+}
+
+#[derive(Clone)]
+struct Player {
+    sink: Arc<Sink>,
+    library: Arc<Box<dyn Library>>,
+    playlist: Vec<Track>,
+    current_track_index: Option<usize>,
+}
+
+impl Player {
+    fn new(sink: Arc<Sink>, library: Arc<Box<dyn Library>>) -> Self {
+        Self {
+            sink,
+            library,
+            playlist: Vec::new(),
+            current_track_index: None,
+        }
+    }
+
+    fn play(&mut self) {
+        // If the playlist is empty, return.
+        if self.playlist.len() == 0 {
+            return;
+        }
+        // If there is no "current" track, set it to the first track in the list.
+        if self.current_track_index.is_none() {
+            self.current_track_index = Some(0);
+        }
+
+        // If the sink is not playing anything, load the current track.
+        if self.sink.len() == 0 {
+            let track = &self.playlist[self.current_track_index.unwrap()];
+            self.library.stream(track, &self.sink);
+        }
+
+        // And play it.
+        self.sink.play();
+    }
+
+    fn pause(&self) {
+        self.sink.pause();
+    }
+
+    fn next(&mut self) {
+        // Stop any current playback.
+        self.sink.clear();
+
+        // If there's nothing in the queue we're done.
+        if self.playlist.len() == 0 {
+            return;
+        }
+
+        // Increment or restart the play queue.
+        self.current_track_index = self.current_track_index.map_or(None, |index| {
+            Some((index + 1) % self.playlist.len())
+        });
+
+        let track = &self.playlist[self.current_track_index.unwrap()];
+        self.library.stream(track, &self.sink);
+
+        self.sink.play();
+    }
+
+    fn current_track(&self) -> Option<Track> {
+        match self.current_track_index {
+            Some(index) => Some(self.playlist[index].clone()),
+            None => None,
+        }
+    }
+
+    fn next_track(&self) -> Option<Track> {
+        None
+    }
+
+    fn add_release(&mut self, release: &Release) {
+        for track in &release.tracks {
+            self.add_track(&track);
+        }
+    }
+
+    fn add_track(&mut self, track: &Track) {
+        self.playlist.push(track.clone());
+        self.play();
     }
 }
