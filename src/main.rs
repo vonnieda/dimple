@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use config::FileFormat;
+use dimple::music_library::local::LocalMusicLibrary;
 use dimple::music_library::navidrome::NavidromeLibrary;
 use dimple::music_library::{Library, Release, Track};
 use eframe::egui::{self, Context, Grid, ImageButton, Response, ScrollArea, TextEdit, Ui};
@@ -10,6 +8,7 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use image::DynamicImage;
 
+use image::imageops::FilterType;
 use rayon::prelude::*;
 
 #[macro_use]
@@ -71,13 +70,13 @@ struct ReleaseCard {
 impl Default for App {
     fn default() -> Self {
         info!("Loading config");
-        let config = config::Config::builder()
+        let _config = config::Config::builder()
             .add_source(config::File::with_name("config"))
             .build().expect("Config error");
 
-        info!("Opening library");
-        // let library = LocalMusicLibrary::new("data/library");
-        let library = NavidromeLibrary::from_config(&config);
+        info!("Opening local library");
+        let library = LocalMusicLibrary::new("data/library");
+        // let library = NavidromeLibrary::from_config(&_config);
 
         info!("Reading releases");
         let releases = library.releases().unwrap();
@@ -119,7 +118,7 @@ impl App {
 
     fn card_from_release(release: &Release) -> ReleaseCard {
         let image = match release.art.first() {
-            Some(image) => dynamic_to_retained(&image.url, &image.original),
+            Some(image) => dynamic_to_retained(&image.url, &image.original.resize(200, 200, FilterType::CatmullRom)),
             None => RetainedImage::from_color_image("default", ColorImage::example()),
         };
 
@@ -145,16 +144,15 @@ impl App {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            // let matcher = SkimMatcherV2::default();
+            let matcher = SkimMatcherV2::default();
             // TODO just do this when search changes, not every frame
-            // TODO STOPSHIP search is still broken
-            // let cards: Vec<&ReleaseCard> = self.cards.iter().filter(|card| {
-            //     let haystack = format!("{} {}", card.title(), card.subtitle());
-            //     return matcher
-            //         .fuzzy_match(haystack.as_str(), &self.query_string)
-            //         .is_some();
-            // })
-            // .collect();
+            let _cards: Vec<&ReleaseCard> = self.cards.iter().filter(|card| {
+                let haystack = format!("{} {}", card.title(), card.subtitle());
+                return matcher
+                    .fuzzy_match(haystack.as_str(), &self.query_string)
+                    .is_some();
+            })
+            .collect();
             self.card_grid(ctx, ui);
         });
     }
@@ -193,7 +191,7 @@ impl App {
                                 .spacing(egui::vec2(16.0, 16.0))
                                 .show(ui, |ui| {
                                     for (i, card) in self.cards.iter().enumerate() {
-                                        if self.card(card, 200.0, 200.0, ctx, ui).clicked() {
+                                        if Self::card(card, 200.0, 200.0, ctx, ui).clicked() {
                                             let tracks = card.release.tracks.clone();
                                             self.playlist.extend(tracks);
                                             println!("{:?}", self.playlist);
@@ -210,7 +208,6 @@ impl App {
     }
 
     fn card(
-        &self,
         card: &ReleaseCard,
         width: f32,
         height: f32,

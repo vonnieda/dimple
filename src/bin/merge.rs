@@ -1,14 +1,20 @@
-// use dimple::music_library::{local::LocalMusicLibrary, Library};
+use dimple::music_library::{local::LocalMusicLibrary, Library, navidrome::NavidromeLibrary};
 
 fn main() {
-    // let source = LocalMusicLibrary::new("data/library");
-    // let dest = LocalMusicLibrary::new("data/library2");
+    let mut builder = env_logger::Builder::new();
+    builder.filter_level(log::LevelFilter::Info);
+    builder.format_timestamp_millis();
+    builder.init();
 
-    // let releases = source.releases();
-    // for release in releases {
-    //     let title = release.title.clone();
-    //     let artist = release.artist.as_ref().unwrap().clone();
-    //     println!("Merging {} {}", artist, title);
-    //     dest.merge_release(&release);
-    // }
+    let config = config::Config::builder()
+        .add_source(config::File::with_name("config"))
+        .build().expect("Config error");
+
+    let source = NavidromeLibrary::from_config(&config);
+    let dest = LocalMusicLibrary::new("data/library");
+
+    for release in source.releases().unwrap() {
+        println!("Merging {} {}", release.artists[0].name, release.title);
+        dest.merge_release(&release).unwrap();
+    }
 }

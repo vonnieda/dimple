@@ -1,25 +1,41 @@
-use std::{fs};
-
-use bincode::de;
 use config::Config;
 use image::DynamicImage;
-use log::{debug, info};
+use log::{debug};
 use rayon::prelude::*;
-use sunk::{Client, search::SearchPage, ListType, Error, Album, Media};
+use sunk::{Client, search::SearchPage, ListType, Album, Media};
 use url::Url;
 
 use super::{Library, Release, Artist, Image, Genre, Track, image_cache::ImageCache};
 
-const CACHE_DIR: &str = "data/navidrome/images/original";
 
 // TODO looks like getIndexes might be how to check for changes?
 // http://www.subsonic.org/pages/api.jsp#getIndexes
-
+// TODO add an initial quick scan that returns early if we already have all
+// the albums exactly the same. Maybe just hash it.
 pub struct NavidromeLibrary {
     site: String,
     username: String,
     password: String,
     image_cache: ImageCache,
+}
+
+impl Library for NavidromeLibrary {
+    fn releases(self: &Self) -> Result<Vec<Release>, String> {
+        let client = self.new_client().map_err(|err| err.to_string())?;
+        let releases = self.get_all_albums()
+            .map_err(|err| err.to_string())?
+            .par_iter()
+            .map(|shallow_album| {
+                Album::get(&client, &shallow_album.id)
+                    .map_err(|err| err.to_string())
+            })
+            .collect::<Result<Vec<Album>, String>>()?
+            .par_iter()
+            .map(|album| self.album_to_release(album))
+            // .inspect(|release| println!("{:?}", release))
+            .collect::<Vec<Release>>();
+        Ok(releases)
+    }
 }
 
 impl NavidromeLibrary {
@@ -39,17 +55,14 @@ impl NavidromeLibrary {
             config.get_string("navidrome.password").unwrap().as_str())
     }
 
-    // Let's think about this URL. I need to be able to get the object type
-    // and the ID back and that's it. It's up to the caller to ensure the
-    // rest is right.
     fn url(&self, object_type: &str, id: &str) -> String {
         format!("navidrome:///{}/{}/{}", self.username, object_type, id)
     }
 
-    fn de_url(&self, url: &str) -> (String, String) {
+    fn _un_url(&self, url: &str) -> (String, String) {
         let url = Url::parse(url).unwrap();
         let mut path_segments = url.path_segments().unwrap();
-        let username = path_segments.next().unwrap().to_string();
+        let _username = path_segments.next().unwrap().to_string();
         let object_type = path_segments.next().unwrap().to_string();
         let id = path_segments.next().unwrap().to_string();
         return (object_type, id);
@@ -114,7 +127,7 @@ impl NavidromeLibrary {
                 }
             })
             .collect();
-        // .map_or(None, |cover_id| self.get_image(&cover_id).map_or_else(|_| None, |image| Some(image)))
+
         let art = album.cover_id.as_ref()
             .map_or(None, |cover_id| self.get_image(&cover_id).map_or_else(|_| None, |image| Some((cover_id, image))))
             .map_or(None, |(cover_id, image)| Some(Image {
@@ -163,7 +176,7 @@ impl NavidromeLibrary {
             cover_id: Some(id.to_string()),
         };
         let client = self.new_client()?;
-        info!("Downloading {}", id);
+        debug!("Downloading {}", id);
         let bytes = album.cover_art(&client, 0).map_err(|e| e.to_string())?;
         let dynamic_image = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
 
@@ -175,24 +188,6 @@ impl NavidromeLibrary {
     }
 }
 
-impl Library for NavidromeLibrary {
-    fn releases(self: &Self) -> Result<Vec<Release>, String> {
-        let client = self.new_client().map_err(|err| err.to_string())?;
-        let releases = self.get_all_albums()
-            .map_err(|err| err.to_string())?
-            .par_iter()
-            .map(|shallow_album| {
-                Album::get(&client, &shallow_album.id)
-                    .map_err(|err| err.to_string())
-            })
-            .collect::<Result<Vec<Album>, String>>()?
-            .par_iter()
-            .map(|album| self.album_to_release(album))
-            // .inspect(|release| println!("{:?}", release))
-            .collect::<Vec<Release>>();
-        Ok(releases)
-    }
-}
 
 // http://your-server/rest/getAlbumList2
 // <subsonic-response status="ok" version="1.8.0">
