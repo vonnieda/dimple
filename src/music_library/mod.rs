@@ -1,6 +1,7 @@
 use std::{fmt::Debug};
 
 use image::DynamicImage;
+use rodio::{Source, Sink};
 use serde::{Serialize, Deserialize};
 
 pub mod local;
@@ -18,6 +19,10 @@ pub mod navidrome;
 
 pub trait Library {
     fn releases(&self) -> Result<Vec<Release>, String>;
+
+    fn stream(&self, track: &Track, sink: &Sink) {
+        todo!();
+    }
 
     fn merge_release(&self, _release: &Release) -> Result<(), String> {
         todo!();

@@ -1,8 +1,13 @@
+use std::{time::Duration, io::BufReader};
+use std::io::{Read, Cursor};
+use std::io::Seek;
+
 use config::Config;
 use image::DynamicImage;
 use log::{debug};
 use rayon::prelude::*;
-use sunk::{Client, search::SearchPage, ListType, Album, Media};
+use rodio::{Source, Decoder, source::SineWave, Sink};
+use sunk::{Client, search::SearchPage, ListType, Album, Media, song::Song, Streamable};
 use url::Url;
 
 use super::{Library, Release, Artist, Image, Genre, Track, image_cache::ImageCache};
@@ -20,7 +25,7 @@ pub struct NavidromeLibrary {
 }
 
 impl Library for NavidromeLibrary {
-    fn releases(self: &Self) -> Result<Vec<Release>, String> {
+    fn releases(&self) -> Result<Vec<Release>, String> {
         let client = self.new_client().map_err(|err| err.to_string())?;
         let releases = self.get_all_albums()
             .map_err(|err| err.to_string())?
@@ -32,9 +37,17 @@ impl Library for NavidromeLibrary {
             .collect::<Result<Vec<Album>, String>>()?
             .par_iter()
             .map(|album| self.album_to_release(album))
-            // .inspect(|release| println!("{:?}", release))
             .collect::<Vec<Release>>();
         Ok(releases)
+    }
+
+    fn stream(&self, track: &Track, sink: &Sink) {
+        let client = self.new_client().unwrap();
+        let (_object_type, id) = self._un_url(&track.url);
+        let song = Song::get(&client, &id).unwrap();
+        let stream = song.stream(&client).unwrap();
+        let source = Decoder::new(Cursor::new(stream)).unwrap();
+        sink.append(source);
     }
 }
 

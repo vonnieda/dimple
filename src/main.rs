@@ -1,3 +1,6 @@
+use std::sync::Arc;
+use std::time::Duration;
+
 use dimple::music_library::local::LocalMusicLibrary;
 use dimple::music_library::navidrome::NavidromeLibrary;
 use dimple::music_library::{Library, Release, Track};
@@ -10,6 +13,7 @@ use image::DynamicImage;
 
 use image::imageops::FilterType;
 use rayon::prelude::*;
+use rodio::{OutputStream, Sink};
 
 #[macro_use]
 extern crate log;
@@ -32,15 +36,20 @@ extern crate env_logger;
 // 1. Clicking anything updates the search bar with the terms needed to get to
 //    where we are.
 // 2. Hitting escape clears search.
-// Dashbaord can contain "Artists", "Albums", "For You", "Today In", "Genres",
+// Dashboard can contain "Artists", "Albums", "For You", "Today In", "Genres",
 // etc. A bunch of derived stuff. And then scrolling down can include favorites
 // and recents and such.
+// TODO Clicking on something should NEVER suddenly play that thing and clear
+// the queue. The queue is precious.
 
 fn main() {
     let mut builder = env_logger::Builder::new();
     builder.filter_level(log::LevelFilter::Info);
     builder.format_timestamp_millis();
     builder.init();
+
+    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    let sink = Arc::new(Sink::try_new(&stream_handle).unwrap());
 
     let native_options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(1440.0, 1024.0)),
@@ -49,15 +58,17 @@ fn main() {
     eframe::run_native(
         "Dimple",
         native_options,
-        Box::new(|_cc| Box::new(App::default())),
+        Box::new(|_cc| Box::new(App::new(sink))),
     )
     .expect("eframe: pardon me, but no thank you");
 }
 struct App {
-    _library: Box<dyn Library>,
+    local_library: Box<dyn Library>,
+    remote_library: Box<dyn Library>,
     cards: Vec<ReleaseCard>,
     query_string: String,
     playlist: Vec<Track>,
+    sink: Arc<Sink>,
 }
 
 // TODO okay, I still think this becomes a Trait and then we have like ReleaseCard,
@@ -67,19 +78,21 @@ struct ReleaseCard {
     image: RetainedImage,
 }
 
-impl Default for App {
-    fn default() -> Self {
+impl App {
+    fn new(sink: Arc<Sink>) -> Self {
         info!("Loading config");
         let _config = config::Config::builder()
             .add_source(config::File::with_name("config"))
             .build().expect("Config error");
 
         info!("Opening local library");
-        let library = LocalMusicLibrary::new("data/library");
-        // let library = NavidromeLibrary::from_config(&_config);
+        let local_library = LocalMusicLibrary::new("data/library");
+
+        info!("Opening remote library");
+        let remote_library = NavidromeLibrary::from_config(&_config);
 
         info!("Reading releases");
-        let releases = library.releases().unwrap();
+        let releases = local_library.releases().unwrap();
 
         info!("Building cards");
         let mut cards = App::cards_from_releases(releases);
@@ -93,10 +106,12 @@ impl Default for App {
 
         info!("Done!");
         Self {
-            _library: Box::new(library),
-            cards: cards,
+            local_library: Box::new(local_library),
+            remote_library: Box::new(remote_library),
+            cards,
             query_string: "".to_string(),
             playlist: Vec::new(),
+            sink,
         }
     }
 }
@@ -194,6 +209,8 @@ impl App {
                                     for (i, card) in _cards.iter().enumerate() {
                                         if Self::card(card, 200.0, 200.0, ctx, ui).clicked() {
                                             let tracks = card.release.tracks.clone();
+                                            self.remote_library.stream(&tracks[0], &self.sink);
+                                            
                                             self.playlist.extend(tracks);
                                             println!("{:?}", self.playlist);
                                         }
@@ -227,22 +244,22 @@ impl App {
     }
 
     fn player_bar(self: &mut Self, ctx: &Context, ui: &mut Ui) {
-        // ui.vertical_centered_justified(|ui| {
-        //     ui.horizontal(|ui| {
-        //         let np = &self.now_playing;
-        //         ui.add(ImageButton::new(
-        //             np.image.texture_id(ctx),
-        //             egui::vec2(120.0, 120.0),
-        //         ));
-        //         ui.vertical(|ui| {
-        //             ui.link(&np.title);
-        //             ui.link(&np.subtitle);
-        //             self.plot_scrubber(ctx, ui);
-        //             self.slider_scrubber(ctx, ui);
-        //         });
-        //         self.card(&self.up_next, 60.0, 60.0, ctx, ui);
-        //     });
-        // });
+    //     ui.vertical_centered_justified(|ui| {
+    //         ui.horizontal(|ui| {
+    //             let np = &self.now_playing;
+    //             ui.add(ImageButton::new(
+    //                 np.image.texture_id(ctx),
+    //                 egui::vec2(120.0, 120.0),
+    //             ));
+    //             ui.vertical(|ui| {
+    //                 ui.link(&np.title);
+    //                 ui.link(&np.subtitle);
+    //                 self.plot_scrubber(ctx, ui);
+    //                 self.slider_scrubber(ctx, ui);
+    //             });
+    //             self.card(&self.up_next, 60.0, 60.0, ctx, ui);
+    //         });
+    //     });
     }
 
     fn plot_scrubber(self: &Self, ctx: &Context, ui: &mut Ui) {
