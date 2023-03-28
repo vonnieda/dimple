@@ -144,15 +144,6 @@ impl App {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let matcher = SkimMatcherV2::default();
-            // TODO just do this when search changes, not every frame
-            let _cards: Vec<&ReleaseCard> = self.cards.iter().filter(|card| {
-                let haystack = format!("{} {}", card.title(), card.subtitle());
-                return matcher
-                    .fuzzy_match(haystack.as_str(), &self.query_string)
-                    .is_some();
-            })
-            .collect();
             self.card_grid(ctx, ui);
         });
     }
@@ -170,6 +161,16 @@ impl App {
     }
 
     fn card_grid(&mut self, ctx: &Context, ui: &mut Ui) {
+        let matcher = SkimMatcherV2::default();
+        // TODO just do this when search changes, not every frame
+        let _cards: Vec<&ReleaseCard> = self.cards.iter().filter(|card| {
+            let haystack = format!("{} {}", card.title(), card.subtitle());
+            return matcher
+                .fuzzy_match(haystack.as_str(), &self.query_string)
+                .is_some();
+        })
+        .collect();
+
         let num_columns = 6;
 
         // TODO use ScrollArea::show_rows to improve performance. I
@@ -190,7 +191,7 @@ impl App {
                             Grid::new("card_grid")
                                 .spacing(egui::vec2(16.0, 16.0))
                                 .show(ui, |ui| {
-                                    for (i, card) in self.cards.iter().enumerate() {
+                                    for (i, card) in _cards.iter().enumerate() {
                                         if Self::card(card, 200.0, 200.0, ctx, ui).clicked() {
                                             let tracks = card.release.tracks.clone();
                                             self.playlist.extend(tracks);
