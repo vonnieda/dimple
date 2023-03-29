@@ -63,6 +63,9 @@ fn main() {
     .expect("eframe: pardon me, but no thank you");
 }
 struct App {
+    /// Okay, so I think I'm going to have a helper function for stream
+    /// and image that just checks each library and returns the first one
+    /// that responds - that's even parallelizable. 
     local_library: Arc<Box<dyn Library>>,
     remote_library: Arc<Box<dyn Library>>,
     cards: Vec<ReleaseCard>,
@@ -75,6 +78,13 @@ struct App {
 struct ReleaseCard {
     release: Release,
     image: RetainedImage,
+}
+
+impl eframe::App for App {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
+        self.browser(ctx);
+    }
 }
 
 impl App {
@@ -94,7 +104,7 @@ impl App {
         let releases = local_library.releases().unwrap();
 
         info!("Building cards");
-        let mut cards = App::cards_from_releases(releases);
+        let mut cards = App::cards_from_releases(local_library.clone(), releases);
 
         info!("Sorting cards");
         cards.sort_by(|a, b| {
@@ -112,28 +122,29 @@ impl App {
             player: Player::new(sink, remote_library.clone())
         }
     }
-}
 
-impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
-        self.browser(ctx);
-    }
-}
-
-impl App {
-    fn cards_from_releases(releases: Vec<Release>) -> Vec<ReleaseCard> {
+    fn cards_from_releases(library: Arc<Box<dyn Library>>, releases: Vec<Release>) -> Vec<ReleaseCard> {
+        // TODO can't use par_iter cause can't pass dyn Library ffs. Gotta find out what I'm missing.
+        // I think what I'm missing is teh library URL lookup thing and then
+        // just a reference to self. 
+        // The only reason I don't have self yet is cause I'm creating the cards too
+        // early in the startup.
         releases
-            .par_iter()
-            .map(|release| App::card_from_release(release))
+            // .par_iter()
+            .iter()
+            .map(|release| App::card_from_release(library.clone(), release))
             .collect()
     }
 
-    fn card_from_release(release: &Release) -> ReleaseCard {
-        let image = match release.art.first() {
-            Some(image) => dynamic_to_retained(&image.url, &image.original.resize(200, 200, FilterType::CatmullRom)),
-            None => RetainedImage::from_color_image("default", ColorImage::example()),
-        };
+    fn card_from_release(library: Arc<Box<dyn Library>>, release: &Release) -> ReleaseCard {
+        let image = release.art.first()
+            .map_or(None, |image| match library.image(image) {
+                Ok(image) => Some(image),
+                Err(_) => None,
+            })
+            .map_or(
+                RetainedImage::from_color_image("default", ColorImage::example()), 
+                |image| dynamic_to_retained("", &image));
 
         ReleaseCard { 
             release: release.clone(), 

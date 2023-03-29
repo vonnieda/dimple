@@ -1,12 +1,10 @@
-use std::{time::Duration, io::BufReader};
-use std::io::{Read, Cursor};
-use std::io::Seek;
+use std::io::{Cursor};
 
 use config::Config;
 use image::DynamicImage;
 use log::{debug};
 use rayon::prelude::*;
-use rodio::{Source, Decoder, source::SineWave, Sink};
+use rodio::{Decoder, Sink};
 use sunk::{Client, search::SearchPage, ListType, Album, Media, song::Song, Streamable};
 use url::Url;
 
@@ -28,7 +26,7 @@ impl Library for NavidromeLibrary {
     fn releases(&self) -> Result<Vec<Release>, String> {
         let client = self.new_client().map_err(|err| err.to_string())?;
         let releases = self.get_all_albums()
-            .map_err(|err| err.to_string())?
+            .map_err(|err| err.to_string())?[0..10]
             .par_iter()
             .map(|shallow_album| {
                 Album::get(&client, &shallow_album.id)
@@ -41,13 +39,39 @@ impl Library for NavidromeLibrary {
         Ok(releases)
     }
 
-    fn stream(&self, track: &Track, sink: &Sink) {
-        let client = self.new_client().unwrap();
-        let (_object_type, id) = self._un_url(&track.url);
+    fn image(&self, image: &Image) -> Result<DynamicImage, String> {
+        let (_object_type, id) = self.un_url(&image.url);
+
+        // check cache first
+        if let Some(image) = self.image_cache.get_original(&id) {
+            return Ok(image);
+        }
+
+        // not found, download it
+        let album = sunk::Album {
+            cover_id: Some(id.to_string()),
+            ..Default::default()
+        };
+        debug!("Downloading {}", id);
+        let client = self.new_client()?;
+        let bytes = album.cover_art(&client, 0).map_err(|e| e.to_string())?;
+        let dynamic_image = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
+
+        // cache it
+        self.image_cache.insert(&id, &dynamic_image);
+
+        // return it
+        return Ok(dynamic_image);
+    }
+
+    fn stream(&self, track: &Track, sink: &Sink) -> Result<(), String> {
+        let (_object_type, id) = self.un_url(&track.url);
+        let client = self.new_client()?;
         let song = Song::get(&client, &id).unwrap();
         let stream = song.stream(&client).unwrap();
         let source = Decoder::new(Cursor::new(stream)).unwrap();
         sink.append(source);
+        Ok(())
     }
 }
 
@@ -72,7 +96,7 @@ impl NavidromeLibrary {
         format!("navidrome:///{}/{}/{}", self.username, object_type, id)
     }
 
-    fn _un_url(&self, url: &str) -> (String, String) {
+    fn un_url(&self, url: &str) -> (String, String) {
         let url = Url::parse(url).unwrap();
         let mut path_segments = url.path_segments().unwrap();
         let _username = path_segments.next().unwrap().to_string();
@@ -142,12 +166,9 @@ impl NavidromeLibrary {
             .collect();
 
         let art = album.cover_id.as_ref()
-            .map_or(None, |cover_id| self.get_image(&cover_id).map_or_else(|_| None, |image| Some((cover_id, image))))
-            .map_or(None, |(cover_id, image)| Some(Image {
+            .map_or(None, |cover_id| Some(Image {
                 url: self.url("image", cover_id),
-                original: image,
             }))
-            .map_or(None, |image| Some(image))
             .map_or(vec![], |image| vec![image]);
 
 
@@ -167,37 +188,6 @@ impl NavidromeLibrary {
             art: art,
             genres: genres,
         }
-    }
-
-    fn get_image(&self, id: &str) -> Result<DynamicImage, String> {
-        // check cache first
-        if let Some(image) = self.image_cache.get_original(id) {
-            return Ok(image);
-        }
-
-        // not found, download it
-        let album = sunk::Album {
-            id: Default::default(),
-            name: Default::default(),
-            artist: Default::default(),
-            artist_id: Default::default(),
-            duration: Default::default(),
-            song_count: Default::default(),
-            songs: Default::default(),
-            year: Default::default(),
-            genre: Default::default(),
-            cover_id: Some(id.to_string()),
-        };
-        let client = self.new_client()?;
-        debug!("Downloading {}", id);
-        let bytes = album.cover_art(&client, 0).map_err(|e| e.to_string())?;
-        let dynamic_image = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
-
-        // cache it
-        self.image_cache.insert(id, &dynamic_image);
-
-        // return it
-        return Ok(dynamic_image);
     }
 }
 

@@ -15,6 +15,6 @@ fn main() {
 
     for release in source.releases().unwrap() {
         println!("Merging {} {}", release.artists[0].name, release.title);
-        dest.merge_release(&release).unwrap();
+        dest.merge_release(&source, &release).unwrap();
     }
 }

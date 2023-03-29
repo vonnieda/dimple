@@ -1,3 +1,4 @@
+use image::DynamicImage;
 use log::{debug};
 
 /// A local music library living in a directory. Stores data with Sled.
@@ -26,21 +27,6 @@ impl LocalMusicLibrary {
             _audio: audio,
         }
     }
-
-    pub fn load_images(&self, mut release: Release) -> Release {
-        let art = release.art.par_iter().map(|image| {
-            let mut image = image.clone();
-            image.original = self.images.get_original(&image.url).unwrap();
-            debug!("Loaded image {}x{} from {}", 
-                image.original.width(), 
-                image.original.height(), 
-                image.url);
-            image
-        })
-        .collect::<Vec<Image>>();
-        release.art = art;
-        release
-    }
 }
 
 impl Library for LocalMusicLibrary {
@@ -48,26 +34,28 @@ impl Library for LocalMusicLibrary {
         let releases = self.releases
             .iter()
             .par_bridge()
-            // Load JSON and parse into Releases.
             .map(|kv| {
                 // TODO error handling
                 let (_key, value) = kv.unwrap();
                 return serde_json::from_slice(&value).unwrap();
             })
-            .map(|release: Release| {
-                self.load_images(release)
-            })
             .collect::<Vec<Release>>();
         Ok(releases)
     }
 
-    fn merge_release(self: &Self, release: &Release) -> Result<(), String> {
+    fn image(&self, image: &Image) -> Result<DynamicImage, String> {
+        self.images.get_original(&image.url)
+            .map_or(Err("".to_string()), |image| Ok(image))
+    }
+
+    fn merge_release(self: &Self, library: &dyn Library, release: &Release) -> Result<(), String> {
         // Store Release art
         for image in &release.art {
-            let url = &image.url;
-            let image = &image.original;
-            debug!("Storing image for {} at {}", release.title, url);
-            self.images.insert(url, image);
+            if let Ok(dynamic_image) = library.image(image) {
+                let url = &image.url;
+                debug!("Storing image for {} at {}", release.title, url);
+                self.images.insert(url, &dynamic_image);
+            }
         }
 
         // Store Release
