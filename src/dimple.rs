@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::sync::{Arc, RwLock, Mutex};
+use std::thread;
 
 use eframe::egui::{self, Context, Grid, ImageButton, Response, ScrollArea, TextEdit, Ui};
 use eframe::epaint::{ColorImage, FontFamily, FontId};
@@ -17,11 +19,27 @@ use crate::{music_library::Library, player::Player};
 
 use rayon::prelude::*;
 
+// TODO test out the Send Sync idea on Library
+
+/// Okay, so startup:
+/// - Window appears empty but immediately starts filling with cards.
+/// - Cards may initially not have a visible image, but the image will
+///   appear as quickly as possible.
+/// - So I think, for now, launch a thread on startup that reads each
+///   library and then launch another thread that uses to a channel to
+///   pass the Releases back.
+/// - Need to decide on a struct for storing the releases, and for the
+///   cards.
+/// - And get show_rows working so everything doesn't have to be loaded
+///   on the first frame.
+/// 
+
 pub struct Dimple {
     libraries: Arc<Libraries>,
-    cards: Vec<ReleaseCard>,
+    cards: Arc<RwLock<Vec<ReleaseCard>>>,
     query_string: String,
     player: Player,
+    retained_image_cache: HashMap<String, RetainedImage>,
 }
 
 impl eframe::App for Dimple {
@@ -32,45 +50,61 @@ impl eframe::App for Dimple {
 }
 
 impl Dimple {
+    fn load_cards(libraries: &Libraries, cards: &RwLock<Vec<ReleaseCard>>) {
+        log::info!("Reading releases");
+        let releases = libraries.releases().unwrap();
+
+        log::info!("Building cards");
+        let mut new_cards = Self::cards_from_releases(&libraries, releases);
+
+        log::info!("Merging cards");
+        cards.write().unwrap().extend(new_cards);
+
+        log::info!("Sorting cards");
+        cards.write().unwrap().sort_by(|a, b| {
+            a.subtitle()
+                .to_uppercase()
+                .cmp(&b.subtitle().to_uppercase())
+        });
+
+        log::info!("Done");
+    }
+
     pub fn new(sink: Arc<Sink>) -> Self {
         log::info!("Loading config");
         let config = config::Config::builder()
             .add_source(config::File::with_name("config"))
             .build().expect("Config error");
 
+        log::info!("Loading libraries");
         let mut libraries = Libraries::default();
-        libraries.add_library(Box::new(LocalLibrary::new("data/library")) as Box<dyn Library>);
-        // libraries.add_library(Box::new(NavidromeLibrary::from_config(&config)) as Box<dyn Library>);
+        libraries.add_library(Box::new(LocalLibrary::new("data/library")) as Box<dyn Library + Send + Sync>);
+        // libraries.add_library(Box::new(NavidromeLibrary::from_config(&config)) as Box<dyn Library + Send + Sync>);
         let libraries = Arc::new(libraries);
 
-        log::info!("Reading releases");
-        let releases = libraries.releases().unwrap();
+        let cards = Arc::new(RwLock::new(vec![])); 
 
-        log::info!("Building cards");
-        let mut cards = Self::cards_from_releases(libraries.clone().as_ref(), releases);
-
-        log::info!("Sorting cards");
-        cards.sort_by(|a, b| {
-            a.subtitle()
-                .to_uppercase()
-                .cmp(&b.subtitle().to_uppercase())
+        // Launch a thread that refreshes libraries and updates cards.
+        // let libraries_tmp = libraries.clone();
+        let libraries_1 = libraries.clone();
+        let cards_1 = cards.clone();
+        thread::spawn(move || {
+            Dimple::load_cards(libraries_1.as_ref(), cards_1.as_ref());
         });
 
-        log::info!("Done!");
+        log::info!("Starting up");
         Self {
             libraries: libraries.clone(),
-            cards: cards,
+            cards: cards.clone(),
             query_string: "".to_string(),
             player: Player::new(sink, libraries.clone()),
+            retained_image_cache: HashMap::new(),
         }
     }
 
     fn cards_from_releases(library: &Libraries, releases: Vec<Release>) -> Vec<ReleaseCard> {
         releases
-            .iter()
-            // TODO par_iter makes a huge difference here but I am really struggling with
-            // making the library reference thread safe.
-            // .par_iter()
+            .par_iter()
             .map(|release| Self::card_from_release(library, release))
             .collect()
     }
@@ -126,7 +160,8 @@ impl Dimple {
     fn card_grid(&mut self, ctx: &Context, ui: &mut Ui) {
         let matcher = SkimMatcherV2::default();
         // TODO just do this when search changes, not every frame
-        let _cards: Vec<&ReleaseCard> = self.cards.iter().filter(|card| {
+        let binding = self.cards.read().unwrap();
+        let _cards: Vec<&ReleaseCard> = binding.iter().filter(|card| {
             let haystack = format!("{} {}", card.title(), card.subtitle());
             return matcher
                 .fuzzy_match(haystack.as_str(), &self.query_string)

@@ -3,12 +3,12 @@ use std::{fmt::Debug, sync::Arc, mem};
 use super::{Library, Release, Image, Track};
 
 
-/// Libraries implements a manager of sorts of multiple libraries. It monitors
+/// Libraries implements a manager of sorts for multiple libraries. It monitors
 /// each library in its list for changes and integrates those changes into
 /// its central list, which is used to respond to data requests. Requests
 /// for images and streams are automatically delegated to the appropriate
 /// library based on URL.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 pub struct Libraries {
     libraries: Vec<Arc<Box<dyn Library>>>,
 }

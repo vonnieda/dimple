@@ -26,6 +26,10 @@ use rodio::{OutputStream, Sink};
 // and recents and such.
 // TODO Clicking on something should NEVER suddenly play that thing and clear
 // the queue. The queue is precious.
+// TODO build app for Mac: 
+//   https://www.bugsnag.com/blog/building-macos-apps-with-rust
+//   https://agmprojects.com/blog/packaging-a-game-for-windows-mac-and-linux-with-rust.html
+
 
 fn main() {
     let mut builder = env_logger::Builder::new();

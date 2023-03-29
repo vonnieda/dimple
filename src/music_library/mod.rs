@@ -14,17 +14,13 @@ pub mod image_cache;
 pub mod navidrome;
 pub mod libraries;
 
-pub trait Library {
+pub trait Library: Send + Sync {
     fn releases(&self) -> Result<Vec<Release>, String>;
 
-    fn image(&self, _image: &Image) -> Result<DynamicImage, String> {
-        todo!();
-    }
+    fn image(&self, _image: &Image) -> Result<DynamicImage, String>;
 
     // TODO I wanted to have this return a Source but I couldn't figure out how.
-    fn stream(&self, _track: &Track, _sink: &Sink) -> Result<(), String>{
-        todo!();
-    }
+    fn stream(&self, _track: &Track, _sink: &Sink) -> Result<(), String>;
 
     fn merge_release(&self, _library: &dyn Library, _release: &Release) -> Result<(), String> {
         todo!();

@@ -48,6 +48,10 @@ impl Library for LocalLibrary {
             .map_or(Err("".to_string()), |image| Ok(image))
     }
 
+    fn stream(&self, _track: &super::Track, _sink: &rodio::Sink) -> Result<(), String> {
+        Err("Not yet implemented".to_string())
+    }
+
     fn merge_release(self: &Self, library: &dyn Library, release: &Release) -> Result<(), String> {
         // Store Release art
         for image in &release.art {
