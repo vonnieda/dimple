@@ -15,6 +15,8 @@ use super::{Library, Release, Artist, Image, Genre, Track, image_cache::ImageCac
 // http://www.subsonic.org/pages/api.jsp#getIndexes
 // TODO add an initial quick scan that returns early if we already have all
 // the albums exactly the same. Maybe just hash it.
+// Can probably hash individual objects, too. Especially once I get
+// to pulling by artist.
 pub struct NavidromeLibrary {
     site: String,
     username: String,
@@ -26,7 +28,7 @@ impl Library for NavidromeLibrary {
     fn releases(&self) -> Result<Vec<Release>, String> {
         let client = self.new_client().map_err(|err| err.to_string())?;
         let releases = self.get_all_albums()
-            .map_err(|err| err.to_string())?[0..10]
+            .map_err(|err| err.to_string())?
             .par_iter()
             .map(|shallow_album| {
                 Album::get(&client, &shallow_album.id)

@@ -1,4 +1,4 @@
-use dimple::music_library::{local::LocalMusicLibrary, Library, navidrome::NavidromeLibrary};
+use dimple::music_library::{local::LocalLibrary, Library, navidrome::NavidromeLibrary};
 
 fn main() {
     let mut builder = env_logger::Builder::new();
@@ -11,7 +11,7 @@ fn main() {
         .build().expect("Config error");
 
     let source = NavidromeLibrary::from_config(&config);
-    let dest = LocalMusicLibrary::new("data/library");
+    let dest = LocalLibrary::new("data/library");
 
     for release in source.releases().unwrap() {
         println!("Merging {} {}", release.artists[0].name, release.title);

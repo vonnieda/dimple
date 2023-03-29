@@ -1,3 +1,8 @@
+/// Objects all have a URL. The URL must uniquely identify that object and
+/// it should, at least, have a scheme that matches the library it
+/// came from. In other words, given the same library config, it should be
+/// possible to re-load the object from the library with the same URL.
+
 use std::{fmt::Debug};
 
 use image::DynamicImage;
@@ -7,21 +12,17 @@ use serde::{Serialize, Deserialize};
 pub mod local;
 pub mod image_cache;
 pub mod navidrome;
+pub mod libraries;
 
-// TODO Absolutely hate that the objects can't carry the library, or get back
-// to it. Seems so broken and stupid. Gotta figure out it. And don't forget that
-// I planned for local library to use everyone else's urls so that the library
-// finder thing can find the right library.
-// Maybe as long as I can find a library for the URL it'll be okay. 
 pub trait Library {
     fn releases(&self) -> Result<Vec<Release>, String>;
 
-    fn image(&self, image: &Image) -> Result<DynamicImage, String> {
+    fn image(&self, _image: &Image) -> Result<DynamicImage, String> {
         todo!();
     }
 
     // TODO I wanted to have this return a Source but I couldn't figure out how.
-    fn stream(&self, track: &Track, sink: &Sink) -> Result<(), String>{
+    fn stream(&self, _track: &Track, _sink: &Sink) -> Result<(), String>{
         todo!();
     }
 
@@ -30,7 +31,7 @@ pub trait Library {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Release {
     pub url: String,
     pub title: String,
@@ -47,7 +48,7 @@ pub struct Artist {
     pub art: Vec<Image>,
 }
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Track {
     pub url: String,
     pub title: String,

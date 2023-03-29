@@ -9,13 +9,13 @@ use rayon::prelude::*;
 use sled::Tree;
 use super::{Release, image_cache::ImageCache, Library, Image};
 
-pub struct LocalMusicLibrary {
+pub struct LocalLibrary {
     releases: Tree,
     images: ImageCache,
     _audio: Tree,
 }
 
-impl LocalMusicLibrary {
+impl LocalLibrary {
     pub fn new(path: &str) -> Self {
         let db = sled::open(path).unwrap();
         let releases = db.open_tree("releases").unwrap();
@@ -29,7 +29,7 @@ impl LocalMusicLibrary {
     }
 }
 
-impl Library for LocalMusicLibrary {
+impl Library for LocalLibrary {
     fn releases(&self) -> Result<Vec<Release>, String> {
         let releases = self.releases
             .iter()
