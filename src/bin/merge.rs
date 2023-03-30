@@ -13,7 +13,7 @@ fn main() {
     let source = NavidromeLibrary::from_config(&config);
     let dest = LocalLibrary::new("data/library");
 
-    for release in source.releases().unwrap() {
+    for release in source.releases() {
         println!("Merging {} {}", release.artists[0].name, release.title);
         dest.merge_release(&source, &release).unwrap();
     }

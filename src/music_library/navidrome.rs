@@ -36,15 +36,16 @@ impl Library for NavidromeLibrary {
     fn releases(&self) -> Receiver<Release> {
         let client = Arc::new(Box::new(self.new_client().unwrap()));
         let (sender, receiver) = unbounded::<Release>();
+        // TODO move into the thread, and break up the job. Slows things down.
         let albums = self.get_all_albums().unwrap();
         let base_url = self.base_url();
 
         thread::spawn(move || {
-            for album in albums {
+            albums.par_iter().for_each(|album| {
                 let album = Album::get(&client, &album.id).unwrap();
                 let release = Self::album_to_release(&base_url, &album);
-                sender.send(release).unwrap();
-            }
+                sender.clone().send(release).unwrap();
+            })
         });
         return receiver;            
     }
@@ -196,52 +197,6 @@ impl NavidromeLibrary {
         );
         Release {
             url: Self::url(base_url, "release", &album.id),
-            title: album.name.clone(),
-            artists: artists,
-            tracks: tracks,
-            art: art,
-            genres: genres,
-        }
-    }
-
-    fn album_to_release2(album: &Album) -> Release {
-        let artists = album.artist.as_ref().map_or(vec![], |artist| {
-            vec![Artist {
-                // TODO need ID
-                url: Default::default(),
-                name: artist.to_string(),
-                // TODO get artist art
-                art: vec![],
-            }]
-        });
-        let tracks: Vec<Track> = album.songs
-            .iter()
-            .map(|song| {
-                Track {
-                    url: Default::default(),
-                    title: song.title.clone(),
-                    ..Default::default() 
-                }
-            })
-            .collect();
-
-        let art = album.cover_id.as_ref()
-            .map_or(None, |cover_id| Some(Image {
-                url: Default::default(),
-            }))
-            .map_or(vec![], |image| vec![image]);
-
-
-        let genres = album.genre.as_ref().map_or(vec![], |genre| 
-            vec![Genre {
-                // TODO ID
-                url: Default::default(),
-                name: genre.clone(),
-                art: vec![],
-            }]
-        );
-        Release {
-            url: Default::default(),
             title: album.name.clone(),
             artists: artists,
             tracks: tracks,
