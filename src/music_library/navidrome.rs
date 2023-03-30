@@ -1,6 +1,7 @@
-use std::io::{Cursor};
+use std::{io::{Cursor}, default, sync::Arc};
 
 use config::Config;
+use crossbeam::channel::{Receiver, unbounded};
 use image::DynamicImage;
 use log::{debug};
 use rayon::prelude::*;
@@ -10,7 +11,12 @@ use url::Url;
 
 use super::{Library, Release, Artist, Image, Genre, Track, image_cache::ImageCache};
 
+use std::iter::Iterator;
 
+use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+use rayon::iter::plumbing::bridge;
+
+use std::thread;
 // TODO looks like getIndexes might be how to check for changes?
 // http://www.subsonic.org/pages/api.jsp#getIndexes
 // TODO add an initial quick scan that returns early if we already have all
@@ -39,6 +45,22 @@ impl Library for NavidromeLibrary {
             .map(|album| self.album_to_release(album))
             .collect::<Vec<Release>>();
         Ok(releases)
+    }
+
+    fn releases_stream(&self) -> Receiver<Release> {
+        let client = Arc::new(Box::new(self.new_client().unwrap()));
+        let (sender, receiver) = unbounded::<Release>();
+        let albums = self.get_all_albums().unwrap();
+        thread::spawn(move || {
+            for album in albums {
+                println!("fucking now");
+                let album = Album::get(&client, &album.id).unwrap();
+                let release = Self::album_to_release2(&album);
+                sender.send(release).unwrap();
+                println!("fucking what");
+            }
+        });
+        return receiver;            
     }
 
     fn image(&self, image: &Image) -> Result<DynamicImage, String> {
@@ -184,6 +206,52 @@ impl NavidromeLibrary {
         );
         Release {
             url: self.url("release", &album.id),
+            title: album.name.clone(),
+            artists: artists,
+            tracks: tracks,
+            art: art,
+            genres: genres,
+        }
+    }
+
+    fn album_to_release2(album: &Album) -> Release {
+        let artists = album.artist.as_ref().map_or(vec![], |artist| {
+            vec![Artist {
+                // TODO need ID
+                url: Default::default(),
+                name: artist.to_string(),
+                // TODO get artist art
+                art: vec![],
+            }]
+        });
+        let tracks: Vec<Track> = album.songs
+            .par_iter()
+            .map(|song| {
+                Track {
+                    url: Default::default(),
+                    title: song.title.clone(),
+                    ..Default::default() 
+                }
+            })
+            .collect();
+
+        let art = album.cover_id.as_ref()
+            .map_or(None, |cover_id| Some(Image {
+                url: Default::default(),
+            }))
+            .map_or(vec![], |image| vec![image]);
+
+
+        let genres = album.genre.as_ref().map_or(vec![], |genre| 
+            vec![Genre {
+                // TODO ID
+                url: Default::default(),
+                name: genre.clone(),
+                art: vec![],
+            }]
+        );
+        Release {
+            url: Default::default(),
             title: album.name.clone(),
             artists: artists,
             tracks: tracks,

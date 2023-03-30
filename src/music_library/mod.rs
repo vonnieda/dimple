@@ -5,6 +5,7 @@
 
 use std::{fmt::Debug};
 
+use crossbeam::channel::Receiver;
 use image::DynamicImage;
 use rodio::{Sink};
 use serde::{Serialize, Deserialize};
@@ -17,6 +18,10 @@ pub mod libraries;
 pub trait Library: Send + Sync {
     fn releases(&self) -> Result<Vec<Release>, String>;
 
+    fn releases_stream(&self) -> Receiver<Release> {
+        todo!();
+    }
+
     fn image(&self, _image: &Image) -> Result<DynamicImage, String>;
 
     // TODO I wanted to have this return a Source but I couldn't figure out how.
@@ -27,7 +32,7 @@ pub trait Library: Send + Sync {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct Release {
     pub url: String,
     pub title: String,

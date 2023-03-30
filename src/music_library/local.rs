@@ -1,3 +1,6 @@
+use std::time::Duration;
+
+use crossbeam::channel::{unbounded, Receiver};
 use image::DynamicImage;
 use log::{debug};
 
@@ -41,6 +44,26 @@ impl Library for LocalLibrary {
             })
             .collect::<Vec<Release>>();
         Ok(releases)
+    }
+
+    fn releases_stream(&self) -> Receiver<Release> {
+        let (sender, receiver) = unbounded::<Release>();
+        let releases = self.releases.iter();
+        std::thread::spawn(move || {
+            releases
+                .par_bridge()
+                .map(|kv| {
+                    // TODO error handling
+                    let (_key, value) = kv.unwrap();
+                    // std::thread::sleep(Duration::from_secs(1));
+                    return serde_json::from_slice(&value).unwrap();
+                })
+                .for_each(|release| {
+                    sender.send(release).unwrap();
+                });
+        });
+
+        return receiver;
     }
 
     fn image(&self, image: &Image) -> Result<DynamicImage, String> {

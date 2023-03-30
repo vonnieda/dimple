@@ -33,6 +33,25 @@ use rayon::prelude::*;
 /// - And get show_rows working so everything doesn't have to be loaded
 ///   on the first frame.
 /// 
+/// Going well, time to get incremental loading working.
+/// 
+/// Sheeeit, I think I can fix the arc problem and no longer have to pass
+/// the library around now, cause the trait is working.
+/// 
+/// Is it worth exploring that before incremental loading? I think so, cause
+/// that's gonna change the API a lot.
+/// 
+/// Okay, maybe not. Seems like there's no point now because of the possibility
+/// of loading the reload from local storage. So really, you do want to be able
+/// to resolve a release globally because how else will you stream it?
+/// 
+/// So, with that, I think table that for now and get incremental loading
+/// working.
+/// 
+/// Fuck I'm spending a huge amount of time on this. How important is it?
+/// 
+/// What if I just load the first 100 releases quick, then load the whole thing
+/// in the background?
 
 pub struct Dimple {
     libraries: Arc<Libraries>,
@@ -50,33 +69,13 @@ impl eframe::App for Dimple {
 }
 
 impl Dimple {
-    fn load_cards(libraries: &Libraries, cards: &RwLock<Vec<ReleaseCard>>) {
-        log::info!("Reading releases");
-        let releases = libraries.releases().unwrap();
-
-        log::info!("Building cards");
-        let mut new_cards = Self::cards_from_releases(&libraries, releases);
-
-        log::info!("Merging cards");
-        cards.write().unwrap().extend(new_cards);
-
-        log::info!("Sorting cards");
-        cards.write().unwrap().sort_by(|a, b| {
-            a.subtitle()
-                .to_uppercase()
-                .cmp(&b.subtitle().to_uppercase())
-        });
-
-        log::info!("Done");
-    }
-
     pub fn new(sink: Arc<Sink>) -> Self {
-        log::info!("Loading config");
+        // Load config
         let config = config::Config::builder()
             .add_source(config::File::with_name("config"))
             .build().expect("Config error");
 
-        log::info!("Loading libraries");
+        // Load libraries
         let mut libraries = Libraries::default();
         libraries.add_library(Box::new(LocalLibrary::new("data/library")) as Box<dyn Library + Send + Sync>);
         // libraries.add_library(Box::new(NavidromeLibrary::from_config(&config)) as Box<dyn Library + Send + Sync>);
@@ -89,10 +88,18 @@ impl Dimple {
         let libraries_1 = libraries.clone();
         let cards_1 = cards.clone();
         thread::spawn(move || {
-            Dimple::load_cards(libraries_1.as_ref(), cards_1.as_ref());
+            let mut releases = libraries_1.releases().unwrap();
+            releases.sort_by(|a, b| {
+                a.artists[0].name.to_uppercase()
+                    .cmp(&b.artists[0].name.to_uppercase())
+            });
+            releases.par_iter()
+                .map(|release| Self::card_from_release(&libraries_1, &release))
+                .for_each(|card| {
+                    cards_1.write().unwrap().push(card);
+                });
         });
 
-        log::info!("Starting up");
         Self {
             libraries: libraries.clone(),
             cards: cards.clone(),
@@ -100,13 +107,6 @@ impl Dimple {
             player: Player::new(sink, libraries.clone()),
             retained_image_cache: HashMap::new(),
         }
-    }
-
-    fn cards_from_releases(library: &Libraries, releases: Vec<Release>) -> Vec<ReleaseCard> {
-        releases
-            .par_iter()
-            .map(|release| Self::card_from_release(library, release))
-            .collect()
     }
 
     fn card_from_release(library: &Libraries, release: &Release) -> ReleaseCard {
@@ -121,7 +121,8 @@ impl Dimple {
 
         ReleaseCard { 
             release: release.clone(), 
-            image 
+            // image: RetainedImage::from_color_image("default", ColorImage::example()),
+            image,
         }
     }
 
@@ -161,13 +162,19 @@ impl Dimple {
         let matcher = SkimMatcherV2::default();
         // TODO just do this when search changes, not every frame
         let binding = self.cards.read().unwrap();
-        let _cards: Vec<&ReleaseCard> = binding.iter().filter(|card| {
+        let mut _cards: Vec<&ReleaseCard> = binding.iter().filter(|card| {
             let haystack = format!("{} {}", card.title(), card.subtitle());
             return matcher
                 .fuzzy_match(haystack.as_str(), &self.query_string)
                 .is_some();
         })
         .collect();
+
+        _cards.sort_by(|a, b| {
+            a.subtitle()
+                .to_uppercase()
+                .cmp(&b.subtitle().to_uppercase())
+        });
 
         let num_columns = 6;
 

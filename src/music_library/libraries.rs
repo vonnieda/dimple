@@ -1,5 +1,8 @@
 use std::{fmt::Debug, sync::Arc, mem};
 
+use crossbeam::channel::{unbounded, Receiver};
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+
 use super::{Library, Release, Image, Track};
 
 
@@ -25,7 +28,7 @@ impl Libraries {
 
 impl Debug for dyn Library {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        Ok(())
     }
 }
 
@@ -39,6 +42,25 @@ impl Library for Libraries {
             &releases.len(), 
             mem::size_of_val(&releases));
         return Ok(releases);
+    }
+
+    fn releases_stream(&self) -> Receiver<Release> {
+        // Launch a thread for each library that will feed
+        // us releases.
+        // TODO actually, I can see this essentially being the sync
+        // function once I have merging.
+        let (sender, receiver) = unbounded::<Release>();
+        for library in &self.libraries {
+            let library = library.clone();
+            let sender = sender.clone();
+            std::thread::spawn(move || {
+                println!("grabbing releases from {:?}", library);
+                for release in library.releases_stream() {
+                    sender.send(release).unwrap();
+                }
+            });
+        }
+        return receiver;
     }
 
     fn image(&self, image: &Image) -> Result<image::DynamicImage, String> {
