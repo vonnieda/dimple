@@ -1,10 +1,9 @@
-use std::{io::{Cursor}, default, sync::Arc};
+use std::{io::{Cursor}, sync::Arc};
 
 use config::Config;
 use crossbeam::channel::{Receiver, unbounded};
 use image::DynamicImage;
 use log::{debug};
-use rayon::prelude::*;
 use rodio::{Decoder, Sink};
 use sunk::{Client, search::SearchPage, ListType, Album, Media, song::Song, Streamable};
 use url::Url;
@@ -13,8 +12,7 @@ use super::{Library, Release, Artist, Image, Genre, Track, image_cache::ImageCac
 
 use std::iter::Iterator;
 
-use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
-use rayon::iter::plumbing::bridge;
+use rayon::prelude::*;
 
 use std::thread;
 // TODO looks like getIndexes might be how to check for changes?
@@ -31,33 +29,21 @@ pub struct NavidromeLibrary {
 }
 
 impl Library for NavidromeLibrary {
-    fn releases(&self) -> Result<Vec<Release>, String> {
-        let client = self.new_client().map_err(|err| err.to_string())?;
-        let releases = self.get_all_albums()
-            .map_err(|err| err.to_string())?
-            .par_iter()
-            .map(|shallow_album| {
-                Album::get(&client, &shallow_album.id)
-                    .map_err(|err| err.to_string())
-            })
-            .collect::<Result<Vec<Album>, String>>()?
-            .par_iter()
-            .map(|album| self.album_to_release(album))
-            .collect::<Vec<Release>>();
-        Ok(releases)
+    fn name(&self) -> String {
+        return "Navidrome".to_string();
     }
 
-    fn releases_stream(&self) -> Receiver<Release> {
+    fn releases(&self) -> Receiver<Release> {
         let client = Arc::new(Box::new(self.new_client().unwrap()));
         let (sender, receiver) = unbounded::<Release>();
         let albums = self.get_all_albums().unwrap();
+        let base_url = self.base_url();
+
         thread::spawn(move || {
             for album in albums {
-                println!("fucking now");
                 let album = Album::get(&client, &album.id).unwrap();
-                let release = Self::album_to_release2(&album);
+                let release = Self::album_to_release(&base_url, &album);
                 sender.send(release).unwrap();
-                println!("fucking what");
             }
         });
         return receiver;            
@@ -116,8 +102,12 @@ impl NavidromeLibrary {
             config.get_string("navidrome.password").unwrap().as_str())
     }
 
-    fn url(&self, object_type: &str, id: &str) -> String {
-        format!("navidrome:///{}/{}/{}", self.username, object_type, id)
+    fn base_url(&self) -> String {
+        format!("navidrome:///{}", self.username)
+    }
+
+    fn url(base_url: &str, object_type: &str, id: &str) -> String {
+        format!("{}/{}/{}", base_url, object_type, id)
     }
 
     fn un_url(&self, url: &str) -> (String, String) {
@@ -138,7 +128,7 @@ impl NavidromeLibrary {
     }
 
     fn get_albums(&self, count: usize, offset: usize) -> Result<Vec<Album>, String> {
-        debug!("getting albums {} through {}", offset, offset + count - 1);
+        log::info!("getting albums {} through {}", offset, offset + count - 1);
         let page = SearchPage { count, offset };
         let list_type = ListType::default();
         let client = self.new_client()?;
@@ -168,21 +158,21 @@ impl NavidromeLibrary {
         Ok(all_albums)
     }
 
-    fn album_to_release(&self, album: &Album) -> Release {
+    fn album_to_release(base_url: &str, album: &Album) -> Release {
         let artists = album.artist.as_ref().map_or(vec![], |artist| {
             vec![Artist {
                 // TODO need ID
-                url: self.url("artist", artist),
+                url: Self::url(base_url, "artist", artist),
                 name: artist.to_string(),
                 // TODO get artist art
                 art: vec![],
             }]
         });
         let tracks: Vec<Track> = album.songs
-            .par_iter()
+            .iter()
             .map(|song| {
                 Track {
-                    url: self.url("track", &song.id),
+                    url: Self::url(base_url, "track", &song.id),
                     title: song.title.clone(),
                     ..Default::default() 
                 }
@@ -191,7 +181,7 @@ impl NavidromeLibrary {
 
         let art = album.cover_id.as_ref()
             .map_or(None, |cover_id| Some(Image {
-                url: self.url("image", cover_id),
+                url: Self::url(base_url, "image", cover_id),
             }))
             .map_or(vec![], |image| vec![image]);
 
@@ -199,13 +189,13 @@ impl NavidromeLibrary {
         let genres = album.genre.as_ref().map_or(vec![], |genre| 
             vec![Genre {
                 // TODO ID
-                url: self.url("genre", &genre),
+                url: Self::url(base_url, "genre", &genre),
                 name: genre.clone(),
                 art: vec![],
             }]
         );
         Release {
-            url: self.url("release", &album.id),
+            url: Self::url(base_url, "release", &album.id),
             title: album.name.clone(),
             artists: artists,
             tracks: tracks,
@@ -225,7 +215,7 @@ impl NavidromeLibrary {
             }]
         });
         let tracks: Vec<Track> = album.songs
-            .par_iter()
+            .iter()
             .map(|song| {
                 Track {
                     url: Default::default(),

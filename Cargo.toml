@@ -17,7 +17,6 @@ env_logger = "0.10.0"
 fuzzy-matcher = "*"
 image = { version = "0.24.5", features = ["jpeg", "png"] }
 log = "0.4.17"
-rayon = "1.7.0"
 sunk = { path = "lib/sunk" }
 sled = "0.34.7"
 serde = { version = "1.0.158", features = ["derive"] }
@@ -27,5 +26,6 @@ walkdir = "2.3.3"
 url = "2.3.1"
 rodio = { version = "0.17.1" }
 crossbeam = { version = "0.8.2", features = ["crossbeam-channel"] }
+rayon = "1.7.0"
 
 

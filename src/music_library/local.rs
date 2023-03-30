@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crossbeam::channel::{unbounded, Receiver};
 use image::DynamicImage;
 use log::{debug};
@@ -8,7 +6,6 @@ use log::{debug};
 /// Faster than remote, but slower than memory. This is how the app stores
 /// the combined library from all the remotes.
 
-use rayon::prelude::*;
 use sled::Tree;
 use super::{Release, image_cache::ImageCache, Library, Image};
 
@@ -33,29 +30,18 @@ impl LocalLibrary {
 }
 
 impl Library for LocalLibrary {
-    fn releases(&self) -> Result<Vec<Release>, String> {
-        let releases = self.releases
-            .iter()
-            .par_bridge()
-            .map(|kv| {
-                // TODO error handling
-                let (_key, value) = kv.unwrap();
-                return serde_json::from_slice(&value).unwrap();
-            })
-            .collect::<Vec<Release>>();
-        Ok(releases)
+    fn name(&self) -> String {
+        return "Local".to_string();
     }
-
-    fn releases_stream(&self) -> Receiver<Release> {
+    
+    fn releases(&self) -> Receiver<Release> {
         let (sender, receiver) = unbounded::<Release>();
         let releases = self.releases.iter();
         std::thread::spawn(move || {
             releases
-                .par_bridge()
                 .map(|kv| {
                     // TODO error handling
                     let (_key, value) = kv.unwrap();
-                    // std::thread::sleep(Duration::from_secs(1));
                     return serde_json::from_slice(&value).unwrap();
                 })
                 .for_each(|release| {

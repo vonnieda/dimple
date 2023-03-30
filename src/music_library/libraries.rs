@@ -1,61 +1,47 @@
-use std::{fmt::Debug, sync::Arc, mem};
+use std::{fmt::Debug, sync::{Arc, RwLock}, mem, collections::HashMap, time::Duration};
 
 use crossbeam::channel::{unbounded, Receiver};
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 
 use super::{Library, Release, Image, Track};
 
 
-/// Libraries implements a manager of sorts for multiple libraries. It monitors
-/// each library in its list for changes and integrates those changes into
-/// its central list, which is used to respond to data requests. Requests
-/// for images and streams are automatically delegated to the appropriate
-/// library based on URL.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Libraries {
-    libraries: Vec<Arc<Box<dyn Library>>>,
+    libraries: Arc<RwLock<Vec<Arc<Box<dyn Library>>>>>,
+
+    // TODO this will be used for merging results before sending them
+    // downstream.
+    releases_by_url: Arc<RwLock<HashMap<String, Release>>>,
 }
 
-impl Libraries {
-    pub fn library_for_url(&self, url: &str) -> Option<Arc<Box<dyn Library>>> {
-        None
+impl Libraries {    
+    pub fn new() -> Self {
+        let libraries: Arc<RwLock<Vec<Arc<Box<dyn Library>>>>> = Default::default();
+        let releases_by_url = Arc::new(RwLock::new(HashMap::new()));
+
+        Self {
+            libraries,
+            releases_by_url
+        }
     }
 
     pub fn add_library(&mut self, library: Box<dyn Library>) {
-        self.libraries.push(Arc::new(library));
-    }
-}
-
-impl Debug for dyn Library {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Ok(())
+        self.libraries.write().unwrap().push(Arc::new(library));
     }
 }
 
 impl Library for Libraries {
-    fn releases(&self) -> Result<Vec<Release>, String> {
-        let mut releases: Vec<Release> = Vec::new();
-        for library in &self.libraries {
-            releases.extend(library.releases().unwrap_or(vec![]));
-        }
-        log::info!("{} releases, taking {} bytes", 
-            &releases.len(), 
-            mem::size_of_val(&releases));
-        return Ok(releases);
+    fn name(&self) -> String {
+        return "Libraries".to_string();
     }
 
-    fn releases_stream(&self) -> Receiver<Release> {
-        // Launch a thread for each library that will feed
-        // us releases.
-        // TODO actually, I can see this essentially being the sync
-        // function once I have merging.
+    fn releases(&self) -> Receiver<Release> {
         let (sender, receiver) = unbounded::<Release>();
-        for library in &self.libraries {
-            let library = library.clone();
+        for library in self.libraries.read().unwrap().iter() {
             let sender = sender.clone();
+            let library = library.clone();
             std::thread::spawn(move || {
-                println!("grabbing releases from {:?}", library);
-                for release in library.releases_stream() {
+                for release in library.releases() {
                     sender.send(release).unwrap();
                 }
             });
@@ -64,7 +50,7 @@ impl Library for Libraries {
     }
 
     fn image(&self, image: &Image) -> Result<image::DynamicImage, String> {
-        for library in &self.libraries {
+        for library in self.libraries.read().unwrap().iter() {
             if let Ok(image) = library.image(image) {
                 return Ok(image);
             }
@@ -73,7 +59,7 @@ impl Library for Libraries {
     }
 
     fn stream(&self, track: &Track, sink: &rodio::Sink) -> Result<(), String>{
-        for library in &self.libraries {
+        for library in self.libraries.read().unwrap().iter() {
             if library.stream(track, sink).is_ok() {
                 return Ok(());
             }
@@ -85,3 +71,10 @@ impl Library for Libraries {
         Err("moof".to_string())
     }
 }
+
+impl Debug for dyn Library {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ok(())
+    }
+}
+

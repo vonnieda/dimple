@@ -16,11 +16,9 @@ pub mod navidrome;
 pub mod libraries;
 
 pub trait Library: Send + Sync {
-    fn releases(&self) -> Result<Vec<Release>, String>;
+    fn name(&self) -> String;
 
-    fn releases_stream(&self) -> Receiver<Release> {
-        todo!();
-    }
+    fn releases(&self) -> Receiver<Release>;
 
     fn image(&self, _image: &Image) -> Result<DynamicImage, String>;
 

@@ -9,13 +9,9 @@ use rodio::{OutputStream, Sink};
 // TODO tile size slider
 // TODO check out bliss and bliss-rs https://github.com/Polochon-street/bliss-rs for smart playlist generation
 // TODO how to load a custom font and use it globally https://github.com/catppuccin/egui/blob/main/examples/todo.rs#L77
-// TODO info on how to do something on first frame: https://github.com/emilk/eframe_template/blob/master/src/app.rs#L24
 // TODO escape should clear search
 // TODO Continuous updates when downloading and loading libraries
 // TODO search is sensitive to word order, i.e. infected shawarma vs. shawarma infected
-// TODO parallelize the textures, although I think it might all happen on the
-// first frame, in which case we could still do it somehow. Or just do whatever
-// RetainedImage does.
 // TODO Dashboard makes sense actually, and in fact, I can have as wild a tree
 // as I want as long as:
 // 1. Clicking anything updates the search bar with the terms needed to get to

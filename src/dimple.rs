@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock, Mutex};
+use std::sync::{Arc, RwLock};
 use std::thread;
 
 use eframe::egui::{self, Context, Grid, ImageButton, Response, ScrollArea, TextEdit, Ui};
@@ -17,8 +17,6 @@ use crate::music_library::local::LocalLibrary;
 use crate::music_library::navidrome::NavidromeLibrary;
 use crate::{music_library::Library, player::Player};
 
-use rayon::prelude::*;
-
 pub struct Dimple {
     libraries: Arc<Libraries>,
     cards: Arc<RwLock<Vec<ReleaseCard>>>,
@@ -30,8 +28,12 @@ pub struct Dimple {
 
 impl eframe::App for Dimple {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // TODO gross hack, see:
+        // TODO info on how to do something on first frame: https://github.com/emilk/eframe_template/blob/master/src/app.rs#L24
         if !self.first_frame {
             self.first_frame = true;
+
+            catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
 
             // Launch a thread that refreshes libraries and updates cards.
             // TODO very temporary, just needs a place to live for a moment            
@@ -39,37 +41,16 @@ impl eframe::App for Dimple {
             let cards_1 = self.cards.clone();
             let context_1 = ctx.clone();
             thread::spawn(move || {
-                let mut releases = libraries_1.releases().unwrap();
-                releases.sort_by(|a, b| {
-                    a.artists[0].name.to_uppercase()
-                        .cmp(&b.artists[0].name.to_uppercase())
-                        .then_with(|| a.title.cmp(&b.title))
-                });
-                // RAM doesn't want you to know this one weird trick
-                // The idea is here is get the first 100 albums on the
-                // screen ASAP and then load the rest before they can scroll
-                // to see it.
-                // TODO temporary, magic
-                releases
-                    [0..100]
-                    .iter()
-                    .map(|release| Self::card_from_release(&libraries_1, &release))
-                    .for_each(|card| {
-                        cards_1.write().unwrap().push(card);
-                        context_1.request_repaint();
-                    });
-                releases
-                    [100..]
-                    .par_iter()
-                    .map(|release| Self::card_from_release(&libraries_1, &release))
-                    .for_each(|card| {
-                        cards_1.write().unwrap().push(card);
-                        context_1.request_repaint();
-                    });
+                // TODO currently just runs once, eventually will handle merging
+                // cards and will refresh.
+                for release in libraries_1.releases().iter() {
+                    let card = Self::card_from_release(&libraries_1, &release);
+                    cards_1.write().unwrap().push(card);
+                    context_1.request_repaint();
+                }
             });
 
         }
-        catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
         self.browser(ctx);
     }
 }
@@ -82,17 +63,15 @@ impl Dimple {
             .build().expect("Config error");
 
         // Load libraries
-        let mut libraries = Libraries::default();
-        libraries.add_library(Box::new(LocalLibrary::new("data/library")) as Box<dyn Library + Send + Sync>);
-        // libraries.add_library(Box::new(NavidromeLibrary::from_config(&config)) as Box<dyn Library + Send + Sync>);
+        let mut libraries = Libraries::new();
+        libraries.add_library(Box::new(LocalLibrary::new("data/library")) as Box<dyn Library>);
+        libraries.add_library(Box::new(NavidromeLibrary::from_config(&config)) as Box<dyn Library>);
         let libraries = Arc::new(libraries);
 
-        let cards = Arc::new(RwLock::new(vec![])); 
-        
         Self {
             libraries: libraries.clone(),
-            cards: cards.clone(),
-            query_string: "".to_string(),
+            cards: Arc::new(RwLock::new(Vec::new())),
+            query_string: String::new(),
             player: Player::new(sink, libraries.clone()),
             retained_image_cache: HashMap::new(),
             first_frame: false,
@@ -111,7 +90,6 @@ impl Dimple {
 
         ReleaseCard { 
             release: release.clone(), 
-            // image: RetainedImage::from_color_image("default", ColorImage::example()),
             image,
         }
     }
