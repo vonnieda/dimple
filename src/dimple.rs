@@ -19,50 +19,56 @@ use crate::{music_library::Library, player::Player};
 
 use rayon::prelude::*;
 
-// TODO test out the Send Sync idea on Library
-
-/// Okay, so startup:
-/// - Window appears empty but immediately starts filling with cards.
-/// - Cards may initially not have a visible image, but the image will
-///   appear as quickly as possible.
-/// - So I think, for now, launch a thread on startup that reads each
-///   library and then launch another thread that uses to a channel to
-///   pass the Releases back.
-/// - Need to decide on a struct for storing the releases, and for the
-///   cards.
-/// - And get show_rows working so everything doesn't have to be loaded
-///   on the first frame.
-/// 
-/// Going well, time to get incremental loading working.
-/// 
-/// Sheeeit, I think I can fix the arc problem and no longer have to pass
-/// the library around now, cause the trait is working.
-/// 
-/// Is it worth exploring that before incremental loading? I think so, cause
-/// that's gonna change the API a lot.
-/// 
-/// Okay, maybe not. Seems like there's no point now because of the possibility
-/// of loading the reload from local storage. So really, you do want to be able
-/// to resolve a release globally because how else will you stream it?
-/// 
-/// So, with that, I think table that for now and get incremental loading
-/// working.
-/// 
-/// Fuck I'm spending a huge amount of time on this. How important is it?
-/// 
-/// What if I just load the first 100 releases quick, then load the whole thing
-/// in the background?
-
 pub struct Dimple {
     libraries: Arc<Libraries>,
     cards: Arc<RwLock<Vec<ReleaseCard>>>,
     query_string: String,
     player: Player,
     retained_image_cache: HashMap<String, RetainedImage>,
+    first_frame: bool,
 }
 
 impl eframe::App for Dimple {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if !self.first_frame {
+            self.first_frame = true;
+
+            // Launch a thread that refreshes libraries and updates cards.
+            // TODO very temporary, just needs a place to live for a moment            
+            let libraries_1 = self.libraries.clone();
+            let cards_1 = self.cards.clone();
+            let context_1 = ctx.clone();
+            thread::spawn(move || {
+                let mut releases = libraries_1.releases().unwrap();
+                releases.sort_by(|a, b| {
+                    a.artists[0].name.to_uppercase()
+                        .cmp(&b.artists[0].name.to_uppercase())
+                        .then_with(|| a.title.cmp(&b.title))
+                });
+                // RAM doesn't want you to know this one weird trick
+                // The idea is here is get the first 100 albums on the
+                // screen ASAP and then load the rest before they can scroll
+                // to see it.
+                // TODO temporary, magic
+                releases
+                    [0..100]
+                    .iter()
+                    .map(|release| Self::card_from_release(&libraries_1, &release))
+                    .for_each(|card| {
+                        cards_1.write().unwrap().push(card);
+                        context_1.request_repaint();
+                    });
+                releases
+                    [100..]
+                    .par_iter()
+                    .map(|release| Self::card_from_release(&libraries_1, &release))
+                    .for_each(|card| {
+                        cards_1.write().unwrap().push(card);
+                        context_1.request_repaint();
+                    });
+            });
+
+        }
         catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
         self.browser(ctx);
     }
@@ -82,30 +88,14 @@ impl Dimple {
         let libraries = Arc::new(libraries);
 
         let cards = Arc::new(RwLock::new(vec![])); 
-
-        // Launch a thread that refreshes libraries and updates cards.
-        // let libraries_tmp = libraries.clone();
-        let libraries_1 = libraries.clone();
-        let cards_1 = cards.clone();
-        thread::spawn(move || {
-            let mut releases = libraries_1.releases().unwrap();
-            releases.sort_by(|a, b| {
-                a.artists[0].name.to_uppercase()
-                    .cmp(&b.artists[0].name.to_uppercase())
-            });
-            releases.par_iter()
-                .map(|release| Self::card_from_release(&libraries_1, &release))
-                .for_each(|card| {
-                    cards_1.write().unwrap().push(card);
-                });
-        });
-
+        
         Self {
             libraries: libraries.clone(),
             cards: cards.clone(),
             query_string: "".to_string(),
             player: Player::new(sink, libraries.clone()),
             retained_image_cache: HashMap::new(),
+            first_frame: false,
         }
     }
 
