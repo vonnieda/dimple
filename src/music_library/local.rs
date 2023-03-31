@@ -10,6 +10,7 @@ use sled::Tree;
 use super::{Release, image_cache::ImageCache, Library, Image};
 
 pub struct LocalLibrary {
+    path: String,
     releases: Tree,
     images: ImageCache,
     _audio: Tree,
@@ -22,6 +23,7 @@ impl LocalLibrary {
         let images = db.open_tree("images").unwrap();
         let audio = db.open_tree("audio").unwrap();
         Self { 
+            path: path.to_string(),
             releases,
             images: ImageCache::new(images),
             _audio: audio,
@@ -31,7 +33,7 @@ impl LocalLibrary {
 
 impl Library for LocalLibrary {
     fn name(&self) -> String {
-        return "Local".to_string();
+        return format!("local://{}", self.path);
     }
     
     fn releases(&self) -> Receiver<Release> {

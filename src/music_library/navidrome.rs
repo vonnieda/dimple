@@ -15,12 +15,7 @@ use std::iter::Iterator;
 use rayon::prelude::*;
 
 use std::thread;
-// TODO looks like getIndexes might be how to check for changes?
-// http://www.subsonic.org/pages/api.jsp#getIndexes
-// TODO add an initial quick scan that returns early if we already have all
-// the albums exactly the same. Maybe just hash it.
-// Can probably hash individual objects, too. Especially once I get
-// to pulling by artist.
+
 pub struct NavidromeLibrary {
     site: String,
     username: String,
@@ -30,7 +25,7 @@ pub struct NavidromeLibrary {
 
 impl Library for NavidromeLibrary {
     fn name(&self) -> String {
-        return "Navidrome".to_string();
+        return self.base_url();
     }
 
     fn releases(&self) -> Receiver<Release> {
@@ -132,37 +127,6 @@ impl NavidromeLibrary {
             self.password.as_str(),
         ).map_err(|e| e.to_string())
     }
-
-    // fn get_albums(&self, count: usize, offset: usize) -> Result<Vec<Album>, String> {
-    //     log::info!("getting albums {} through {}", offset, offset + count - 1);
-    //     let page = SearchPage { count, offset };
-    //     let list_type = ListType::default();
-    //     let client = self.new_client()?;
-    //     sunk::Album::list(&client, list_type, page, 0)
-    //         .map_err(|e| e.to_string())
-    // }
-
-    // fn get_all_albums(&self) -> Result<Vec<Album>, String> {
-    //     let mut all_albums: Vec<Album> = Vec::new();
-    //     let mut page = SearchPage {
-    //         count: 500,
-    //         offset: 0,
-    //     };
-    //     loop {
-    //         // TODO ugly
-    //         if let Ok(albums) = self.get_albums(page.count, page.offset) {
-    //             if albums.len() == 0 {
-    //                 break;
-    //             }
-    //             all_albums.extend(albums);
-    //             page.offset += page.count;
-    //         }
-    //         else {
-    //             break;
-    //         }
-    //     }
-    //     Ok(all_albums)
-    // }
 
     fn album_to_release(base_url: &str, album: &Album) -> Release {
         let artists = album.artist.as_ref().map_or(vec![], |artist| {
