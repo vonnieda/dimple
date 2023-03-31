@@ -36,7 +36,7 @@ impl eframe::App for Dimple {
             catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
 
             // Launch a thread that refreshes libraries and updates cards.
-            // TODO very temporary, just needs a place to live for a moment            
+            // TODO temporary, just needs a place to live for a moment            
             let libraries_1 = self.libraries.clone();
             let cards_1 = self.cards.clone();
             let context_1 = ctx.clone();

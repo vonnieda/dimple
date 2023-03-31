@@ -36,17 +36,22 @@ impl Library for NavidromeLibrary {
     fn releases(&self) -> Receiver<Release> {
         let client = Arc::new(Box::new(self.new_client().unwrap()));
         let (sender, receiver) = unbounded::<Release>();
-        // TODO move into the thread, and break up the job. Slows things down.
-        let albums = self.get_all_albums().unwrap();
         let base_url = self.base_url();
 
         thread::spawn(move || {
-            albums.par_iter().for_each(|album| {
-                let album = Album::get(&client, &album.id).unwrap();
-                let release = Self::album_to_release(&base_url, &album);
-                sender.clone().send(release).unwrap();
-            })
+            let sender = sender.clone();
+            // Get all the artists
+            sunk::Artist::list(&client, 0).unwrap()
+                .par_iter()
+                // For each artist get all the albums
+                .flat_map(|artist| artist.albums(&client).unwrap())
+                // For each album convert to a release and send
+                .map(|album| Self::album_to_release(&base_url, &album))
+                .for_each(|release| {
+                    sender.clone().send(release).unwrap();
+                });
         });
+
         return receiver;            
     }
 
@@ -128,36 +133,36 @@ impl NavidromeLibrary {
         ).map_err(|e| e.to_string())
     }
 
-    fn get_albums(&self, count: usize, offset: usize) -> Result<Vec<Album>, String> {
-        log::info!("getting albums {} through {}", offset, offset + count - 1);
-        let page = SearchPage { count, offset };
-        let list_type = ListType::default();
-        let client = self.new_client()?;
-        sunk::Album::list(&client, list_type, page, 0)
-            .map_err(|e| e.to_string())
-    }
+    // fn get_albums(&self, count: usize, offset: usize) -> Result<Vec<Album>, String> {
+    //     log::info!("getting albums {} through {}", offset, offset + count - 1);
+    //     let page = SearchPage { count, offset };
+    //     let list_type = ListType::default();
+    //     let client = self.new_client()?;
+    //     sunk::Album::list(&client, list_type, page, 0)
+    //         .map_err(|e| e.to_string())
+    // }
 
-    fn get_all_albums(&self) -> Result<Vec<Album>, String> {
-        let mut all_albums: Vec<Album> = Vec::new();
-        let mut page = SearchPage {
-            count: 500,
-            offset: 0,
-        };
-        loop {
-            // TODO ugly
-            if let Ok(albums) = self.get_albums(page.count, page.offset) {
-                if albums.len() == 0 {
-                    break;
-                }
-                all_albums.extend(albums);
-                page.offset += page.count;
-            }
-            else {
-                break;
-            }
-        }
-        Ok(all_albums)
-    }
+    // fn get_all_albums(&self) -> Result<Vec<Album>, String> {
+    //     let mut all_albums: Vec<Album> = Vec::new();
+    //     let mut page = SearchPage {
+    //         count: 500,
+    //         offset: 0,
+    //     };
+    //     loop {
+    //         // TODO ugly
+    //         if let Ok(albums) = self.get_albums(page.count, page.offset) {
+    //             if albums.len() == 0 {
+    //                 break;
+    //             }
+    //             all_albums.extend(albums);
+    //             page.offset += page.count;
+    //         }
+    //         else {
+    //             break;
+    //         }
+    //     }
+    //     Ok(all_albums)
+    // }
 
     fn album_to_release(base_url: &str, album: &Album) -> Release {
         let artists = album.artist.as_ref().map_or(vec![], |artist| {
@@ -206,6 +211,21 @@ impl NavidromeLibrary {
     }
 }
 
+// http://your-server/rest/getArtists Since 1.8.0 
+// <subsonic-response status="ok" version="1.10.1">
+// <artists ignoredArticles="The El La Los Las Le Les">
+// <index name="A">
+// <artist id="5449" name="A-Ha" coverArt="ar-5449" albumCount="4"/>
+// <artist id="5421" name="ABBA" coverArt="ar-5421" albumCount="6"/>
+// <artist id="5432" name="AC/DC" coverArt="ar-5432" albumCount="15"/>
+// <artist id="6633" name="Aaron Neville" coverArt="ar-6633" albumCount="1"/>
+// </index>
+// <index name="B">
+// <artist id="5950" name="Bob Marley" coverArt="ar-5950" albumCount="8"/>
+// <artist id="5957" name="Bruce Dickinson" coverArt="ar-5957" albumCount="2"/>
+// </index>
+// </artists>
+// </subsonic-response>
 
 // http://your-server/rest/getAlbumList2
 // <subsonic-response status="ok" version="1.8.0">

@@ -32,8 +32,8 @@ fn main() {
         builder.format_timestamp_millis();
         builder.init();
 
-    time_library(Box::new(LocalLibrary::new("data/library")));
     time_library(Box::new(NavidromeLibrary::from_config(&config)));
+    time_library(Box::new(LocalLibrary::new("data/library")));
 
     let mut libraries = Libraries::new();
     libraries.add_library(Box::new(LocalLibrary::new("data/library")) as Box<dyn Library>);
