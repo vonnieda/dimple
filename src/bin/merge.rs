@@ -14,7 +14,9 @@ fn main() {
     let dest = LocalLibrary::new("data/library");
 
     for release in source.releases() {
-        println!("Merging {} {}", release.artists[0].name, release.title);
+        // println!("Merging {} {}", release.artists[0].name, release.title);
+        println!("Merging {:#?}", release);
         dest.merge_release(&source, &release).unwrap();
+        return;
     }
 }

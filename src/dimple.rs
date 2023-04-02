@@ -65,7 +65,7 @@ impl Dimple {
         // Load libraries
         let mut libraries = Libraries::new();
         libraries.add_library(Box::new(LocalLibrary::new("data/library")) as Box<dyn Library>);
-        libraries.add_library(Box::new(NavidromeLibrary::from_config(&config)) as Box<dyn Library>);
+        //libraries.add_library(Box::new(NavidromeLibrary::from_config(&config)) as Box<dyn Library>);
         let libraries = Arc::new(libraries);
 
         Self {
