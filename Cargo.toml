@@ -28,5 +28,6 @@ rodio = { version = "0.17.1" }
 crossbeam = { version = "0.8.2", features = ["crossbeam-channel"] }
 rayon = "1.7.0"
 rust-crypto = "^0.2"
+ulid = "1.0.0"
 
 
