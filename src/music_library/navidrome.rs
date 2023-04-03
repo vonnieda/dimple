@@ -1,5 +1,6 @@
 use std::{io::{Cursor}, sync::Arc};
 
+use config::Config;
 use crossbeam::channel::{Receiver, unbounded};
 use crypto::sha2::Sha256;
 use crypto::digest::Digest;
@@ -118,6 +119,16 @@ impl NavidromeLibrary {
             password: String::from(password),
             image_cache: ImageCache::new(db.open_tree("image_cache").unwrap()),
         }
+    }
+
+    pub fn from_config(config: &Config) -> Self {
+        Self::new(
+            config.get_string("navidrome.ulid").unwrap().as_str(),
+            config.get_string("navidrome.name").unwrap().as_str(),
+            config.get_string("navidrome.site").unwrap().as_str(),
+            config.get_string("navidrome.username").unwrap().as_str(),
+            config.get_string("navidrome.password").unwrap().as_str(),
+        )
     }
 
     fn base_url(&self) -> String {

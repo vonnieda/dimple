@@ -26,34 +26,6 @@ impl Libraries {
         }
     }
 
-    // TODO once I understand the config system a bit better these will be passed
-    // on to the implementations. Ultimately, probably just use serde.
-    pub fn from_config(config: Config) -> Libraries {
-        let mut libraries = Libraries::new();
-
-        for library in config.get_array("library").unwrap().into_iter() {
-            let values = library.into_table().unwrap();
-            match values.get("type").unwrap().clone().into_string().unwrap().as_str() {
-                "local" => {
-                    let ulid = values.get("type").unwrap().clone().into_string().unwrap();
-                    let name = values.get("name").unwrap().clone().into_string().unwrap();
-                    libraries.add_library(Box::new(LocalLibrary::new(&ulid, &name)) as Box<dyn Library>);
-                },
-                "navidrome" => {
-                    let ulid = values.get("ulid").unwrap().clone().into_string().unwrap();
-                    let name = values.get("name").unwrap().clone().into_string().unwrap();
-                    let site = values.get("site").unwrap().clone().into_string().unwrap();
-                    let username = values.get("username").unwrap().clone().into_string().unwrap();
-                    let password = values.get("password").unwrap().clone().into_string().unwrap();
-                    libraries.add_library(Box::new(NavidromeLibrary::new(&ulid, &name, &site, &username, &password)) as Box<dyn Library>);
-                },
-                &_ => todo!()
-            }
-        }
-
-        libraries
-    }
-
     pub fn add_library(&mut self, library: Box<dyn Library>) {
         self.libraries.write().unwrap().push(Arc::new(library));
     }
