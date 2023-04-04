@@ -11,9 +11,10 @@ use rodio::{OutputStream, Sink};
 // TODO how to load a custom font and use it globally https://github.com/catppuccin/egui/blob/main/examples/todo.rs#L77
 // TODO escape should clear search
 // TODO Continuous updates when downloading and loading libraries
-// TODO search is sensitive to word order, i.e. infected shawarma vs. shawarma infected
+// TODO search is sensitive to word order, i.e. infected shawarma vs. shawarma 
+//      infected
 // TODO Dashboard makes sense actually, and in fact, I can have as wild a tree
-// as I want as long as:
+//      as I want as long as:
 // 1. Clicking anything updates the search bar with the terms needed to get to
 //    where we are.
 // 2. Hitting escape clears search.

@@ -41,8 +41,10 @@ impl LocalLibrary {
             _audio: audio,
         }
     }
+}
 
-    pub fn from_config(config: LocalConfig) -> Self {
+impl From<LocalConfig> for LocalLibrary {
+    fn from(config: LocalConfig) -> Self {
         Self::new(&config.ulid, &config.name)
     }
 }

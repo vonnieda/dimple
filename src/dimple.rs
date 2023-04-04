@@ -76,9 +76,9 @@ impl Dimple {
         // Create libraries from configs
         let mut librarian = Librarian::new();
         for config in settings.libraries {
-            let library = match config {
-                Navidrome(config) => Box::new(NavidromeLibrary::from_config(config)) as Box<dyn Library>,
-                Local(config) => Box::new(LocalLibrary::from_config(config)) as Box<dyn Library>,
+            let library: Box<dyn Library> = match config {
+                Navidrome(config) => Box::new(NavidromeLibrary::from(config)),
+                Local(config) => Box::new(LocalLibrary::from(config)),
             };
             librarian.add_library(library)
         }

@@ -36,6 +36,16 @@ pub struct NavidromeConfig {
     pub password: String,
 }
 
+impl From<NavidromeConfig> for NavidromeLibrary {
+    fn from(config: NavidromeConfig) -> Self {
+        Self::new(&config.ulid, 
+            &config.name, 
+            &config.site, 
+            &config.username, 
+            &config.password)
+    }
+}
+
 impl Library for NavidromeLibrary {
     fn name(&self) -> String {
         self.name.clone()
@@ -130,14 +140,6 @@ impl NavidromeLibrary {
             password: String::from(password),
             image_cache: Some(ImageCache::new(db.open_tree("image_cache").unwrap())),
         }
-    }
-
-    pub fn from_config(config: NavidromeConfig) -> Self {
-        Self::new(&config.ulid, 
-            &config.name, 
-            &config.site, 
-            &config.username, 
-            &config.password)
     }
 
     fn base_url(&self) -> String {
