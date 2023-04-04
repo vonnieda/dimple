@@ -2,21 +2,21 @@ use std::sync::{Arc, Mutex};
 
 use rodio::Sink;
 
-use crate::music_library::{Track, Release, libraries::Libraries, Library};
+use crate::{music_library::{Track, Release, Library}, librarian::Librarian};
 
 #[derive(Clone)]
 pub struct Player {
     sink: Arc<Sink>,
-    libraries: Arc<Libraries>,
+    librarian: Arc<Librarian>,
     playlist: Vec<Track>,
     current_track_index: Option<usize>,
 }
 
 impl Player {
-    pub fn new(sink: Arc<Sink>, libraries: Arc<Libraries>) -> Self {
+    pub fn new(sink: Arc<Sink>, librarian: Arc<Librarian>) -> Self {
         Self {
             sink,
-            libraries,
+            librarian,
             playlist: Vec::new(),
             current_track_index: None,
         }
@@ -35,7 +35,7 @@ impl Player {
         // If the sink is not playing anything, load the current track.
         if self.sink.len() == 0 {
             let track = &self.playlist[self.current_track_index.unwrap()];
-            self.libraries.stream(track, &self.sink);
+            self.librarian.stream(track, &self.sink);
         }
 
         // And play it.
@@ -61,7 +61,7 @@ impl Player {
         });
 
         let track = &self.playlist[self.current_track_index.unwrap()];
-        self.libraries.stream(track, &self.sink);
+        self.librarian.stream(track, &self.sink);
 
         self.sink.play();
     }

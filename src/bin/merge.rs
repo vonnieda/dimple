@@ -1,4 +1,7 @@
+use dimple::dimple::Settings;
 use dimple::music_library::{local::LocalLibrary, Library, navidrome::NavidromeLibrary};
+
+use dimple::music_library::LibraryConfig::*;
 
 fn main() {
     let mut builder = env_logger::Builder::new();
@@ -7,11 +10,20 @@ fn main() {
     builder.init();
 
     let config = config::Config::builder()
-        .add_source(config::File::with_name("config"))
-        .build().expect("Config error");
+        .add_source(config::File::with_name("config.yaml"))
+        .build()
+        .unwrap();
+    let settings: Settings = config.try_deserialize().unwrap();
 
-    let source = NavidromeLibrary::from_config(&config);
-    let dest = LocalLibrary::new("data/library");
+    let mut source = None;
+    for config in settings.libraries {
+        let library = match config {
+            Navidrome(config) => Box::new(NavidromeLibrary::from_config(config)) as Box<dyn Library>,
+            Local(config) => Box::new(LocalLibrary::from_config(config)) as Box<dyn Library>,
+        };
+        source = Some(library);
+        break;
+    }
 
     for release in source.releases() {
         println!("Merging {} {}", release.artists[0].name, release.title);

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use std::thread;
+use std::{thread, default};
 
 use eframe::egui::{self, Context, Grid, ImageButton, Response, ScrollArea, TextEdit, Ui};
 use eframe::epaint::{ColorImage, FontFamily, FontId};
@@ -10,19 +10,21 @@ use fuzzy_matcher::FuzzyMatcher;
 use image::DynamicImage;
 
 use rodio::{Sink};
+use serde::{Deserialize, Serialize};
 
-use crate::music_library::Release;
-use crate::music_library::libraries::Libraries;
-use crate::music_library::local::LocalLibrary;
-use crate::music_library::navidrome::NavidromeLibrary;
+use crate::librarian::Librarian;
+use crate::music_library::{Release, LibraryConfig};
+use crate::music_library::local::{LocalLibrary, LocalConfig};
+use crate::music_library::navidrome::{NavidromeLibrary, NavidromeConfig};
 use crate::{music_library::Library, player::Player};
+use crate::dimple::LibraryConfig::*;
 
 pub struct Dimple {
-    libraries: Arc<Libraries>,
+    librarian: Arc<Librarian>,
     cards: Arc<RwLock<Vec<ReleaseCard>>>,
     query_string: String,
     player: Player,
-    retained_image_cache: HashMap<String, RetainedImage>,
+    _retained_image_cache: HashMap<String, RetainedImage>,
     first_frame: bool,
 }
 
@@ -37,69 +39,62 @@ impl eframe::App for Dimple {
 
             // Launch a thread that refreshes libraries and updates cards.
             // TODO temporary, just needs a place to live for a moment            
-            let libraries_1 = self.libraries.clone();
+            let librarian_1 = self.librarian.clone();
             let cards_1 = self.cards.clone();
             let context_1 = ctx.clone();
             thread::spawn(move || {
                 // TODO currently just runs once, eventually will handle merging
                 // cards and will refresh.
-                for release in libraries_1.releases().iter() {
-                    let card = Self::card_from_release(&libraries_1, &release);
-                    cards_1.write().unwrap().push(card);
-                    context_1.request_repaint();
+                for release in librarian_1.releases().iter() {
+                        let card = Self::card_from_release(&librarian_1, &release);
+                        cards_1.write().unwrap().push(card);
+                        context_1.request_repaint();    
                 }
             });
-
         }
         self.browser(ctx);
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, Default)]
+pub struct Settings {
+    pub libraries: Vec<LibraryConfig>,
+}
+
 impl Dimple {
     pub fn new(sink: Arc<Sink>) -> Self {
-        // Load config
+        // Load settings
         let config = config::Config::builder()
-            .add_source(config::File::with_name("config"))
-            .build().expect("Config error");
+            .add_source(config::File::with_name("config.yaml"))
+            // .add_source(config::File::from_str(&yaml, ))
+            .build()
+            .unwrap();
+        let settings: Settings = config.try_deserialize().unwrap();
+        // println!("{:#?}", settings);
+        // println!("{}", serde_yaml::to_string(&settings).unwrap());
 
-        // Load libraries
-        // TODO once I understand the config system a bit better these will be passed
-        // on to the implementations. Ultimately, probably just use serde.
-        let mut libraries = Libraries::new();
-
-        for library in config.get_array("library").unwrap().into_iter() {
-            let values = library.into_table().unwrap();
-            match values.get("type").unwrap().clone().into_string().unwrap().as_str() {
-                "local" => {
-                    let ulid = values.get("type").unwrap().clone().into_string().unwrap();
-                    let name = values.get("name").unwrap().clone().into_string().unwrap();
-                    libraries.add_library(Box::new(LocalLibrary::new(&ulid, &name)) as Box<dyn Library>);
-                },
-                "navidrome" => {
-                    let ulid = values.get("ulid").unwrap().clone().into_string().unwrap();
-                    let name = values.get("name").unwrap().clone().into_string().unwrap();
-                    let site = values.get("site").unwrap().clone().into_string().unwrap();
-                    let username = values.get("username").unwrap().clone().into_string().unwrap();
-                    let password = values.get("password").unwrap().clone().into_string().unwrap();
-                    libraries.add_library(Box::new(NavidromeLibrary::new(&ulid, &name, &site, &username, &password)) as Box<dyn Library>);
-                },
-                &_ => todo!()
-            }
+        // Create libraries from configs
+        let mut librarian = Librarian::new();
+        for config in settings.libraries {
+            let library = match config {
+                Navidrome(config) => Box::new(NavidromeLibrary::from_config(config)) as Box<dyn Library>,
+                Local(config) => Box::new(LocalLibrary::from_config(config)) as Box<dyn Library>,
+            };
+            librarian.add_library(library)
         }
-
-        let libraries = Arc::new(libraries);
+        let librarian = Arc::new(librarian);
 
         Self {
-            libraries: libraries.clone(),
+            librarian: librarian.clone(),
             cards: Arc::new(RwLock::new(Vec::new())),
             query_string: String::new(),
-            player: Player::new(sink, libraries.clone()),
-            retained_image_cache: HashMap::new(),
+            player: Player::new(sink, librarian.clone()),
+            _retained_image_cache: HashMap::new(),
             first_frame: false,
         }
     }
 
-    fn card_from_release(library: &Libraries, release: &Release) -> ReleaseCard {
+    fn card_from_release(library: &Librarian, release: &Release) -> ReleaseCard {
         let image = release.art.first()
             .map_or(None, |image| match library.image(image) {
                 Ok(image) => Some(image),

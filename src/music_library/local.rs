@@ -2,6 +2,7 @@ use crossbeam::channel::{unbounded, Receiver};
 use image::DynamicImage;
 use log::{debug};
 
+use serde::{Deserialize, Serialize};
 /// A local music library living in a directory. Stores data with Sled.
 /// Faster than remote, but slower than memory. This is how the app stores
 /// the combined library from all the remotes.
@@ -17,6 +18,15 @@ pub struct LocalLibrary {
     _audio: Tree,
 }
 
+#[derive(Deserialize, Debug, Serialize)]
+pub struct LocalConfig {
+    pub ulid: String,
+    pub name: String,
+    pub site: String,
+    pub username: String,
+    pub password: String,
+}
+
 impl LocalLibrary {
     pub fn new(ulid: &str, name: &str) -> Self {
         let db = sled::open(format!("data/{}", ulid)).unwrap();
@@ -30,6 +40,10 @@ impl LocalLibrary {
             images: ImageCache::new(images),
             _audio: audio,
         }
+    }
+
+    pub fn from_config(config: LocalConfig) -> Self {
+        Self::new(&config.ulid, &config.name)
     }
 }
 

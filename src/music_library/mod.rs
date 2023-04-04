@@ -10,10 +10,11 @@ use image::DynamicImage;
 use rodio::{Sink};
 use serde::{Serialize, Deserialize};
 
+use self::{navidrome::NavidromeConfig, local::LocalConfig};
+
 pub mod local;
 pub mod image_cache;
 pub mod navidrome;
-pub mod libraries;
 
 pub trait Library: Send + Sync {
     fn name(&self) -> String;
@@ -64,5 +65,12 @@ pub struct Genre {
 #[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Image {
     pub url: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "type")]
+pub enum LibraryConfig {
+    Navidrome(NavidromeConfig),
+    Local(LocalConfig),
 }
 

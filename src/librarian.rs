@@ -1,28 +1,23 @@
-use std::{fmt::Debug, sync::{Arc, RwLock}, mem, collections::HashMap, time::Duration};
+use std::{sync::{Arc, RwLock}};
 
-use config::Config;
 use crossbeam::channel::{unbounded, Receiver};
 
-use super::{Library, Release, Image, Track, navidrome::NavidromeLibrary, local::LocalLibrary};
+use crate::music_library::{Library, Release, Image, Track, local::LocalLibrary};
 
-
-#[derive(Clone)]
-pub struct Libraries {
+/// Librarian manages a local library that is used for caching and a list of
+/// libraries that are used as sources. 
+pub struct Librarian {
+    cache: LocalLibrary,
     libraries: Arc<RwLock<Vec<Arc<Box<dyn Library>>>>>,
-
-    // TODO this will be used for merging results before sending them
-    // downstream.
-    releases_by_url: Arc<RwLock<HashMap<String, Release>>>,
 }
 
-impl Libraries {    
+impl Librarian {    
     pub fn new() -> Self {
         let libraries: Arc<RwLock<Vec<Arc<Box<dyn Library>>>>> = Default::default();
-        let releases_by_url = Arc::new(RwLock::new(HashMap::new()));
 
         Self {
+            cache: LocalLibrary::new("cache", "cache"),
             libraries,
-            releases_by_url
         }
     }
 
@@ -31,9 +26,9 @@ impl Libraries {
     }
 }
 
-impl Library for Libraries {
+impl Library for Librarian {
     fn name(&self) -> String {
-        return "Libraries".to_string();
+        return "Librarian".to_string();
     }
 
     fn releases(&self) -> Receiver<Release> {
@@ -43,7 +38,8 @@ impl Library for Libraries {
             let library = library.clone();
             std::thread::spawn(move || {
                 for release in library.releases() {
-                    sender.send(release).unwrap();
+                    log::debug!("Loaded {} {}", library.name(), release.title);
+                    sender.send(release.clone()).unwrap();
                 }
             });
         }
@@ -68,14 +64,8 @@ impl Library for Libraries {
         Err("Not found".to_string())
     }
 
-    fn merge_release(&self, _library: &dyn Library, _release: &super::Release) -> Result<(), String> {
-        Err("moof".to_string())
-    }
-}
-
-impl Debug for dyn Library {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Ok(())
+    fn merge_release(&self, library: &dyn Library, release: &Release) -> Result<(), String> {
+        self.cache.merge_release(library, release)
     }
 }
 

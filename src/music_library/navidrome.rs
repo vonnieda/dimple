@@ -1,15 +1,14 @@
 use std::{io::{Cursor}, sync::Arc};
 
-use config::Config;
 use crossbeam::channel::{Receiver, unbounded};
 use crypto::sha2::Sha256;
 use crypto::digest::Digest;
 use image::DynamicImage;
 use log::{debug};
 use rodio::{Decoder, Sink};
+use serde::{Deserialize, Serialize};
 use sunk::{Client, Album, Media, song::Song, Streamable};
 use url::Url;
-
 
 use super::{Library, Release, Image, Track, image_cache::ImageCache};
 
@@ -20,12 +19,21 @@ use rayon::prelude::*;
 use std::thread;
 
 pub struct NavidromeLibrary {
-    ulid: String,
-    name: String,
-    site: String,
-    username: String,
-    password: String,
-    image_cache: ImageCache,
+    pub ulid: String,
+    pub name: String,
+    pub site: String,
+    pub username: String,
+    pub password: String,
+    image_cache: Option<ImageCache>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Default)]
+pub struct NavidromeConfig {
+    pub ulid: String,
+    pub name: String,
+    pub site: String,
+    pub username: String,
+    pub password: String,
 }
 
 impl Library for NavidromeLibrary {
@@ -75,8 +83,10 @@ impl Library for NavidromeLibrary {
     fn image(&self, image: &Image) -> Result<DynamicImage, String> {
         let (_object_type, id) = self.un_url(&image.url);
 
+        let cache = self.image_cache.as_ref().unwrap();
+
         // check cache first
-        if let Some(image) = self.image_cache.get_original(&id) {
+        if let Some(image) = cache.get_original(&id) {
             return Ok(image);
         }
 
@@ -85,13 +95,13 @@ impl Library for NavidromeLibrary {
             cover_id: Some(id.to_string()),
             ..Default::default()
         };
-        debug!("Downloading {}", id);
+        log::debug!("Downloading {}", id);
         let client = self.new_client()?;
         let bytes = album.cover_art(&client, 0).map_err(|e| e.to_string())?;
         let dynamic_image = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
 
         // cache it
-        self.image_cache.insert(&id, &dynamic_image);
+        cache.insert(&id, &dynamic_image);
 
         // return it
         return Ok(dynamic_image);
@@ -110,6 +120,7 @@ impl Library for NavidromeLibrary {
 
 impl NavidromeLibrary {
     pub fn new(ulid: &str, name: &str, site: &str, username: &str, password: &str) -> Self {
+        // TODO don't love this hardcoded path.
         let db = sled::open(format!("data/{}", ulid)).unwrap();
         Self {
             ulid: String::from(ulid),
@@ -117,18 +128,16 @@ impl NavidromeLibrary {
             site: String::from(site),
             username: String::from(username),
             password: String::from(password),
-            image_cache: ImageCache::new(db.open_tree("image_cache").unwrap()),
+            image_cache: Some(ImageCache::new(db.open_tree("image_cache").unwrap())),
         }
     }
 
-    pub fn from_config(config: &Config) -> Self {
-        Self::new(
-            config.get_string("navidrome.ulid").unwrap().as_str(),
-            config.get_string("navidrome.name").unwrap().as_str(),
-            config.get_string("navidrome.site").unwrap().as_str(),
-            config.get_string("navidrome.username").unwrap().as_str(),
-            config.get_string("navidrome.password").unwrap().as_str(),
-        )
+    pub fn from_config(config: NavidromeConfig) -> Self {
+        Self::new(&config.ulid, 
+            &config.name, 
+            &config.site, 
+            &config.username, 
+            &config.password)
     }
 
     fn base_url(&self) -> String {

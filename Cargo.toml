@@ -10,7 +10,6 @@ default-run = "dimple"
 
 [dependencies]
 catppuccin-egui = "2.0"
-config = "0.13.3"
 eframe = "0.21.3"
 egui_extras = { version = "0.21.0", features = ["image"] }
 env_logger = "0.10.0"
@@ -29,5 +28,7 @@ crossbeam = { version = "0.8.2", features = ["crossbeam-channel"] }
 rayon = "1.7.0"
 rust-crypto = "^0.2"
 ulid = "1.0.0"
+serde_yaml = "0.9.19"
+config = "0.13.3"
 
 
