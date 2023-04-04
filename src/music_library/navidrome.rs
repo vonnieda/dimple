@@ -4,7 +4,7 @@ use crossbeam::channel::{Receiver, unbounded};
 use crypto::sha2::Sha256;
 use crypto::digest::Digest;
 use image::DynamicImage;
-use log::{debug};
+
 use rodio::{Decoder, Sink};
 use serde::{Deserialize, Serialize};
 use sunk::{Client, Album, Media, song::Song, Streamable};
@@ -38,7 +38,7 @@ pub struct NavidromeConfig {
 
 impl Library for NavidromeLibrary {
     fn name(&self) -> String {
-        return self.name.clone();
+        self.name.clone()
     }
 
     fn releases(&self) -> Receiver<Release> {
@@ -77,7 +77,7 @@ impl Library for NavidromeLibrary {
                 });
         });
 
-        return receiver;            
+        receiver
     }
 
     fn image(&self, image: &Image) -> Result<DynamicImage, String> {
@@ -104,7 +104,7 @@ impl Library for NavidromeLibrary {
         cache.insert(&id, &dynamic_image);
 
         // return it
-        return Ok(dynamic_image);
+        Ok(dynamic_image)
     }
 
     fn stream(&self, track: &Track, sink: &Sink) -> Result<(), String> {
@@ -154,7 +154,7 @@ impl NavidromeLibrary {
         let _username = path_segments.next().unwrap().to_string();
         let object_type = path_segments.next().unwrap().to_string();
         let id = path_segments.next().unwrap().to_string();
-        return (object_type, id);
+        (object_type, id)
     }
 
     fn new_client(&self) -> Result<Client, String> {
@@ -184,10 +184,10 @@ impl NavidromeLibrary {
             let url = Self::url(base_url, "album", &album.id); 
             let title = album.name.clone();
             let artists = vec![
-                Self::sunk_artist_to_dimple_artist(base_url, &artist)
+                Self::sunk_artist_to_dimple_artist(base_url, artist)
             ]; 
             let tracks = album.songs.iter().map(|song| {
-                Self::sunk_song_to_dimple_track(base_url, &song)
+                Self::sunk_song_to_dimple_track(base_url, song)
             }).collect();
             let art = album.cover_id().map_or(
                 vec![], 
@@ -195,7 +195,7 @@ impl NavidromeLibrary {
             );
             let genres = album.genre.as_ref().map_or(
                 vec![], 
-                |genre_name| vec![Self::sunk_genre_to_dimple_genre(base_url, &genre_name)]
+                |genre_name| vec![Self::sunk_genre_to_dimple_genre(base_url, genre_name)]
             );
             Release {
                 url,
@@ -220,11 +220,11 @@ impl NavidromeLibrary {
             vec![], 
             |cover_id| vec![Self::sunk_image_to_dimple_image(base_url, cover_id)]
         );
-        return crate::music_library::Artist {
+        crate::music_library::Artist {
             url: Self::url(base_url, "artist", &artist.id),
             name: artist.name.clone(),
             art,
-        };
+        }
     }
 
     fn sunk_image_to_dimple_image(base_url: &str, image_id: &str) -> crate::music_library::Image {
@@ -247,7 +247,7 @@ impl NavidromeLibrary {
     // </subsonic-response>
     fn sunk_genre_to_dimple_genre(base_url: &str, genre_name: &str) -> crate::music_library::Genre {
         crate::music_library::Genre {
-            url: Self::url(base_url, "genre", &Self::string_to_id(&genre_name)),
+            url: Self::url(base_url, "genre", &Self::string_to_id(genre_name)),
             name: genre_name.to_string(),
             art: vec![],
         }
@@ -268,7 +268,7 @@ impl NavidromeLibrary {
     fn string_to_id(input: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.input_str(input);
-        return hasher.result_str();
+        hasher.result_str()
     }
 }
 

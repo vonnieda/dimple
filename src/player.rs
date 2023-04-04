@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
 
 use rodio::Sink;
 
@@ -24,7 +24,7 @@ impl Player {
 
     pub fn play(&mut self) {
         // If the playlist is empty, return.
-        if self.playlist.len() == 0 {
+        if self.playlist.is_empty() {
             return;
         }
         // If there is no "current" track, set it to the first track in the list.
@@ -35,7 +35,7 @@ impl Player {
         // If the sink is not playing anything, load the current track.
         if self.sink.len() == 0 {
             let track = &self.playlist[self.current_track_index.unwrap()];
-            self.librarian.stream(track, &self.sink);
+            self.librarian.stream(track, &self.sink).unwrap();
         }
 
         // And play it.
@@ -51,26 +51,21 @@ impl Player {
         self.sink.clear();
 
         // If there's nothing in the queue we're done.
-        if self.playlist.len() == 0 {
+        if self.playlist.is_empty() {
             return;
         }
 
         // Increment or restart the play queue.
-        self.current_track_index = self.current_track_index.map_or(None, |index| {
-            Some((index + 1) % self.playlist.len())
-        });
+        self.current_track_index = self.current_track_index.map(|index| (index + 1) % self.playlist.len());
 
         let track = &self.playlist[self.current_track_index.unwrap()];
-        self.librarian.stream(track, &self.sink);
+        self.librarian.stream(track, &self.sink).unwrap();
 
         self.sink.play();
     }
 
     pub fn current_track(&self) -> Option<Track> {
-        match self.current_track_index {
-            Some(index) => Some(self.playlist[index].clone()),
-            None => None,
-        }
+        self.current_track_index.map(|index| self.playlist[index].clone())
     }
 
     pub fn next_track(&self) -> Option<Track> {
@@ -79,7 +74,7 @@ impl Player {
 
     pub fn add_release(&mut self, release: &Release) {
         for track in &release.tracks {
-            self.add_track(&track);
+            self.add_track(track);
         }
     }
 

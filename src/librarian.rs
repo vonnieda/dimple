@@ -8,14 +8,17 @@ use crate::music_library::{Library, Release, Image, Track, local::LocalLibrary};
 /// libraries that are used as sources. 
 pub struct Librarian {
     cache: LocalLibrary,
-    libraries: Arc<RwLock<Vec<Arc<Box<dyn Library>>>>>,
+    libraries: Arc<RwLock<Vec<LibraryHandle>>>,
 }
+
+type LibraryHandle = Arc<Box<dyn Library>>;
 
 impl Librarian {    
     pub fn new() -> Self {
-        let libraries: Arc<RwLock<Vec<Arc<Box<dyn Library>>>>> = Default::default();
+        let libraries: Arc<RwLock<Vec<LibraryHandle>>> = Default::default();
 
         Self {
+            // TODO ulid
             cache: LocalLibrary::new("cache", "cache"),
             libraries,
         }
@@ -26,9 +29,15 @@ impl Librarian {
     }
 }
 
+impl Default for Librarian {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Library for Librarian {
     fn name(&self) -> String {
-        return "Librarian".to_string();
+        "Librarian".to_string()
     }
 
     fn releases(&self) -> Receiver<Release> {
@@ -39,11 +48,11 @@ impl Library for Librarian {
             std::thread::spawn(move || {
                 for release in library.releases() {
                     log::debug!("Loaded {} {}", library.name(), release.title);
-                    sender.send(release.clone()).unwrap();
+                sender.send(release.clone()).unwrap();
                 }
             });
         }
-        return receiver;
+        receiver
     }
 
     fn image(&self, image: &Image) -> Result<image::DynamicImage, String> {

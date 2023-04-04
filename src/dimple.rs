@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use std::{thread, default};
+use std::{thread};
 
 use eframe::egui::{self, Context, Grid, ImageButton, Response, ScrollArea, TextEdit, Ui};
 use eframe::epaint::{ColorImage, FontFamily, FontId};
@@ -14,8 +14,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::librarian::Librarian;
 use crate::music_library::{Release, LibraryConfig};
-use crate::music_library::local::{LocalLibrary, LocalConfig};
-use crate::music_library::navidrome::{NavidromeLibrary, NavidromeConfig};
+use crate::music_library::local::{LocalLibrary};
+use crate::music_library::navidrome::{NavidromeLibrary};
 use crate::{music_library::Library, player::Player};
 use crate::dimple::LibraryConfig::*;
 
@@ -88,15 +88,14 @@ impl Dimple {
             librarian: librarian.clone(),
             cards: Arc::new(RwLock::new(Vec::new())),
             query_string: String::new(),
-            player: Player::new(sink, librarian.clone()),
+            player: Player::new(sink, librarian),
             _retained_image_cache: HashMap::new(),
             first_frame: false,
         }
     }
 
     fn card_from_release(library: &Librarian, release: &Release) -> ReleaseCard {
-        let image = release.art.first()
-            .map_or(None, |image| match library.image(image) {
+        let image = release.art.first().and_then(|image| match library.image(image) {
                 Ok(image) => Some(image),
                 Err(_) => None,
             })
@@ -206,19 +205,19 @@ impl Dimple {
             let image_button =
                 ImageButton::new(card.image().texture_id(ctx), egui::vec2(width, height));
             let response = ui.add(image_button);
-            ui.link(card.title());
-            ui.link(card.subtitle());
-            return response;
+            ui.link(card.title()).clicked();
+            ui.link(card.subtitle()).clicked();
+            response
         })
         .inner
     }
 
-    fn player_bar(self: &mut Self, ctx: &Context, ui: &mut Ui) {
+    fn player_bar(&mut self, ctx: &Context, ui: &mut Ui) {
         ui.vertical_centered_justified(|ui| {
             ui.horizontal(|ui| {
                 let track = self.player.current_track();
                 let image = RetainedImage::from_color_image("default", ColorImage::example());
-                let title = track.map_or("".to_string(), |track| track.title.to_string());
+                let title = track.map_or("".to_string(), |track| track.title);
                 // TODO till we know what album it's from
                 let subtitle = title.clone();
 
@@ -227,8 +226,8 @@ impl Dimple {
                     egui::vec2(120.0, 120.0),
                 ));
                 ui.vertical(|ui| {
-                    ui.link(&title);
-                    ui.link(&subtitle);
+                    ui.link(&title).clicked();
+                    ui.link(&subtitle).clicked();
                     self.plot_scrubber(ctx, ui);
                     self.slider_scrubber(ctx, ui);
                     if ui.button("Play").clicked() {
@@ -247,7 +246,7 @@ impl Dimple {
         });
     }
 
-    fn plot_scrubber(self: &Self, ctx: &Context, ui: &mut Ui) {
+    fn plot_scrubber(&self, _ctx: &Context, _ui: &mut Ui) {
         // let sin: PlotPoints = (0..1000).map(|i| {
         //     let x = i as f64 * 0.01;
         //     [x, x.sin()]
@@ -258,7 +257,7 @@ impl Dimple {
         //     .show(ui, |plot_ui| plot_ui.line(line));
     }
 
-    fn slider_scrubber(self: &Self, ctx: &Context, ui: &mut Ui) {
+    fn slider_scrubber(&self, _ctx: &Context, ui: &mut Ui) {
         ui.vertical_centered_justified(|ui| {
             let mut my_f32: f32 = 0.33;
             ui.add(
@@ -277,17 +276,16 @@ fn dynamic_to_retained(debug_name: &str, image: &DynamicImage) -> RetainedImage 
     let image_buffer = image.to_rgba8();
     let pixels = image_buffer.as_flat_samples();
     let color = egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
-    let retained = RetainedImage::from_color_image(debug_name, color);
-    retained
+    RetainedImage::from_color_image(debug_name, color)
 }
 
 impl ReleaseCard {
     fn image(&self) -> &RetainedImage {
-        return &self.image;
+        &self.image
     }
 
     fn title(&self) -> &str {
-        return &self.release.title;
+        &self.release.title
     }
 
     fn subtitle(&self) -> &str {

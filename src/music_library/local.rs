@@ -11,7 +11,7 @@ use sled::Tree;
 use super::{Release, image_cache::ImageCache, Library, Image};
 
 pub struct LocalLibrary {
-    ulid: String,
+    _ulid: String,
     name: String,
     releases: Tree,
     images: ImageCache,
@@ -34,7 +34,7 @@ impl LocalLibrary {
         let images = db.open_tree("images").unwrap();
         let audio = db.open_tree("audio").unwrap();
         Self { 
-            ulid: String::from(ulid),
+            _ulid: String::from(ulid),
             name: String::from(name),
             releases,
             images: ImageCache::new(images),
@@ -49,7 +49,7 @@ impl LocalLibrary {
 
 impl Library for LocalLibrary {
     fn name(&self) -> String {
-        return self.name.to_string();
+        self.name.to_string()
     }
     
     fn releases(&self) -> Receiver<Release> {
@@ -60,26 +60,26 @@ impl Library for LocalLibrary {
                 .map(|kv| {
                     // TODO error handling
                     let (_key, value) = kv.unwrap();
-                    return serde_json::from_slice(&value).unwrap();
+                    serde_json::from_slice(&value).unwrap()
                 })
                 .for_each(|release| {
                     sender.send(release).unwrap();
                 });
         });
 
-        return receiver;
+        receiver
     }
 
     fn image(&self, image: &Image) -> Result<DynamicImage, String> {
         self.images.get_original(&image.url)
-            .map_or(Err("".to_string()), |image| Ok(image))
+            .map_or(Err("".to_string()), Ok)
     }
 
     fn stream(&self, _track: &super::Track, _sink: &rodio::Sink) -> Result<(), String> {
         Err("Not yet implemented".to_string())
     }
 
-    fn merge_release(self: &Self, library: &dyn Library, release: &Release) -> Result<(), String> {
+    fn merge_release(&self, library: &dyn Library, release: &Release) -> Result<(), String> {
         // Store Release art
         for image in &release.art {
             if let Ok(dynamic_image) = library.image(image) {

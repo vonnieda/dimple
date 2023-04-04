@@ -1,24 +1,8 @@
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
-use dimple::{music_library::{local::LocalLibrary, navidrome::{NavidromeLibrary, NavidromeConfig}, Library}, dimple::Settings, librarian::Librarian};
+use dimple::{music_library::{local::LocalLibrary, navidrome::{NavidromeLibrary}, Library, LibraryConfig}, dimple::Settings};
 
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
-use std::{thread, default};
-
-use eframe::egui::{self, Context, Grid, ImageButton, Response, ScrollArea, TextEdit, Ui};
-use eframe::epaint::{ColorImage, FontFamily, FontId};
-use egui_extras::RetainedImage;
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
-use image::DynamicImage;
-
-use rodio::{Sink};
-use serde::{Deserialize, Serialize};
-use dimple::music_library::LibraryConfig::*;
-
-
-fn time_library(library: &Box<dyn Library>) {
+fn time_library(library: &dyn Library) {
     let t = Instant::now();
     let releases = library.releases();
     let mut count = 0;
@@ -55,11 +39,11 @@ fn main() {
         builder.init();
 
     for config in settings.libraries {
-        let library = match config {
-            Navidrome(config) => Box::new(NavidromeLibrary::from_config(config)) as Box<dyn Library>,
-            Local(config) => Box::new(LocalLibrary::from_config(config)) as Box<dyn Library>,
+        let library: Box<dyn Library> = match config {
+            LibraryConfig::Navidrome(config) => Box::new(NavidromeLibrary::from_config(config)) as Box<dyn Library>,
+            LibraryConfig::Local(config) => Box::new(LocalLibrary::from_config(config)) as Box<dyn Library>,
         };
-        time_library(&library);
+        time_library(library.as_ref());
     }
 }
 
