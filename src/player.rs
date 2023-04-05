@@ -9,7 +9,7 @@ pub struct Player {
     sink: Arc<Sink>,
     librarian: Arc<Librarian>,
     tracks: Vec<Track>,
-    current_track_index: Option<usize>,
+    current_track_index: usize,
 }
 
 impl Player {
@@ -18,68 +18,8 @@ impl Player {
             sink,
             librarian,
             tracks: Vec::new(),
-            current_track_index: None,
+            current_track_index: 0,
         }
-    }
-
-    pub fn clear(&mut self) {
-        self.sink.stop();
-        self.tracks.clear();
-        self.current_track_index = None;
-    }
-
-    pub fn play(&mut self) {
-        // If the playlist is empty, return.
-        if self.tracks.is_empty() {
-            return;
-        }
-        // If there is no "current" track, set it to the first track in the list.
-        if self.current_track_index.is_none() {
-            self.current_track_index = Some(0);
-        }
-
-        // If the sink is not playing anything, load the current track.
-        if self.sink.len() == 0 {
-            let track = &self.tracks[self.current_track_index.unwrap()];
-            self.librarian.stream(track, &self.sink).unwrap();
-        }
-
-        // And play it.
-        self.sink.play();
-    }
-
-    pub fn pause(&self) {
-        self.sink.pause();
-    }
-
-    pub fn next(&mut self) {
-        // Stop any current playback.
-        self.sink.clear();
-
-        // If there's nothing in the queue we're done.
-        if self.tracks.is_empty() {
-            return;
-        }
-
-        // Increment or restart the play queue.
-        self.current_track_index = self.current_track_index.map(|index| (index + 1) % self.tracks.len());
-
-        let track = &self.tracks[self.current_track_index.unwrap()];
-        self.librarian.stream(track, &self.sink).unwrap();
-
-        self.sink.play();
-    }
-
-    pub fn current_track(&self) -> Option<Track> {
-        self.current_track_index.map(|index| self.tracks[index].clone())
-    }
-
-    pub fn next_track(&self) -> Option<Track> {
-        None
-    }
-
-    pub fn tracks(&self) -> Vec<Track> {
-        self.tracks.clone()
     }
 
     pub fn add_release(&mut self, release: &Release) {
@@ -91,6 +31,100 @@ impl Player {
     pub fn add_track(&mut self, track: &Track) {
         self.tracks.push(track.clone());
         self.play();
+    }
+
+    pub fn play(&mut self) {
+        // If the playlist is empty, do nothing.
+        if self.tracks.is_empty() {
+            return;
+        }
+
+        // If the sink is empty, load the current track.
+        if self.sink.empty() {
+            let track = self.tracks[self.current_track_index].clone();
+            self.librarian.stream(&track, &self.sink).unwrap();
+        }
+        
+        // And play it.
+        self.sink.play();
+    }
+
+    pub fn pause(&self) {
+        self.sink.pause();
+    }
+
+    pub fn next(&mut self) {
+        // If the playlist is empty, do nothing.
+        if self.tracks.is_empty() {
+            return;
+        }
+
+        // Increment or restart the queue
+        self.current_track_index = (self.current_track_index + 1) % self.tracks.len();
+
+        // If we were already playing, stop and play the new track
+        if !self.sink.empty() {
+            self.sink.clear();
+            self.sink.stop();
+            // Seems to be a race condition on clearing the sink and playing
+            // the next track, so wait to make sure it's done.
+            loop {
+                if self.sink.empty() {
+                    break;
+                }
+            }
+            self.play();
+        }
+    }
+
+    pub fn previous(&mut self) {
+        // If the playlist is empty, do nothing.
+        if self.tracks.is_empty() {
+            return;
+        }
+
+        // Decrement or restart the queue
+        if self.current_track_index == 0 {
+            self.current_track_index = self.tracks.len() - 1;
+        }
+        else {
+            self.current_track_index -= 1;
+        }
+
+        // If we were already playing, stop and play the new track
+        if !self.sink.empty() {
+            self.sink.clear();
+            self.sink.stop();
+            // Seems to be a race condition on clearing the sink and playing
+            // the next track, so wait to make sure it's done.
+            loop {
+                if self.sink.empty() {
+                    break;
+                }
+            }
+            self.play();
+        }
+    }
+
+    pub fn current_track(&self) -> Option<Track> {
+        if self.tracks.is_empty() {
+            return None
+        }
+        Some(self.tracks[self.current_track_index].clone())
+    }
+
+    pub fn next_track(&self) -> Option<Track> {
+        None
+    }
+
+    pub fn tracks(&self) -> Vec<Track> {
+        self.tracks.clone()
+    }
+
+    pub fn clear(&mut self) {
+        self.sink.stop();
+        self.tracks.clear();
+        self.current_track_index = 0;
     }
 }
 

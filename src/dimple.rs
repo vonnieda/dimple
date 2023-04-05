@@ -217,11 +217,6 @@ impl Dimple {
                                     for (i, card) in _cards.iter().enumerate() {
                                         if Self::card(card, 200.0, 200.0, ctx, ui).clicked() {
                                             self.player.add_release(&card.release);
-                                            for (i, track) in self.player.tracks().iter().enumerate() {
-                                                log::info!("{}. {}", 
-                                                    i + 1, 
-                                                    track.title);
-                                            }
                                         }
                                         if i % num_columns == num_columns - 1 {
                                             ui.end_row();
