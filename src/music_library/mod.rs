@@ -31,6 +31,12 @@ pub trait Library: Send + Sync {
     }
 }
 
+impl Debug for dyn Library {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.name())
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct Release {
     pub url: String,

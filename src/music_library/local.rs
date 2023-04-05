@@ -1,3 +1,5 @@
+use std::thread;
+
 use crossbeam::channel::{unbounded, Receiver};
 use image::DynamicImage;
 use log::{debug};
@@ -8,7 +10,10 @@ use serde::{Deserialize, Serialize};
 /// the combined library from all the remotes.
 
 use sled::Tree;
+use threadpool::ThreadPool;
 use super::{Release, image_cache::ImageCache, Library, Image};
+
+#[derive(Debug)]
 
 pub struct LocalLibrary {
     _ulid: String,
@@ -22,9 +27,6 @@ pub struct LocalLibrary {
 pub struct LocalConfig {
     pub ulid: String,
     pub name: String,
-    pub site: String,
-    pub username: String,
-    pub password: String,
 }
 
 impl LocalLibrary {
@@ -58,15 +60,15 @@ impl Library for LocalLibrary {
         let (sender, receiver) = unbounded::<Release>();
         let releases = self.releases.iter();
         std::thread::spawn(move || {
-            releases
-                .map(|kv| {
-                    // TODO error handling
+            let pool = ThreadPool::default();
+            for kv in releases {
+                let sender = sender.clone();
+                pool.execute(move || {
                     let (_key, value) = kv.unwrap();
-                    serde_json::from_slice(&value).unwrap()
-                })
-                .for_each(|release| {
+                    let release = serde_json::from_slice(&value).unwrap();
                     sender.send(release).unwrap();
                 });
+            }
         });
 
         receiver

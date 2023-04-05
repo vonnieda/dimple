@@ -1,20 +1,19 @@
 use std::{io::{Cursor}, sync::Arc};
 
 use crossbeam::channel::{Receiver, unbounded};
-use crypto::sha2::Sha256;
-use crypto::digest::Digest;
+use data_encoding::{BASE64};
 use image::DynamicImage;
 
 use rodio::{Decoder, Sink};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use sunk::{Client, Album, Media, song::Song, Streamable};
+use threadpool::ThreadPool;
 use url::Url;
 
 use super::{Library, Release, Image, Track, image_cache::ImageCache};
 
 use std::iter::Iterator;
-
-use rayon::prelude::*;
 
 use std::thread;
 
@@ -59,32 +58,29 @@ impl Library for NavidromeLibrary {
         thread::spawn(move || {
             let sender = sender.clone();
 
-            // Get all the artists
-            sunk::Artist::list(&client, 0).unwrap()
-                .par_iter()
+            let pool = ThreadPool::default();
 
-                // Get all albums for each artist. Does not include songs.
-                .flat_map(|artist| {
-                    let albums = artist.albums(&client).unwrap();
-                    albums.into_par_iter().map(move |album| (artist.clone(), album)).collect::<Vec<_>>()
-                })
-
-                // Get full album, including songs, for each album.
-                .map(|(artist, shallow_album)| {
-                    (artist, Album::get(&client, &shallow_album.id).unwrap())
-                })
-
-                // Convert each album to a release
-                .map(|(artist, album)| {
-                    Self::sunk_artist_album_to_dimple_release(&base_url, 
-                        &artist, 
-                        &album)
-                })
-
-                // And send back to the caller.
-                .for_each(|release| {
-                    sender.clone().send(release).unwrap();
+            for artist in sunk::Artist::list(&client, 0).unwrap() {
+                let sender = sender.clone();
+                let client = client.clone();
+                let base_url = base_url.clone();
+                pool.execute(move || {
+                    let pool = ThreadPool::default();
+                    for shallow_album in artist.albums(&client.clone()).unwrap() {
+                        let client = client.clone();
+                        let base_url = base_url.clone();
+                        let artist = artist.clone();
+                        let sender = sender.clone();
+                        pool.execute(move || {
+                            let album = Album::get(&client, &shallow_album.id).unwrap();
+                            let release = Self::sunk_artist_album_to_dimple_release(&base_url, 
+                                &artist, 
+                                &album);
+                            sender.send(release).unwrap();
+                        });
+                    }
                 });
+            }
         });
 
         receiver
@@ -268,9 +264,7 @@ impl NavidromeLibrary {
     }
 
     fn string_to_id(input: &str) -> String {
-        let mut hasher = Sha256::new();
-        hasher.input_str(input);
-        hasher.result_str()
+        BASE64.encode(&Sha256::digest(input))
     }
 }
 

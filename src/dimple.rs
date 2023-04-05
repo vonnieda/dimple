@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use std::{thread};
+use std::thread;
 
+use config::Config;
 use eframe::egui::{self, Context, Grid, ImageButton, Response, ScrollArea, TextEdit, Ui};
 use eframe::epaint::{ColorImage, FontFamily, FontId};
 use egui_extras::RetainedImage;
@@ -9,15 +10,14 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use image::DynamicImage;
 
-use rodio::{Sink};
+use rodio::Sink;
 use serde::{Deserialize, Serialize};
+use threadpool::ThreadPool;
 
 use crate::librarian::Librarian;
-use crate::music_library::{Release, LibraryConfig};
-use crate::music_library::local::{LocalLibrary};
-use crate::music_library::navidrome::{NavidromeLibrary};
+use crate::music_library::{LibraryConfig, Release};
+
 use crate::{music_library::Library, player::Player};
-use crate::dimple::LibraryConfig::*;
 
 pub struct Dimple {
     librarian: Arc<Librarian>,
@@ -38,17 +38,27 @@ impl eframe::App for Dimple {
             catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
 
             // Launch a thread that refreshes libraries and updates cards.
-            // TODO temporary, just needs a place to live for a moment            
-            let librarian_1 = self.librarian.clone();
-            let cards_1 = self.cards.clone();
-            let context_1 = ctx.clone();
+            // TODO temporary, just needs a place to live for a moment
+            // TODO currently just runs once, eventually will handle merging
+            // cards and will refresh.
+            let librarian = self.librarian.clone();
+            let cards = self.cards.clone();
+            let ctx = ctx.clone();
             thread::spawn(move || {
-                // TODO currently just runs once, eventually will handle merging
-                // cards and will refresh.
-                for release in librarian_1.releases().iter() {
-                        let card = Self::card_from_release(&librarian_1, &release);
-                        cards_1.write().unwrap().push(card);
-                        context_1.request_repaint();    
+                // For each release in the Librarian, create a ReleaseCard and
+                // push it into the cards Vec. Done in parallel for performance.
+                let pool = ThreadPool::default();
+                let librarian = librarian.clone();
+                let cards = cards.clone();
+                for release in librarian.releases().iter() {
+                    let librarian = librarian.clone();
+                    let cards = cards.clone();
+                    let ctx = ctx.clone();
+                    pool.execute(move || {
+                        let card = Self::card_from_release(&librarian, &release);
+                        cards.write().unwrap().push(card);
+                        ctx.request_repaint();
+                    });
                 }
             });
         }
@@ -56,33 +66,34 @@ impl eframe::App for Dimple {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Settings {
     pub libraries: Vec<LibraryConfig>,
+}
+
+impl From<Config> for Settings {
+    fn from(config: Config) -> Self {
+        config.try_deserialize().unwrap()
+    }
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        config::Config::builder()
+            .add_source(config::File::with_name("config.yaml"))
+            .build()
+            .unwrap()
+            .into()
+    }
 }
 
 impl Dimple {
     pub fn new(sink: Arc<Sink>) -> Self {
         // Load settings
-        let config = config::Config::builder()
-            .add_source(config::File::with_name("config.yaml"))
-            // .add_source(config::File::from_str(&yaml, ))
-            .build()
-            .unwrap();
-        let settings: Settings = config.try_deserialize().unwrap();
-        // println!("{:#?}", settings);
-        // println!("{}", serde_yaml::to_string(&settings).unwrap());
+        let settings = Settings::default();
 
         // Create libraries from configs
-        let mut librarian = Librarian::new();
-        for config in settings.libraries {
-            let library: Box<dyn Library> = match config {
-                Navidrome(config) => Box::new(NavidromeLibrary::from(config)),
-                Local(config) => Box::new(LocalLibrary::from(config)),
-            };
-            librarian.add_library(library)
-        }
-        let librarian = Arc::new(librarian);
+        let librarian = Arc::new(Librarian::from(settings.libraries));
 
         Self {
             librarian: librarian.clone(),
@@ -95,16 +106,20 @@ impl Dimple {
     }
 
     fn card_from_release(library: &Librarian, release: &Release) -> ReleaseCard {
-        let image = release.art.first().and_then(|image| match library.image(image) {
+        let image = release
+            .art
+            .first()
+            .and_then(|image| match library.image(image) {
                 Ok(image) => Some(image),
                 Err(_) => None,
             })
             .map_or(
-                RetainedImage::from_color_image("default", ColorImage::example()), 
-                |image| dynamic_to_retained("", &image));
+                RetainedImage::from_color_image("default", ColorImage::example()),
+                |image| dynamic_to_retained("", &image),
+            );
 
-        ReleaseCard { 
-            release: release.clone(), 
+        ReleaseCard {
+            release: release.clone(),
             image,
         }
     }
@@ -145,13 +160,15 @@ impl Dimple {
         let matcher = SkimMatcherV2::default();
         // TODO just do this when search changes, not every frame
         let binding = self.cards.read().unwrap();
-        let mut _cards: Vec<&ReleaseCard> = binding.iter().filter(|card| {
-            let haystack = format!("{} {}", card.title(), card.subtitle());
-            return matcher
-                .fuzzy_match(haystack.as_str(), &self.query_string)
-                .is_some();
-        })
-        .collect();
+        let mut _cards: Vec<&ReleaseCard> = binding
+            .iter()
+            .filter(|card| {
+                let haystack = format!("{} {}", card.title(), card.subtitle());
+                return matcher
+                    .fuzzy_match(haystack.as_str(), &self.query_string)
+                    .is_some();
+            })
+            .collect();
 
         _cards.sort_by(|a, b| {
             a.subtitle()
@@ -194,13 +211,7 @@ impl Dimple {
         });
     }
 
-    fn card(
-        card: &ReleaseCard,
-        width: f32,
-        height: f32,
-        ctx: &Context,
-        ui: &mut Ui,
-    ) -> Response {
+    fn card(card: &ReleaseCard, width: f32, height: f32, ctx: &Context, ui: &mut Ui) -> Response {
         ui.vertical(|ui| {
             let image_button =
                 ImageButton::new(card.image().texture_id(ctx), egui::vec2(width, height));
@@ -239,7 +250,6 @@ impl Dimple {
                     if ui.button("Next").clicked() {
                         self.player.next();
                     }
-                    
                 });
                 // self.card(&self.up_next, 60.0, 60.0, ctx, ui);
             });
@@ -289,7 +299,10 @@ impl ReleaseCard {
     }
 
     fn subtitle(&self) -> &str {
-        self.release.artists.first().map_or("Unknown", |artist| artist.name.as_str())
+        self.release
+            .artists
+            .first()
+            .map_or("Unknown", |artist| artist.name.as_str())
     }
 }
 
@@ -299,4 +312,3 @@ struct ReleaseCard {
     release: Release,
     image: RetainedImage,
 }
-

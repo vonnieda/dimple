@@ -1,8 +1,10 @@
-use std::time::Instant;
+use std::{time::Instant};
 
-use dimple::{music_library::{local::LocalLibrary, navidrome::{NavidromeLibrary}, Library, LibraryConfig}, dimple::Settings};
+use dimple::{music_library::{Library}, dimple::Settings, librarian::Librarian};
 
 fn time_library(library: &dyn Library) {
+    log::info!("{}: Testing", 
+        library.name());
     let t = Instant::now();
     let releases = library.releases();
     let mut count = 0;
@@ -26,24 +28,16 @@ fn time_library(library: &dyn Library) {
 }
 
 fn main() {
-    // Load settings
-    let config = config::Config::builder()
-        .add_source(config::File::with_name("config.yaml"))
-        .build()
-        .unwrap();
-    let settings: Settings = config.try_deserialize().unwrap();
-
     let mut builder = env_logger::Builder::new();
-        builder.filter_level(log::LevelFilter::Info);
-        builder.format_timestamp_millis();
-        builder.init();
+    builder.filter_level(log::LevelFilter::Info);
+    builder.format_timestamp_millis();
+    builder.init();
 
-    for config in settings.libraries {
-        let library: Box<dyn Library> = match config {
-            LibraryConfig::Navidrome(config) => Box::new(NavidromeLibrary::from(config)),
-            LibraryConfig::Local(config) => Box::new(LocalLibrary::from(config)),
-        };
-        time_library(library.as_ref());
+    let settings = Settings::default();
+    let librarian = Librarian::from(settings.libraries);
+
+    for library in librarian.libraries().read().unwrap().iter() {
+        time_library(library.as_ref().as_ref());
     }
 }
 

@@ -25,10 +25,11 @@ walkdir = "2.3.3"
 url = "2.3.1"
 rodio = { version = "0.17.1" }
 crossbeam = { version = "0.8.2", features = ["crossbeam-channel"] }
-rayon = "1.7.0"
-rust-crypto = "^0.2"
 ulid = "1.0.0"
 serde_yaml = "0.9.19"
 config = "0.13.3"
+sha2 = "0.10.6"
+data-encoding = "2.3.3"
+threadpool = "1.8.1"
 
 
