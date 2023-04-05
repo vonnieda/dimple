@@ -34,33 +34,8 @@ impl eframe::App for Dimple {
         // TODO info on how to do something on first frame: https://github.com/emilk/eframe_template/blob/master/src/app.rs#L24
         if !self.first_frame {
             self.first_frame = true;
-
             catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
-
-            // Launch a thread that refreshes libraries and updates cards.
-            // TODO temporary, just needs a place to live for a moment
-            // TODO currently just runs once, eventually will handle merging
-            // cards and will refresh.
-            let librarian = self.librarian.clone();
-            let cards = self.cards.clone();
-            let ctx = ctx.clone();
-            thread::spawn(move || {
-                // For each release in the Librarian, create a ReleaseCard and
-                // push it into the cards Vec. Done in parallel for performance.
-                let pool = ThreadPool::default();
-                let librarian = librarian.clone();
-                let cards = cards.clone();
-                for release in librarian.releases().iter() {
-                    let librarian = librarian.clone();
-                    let cards = cards.clone();
-                    let ctx = ctx.clone();
-                    pool.execute(move || {
-                        let card = Self::card_from_release(&librarian, &release);
-                        cards.write().unwrap().push(card);
-                        ctx.request_repaint();
-                    });
-                }
-            });
+            self.refresh(ctx);
         }
         self.browser(ctx);
     }
@@ -103,6 +78,33 @@ impl Dimple {
             _retained_image_cache: HashMap::new(),
             first_frame: false,
         }
+    }
+
+    pub fn refresh(&self, ctx: &Context) {
+        // Launch a thread that refreshes libraries and updates cards.
+        // TODO temporary, just needs a place to live for a moment
+        // TODO currently just runs once, eventually will handle merging
+        // cards and will refresh.
+        let librarian = self.librarian.clone();
+        let cards = self.cards.clone();
+        let ctx = ctx.clone();
+        thread::spawn(move || {
+            // For each release in the Librarian, create a ReleaseCard and
+            // push it into the cards Vec. Done in parallel for performance.
+            let pool = ThreadPool::default();
+            let librarian = librarian.clone();
+            let cards = cards.clone();
+            for release in librarian.releases().iter() {
+                let librarian = librarian.clone();
+                let cards = cards.clone();
+                let ctx = ctx.clone();
+                pool.execute(move || {
+                    let card = Self::card_from_release(&librarian, &release);
+                    cards.write().unwrap().push(card);
+                    ctx.request_repaint();
+                });
+            }
+        });
     }
 
     fn card_from_release(library: &Librarian, release: &Release) -> ReleaseCard {

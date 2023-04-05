@@ -4,7 +4,7 @@ use crossbeam::channel::{unbounded, Receiver};
 
 use crate::{music_library::{Library, Release, Image, Track, local::LocalLibrary, LibraryConfig, navidrome::NavidromeLibrary}, dimple::Settings};
 
-/// Manages a collection of Library and provides merging and cachine for the
+/// Manages a collection of Library and provides merging and caching for the
 /// union of their releases.
 #[derive(Debug)]
 pub struct Librarian {
@@ -71,7 +71,6 @@ impl Library for Librarian {
             let library = library.clone();
             std::thread::spawn(move || {
                 for release in library.releases() {
-                    log::debug!("Loaded {} {}", library.name(), release.title);
                     sender.send(release.clone()).unwrap();
                 }
             });
@@ -95,10 +94,6 @@ impl Library for Librarian {
             }
         }
         Err("Not found".to_string())
-    }
-
-    fn merge_release(&self, library: &dyn Library, release: &Release) -> Result<(), String> {
-        todo!()
     }
 }
 

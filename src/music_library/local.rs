@@ -1,5 +1,3 @@
-use std::thread;
-
 use crossbeam::channel::{unbounded, Receiver};
 use image::DynamicImage;
 use log::{debug};
