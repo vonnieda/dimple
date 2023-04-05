@@ -10,11 +10,12 @@ use image::DynamicImage;
 use rodio::{Sink};
 use serde::{Serialize, Deserialize};
 
-use self::{navidrome::NavidromeConfig, local::LocalConfig};
+use self::{navidrome_library::NavidromeConfig, local_library::LocalConfig};
 
-pub mod local;
+pub mod local_library;
 pub mod image_cache;
-pub mod navidrome;
+pub mod navidrome_library;
+pub mod memory_library;
 
 pub trait Library: Send + Sync {
     fn name(&self) -> String;

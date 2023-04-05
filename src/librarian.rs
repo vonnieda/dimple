@@ -1,14 +1,27 @@
 use std::{sync::{Arc, RwLock}};
 
-use crossbeam::channel::{unbounded, Receiver};
+use crossbeam::channel::{Receiver};
+use threadpool::ThreadPool;
 
-use crate::{music_library::{Library, Release, Image, Track, local::LocalLibrary, LibraryConfig, navidrome::NavidromeLibrary}, dimple::Settings};
+use crate::{music_library::{Library, Release, Image, Track, local_library::LocalLibrary, LibraryConfig, navidrome_library::NavidromeLibrary, memory_library::MemoryLibrary}, dimple::Settings};
 
 /// Manages a collection of Library and provides merging and caching for the
 /// union of their releases.
 #[derive(Debug)]
 pub struct Librarian {
+    memory_cache: MemoryLibrary,
+    disk_cache: LocalLibrary,
     libraries: LibrariesHandle,
+}
+
+impl Default for Librarian {
+    fn default() -> Self {
+        Self { 
+            memory_cache: Default::default(),
+            disk_cache: LocalLibrary::new("cache", "cache"),
+            libraries: Default::default(), 
+        }
+    }
 }
 
 type LibraryHandle = Arc<Box<dyn Library>>;
@@ -16,14 +29,6 @@ type LibraryHandle = Arc<Box<dyn Library>>;
 type LibrariesHandle = Arc<RwLock<Vec<LibraryHandle>>>;
 
 impl Librarian {    
-    pub fn new() -> Self {
-        let libraries: LibrariesHandle = Default::default();
-
-        Self {
-            libraries,
-        }
-    }
-
     pub fn add_library(&mut self, library: Box<dyn Library>) {
         self.libraries.write().unwrap().push(Arc::new(library));
     }
@@ -31,17 +36,79 @@ impl Librarian {
     pub fn libraries(&self) -> LibrariesHandle {
         self.libraries.clone()
     }
+
+    /// refresh merges all the remotes into the local and memory cache
+    pub fn refresh(&self) {
+        let libraries = self.libraries.read().unwrap(); 
+        for library in libraries.iter() {
+            let library = library.clone();
+            log::info!("refreshing {}", library.name());
+            for release in library.releases() {
+                self.disk_cache.merge_release(library.as_ref().as_ref(), &release).unwrap();
+            }
+            log::info!("done refreshing {}", library.name());
+        }
+    }
 }
 
-impl Default for Librarian {
-    fn default() -> Self {
-        Self::new()
+impl Library for Librarian {
+    fn name(&self) -> String {
+        "Librarian".to_string()
+    }
+    
+    // Okay, so maybe what happens here is on the first call we read the disk
+    // cache into the memory cache, merging the data as we go using our merging
+    // "algorithm". This is where de-duplication happens. I can either implement
+    // it here or in the memorylibrary. Then we return the memory cache releases.
+    // From then on, we assume the memory cache is up to date?
+    fn releases(&self) -> Receiver<Release> {
+        if self.memory_cache.releases_len() == 0 {
+            log::info!("memory cache is dry, preloading from disk");
+            for release in self.disk_cache.releases() {
+                // TODO this is where de-dup happens
+                self.memory_cache.merge_release(&self.disk_cache, &release).unwrap();
+            }
+            log::info!("done");
+        }
+        self.memory_cache.releases()
+    }
+
+    fn image(&self, image: &Image) -> Result<image::DynamicImage, String> {
+        if let Ok(image) = self.memory_cache.image(image) {
+            return Ok(image);
+        }
+        if let Ok(image) = self.disk_cache.image(image) {
+            return Ok(image);
+        }
+        for library in self.libraries.read().unwrap().iter() {
+            if let Ok(dynamic_image) = library.image(image) {
+                self.memory_cache.merge_image(image, &dynamic_image);
+                return Ok(dynamic_image);
+            }
+        }
+        Err("Not found".to_string())
+    }
+
+    /// Check the in memory cache, followed by the libraries.
+    fn stream(&self, track: &Track, sink: &rodio::Sink) -> Result<(), String>{
+        if self.memory_cache.stream(track, sink).is_ok() {
+            return Ok(());
+        }
+        if self.disk_cache.stream(track, sink).is_ok() {
+            return Ok(());
+        }
+        for library in self.libraries.read().unwrap().iter() {
+            if library.stream(track, sink).is_ok() {
+                return Ok(());
+            }
+        }
+        Err("Not found".to_string())
     }
 }
 
 impl From<Vec<LibraryConfig>> for Librarian {
     fn from(configs: Vec<LibraryConfig>) -> Self {
-        let mut librarian = Self::new();
+        let mut librarian = Self::default();
         for config in configs {
             let library: Box<dyn Library> = match config {
                 LibraryConfig::Navidrome(config) => Box::new(NavidromeLibrary::from(config)),
@@ -59,41 +126,4 @@ impl From<Settings> for Librarian {
     }
 }
 
-impl Library for Librarian {
-    fn name(&self) -> String {
-        "Librarian".to_string()
-    }
-
-    fn releases(&self) -> Receiver<Release> {
-        let (sender, receiver) = unbounded::<Release>();
-        for library in self.libraries.read().unwrap().iter() {
-            let sender = sender.clone();
-            let library = library.clone();
-            std::thread::spawn(move || {
-                for release in library.releases() {
-                    sender.send(release.clone()).unwrap();
-                }
-            });
-        }
-        receiver
-    }
-
-    fn image(&self, image: &Image) -> Result<image::DynamicImage, String> {
-        for library in self.libraries.read().unwrap().iter() {
-            if let Ok(image) = library.image(image) {
-                return Ok(image);
-            }
-        }
-        Err("Not found".to_string())
-    }
-
-    fn stream(&self, track: &Track, sink: &rodio::Sink) -> Result<(), String>{
-        for library in self.libraries.read().unwrap().iter() {
-            if library.stream(track, sink).is_ok() {
-                return Ok(());
-            }
-        }
-        Err("Not found".to_string())
-    }
-}
 

@@ -91,9 +91,11 @@ impl Dimple {
         thread::spawn(move || {
             // For each release in the Librarian, create a ReleaseCard and
             // push it into the cards Vec. Done in parallel for performance.
+            // TODO cards go into a hash or cache
             let pool = ThreadPool::default();
             let librarian = librarian.clone();
             let cards = cards.clone();
+            
             for release in librarian.releases().iter() {
                 let librarian = librarian.clone();
                 let cards = cards.clone();
@@ -104,6 +106,20 @@ impl Dimple {
                     ctx.request_repaint();
                 });
             }
+            pool.join();
+
+
+            for release in librarian.releases().iter() {
+                let librarian = librarian.clone();
+                let cards = cards.clone();
+                let ctx = ctx.clone();
+                pool.execute(move || {
+                    let card = Self::card_from_release(&librarian, &release);
+                    cards.write().unwrap().push(card);
+                    ctx.request_repaint();
+                });
+            }
+            pool.join();
         });
     }
 

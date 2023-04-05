@@ -83,6 +83,8 @@ impl Library for LocalLibrary {
 
     fn merge_release(&self, library: &dyn Library, release: &Release) -> Result<(), String> {
         // Store Release art
+        // TODO check if we already have the image, and decide if we're
+        //      still going to merge, if so.
         for image in &release.art {
             if let Ok(dynamic_image) = library.image(image) {
                 let url = &image.url;
