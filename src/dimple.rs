@@ -217,6 +217,11 @@ impl Dimple {
                                     for (i, card) in _cards.iter().enumerate() {
                                         if Self::card(card, 200.0, 200.0, ctx, ui).clicked() {
                                             self.player.add_release(&card.release);
+                                            for (i, track) in self.player.tracks().iter().enumerate() {
+                                                log::info!("{}. {}", 
+                                                    i + 1, 
+                                                    track.title);
+                                            }
                                         }
                                         if i % num_columns == num_columns - 1 {
                                             ui.end_row();
@@ -259,6 +264,7 @@ impl Dimple {
                     ui.link(&subtitle).clicked();
                     self.plot_scrubber(ctx, ui);
                     self.slider_scrubber(ctx, ui);
+                    ui.horizontal(|ui| {
                     if ui.button("Play").clicked() {
                         self.player.play();
                     }
@@ -268,6 +274,19 @@ impl Dimple {
                     if ui.button("Next").clicked() {
                         self.player.next();
                     }
+                });
+                    ui.horizontal(|ui| {
+                        if ui.button("List Queue").clicked() {
+                            for (i, track) in self.player.tracks().iter().enumerate() {
+                                log::info!("{}. {}", 
+                                    i + 1, 
+                                    track.title);
+                            }
+                        }
+                        if ui.button("Clear Queue").clicked() {
+                            self.player.clear();
+                        }
+                    });
                 });
                 // self.card(&self.up_next, 60.0, 60.0, ctx, ui);
             });

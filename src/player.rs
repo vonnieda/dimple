@@ -8,7 +8,7 @@ use crate::{music_library::{Track, Release, Library}, librarian::Librarian};
 pub struct Player {
     sink: Arc<Sink>,
     librarian: Arc<Librarian>,
-    playlist: Vec<Track>,
+    tracks: Vec<Track>,
     current_track_index: Option<usize>,
 }
 
@@ -17,14 +17,20 @@ impl Player {
         Self {
             sink,
             librarian,
-            playlist: Vec::new(),
+            tracks: Vec::new(),
             current_track_index: None,
         }
     }
 
+    pub fn clear(&mut self) {
+        self.sink.stop();
+        self.tracks.clear();
+        self.current_track_index = None;
+    }
+
     pub fn play(&mut self) {
         // If the playlist is empty, return.
-        if self.playlist.is_empty() {
+        if self.tracks.is_empty() {
             return;
         }
         // If there is no "current" track, set it to the first track in the list.
@@ -34,7 +40,7 @@ impl Player {
 
         // If the sink is not playing anything, load the current track.
         if self.sink.len() == 0 {
-            let track = &self.playlist[self.current_track_index.unwrap()];
+            let track = &self.tracks[self.current_track_index.unwrap()];
             self.librarian.stream(track, &self.sink).unwrap();
         }
 
@@ -51,25 +57,29 @@ impl Player {
         self.sink.clear();
 
         // If there's nothing in the queue we're done.
-        if self.playlist.is_empty() {
+        if self.tracks.is_empty() {
             return;
         }
 
         // Increment or restart the play queue.
-        self.current_track_index = self.current_track_index.map(|index| (index + 1) % self.playlist.len());
+        self.current_track_index = self.current_track_index.map(|index| (index + 1) % self.tracks.len());
 
-        let track = &self.playlist[self.current_track_index.unwrap()];
+        let track = &self.tracks[self.current_track_index.unwrap()];
         self.librarian.stream(track, &self.sink).unwrap();
 
         self.sink.play();
     }
 
     pub fn current_track(&self) -> Option<Track> {
-        self.current_track_index.map(|index| self.playlist[index].clone())
+        self.current_track_index.map(|index| self.tracks[index].clone())
     }
 
     pub fn next_track(&self) -> Option<Track> {
         None
+    }
+
+    pub fn tracks(&self) -> Vec<Track> {
+        self.tracks.clone()
     }
 
     pub fn add_release(&mut self, release: &Release) {
@@ -79,7 +89,7 @@ impl Player {
     }
 
     pub fn add_track(&mut self, track: &Track) {
-        self.playlist.push(track.clone());
+        self.tracks.push(track.clone());
         self.play();
     }
 }

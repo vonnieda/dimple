@@ -1,7 +1,6 @@
 use std::{sync::{Arc, RwLock}};
 
 use crossbeam::channel::{Receiver};
-use threadpool::ThreadPool;
 
 use crate::{music_library::{Library, Release, Image, Track, local_library::LocalLibrary, LibraryConfig, navidrome_library::NavidromeLibrary, memory_library::MemoryLibrary}, dimple::Settings};
 
