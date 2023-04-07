@@ -1,4 +1,4 @@
-use std::sync::{Arc};
+use std::{sync::{Arc, RwLock}, time::Duration};
 
 use rodio::Sink;
 
@@ -12,14 +12,37 @@ pub struct Player {
     current_track_index: usize,
 }
 
+pub type PlayerHandle = Arc<RwLock<Player>>;
+
+// TODO play next track when one finishes
+// TODO cache next track
+// TODO figure out how to speed up first play
+// TODO for gapless, whenever we change tracks we load that track and
+//      the next into the sink. And maybe the previous.
+//      So then next and previous just do those things on the sound.
+        
 impl Player {
-    pub fn new(sink: Arc<Sink>, librarian: Arc<Librarian>) -> Self {
-        Self {
+    pub fn new(sink: Arc<Sink>, librarian: Arc<Librarian>) -> PlayerHandle {
+        let myself = Arc::new(RwLock::new(Self {
             sink,
             librarian,
             tracks: Vec::new(),
             current_track_index: 0,
+        }));
+
+        let myself_1 = myself.clone();
+        std::thread::spawn(move || {
+            loop {
+                if !myself_1.read().unwrap().sink.empty() {
+                    myself_1.read().unwrap().sink.sleep_until_end();
+                    log::info!("Playing next track");
+                    myself_1.write().unwrap().next();
         }
+                std::thread::sleep(Duration::from_millis(100));
+            }
+        });
+
+        myself
     }
 
     pub fn add_release(&mut self, release: &Release) {

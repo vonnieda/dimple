@@ -4,7 +4,6 @@ use dimple::dimple::Dimple;
 use eframe::egui::{self};
 use rodio::{OutputStream, Sink};
 
-// TODO BLOCKED make grid full width https://github.com/emilk/egui/discussions/1144#discussioncomment-2035457
 // TODO make number of columns adapt to window width and tile size
 // TODO tile size slider
 // TODO check out bliss and bliss-rs https://github.com/Polochon-street/bliss-rs for smart playlist generation

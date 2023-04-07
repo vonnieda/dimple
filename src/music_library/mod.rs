@@ -48,6 +48,12 @@ pub struct Release {
     pub tracks: Vec<Track>,
 }
 
+impl Release {
+    pub fn artist(&self) -> String {
+        self.artists.first().unwrap().name.to_string()
+    }
+}
+
 #[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Artist {
     pub url: String,

@@ -2,7 +2,7 @@ use std::{sync::{Arc, RwLock}};
 
 use crossbeam::channel::{Receiver};
 
-use crate::{music_library::{Library, Release, Image, Track, local_library::LocalLibrary, LibraryConfig, navidrome_library::NavidromeLibrary, memory_library::MemoryLibrary}, dimple::Settings};
+use crate::{music_library::{Library, Release, Image, Track, local_library::LocalLibrary, LibraryConfig, navidrome_library::NavidromeLibrary, memory_library::MemoryLibrary}, settings::Settings};
 
 /// Manages a collection of Library and provides merging and caching for the
 /// union of their releases.

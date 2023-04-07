@@ -11,14 +11,14 @@ fn main() {
     let settings = Settings::default();
     let librarian = Librarian::from(settings.libraries);
 
-    let cache = librarian.cache();
-    for library in librarian.libraries().read().unwrap().iter() {
-        for release in library.as_ref().as_ref().releases().iter() {
-            let library = library.clone();
-            let cache = cache.clone();
-            log::info!("Merging {} {} -> {}",
-                library.name(), release.title, cache.name());
-            cache.merge_release(library.as_ref().as_ref(), &release).unwrap();
-       }
-    }
+    // let cache = librarian.cache();
+    // for library in librarian.libraries().read().unwrap().iter() {
+    //     for release in library.as_ref().as_ref().releases().iter() {
+    //         let library = library.clone();
+    //         let cache = cache.clone();
+    //         log::info!("Merging {} {} -> {}",
+    //             library.name(), release.title, cache.name());
+    //         cache.merge_release(library.as_ref().as_ref(), &release).unwrap();
+    //    }
+    // }
 }
