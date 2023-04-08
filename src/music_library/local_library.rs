@@ -29,6 +29,7 @@ pub struct LocalConfig {
 
 impl LocalLibrary {
     pub fn new(ulid: &str, name: &str) -> Self {
+        // TODO magic
         let db = sled::open(format!("data/{}", ulid)).unwrap();
         let releases = db.open_tree("releases").unwrap();
         let images = db.open_tree("images").unwrap();

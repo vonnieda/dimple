@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use eframe::egui::{self, Context};
+use eframe::egui::{self};
 
 use rodio::Sink;
 
@@ -26,21 +26,26 @@ impl eframe::App for Dimple {
         if !self.first_frame {
             self.first_frame = true;
             catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
-            self.refresh(ctx);
         }
 
         self.main_screen.ui(ctx);
     }
 }
 
+
 impl Dimple {
     pub fn new(sink: Arc<Sink>) -> Self {
         // Load settings
         let settings = Settings::default();
 
-        // Create libraries from configs
+        // Configure music libraries
         let librarian = Arc::new(Librarian::from(settings.libraries));
-
+        let librarian_1 = librarian.clone();
+        std::thread::spawn(move || {
+            librarian_1.refresh_all_libraries();
+        });
+        
+        // Set up the music player
         let player = Player::new(sink, librarian.clone());
 
         Self {
@@ -49,50 +54,5 @@ impl Dimple {
             _player: player,
             first_frame: false,
         }
-    }
-
-    pub fn refresh(&self, _ctx: &Context) {
-        // // Launch a thread that refreshes libraries and updates cards.
-        // // TODO temporary, just needs a place to live for a moment
-        // // TODO currently just runs once, eventually will handle merging
-        // // cards and will refresh.
-        // let librarian = self.librarian.clone();
-        // let cards = self.cards.clone();
-        // let ctx = ctx.clone();
-        // thread::spawn(move || {
-        //     // For each release in the Librarian, create a ReleaseCard and
-        //     // push it into the cards Vec. Done in parallel for performance.
-        //     // TODO cards go into a hash or cache
-        //     let pool = ThreadPool::default();
-        //     let librarian = librarian.clone();
-        //     let cards = cards.clone();
-
-        //     for release in librarian.releases().iter() {
-        //         let librarian = librarian.clone();
-        //         let cards = cards.clone();
-        //         let ctx = ctx.clone();
-        //         pool.execute(move || {
-        //             let card = Self::card_from_release(&librarian, &release);
-        //             cards.write().unwrap().push(card);
-        //             ctx.request_repaint();
-        //         });
-        //     }
-        //     pool.join();
-
-        //     // TODO pausing here, time to work on merging cards.
-        //     librarian.refresh();
-
-        //     for release in librarian.releases().iter() {
-        //         let librarian = librarian.clone();
-        //         let cards = cards.clone();
-        //         let ctx = ctx.clone();
-        //         pool.execute(move || {
-        //             let card = Self::card_from_release(&librarian, &release);
-        //             cards.write().unwrap().push(card);
-        //             ctx.request_repaint();
-        //         });
-        //     }
-        //     pool.join();
-        // });
     }
 }

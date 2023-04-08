@@ -4,12 +4,10 @@ use dimple::dimple::Dimple;
 use eframe::egui::{self};
 use rodio::{OutputStream, Sink};
 
-// TODO make number of columns adapt to window width and tile size
 // TODO tile size slider
 // TODO check out bliss and bliss-rs https://github.com/Polochon-street/bliss-rs for smart playlist generation
 // TODO how to load a custom font and use it globally https://github.com/catppuccin/egui/blob/main/examples/todo.rs#L77
 // TODO escape should clear search
-// TODO Continuous updates when downloading and loading libraries
 // TODO search is sensitive to word order, i.e. infected shawarma vs. shawarma 
 //      infected
 // TODO Dashboard makes sense actually, and in fact, I can have as wild a tree

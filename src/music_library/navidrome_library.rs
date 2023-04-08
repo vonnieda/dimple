@@ -127,6 +127,8 @@ impl Library for NavidromeLibrary {
 impl NavidromeLibrary {
     pub fn new(ulid: &str, name: &str, site: &str, username: &str, password: &str) -> Self {
         // TODO don't love this hardcoded path.
+        // TODO get library type in path, the ulids are annoying on disk.
+        // TODO this is slow, about 800ms. 
         let db = sled::open(format!("data/{}", ulid)).unwrap();
         Self {
             ulid: String::from(ulid),

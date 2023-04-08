@@ -21,7 +21,8 @@ impl CardGrid {
         let padding = 16.0;
         let cards_max_width = max_width - (padding * 2.0);
         let min_card_spacing = 16.0;
-        let card_width = image_width + min_card_spacing;
+        let card_frame_width = 4.0;
+        let card_width = card_frame_width + image_width + card_frame_width + min_card_spacing;
         let num_columns: usize = (cards_max_width / card_width).floor() as usize;
         let cards_width = card_width * num_columns as f32;
         let addl_card_spacing = (cards_max_width - cards_width) / num_columns as f32;

@@ -1,13 +1,13 @@
-use std::{sync::Arc, collections::HashMap};
+use std::{sync::{Arc, RwLock}, collections::HashMap};
 
 use eframe::{egui::{self, Context, ImageButton, Ui}, epaint::{ColorImage, Color32}};
 use egui_extras::RetainedImage;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
+use threadpool::ThreadPool;
 
+use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release, Image}};
 
-use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release}};
-
-use super::{search_bar::SearchBar, player_bar::PlayerBar, card_grid::{CardGrid, Card}, utils::{dynamic_to_retained}};
+use super::{search_bar::SearchBar, player_bar::PlayerBar, card_grid::{CardGrid, Card}, utils};
 
 pub struct MainScreen {
     search_bar: SearchBar,
@@ -15,19 +15,23 @@ pub struct MainScreen {
     player_bar: PlayerBar,
     librarian: Arc<Librarian>,
     cards: Vec<Box<dyn Card>>,
-    images: HashMap<String, Arc<RetainedImage>>,
+    retained_images: Arc<RwLock<HashMap<String, Arc<RetainedImage>>>>,
+    image_loader_pool: threadpool::ThreadPool,
 }
 
 impl MainScreen {
     pub fn new(player: PlayerHandle, librarian: Arc<Librarian>) -> Self {
-        Self {
+        let mut main_screen = Self {
             search_bar: SearchBar::default(),
             card_grid: CardGrid::default(),
             player_bar: PlayerBar::new(player),
             librarian,
             cards: Vec::new(),
-            images: HashMap::new(),
-        }
+            retained_images: Arc::new(RwLock::new(HashMap::new())),
+            image_loader_pool: ThreadPool::default(),
+        };
+        main_screen.cards = main_screen.cards("");
+        main_screen
     }
 
     pub fn ui(&mut self, ctx: &Context) {
@@ -35,8 +39,7 @@ impl MainScreen {
             ui.add_space(8.0);
             if self.search_bar.ui(ctx, ui).changed() {
                 let query = self.search_bar.query.clone();
-                let cards = self.cards(&query);
-                self.cards = cards;
+                self.cards = self.cards(&query);
             }
             ui.add_space(8.0);
         });
@@ -57,7 +60,6 @@ impl MainScreen {
     /// and caching.
     fn cards(&mut self, query: &str) -> Vec<Box<dyn Card>> {
         // Filter Releases by the query
-        log::info!("cards: filter({})", query);
         let matcher = SkimMatcherV2::default();
         let mut releases: Vec<Release> = self.librarian.releases().into_iter()
             .filter(|release| {
@@ -70,7 +72,6 @@ impl MainScreen {
             .collect();
 
         // Sort Releases by Artist Name then Release Title
-        log::info!("cards: sort()");
         releases.sort_by(|a, b| {
             a.artist().to_uppercase()
                 .cmp(&b.artist().to_uppercase())
@@ -78,42 +79,51 @@ impl MainScreen {
         });
 
         // Convert to Cards
-        log::info!("cards: convert()");
-        let cards = releases.into_iter()
+        releases.into_iter()
             .map(|release| {
                 Box::new(self.card_from_release(&release)) as Box<dyn Card>
             })
-            .collect();
-        log::info!("cards: done");
-        cards
+            .collect()
     }
 
     fn card_from_release(&mut self, release: &Release) -> ReleaseCard {
         ReleaseCard {
             release: release.clone(),
-            image: self.get_release_thumbnail(release),
+            image: self.get_retained_image(release.art.first().unwrap(), 
+                200, 200),
         }
     }
 
-    fn get_release_thumbnail(&mut self, release: &Release) -> Arc<RetainedImage> {
-        // TODO could launch this into a thread to download later
-        let key = format!("{}:{}x{}", release.url, 200.0, 200.0);
+    /// Get a thumbnail for the given Image, returning a RetainedImage.
+    /// Caches for performance. Unbounded for now.
+    /// Requests the image from the Librarian if it's not in the cache.
+    fn get_retained_image(&mut self, image: &Image, 
+        width: usize, height: usize) -> Arc<RwLock<Arc<RetainedImage>>> {
         
-        if let Some(image) = self.images.get(&key) {
-            return image.clone();
+        let key = format!("{}:{}x{}", image.url, width, height);
+        
+        if let Some(image) = self.retained_images.read().unwrap().get(&key) {
+            return Arc::new(RwLock::new(image.clone()));
         }
 
-        if let Some(image) = release.art.first() {
-            if let Ok(dynamic) = self.librarian.image(image) {
-                let retained = Arc::new(dynamic_to_retained("", &dynamic));
-                self.images.insert(key, retained.clone());
-                return retained;
+        // TODO needs variable name cleanup and maybe turn some of this into
+        // a function, or even a class
+        let placeholder = ColorImage::new([width, height], Color32::BLACK);
+        let retained_arc = Arc::new(RetainedImage::from_color_image("", placeholder));
+        self.retained_images.write().unwrap().insert(key.clone(), retained_arc.clone());
+        let retained = Arc::new(RwLock::new(retained_arc));
+
+        let librarian_1 = self.librarian.clone();
+        let image_1 = image.clone();
+        let retained_images_1 = self.retained_images.clone();
+        let retained_1 = retained.clone();
+        self.image_loader_pool.execute(move || {
+            if let Ok(dynamic) = librarian_1.image(&image_1) {
+                let new_retained = Arc::new(utils::dynamic_to_retained("", &dynamic));
+                retained_images_1.write().unwrap().insert(key, new_retained.clone());
+                *retained_1.write().unwrap() = new_retained;
             }
-        }
-
-        let color = ColorImage::new([200, 200], Color32::BLACK);
-        let retained = Arc::new(RetainedImage::from_color_image("", color));
-        self.images.insert(key, retained.clone());
+        });
 
         retained
     }
@@ -121,15 +131,15 @@ impl MainScreen {
 
 pub struct ReleaseCard {
     release: Release,
-    image: Arc<RetainedImage>,
+    image: Arc<RwLock<Arc<RetainedImage>>>,
 }
 
 impl Card for ReleaseCard {
     fn ui(&self, image_width: f32, image_height: f32, ctx: &Context, ui: &mut Ui) {
         ui.vertical(|ui| {
             let image_button =
-                ImageButton::new(self.image.texture_id(ctx), 
-                    egui::vec2(image_width, image_height)).frame(false);
+                ImageButton::new(self.image.read().unwrap().texture_id(ctx), 
+                    egui::vec2(image_width, image_height));
             ui.add(image_button);
             ui.link(&self.release.title).clicked();
             ui.link(&self.release.artists.first().unwrap().name).clicked();
