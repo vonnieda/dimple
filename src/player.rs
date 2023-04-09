@@ -8,8 +8,14 @@ use crate::{music_library::{Track, Release, Library}, librarian::Librarian};
 pub struct Player {
     sink: Arc<Sink>,
     librarian: Arc<Librarian>,
-    tracks: Vec<Track>,
-    current_track_index: usize,
+    queue: Vec<QueueItem>,
+    current_queue_item_index: usize,
+}
+
+#[derive(Clone, Debug)]
+pub struct QueueItem {
+    pub release: Release,
+    pub track: Track,
 }
 
 pub type PlayerHandle = Arc<RwLock<Player>>;
@@ -23,49 +29,59 @@ pub type PlayerHandle = Arc<RwLock<Player>>;
         
 impl Player {
     pub fn new(sink: Arc<Sink>, librarian: Arc<Librarian>) -> PlayerHandle {
-        let myself = Arc::new(RwLock::new(Self {
+        let player = Arc::new(RwLock::new(Self {
             sink,
             librarian,
-            tracks: Vec::new(),
-            current_track_index: 0,
+            queue: Vec::new(),
+            current_queue_item_index: 0,
         }));
 
-        let myself_1 = myself.clone();
-        std::thread::spawn(move || {
-            loop {
-                if !myself_1.read().unwrap().sink.empty() {
-                    myself_1.read().unwrap().sink.sleep_until_end();
-                    log::info!("Playing next track");
-                    myself_1.write().unwrap().next();
-        }
-                std::thread::sleep(Duration::from_millis(100));
-            }
-        });
+        // let player_1 = player.clone();
+        // std::thread::spawn(move || {
+        //     loop {
+        //         if !player_1.read().unwrap().sink.empty() {
+        //             player_1.read().unwrap().sink.sleep_until_end();
+        //             log::info!("Playing next track");
+        //             player_1.write().unwrap().next();
+        //         }
+        //         std::thread::sleep(Duration::from_millis(100));
+        //     }
+        // });
 
-        myself
+        player
     }
 
-    pub fn add_release(&mut self, release: &Release) {
+    pub fn queue_release(&mut self, release: &Release) {
         for track in &release.tracks {
-            self.add_track(track);
+            self.queue_track(release, track);
         }
     }
 
-    pub fn add_track(&mut self, track: &Track) {
-        self.tracks.push(track.clone());
+    pub fn queue_track(&mut self, release: &Release, track: &Track) {
+        self.queue.push(QueueItem {
+            release: release.clone(),
+            track: track.clone()
+        });
         self.play();
     }
 
     pub fn play(&mut self) {
         // If the playlist is empty, do nothing.
-        if self.tracks.is_empty() {
+        if self.queue.is_empty() {
             return;
         }
 
         // If the sink is empty, load the current track.
         if self.sink.empty() {
-            let track = self.tracks[self.current_track_index].clone();
+            let queue_item = self.queue[self.current_queue_item_index].clone();
+            let _release = queue_item.release;
+            let track = queue_item.track;
             self.librarian.stream(&track, &self.sink).unwrap();
+            // TODO stopping here, tired. playing with preloading the next track.
+            // if self.current_track_index < self.queue.len() - 1 {
+            //     let next_track = self.queue[self.current_track_index + 1].clone();
+            //     self.librarian.stream(&next_track, &self.sink).unwrap();
+            // }
         }
         
         // And play it.
@@ -78,12 +94,12 @@ impl Player {
 
     pub fn next(&mut self) {
         // If the playlist is empty, do nothing.
-        if self.tracks.is_empty() {
+        if self.queue.is_empty() {
             return;
         }
 
         // Increment or restart the queue
-        self.current_track_index = (self.current_track_index + 1) % self.tracks.len();
+        self.current_queue_item_index = (self.current_queue_item_index + 1) % self.queue.len();
 
         // If we were already playing, stop and play the new track
         if !self.sink.empty() {
@@ -102,52 +118,44 @@ impl Player {
 
     pub fn previous(&mut self) {
         // If the playlist is empty, do nothing.
-        if self.tracks.is_empty() {
+        if self.queue.is_empty() {
             return;
         }
 
         // Decrement or restart the queue
-        if self.current_track_index == 0 {
-            self.current_track_index = self.tracks.len() - 1;
+        if self.current_queue_item_index == 0 {
+            self.current_queue_item_index = self.queue.len() - 1;
         }
         else {
-            self.current_track_index -= 1;
+            self.current_queue_item_index -= 1;
         }
 
         // If we were already playing, stop and play the new track
         if !self.sink.empty() {
             self.sink.clear();
-            self.sink.stop();
-            // Seems to be a race condition on clearing the sink and playing
-            // the next track, so wait to make sure it's done.
-            loop {
-                if self.sink.empty() {
-                    break;
-                }
-            }
+            self.sink.sleep_until_end();
             self.play();
         }
     }
 
-    pub fn current_track(&self) -> Option<Track> {
-        if self.tracks.is_empty() {
-            return None
+    pub fn current_item(&self) -> Option<QueueItem> {
+        if self.current_queue_item_index >= self.queue.len() {
+            return None;
         }
-        Some(self.tracks[self.current_track_index].clone())
+        Some(self.queue[self.current_queue_item_index].clone())
     }
 
-    pub fn next_track(&self) -> Option<Track> {
-        None
-    }
-
-    pub fn tracks(&self) -> Vec<Track> {
-        self.tracks.clone()
+    pub fn next_item(&self) -> Option<QueueItem> {
+        if self.current_queue_item_index + 1 >= self.queue.len() {
+            return None;
+        }
+        Some(self.queue[self.current_queue_item_index + 1].clone())
     }
 
     pub fn clear(&mut self) {
         self.sink.stop();
-        self.tracks.clear();
-        self.current_track_index = 0;
+        self.queue.clear();
+        self.current_queue_item_index = 0;
     }
 }
 

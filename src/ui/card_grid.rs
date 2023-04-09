@@ -12,7 +12,6 @@ pub struct CardGrid {
 // TODO use ScrollArea::show_rows to improve performance. I
 // tried previously and I couldn't get the rendering right.
 // Oh, a hint, might also need Grid::show_rows
-
 impl CardGrid {
     pub fn ui(&self, cards: &[Box<dyn Card>], image_width: f32, 
         image_height: f32, ctx: &Context, ui: &mut Ui) {

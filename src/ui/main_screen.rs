@@ -17,6 +17,7 @@ pub struct MainScreen {
     cards: Vec<Box<dyn Card>>,
     retained_images: Arc<RwLock<HashMap<String, Arc<RetainedImage>>>>,
     image_loader_pool: threadpool::ThreadPool,
+    player: PlayerHandle,
 }
 
 impl MainScreen {
@@ -24,11 +25,12 @@ impl MainScreen {
         let mut main_screen = Self {
             search_bar: SearchBar::default(),
             card_grid: CardGrid::default(),
-            player_bar: PlayerBar::new(player),
+            player_bar: PlayerBar::new(player.clone()),
             librarian,
             cards: Vec::new(),
             retained_images: Arc::new(RwLock::new(HashMap::new())),
             image_loader_pool: ThreadPool::default(),
+            player,
         };
         main_screen.cards = main_screen.cards("");
         main_screen
@@ -91,6 +93,7 @@ impl MainScreen {
             release: release.clone(),
             image: self.get_retained_image(release.art.first().unwrap(), 
                 200, 200),
+            player: self.player.clone(),
         }
     }
 
@@ -132,6 +135,7 @@ impl MainScreen {
 pub struct ReleaseCard {
     release: Release,
     image: Arc<RwLock<Arc<RetainedImage>>>,
+    player: PlayerHandle,
 }
 
 impl Card for ReleaseCard {
@@ -140,9 +144,14 @@ impl Card for ReleaseCard {
             let image_button =
                 ImageButton::new(self.image.read().unwrap().texture_id(ctx), 
                     egui::vec2(image_width, image_height));
-            ui.add(image_button);
+            // If the release image is clicked, go to the release. But for now queue the release.                    
+            if ui.add(image_button).clicked() {
+                self.player.write().unwrap().queue_release(&self.release);
+            }
+            // If the release title is clicked, go to the release.
             ui.link(&self.release.title).clicked();
-            ui.link(&self.release.artists.first().unwrap().name).clicked();
+            // if the artist name is clicked, go to the artist.
+            ui.link(&self.release.artist()).clicked();
         });
     }   
 }

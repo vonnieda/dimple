@@ -11,7 +11,7 @@ default-run = "dimple"
 [dependencies]
 catppuccin-egui = "2.0"
 eframe = "0.21.3"
-egui_extras = { version = "0.21.0", features = ["image"] }
+egui_extras = { version = "0.21.0", features = ["image", "svg"] }
 env_logger = "0.10.0"
 fuzzy-matcher = "*"
 image = { version = "0.24.5", features = ["jpeg", "png"] }
