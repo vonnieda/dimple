@@ -43,7 +43,7 @@ impl PlayerBar {
                 ui.horizontal_top(|ui| {
                     ui.vertical(|ui| {
                         let queue_item = self.player.read()
-                            .map(|player| player.current_item())
+                            .map(|player| player.current_queue_item())
                             .unwrap_or(None);
                         let track_title = queue_item.as_ref()
                             .map_or("".to_string(), |qi| qi.track.title.clone());
@@ -67,7 +67,7 @@ impl PlayerBar {
     }
 
     pub fn now_playing(&self, ctx: &Context, ui: &mut Ui) {
-        if let Some(item) = self.player.read().unwrap().current_item() {
+        if let Some(item) = self.player.read().unwrap().current_queue_item() {
             let image = self.retained_images.retained_image(item.release.art.first().unwrap(), 120, 120);
             ui.add(ImageButton::new(image.read().unwrap().texture_id(ctx), [120.0, 120.0]));
         }
@@ -80,7 +80,7 @@ impl PlayerBar {
     
     pub fn up_next(&self, ctx: &Context, ui: &mut Ui) {
         let queue_item = self.player.read()
-            .map(|player| player.next_item())
+            .map(|player| player.next_queue_item())
             .unwrap_or(None);
         let track_title = queue_item.as_ref()
             .map_or("".to_string(), |qi| qi.track.title.clone());

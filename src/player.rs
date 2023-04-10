@@ -65,6 +65,23 @@ impl Player {
         self.play();
     }
 
+    pub fn current_queue_item(&self) -> Option<QueueItem> {
+        if self.current_queue_item_index >= self.queue.len() {
+            return None;
+        }
+        Some(self.queue[self.current_queue_item_index].clone())
+    }
+
+    pub fn next_queue_item(&self) -> Option<QueueItem> {
+        if self.current_queue_item_index + 1 >= self.queue.len() {
+            return None;
+        }
+        Some(self.queue[self.current_queue_item_index + 1].clone())
+    }
+
+    pub fn position(&self) -> {
+    }
+
     pub fn play(&mut self) {
         // If the playlist is empty, do nothing.
         if self.queue.is_empty() {
@@ -76,7 +93,14 @@ impl Player {
             let queue_item = self.queue[self.current_queue_item_index].clone();
             let _release = queue_item.release;
             let track = queue_item.track;
-            self.librarian.stream(&track, &self.sink).unwrap();
+            let librarian = self.librarian.clone();
+            let sink = self.sink.clone();
+            // TODO i don't think the play below is safe, cause what if this
+            // hasn't started downloading yet when it runs?
+            // Probably time to figure out caching of songs.
+            std::thread::spawn(move || {
+                librarian.stream(&track, &sink).unwrap();
+            });
             // TODO stopping here, tired. playing with preloading the next track.
             // if self.current_track_index < self.queue.len() - 1 {
             //     let next_track = self.queue[self.current_track_index + 1].clone();
@@ -104,14 +128,7 @@ impl Player {
         // If we were already playing, stop and play the new track
         if !self.sink.empty() {
             self.sink.clear();
-            self.sink.stop();
-            // Seems to be a race condition on clearing the sink and playing
-            // the next track, so wait to make sure it's done.
-            loop {
-                if self.sink.empty() {
-                    break;
-                }
-            }
+            self.sink.sleep_until_end();
             self.play();
         }
     }
@@ -136,20 +153,6 @@ impl Player {
             self.sink.sleep_until_end();
             self.play();
         }
-    }
-
-    pub fn current_item(&self) -> Option<QueueItem> {
-        if self.current_queue_item_index >= self.queue.len() {
-            return None;
-        }
-        Some(self.queue[self.current_queue_item_index].clone())
-    }
-
-    pub fn next_item(&self) -> Option<QueueItem> {
-        if self.current_queue_item_index + 1 >= self.queue.len() {
-            return None;
-        }
-        Some(self.queue[self.current_queue_item_index + 1].clone())
     }
 
     pub fn clear(&mut self) {
