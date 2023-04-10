@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use eframe::egui::{self, Context, ImageButton, Ui, Image};
 use eframe::epaint::{ColorImage, Color32};
 use eframe::glow::Texture;
@@ -6,6 +8,7 @@ use egui_extras::RetainedImage;
 use crate::music_library::{Release, Track};
 use crate::player::{PlayerHandle, QueueItem};
 
+use super::retained_images::RetainedImages;
 use super::scrubber::{PlotScrubber, SliderScrubber};
 
 #[derive()]
@@ -15,14 +18,16 @@ pub struct PlayerBar {
     slider_scrubber: SliderScrubber,
     favorite_icon: RetainedImage,
     favorite_icon_filled: RetainedImage,
+    retained_images: Arc<RetainedImages>,
 }
 
 impl PlayerBar {
-    pub fn new(player: PlayerHandle) -> Self {
+    pub fn new(player: PlayerHandle, retained_images: Arc<RetainedImages>) -> Self {
         Self {
             player,
             plot_scrubber: PlotScrubber::default(),
             slider_scrubber: SliderScrubber::default(),
+            retained_images: retained_images.clone(),
 
             favorite_icon: RetainedImage::from_svg_bytes("", 
                 include_bytes!("../icons/material/favorite_FILL0_wght700_GRAD0_opsz48.svg")).unwrap(),
@@ -63,12 +68,14 @@ impl PlayerBar {
 
     pub fn now_playing(&self, ctx: &Context, ui: &mut Ui) {
         if let Some(item) = self.player.read().unwrap().current_item() {
-            // // TODO track art
-            // let image = release.art.first()
+            let image = self.retained_images.retained_image(item.release.art.first().unwrap(), 120, 120);
+            ui.add(ImageButton::new(image.read().unwrap().texture_id(ctx), [120.0, 120.0]));
         }
-        let image = Self::sample_image(Color32::RED, 120, 120);
-        ui.add(ImageButton::new(
-            image.texture_id(ctx), [120.0, 120.0]));
+        else {
+            let image = Self::sample_image(Color32::RED, 120, 120);
+            ui.add(ImageButton::new(
+                image.texture_id(ctx), [120.0, 120.0]));    
+        }
     }
     
     pub fn up_next(&self, ctx: &Context, ui: &mut Ui) {
@@ -81,9 +88,17 @@ impl PlayerBar {
         //     .map_or("".to_string(), |qi| qi.release.title.clone());
         let artist_name = queue_item.as_ref()
             .map_or("".to_string(), |qi| qi.release.artist());
+        let texture_id = queue_item.as_ref()
+            .map_or(Self::sample_image(Color32::RED, 60, 60).texture_id(&ctx), |qi| {
+                let image = self.retained_images.retained_image(qi.release.art.first().unwrap(), 60, 60);
+                let texture_id = image.read().unwrap().texture_id(ctx);
+                texture_id
+            });
+               
+
         ui.vertical_centered(|ui| {
             ui.label("Up Next");
-            ui.image(Self::sample_image(Color32::DARK_GREEN, 60, 60).texture_id(ctx), [60.0, 60.0]);
+            ui.add(ImageButton::new(texture_id, [60.0, 60.0]));
             ui.label(track_title);
             ui.label(artist_name);
         });

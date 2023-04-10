@@ -23,7 +23,8 @@ use rodio::{OutputStream, Sink};
 // TODO build app for Mac: 
 //   https://www.bugsnag.com/blog/building-macos-apps-with-rust
 //   https://agmprojects.com/blog/packaging-a-game-for-windows-mac-and-linux-with-rust.html
-
+// TODO all these little caches I keep writing should probably just be converted to
+// a single "thing" like redis
 
 fn main() {
     let mut builder = env_logger::Builder::new();
@@ -41,7 +42,7 @@ fn main() {
     eframe::run_native(
         "Dimple",
         native_options,
-        Box::new(|_cc| Box::new(Dimple::new(sink))),
+        Box::new(|cc| Box::new(Dimple::new(cc, sink))),
     )
     .expect("eframe: pardon me, but no thank you");
 }

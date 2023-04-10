@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use eframe::CreationContext;
+
 use eframe::egui::{self};
 
 use rodio::Sink;
@@ -15,26 +17,19 @@ pub struct Dimple {
     _librarian: Arc<Librarian>,
     _player: PlayerHandle,
     main_screen: MainScreen,
-
-    first_frame: bool,
 }
 
 impl eframe::App for Dimple {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // TODO gross hack, see:
-        // TODO info on how to do something on first frame: https://github.com/emilk/eframe_template/blob/master/src/app.rs#L24
-        if !self.first_frame {
-            self.first_frame = true;
-            catppuccin_egui::set_theme(ctx, catppuccin_egui::FRAPPE);
-        }
-
         self.main_screen.ui(ctx);
     }
 }
 
-
 impl Dimple {
-    pub fn new(sink: Arc<Sink>) -> Self {
+    pub fn new(cc: &CreationContext, sink: Arc<Sink>) -> Self {
+        let ctx = cc.egui_ctx.clone();
+        catppuccin_egui::set_theme(&ctx, catppuccin_egui::FRAPPE);
+
         // Load settings
         let settings = Settings::default();
 
@@ -52,7 +47,7 @@ impl Dimple {
             main_screen: MainScreen::new(player.clone(), librarian.clone()),
             _librarian: librarian,
             _player: player,
-            first_frame: false,
         }
     }
 }
+

@@ -1,36 +1,36 @@
-use std::{sync::{Arc, RwLock}, collections::HashMap};
+use std::{sync::{Arc, RwLock}};
 
-use eframe::{egui::{self, Context, ImageButton, Ui}, epaint::{ColorImage, Color32}};
+use eframe::{egui::{self, Context, ImageButton, Ui}};
+
 use egui_extras::RetainedImage;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
-use threadpool::ThreadPool;
 
-use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release, Image}};
+use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release}};
 
-use super::{search_bar::SearchBar, player_bar::PlayerBar, card_grid::{CardGrid, Card}, utils};
+use super::{search_bar::SearchBar, player_bar::PlayerBar, card_grid::{CardGrid, Card}, retained_images::RetainedImages};
 
 pub struct MainScreen {
+    librarian: Arc<Librarian>,
+    player: PlayerHandle,
+    retained_images: Arc<RetainedImages>,
+
     search_bar: SearchBar,
     card_grid: CardGrid,
     player_bar: PlayerBar,
-    librarian: Arc<Librarian>,
     cards: Vec<Box<dyn Card>>,
-    retained_images: Arc<RwLock<HashMap<String, Arc<RetainedImage>>>>,
-    image_loader_pool: threadpool::ThreadPool,
-    player: PlayerHandle,
 }
 
 impl MainScreen {
     pub fn new(player: PlayerHandle, librarian: Arc<Librarian>) -> Self {
+        let retained_images = Arc::new(RetainedImages::new(librarian.clone()));
         let mut main_screen = Self {
+            librarian: librarian.clone(),
+            player: player.clone(),
+            retained_images: retained_images.clone(),
             search_bar: SearchBar::default(),
             card_grid: CardGrid::default(),
-            player_bar: PlayerBar::new(player.clone()),
-            librarian,
+            player_bar: PlayerBar::new(player.clone(), retained_images.clone()),
             cards: Vec::new(),
-            retained_images: Arc::new(RwLock::new(HashMap::new())),
-            image_loader_pool: ThreadPool::default(),
-            player,
         };
         main_screen.cards = main_screen.cards("");
         main_screen
@@ -91,44 +91,9 @@ impl MainScreen {
     fn card_from_release(&mut self, release: &Release) -> ReleaseCard {
         ReleaseCard {
             release: release.clone(),
-            image: self.get_retained_image(release.art.first().unwrap(), 
-                200, 200),
+            image: self.retained_images.retained_image(release.art.first().unwrap(), 200, 200),
             player: self.player.clone(),
         }
-    }
-
-    /// Get a thumbnail for the given Image, returning a RetainedImage.
-    /// Caches for performance. Unbounded for now.
-    /// Requests the image from the Librarian if it's not in the cache.
-    fn get_retained_image(&mut self, image: &Image, 
-        width: usize, height: usize) -> Arc<RwLock<Arc<RetainedImage>>> {
-        
-        let key = format!("{}:{}x{}", image.url, width, height);
-        
-        if let Some(image) = self.retained_images.read().unwrap().get(&key) {
-            return Arc::new(RwLock::new(image.clone()));
-        }
-
-        // TODO needs variable name cleanup and maybe turn some of this into
-        // a function, or even a class
-        let placeholder = ColorImage::new([width, height], Color32::BLACK);
-        let retained_arc = Arc::new(RetainedImage::from_color_image("", placeholder));
-        self.retained_images.write().unwrap().insert(key.clone(), retained_arc.clone());
-        let retained = Arc::new(RwLock::new(retained_arc));
-
-        let librarian_1 = self.librarian.clone();
-        let image_1 = image.clone();
-        let retained_images_1 = self.retained_images.clone();
-        let retained_1 = retained.clone();
-        self.image_loader_pool.execute(move || {
-            if let Ok(dynamic) = librarian_1.image(&image_1) {
-                let new_retained = Arc::new(utils::dynamic_to_retained("", &dynamic));
-                retained_images_1.write().unwrap().insert(key, new_retained.clone());
-                *retained_1.write().unwrap() = new_retained;
-            }
-        });
-
-        retained
     }
 }
 
