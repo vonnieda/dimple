@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use eframe::egui::{self, Context, Image, ImageButton, Ui};
+use eframe::egui::{Context, ImageButton, Ui};
 use eframe::epaint::{Color32, ColorImage};
-use eframe::glow::Texture;
+
 use egui_extras::RetainedImage;
 
-use crate::music_library::{Release, Track};
-use crate::player::{PlayerHandle, QueueItem};
+
+use crate::player::{PlayerHandle};
 
 use super::retained_images::RetainedImages;
 use super::scrubber::{PlotScrubber, SliderScrubber};
