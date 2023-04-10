@@ -1,15 +1,15 @@
-use std::{sync::{Arc, RwLock}, time::Duration};
+use std::{sync::{Arc, RwLock}, time::{Duration, Instant}};
 
 use rodio::Sink;
 
 use crate::{music_library::{Track, Release, Library}, librarian::Librarian};
 
-#[derive(Clone)]
 pub struct Player {
     sink: Arc<Sink>,
     librarian: Arc<Librarian>,
     queue: Vec<QueueItem>,
     current_queue_item_index: usize,
+    position: RwLock<f32>,
 }
 
 #[derive(Clone, Debug)]
@@ -22,11 +22,21 @@ pub type PlayerHandle = Arc<RwLock<Player>>;
 
 // TODO play next track when one finishes
 // TODO cache next track
-// TODO figure out how to speed up first play
+// TODO figure out how to speed up first play. I think this is because
+//      the method I'm using to get the track downloads the whole thing
+//      first instead of streaming from the start.
 // TODO for gapless, whenever we change tracks we load that track and
 //      the next into the sink. And maybe the previous.
 //      So then next and previous just do those things on the sound.
-        
+
+/// The player maintains an editable play queue of release-tracks. release-track
+/// because each track has to be associated with a release to get metadata
+/// about it.
+/// 
+/// The player handles fetching, caching, and playing tracks. 
+/// 
+/// The Librarian needs to be able to make the decisino to supply the track from
+/// local storage or to try to stream it. 
 impl Player {
     pub fn new(sink: Arc<Sink>, librarian: Arc<Librarian>) -> PlayerHandle {
         let player = Arc::new(RwLock::new(Self {
@@ -34,6 +44,7 @@ impl Player {
             librarian,
             queue: Vec::new(),
             current_queue_item_index: 0,
+            position: RwLock::new(0.0),
         }));
 
         // let player_1 = player.clone();
@@ -77,9 +88,6 @@ impl Player {
             return None;
         }
         Some(self.queue[self.current_queue_item_index + 1].clone())
-    }
-
-    pub fn position(&self) -> {
     }
 
     pub fn play(&mut self) {
@@ -159,6 +167,18 @@ impl Player {
         self.sink.stop();
         self.queue.clear();
         self.current_queue_item_index = 0;
+    }
+
+    pub fn duration(&self) -> f32 {
+        367.8
+    }
+
+    pub fn position(&self) -> f32 {
+        *self.position.read().unwrap()
+    }
+
+    pub fn seek(&self, position: f32) {
+        *self.position.write().unwrap() = position;
     }
 }
 

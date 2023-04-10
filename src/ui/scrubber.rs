@@ -2,6 +2,8 @@ use std::f64::consts::PI;
 
 use eframe::{egui::{Context, Ui, Slider, plot::{PlotPoints, Line, Plot}}, epaint::Color32};
 
+use crate::player::PlayerHandle;
+
 #[derive(Default)]
 pub struct PlotScrubber {
 }
@@ -54,12 +56,16 @@ pub struct SliderScrubber {
 }
 
 impl SliderScrubber {
-    pub fn ui(&self, _ctx: &Context, ui: &mut Ui) {
-        let mut my_f32: f32 = 0.33;
-        let slider = Slider::new(&mut my_f32, 0.0..=1.0)
+    pub fn ui(&self, player: PlayerHandle, _ctx: &Context, ui: &mut Ui) {
+        let position = player.read().unwrap().position();
+        let duration = player.read().unwrap().duration();
+        let mut mut_position: f32 = position;
+        let slider = Slider::new(&mut mut_position, 0.0..=duration)
             .show_value(false)
             .trailing_fill(true);
         ui.spacing_mut().slider_width = ui.available_width() * 0.8;
-        ui.add(slider);
+        if ui.add(slider).changed() {
+            player.read().unwrap().seek(mut_position);
+        }
     }
 }
