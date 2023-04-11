@@ -129,7 +129,7 @@ impl PlayerBar {
         if let Some(item) = self.player.read().unwrap().current_queue_item() {
             let image =
                 self.retained_images
-                    .retained_image(item.release.art.first().unwrap(), width, height);
+                    .get(item.release.art.first().unwrap(), width, height);
             ui.add(ImageButton::new(
                 image.read().unwrap().texture_id(ctx),
                 [width as f32, height as f32],
@@ -155,11 +155,9 @@ impl PlayerBar {
             .as_ref()
             .map_or("".to_string(), |qi| qi.release.artist());
         let texture_id = queue_item.as_ref().map_or(
-            Self::sample_image(Color32::TRANSPARENT, 60, 60).texture_id(&ctx),
+            Self::sample_image(Color32::TRANSPARENT, 80, 80).texture_id(&ctx),
             |qi| {
-                let image =
-                    self.retained_images
-                        .retained_image(qi.release.art.first().unwrap(), 80, 80);
+                let image = self.retained_images.get(qi.release.art.first().unwrap(), 80, 80);
                 let texture_id = image.read().unwrap().texture_id(ctx);
                 texture_id
             },

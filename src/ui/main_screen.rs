@@ -5,9 +5,9 @@ use eframe::{egui::{self, Context, ImageButton, Ui}};
 use egui_extras::RetainedImage;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
-use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release}};
+use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release, Artist}};
 
-use super::{search_bar::SearchBar, player_bar::PlayerBar, card_grid::{CardGrid, Card}, retained_images::RetainedImages};
+use super::{search_bar::SearchBar, player_bar::PlayerBar, card_grid::{CardGrid, Card}, retained_images::RetainedImages, release_details::ReleaseDetails};
 
 pub struct MainScreen {
     librarian: Arc<Librarian>,
@@ -18,6 +18,9 @@ pub struct MainScreen {
     card_grid: CardGrid,
     player_bar: PlayerBar,
     cards: Vec<Box<dyn Card>>,
+
+    selected_release: Option<Release>,
+    release_details: ReleaseDetails,
 }
 
 impl MainScreen {
@@ -31,6 +34,8 @@ impl MainScreen {
             card_grid: CardGrid::default(),
             player_bar: PlayerBar::new(player.clone(), retained_images.clone()),
             cards: Vec::new(),
+            selected_release: None,
+            release_details: ReleaseDetails::default(),
         };
         main_screen.cards = main_screen.cards("");
         main_screen
@@ -42,6 +47,7 @@ impl MainScreen {
             if self.search_bar.ui(ctx, ui).changed() {
                 let query = self.search_bar.query.clone();
                 self.cards = self.cards(&query);
+                self.selected_release = None;
             }
             ui.add_space(8.0);
         });
@@ -54,7 +60,19 @@ impl MainScreen {
         });
         
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
+            if let Some(release) = &self.selected_release {
+                self.release_details.ui(release, ctx, ui);
+            }   
+            else {
+                match self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui) {
+                    Some(ReleaseCardAction::ArtistSelected((artist))) => {
+                    },
+                    Some(ReleaseCardAction::ReleaseSelected((release))) => {
+                        self.selected_release = Some(release);
+                    },
+                    None => {},
+                }
+            }
         });
     }
 
@@ -91,7 +109,7 @@ impl MainScreen {
     fn card_from_release(&mut self, release: &Release) -> ReleaseCard {
         ReleaseCard {
             release: release.clone(),
-            image: self.retained_images.retained_image(release.art.first().unwrap(), 200, 200),
+            image: self.retained_images.get(release.art.first().unwrap(), 200, 200),
             player: self.player.clone(),
         }
     }
@@ -103,21 +121,31 @@ pub struct ReleaseCard {
     player: PlayerHandle,
 }
 
+pub enum ReleaseCardAction {
+    ArtistSelected(Artist),
+    ReleaseSelected(Release),
+}
+
 impl Card for ReleaseCard {
-    fn ui(&self, image_width: f32, image_height: f32, ctx: &Context, ui: &mut Ui) {
+    fn ui(&self, image_width: f32, image_height: f32, ctx: &Context, ui: &mut Ui) -> Option<ReleaseCardAction> {
+        let mut action = None;
         ui.vertical(|ui| {
             let image_button =
                 ImageButton::new(self.image.read().unwrap().texture_id(ctx), 
                     egui::vec2(image_width, image_height));
-            // If the release image is clicked, go to the release. But for now queue the release.                    
             if ui.add(image_button).clicked() {
-                self.player.write().unwrap().queue_release(&self.release);
+                // self.player.write().unwrap().queue_release(&self.release);
+                action = Some(ReleaseCardAction::ReleaseSelected(self.release.clone()));
             }
-            // If the release title is clicked, go to the release.
-            ui.link(&self.release.title).clicked();
-            // if the artist name is clicked, go to the artist.
-            ui.link(&self.release.artist()).clicked();
+            if ui.link(&self.release.title).clicked() {
+                action = Some(ReleaseCardAction::ReleaseSelected(self.release.clone()));
+            }
+            if ui.link(&self.release.artist()).clicked() {
+                // TODO still need to show all artists and let you click each.
+                action = Some(ReleaseCardAction::ArtistSelected(self.release.artists.first().unwrap().clone()));
+            }
         });
+        action
     }   
 }
 

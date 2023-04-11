@@ -29,7 +29,7 @@ impl RetainedImages {
     /// Get a thumbnail for the given Image, returning a RetainedImage.
     /// Caches for performance. Unbounded for now.
     /// Requests the image from the Librarian if it's not in the cache.
-    pub fn retained_image(&self, image: &Image, 
+    pub fn get(&self, image: &Image, 
         width: usize, height: usize) -> Arc<RwLock<Arc<RetainedImage>>> {
         
         let key = format!("{}:{}x{}", image.url, width, height);

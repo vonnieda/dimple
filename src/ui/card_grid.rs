@@ -1,8 +1,10 @@
 use eframe::egui::{self, Context, Ui, ScrollArea, Grid};
 
+use super::main_screen::{ReleaseCardAction, ReleaseCard};
+
 pub trait Card {
     fn ui(&self, image_width: f32, image_height: f32, 
-        ctx: &Context, ui: &mut Ui);
+        ctx: &Context, ui: &mut Ui) -> Option<ReleaseCardAction>;
 }
 
 #[derive(Default)]
@@ -14,7 +16,7 @@ pub struct CardGrid {
 // Oh, a hint, might also need Grid::show_rows
 impl CardGrid {
     pub fn ui(&self, cards: &[Box<dyn Card>], image_width: f32, 
-        image_height: f32, ctx: &Context, ui: &mut Ui) {
+        image_height: f32, ctx: &Context, ui: &mut Ui) -> Option<ReleaseCardAction> {
         
         let max_width = ui.available_width();
         let padding = 16.0;
@@ -33,16 +35,19 @@ impl CardGrid {
         ui.spacing_mut().scroll_handle_min_length = 24.0;
         // ui.spacing_mut().scroll_bar_outer_margin = 10.0;
         // ui.spacing_mut().scroll_bar_inner_margin = 10.0;
+        let mut action = None;
         ScrollArea::vertical()
             .auto_shrink([false, false])
-            .show(ui, move |ui| {
+            .show(ui, |ui| {
                 ui.horizontal(|ui| {
                     ui.add_space(padding);
                     Grid::new("CardGrid")
                         .spacing(egui::vec2(card_spacing, row_spacing))
                         .show(ui, |ui| {
                             for (i, card) in cards.iter().enumerate() {
-                                card.ui(image_width, image_height, ctx, ui);
+                                if let Some(a) = card.ui(image_width, image_height, ctx, ui) {
+                                    action = Some(a);
+                                }
                                 if i % num_columns == num_columns - 1 {
                                     ui.end_row();
                                 }
@@ -50,6 +55,7 @@ impl CardGrid {
                     });
                 });
             });
+            action
         }
 }
 
