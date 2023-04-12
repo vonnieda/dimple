@@ -1,4 +1,4 @@
-use eframe::epaint::ColorImage;
+use eframe::epaint::{ColorImage, Color32};
 use egui_extras::RetainedImage;
 use image::DynamicImage;
 
@@ -12,3 +12,6 @@ pub fn dynamic_to_retained(debug_name: &str, image: &DynamicImage) -> RetainedIm
     RetainedImage::from_color_image(debug_name, color)
 }
 
+pub fn sample_image(color: Color32, width: usize, height: usize) -> RetainedImage {
+    RetainedImage::from_color_image("", ColorImage::new([width, height], color))
+}

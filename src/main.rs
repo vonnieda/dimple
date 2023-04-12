@@ -6,20 +6,11 @@ use rodio::{OutputStream, Sink};
 
 // TODO tile size slider
 // TODO check out bliss and bliss-rs https://github.com/Polochon-street/bliss-rs for smart playlist generation
-// TODO how to load a custom font and use it globally https://github.com/catppuccin/egui/blob/main/examples/todo.rs#L77
 // TODO escape should clear search
 // TODO search is sensitive to word order, i.e. infected shawarma vs. shawarma 
 //      infected
-// TODO Dashboard makes sense actually, and in fact, I can have as wild a tree
-//      as I want as long as:
-// 1. Clicking anything updates the search bar with the terms needed to get to
-//    where we are.
-// 2. Hitting escape clears search.
-// Dashboard can contain "Artists", "Albums", "For You", "Today In", "Genres",
-// etc. A bunch of derived stuff. And then scrolling down can include favorites
-// and recents and such.
-// TODO Clicking on something should NEVER suddenly play that thing and clear
-// the queue. The queue is precious.
+// TODO dashboard - card grid with auto generated moods, playlists, etc.
+// TODO never clear the queue in a single action, such as clicking a track.
 // TODO build app for Mac: 
 //   https://www.bugsnag.com/blog/building-macos-apps-with-rust
 //   https://agmprojects.com/blog/packaging-a-game-for-windows-mac-and-linux-with-rust.html

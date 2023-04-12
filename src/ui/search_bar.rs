@@ -11,8 +11,7 @@ impl SearchBar {
             ui.add(
                 TextEdit::singleline(&mut self.query)
                     .hint_text("What sounds good?")
-                    // TODO how do I use the theme font? Or the default, more specifically.
-                    .font(FontId::new(28.0, FontFamily::Proportional))
+                    .font(FontId::new(32.0, FontFamily::Proportional))
                     .desired_width(f32::INFINITY),
             )
         }).inner

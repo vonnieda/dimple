@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use eframe::egui::{Context, ImageButton, Ui, Layout};
 use eframe::emath::Align;
-use eframe::epaint::{Color32, ColorImage};
+use eframe::epaint::{Color32, ColorImage, FontId};
 
 use egui_extras::RetainedImage;
 
@@ -10,6 +10,7 @@ use crate::player::{PlayerHandle};
 
 use super::retained_images::RetainedImages;
 use super::scrubber::{PlotScrubber, SliderScrubber};
+use super::utils;
 
 #[derive()]
 pub struct PlayerBar {
@@ -99,13 +100,18 @@ impl PlayerBar {
                 .as_ref()
                 .map_or("".to_string(), |qi| qi.release.artist());
 
-            self.fav_icon_label(
-                &self.track_icon,
-                &track_title,
-                false,
-                ctx,
-                ui,
-            );
+            ui.scope(|ui| {
+                ui.visuals_mut().override_text_color = Some(Color32::from_gray(0xE7));
+                ui.visuals_mut().hyperlink_color = Color32::from_gray(0xE7);
+                ui.style_mut().override_font_id = Some(FontId::proportional(15.0));
+                self.fav_icon_label(
+                    &self.track_icon,
+                    &track_title,
+                    false,
+                    ctx,
+                    ui,
+                );
+            });
             self.fav_icon_label(
                 &self.release_icon,
                 &release_title,
@@ -135,7 +141,7 @@ impl PlayerBar {
                 [width as f32, height as f32],
             ));
         } else {
-            let image = Self::sample_image(Color32::TRANSPARENT, width, height);
+            let image = utils::sample_image(Color32::TRANSPARENT, width, height);
             ui.add(ImageButton::new(image.texture_id(ctx), [width as f32, height as f32]));
         }
     }
@@ -155,7 +161,7 @@ impl PlayerBar {
             .as_ref()
             .map_or("".to_string(), |qi| qi.release.artist());
         let texture_id = queue_item.as_ref().map_or(
-            Self::sample_image(Color32::TRANSPARENT, 80, 80).texture_id(&ctx),
+            utils::sample_image(Color32::TRANSPARENT, 80, 80).texture_id(&ctx),
             |qi| {
                 let image = self.retained_images.get(qi.release.art.first().unwrap(), 80, 80);
                 let texture_id = image.read().unwrap().texture_id(ctx);
@@ -180,7 +186,7 @@ impl PlayerBar {
         ui: &mut Ui,
     ) {
         ui.horizontal(|ui| {
-            ui.image(icon.texture_id(ctx), [20.0, 20.0]);
+            ui.image(icon.texture_id(ctx), [18.0, 18.0]);
             ui.label(label);
         });
     }
@@ -225,9 +231,5 @@ impl PlayerBar {
                 ));
             });
         });
-    }
-
-    pub fn sample_image(color: Color32, width: usize, height: usize) -> RetainedImage {
-        RetainedImage::from_color_image("", ColorImage::new([width, height], color))
     }
 }

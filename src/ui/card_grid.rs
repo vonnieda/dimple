@@ -1,10 +1,19 @@
 use eframe::egui::{self, Context, Ui, ScrollArea, Grid};
 
-use super::main_screen::{ReleaseCardAction, ReleaseCard};
+use crate::music_library::{Artist, Release, Genre, Playlist, Track};
 
 pub trait Card {
     fn ui(&self, image_width: f32, image_height: f32, 
-        ctx: &Context, ui: &mut Ui) -> Option<ReleaseCardAction>;
+        ctx: &Context, ui: &mut Ui) -> Option<LibraryItem>;
+}
+
+#[derive(Clone)]
+pub enum LibraryItem {
+    Artist(Artist),
+    Release(Release),
+    Genre(Genre),
+    Playlist(Playlist),
+    Track(Track),
 }
 
 #[derive(Default)]
@@ -16,7 +25,7 @@ pub struct CardGrid {
 // Oh, a hint, might also need Grid::show_rows
 impl CardGrid {
     pub fn ui(&self, cards: &[Box<dyn Card>], image_width: f32, 
-        image_height: f32, ctx: &Context, ui: &mut Ui) -> Option<ReleaseCardAction> {
+        image_height: f32, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
         
         let max_width = ui.available_width();
         let padding = 16.0;

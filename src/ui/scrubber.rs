@@ -20,7 +20,7 @@ impl PlotScrubber {
             .color(Color32::DARK_GRAY)
         ;
         Plot::new("my_plot")
-            .height(32.0)
+            .height(20.0)
             // .width(ui.available_width() * 0.8)
             .show_x(true)
             .show_y(false)

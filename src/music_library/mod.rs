@@ -76,6 +76,13 @@ pub struct Genre {
 }
 
 #[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Playlist {
+    pub url: String,
+    pub name: String,
+    pub art: Vec<Image>,
+}
+
+#[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Image {
     pub url: String,
 }
@@ -85,5 +92,39 @@ pub struct Image {
 pub enum LibraryConfig {
     Navidrome(NavidromeConfig),
     Local(LocalConfig),
+}
+
+pub trait HasArtwork {
+    fn art(&self) -> Vec<Image>;
+}
+
+impl HasArtwork for Release {
+    fn art(&self) -> Vec<Image> {
+        return self.art.clone();
+    }
+}
+
+impl HasArtwork for Artist {
+    fn art(&self) -> Vec<Image> {
+        return self.art.clone();
+    }
+}
+
+impl HasArtwork for Genre {
+    fn art(&self) -> Vec<Image> {
+        return self.art.clone();
+    }
+}
+
+impl HasArtwork for Playlist {
+    fn art(&self) -> Vec<Image> {
+        return self.art.clone();
+    }
+}
+
+impl HasArtwork for Track {
+    fn art(&self) -> Vec<Image> {
+        return self.art.clone();
+    }
 }
 

@@ -1,13 +1,13 @@
 use std::{sync::{Arc, RwLock}};
 
-use eframe::{egui::{self, Context, ImageButton, Ui}};
+use eframe::{egui::{self, Context, ImageButton, Ui, Link}, epaint::{Color32, FontId}};
 
 use egui_extras::RetainedImage;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
-use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release, Artist}};
+use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release, Artist, Genre, Playlist}};
 
-use super::{search_bar::SearchBar, player_bar::PlayerBar, card_grid::{CardGrid, Card}, retained_images::RetainedImages, release_details::ReleaseDetails};
+use super::{search_bar::SearchBar, player_bar::PlayerBar, card_grid::{CardGrid, Card, LibraryItem}, retained_images::RetainedImages, item_details::ItemDetails};
 
 pub struct MainScreen {
     librarian: Arc<Librarian>,
@@ -19,9 +19,16 @@ pub struct MainScreen {
     player_bar: PlayerBar,
     cards: Vec<Box<dyn Card>>,
 
-    selected_release: Option<Release>,
-    release_details: ReleaseDetails,
+    selected_item: Option<LibraryItem>,
+    item_details: ItemDetails,
 }
+
+// Artist Cards
+// Genre Cards
+// Playlist Cards
+// TODO Release Details
+// TODO Artist Details
+// TODO Genre Details
 
 impl MainScreen {
     pub fn new(player: PlayerHandle, librarian: Arc<Librarian>) -> Self {
@@ -34,20 +41,23 @@ impl MainScreen {
             card_grid: CardGrid::default(),
             player_bar: PlayerBar::new(player.clone(), retained_images.clone()),
             cards: Vec::new(),
-            selected_release: None,
-            release_details: ReleaseDetails::default(),
+            selected_item: None,
+            item_details: ItemDetails::new(retained_images.clone()),
         };
         main_screen.cards = main_screen.cards("");
         main_screen
     }
 
     pub fn ui(&mut self, ctx: &Context) {
+        // egui::Window::new("Style").show(ctx, |ui| {
+        //     ctx.style_ui(ui);
+        // });
         egui::TopBottomPanel::top("search_bar").show(ctx, |ui| {
             ui.add_space(8.0);
             if self.search_bar.ui(ctx, ui).changed() {
                 let query = self.search_bar.query.clone();
                 self.cards = self.cards(&query);
-                self.selected_release = None;
+                self.selected_item = None;
             }
             ui.add_space(8.0);
         });
@@ -60,17 +70,13 @@ impl MainScreen {
         });
         
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(release) = &self.selected_release {
-                self.release_details.ui(release, ctx, ui);
-            }   
+            if let Some(item) = &self.selected_item {
+                self.item_details.ui(item.clone(), ctx, ui);
+            }
             else {
-                match self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui) {
-                    Some(ReleaseCardAction::ArtistSelected((artist))) => {
-                    },
-                    Some(ReleaseCardAction::ReleaseSelected((release))) => {
-                        self.selected_release = Some(release);
-                    },
-                    None => {},
+                let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
+                if action.is_some() {
+                    self.selected_item = action;
                 }
             }
         });
@@ -121,29 +127,37 @@ pub struct ReleaseCard {
     player: PlayerHandle,
 }
 
-pub enum ReleaseCardAction {
-    ArtistSelected(Artist),
-    ReleaseSelected(Release),
-}
-
 impl Card for ReleaseCard {
-    fn ui(&self, image_width: f32, image_height: f32, ctx: &Context, ui: &mut Ui) -> Option<ReleaseCardAction> {
+    fn ui(&self, image_width: f32, image_height: f32, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
         let mut action = None;
         ui.vertical(|ui| {
             let image_button =
                 ImageButton::new(self.image.read().unwrap().texture_id(ctx), 
                     egui::vec2(image_width, image_height));
             if ui.add(image_button).clicked() {
-                // self.player.write().unwrap().queue_release(&self.release);
-                action = Some(ReleaseCardAction::ReleaseSelected(self.release.clone()));
+                action = Some(LibraryItem::Release(self.release.clone()));
             }
-            if ui.link(&self.release.title).clicked() {
-                action = Some(ReleaseCardAction::ReleaseSelected(self.release.clone()));
-            }
-            if ui.link(&self.release.artist()).clicked() {
-                // TODO still need to show all artists and let you click each.
-                action = Some(ReleaseCardAction::ArtistSelected(self.release.artists.first().unwrap().clone()));
-            }
+            ui.scope(|ui| {
+                ui.visuals_mut().override_text_color = Some(Color32::from_gray(0xE7));
+                ui.visuals_mut().hyperlink_color = Color32::from_gray(0xE7);
+                ui.style_mut().override_font_id = Some(FontId::proportional(15.0));
+                if ui.link(&self.release.title).clicked() {
+                    action = Some(LibraryItem::Release(self.release.clone()));
+                }
+            });
+            // Show each artist as a clickable link separated by commas
+            ui.horizontal_wrapped(|ui| {
+                ui.spacing_mut().item_spacing = [0.0, 0.0].into();
+                let len = self.release.artists.len();
+                for (i, artist) in self.release.artists.iter().enumerate() {
+                    if ui.link(&self.release.artist()).clicked() {
+                        action = Some(LibraryItem::Artist(artist.clone()));
+                    }
+                    if i < len - 1 {
+                        ui.label(",");
+                    }
+                }
+            });
         });
         action
     }   

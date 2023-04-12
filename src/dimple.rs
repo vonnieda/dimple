@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
+use catppuccin_egui::set_theme;
 use eframe::CreationContext;
 
-use eframe::egui::{self};
+use eframe::egui::{self, Context, SidePanel, FontDefinitions, FontData, Visuals, Style};
 
+use eframe::epaint::{FontFamily, Color32, FontId};
 use rodio::Sink;
 
 use crate::librarian::Librarian;
@@ -28,7 +30,7 @@ impl eframe::App for Dimple {
 impl Dimple {
     pub fn new(cc: &CreationContext, sink: Arc<Sink>) -> Self {
         let ctx = cc.egui_ctx.clone();
-        catppuccin_egui::set_theme(&ctx, catppuccin_egui::FRAPPE);
+        Self::set_theme(&ctx);
 
         // Load settings
         let settings = Settings::default();
@@ -48,6 +50,43 @@ impl Dimple {
             _librarian: librarian,
             _player: player,
         }
+    }
+
+    pub fn set_theme(ctx: &Context) {
+        // catppuccin_egui::set_theme(&ctx, catppuccin_egui::FRAPPE);
+
+        let mut fonts = FontDefinitions::default();
+        fonts.font_data.insert("Roboto Black".to_owned(),
+           FontData::from_static(include_bytes!("fonts/Roboto/Roboto-Black.ttf")));
+        fonts.font_data.insert("Roboto Bold".to_owned(),
+           FontData::from_static(include_bytes!("fonts/Roboto/Roboto-Bold.ttf")));
+        fonts.font_data.insert("Roboto Italic".to_owned(),
+            FontData::from_static(include_bytes!("fonts/Roboto/Roboto-Italic.ttf")));
+        fonts.font_data.insert("Roboto Light".to_owned(),
+           FontData::from_static(include_bytes!("fonts/Roboto/Roboto-Light.ttf")));
+        fonts.font_data.insert("Roboto Medium".to_owned(),
+           FontData::from_static(include_bytes!("fonts/Roboto/Roboto-Medium.ttf")));
+        fonts.font_data.insert("Roboto Regular".to_owned(),
+           FontData::from_static(include_bytes!("fonts/Roboto/Roboto-Regular.ttf")));
+        fonts.font_data.insert("Roboto Thin".to_owned(),
+           FontData::from_static(include_bytes!("fonts/Roboto/Roboto-Thin.ttf")));
+        
+        // Put my font first (highest priority):
+        fonts.families.get_mut(&FontFamily::Proportional).unwrap()
+            .insert(0, "Roboto Regular".to_owned());
+        
+        ctx.set_fonts(fonts);      
+
+        ctx.set_style(Style {
+            override_font_id: Some(FontId::proportional(14.0)),
+            ..Default::default()
+        });
+
+        ctx.set_visuals(Visuals {
+            override_text_color: Some(Color32::from_gray(0xAF)),
+            hyperlink_color: Color32::from_gray(0xAF),
+            ..Default::default()
+        });
     }
 }
 
