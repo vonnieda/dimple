@@ -7,14 +7,17 @@ pub struct SearchBar {
 
 impl SearchBar {
     pub fn ui(&mut self, _ctx: &Context, ui: &mut Ui) -> Response {
-        ui.horizontal(move |ui| {
-            ui.add_space(16.0);
-            ui.add(
-                TextEdit::singleline(&mut self.query)
-                    .hint_text("What sounds good?")
-                    .desired_width(f32::INFINITY)
-                    .font(TextStyle::Heading),
-            )
+        ui.vertical(|ui| {
+            let resp = ui.horizontal(move |ui| {
+                let resp = ui.add(
+                    TextEdit::singleline(&mut self.query)
+                        .hint_text("What sounds good?")
+                        .desired_width(f32::INFINITY)
+                        .font(TextStyle::Heading),
+                );
+                resp
+            }).inner;
+            resp
         }).inner
     }
 }

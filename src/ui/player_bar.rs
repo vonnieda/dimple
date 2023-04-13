@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use eframe::egui::{Context, ImageButton, Ui, Layout};
+use eframe::egui::{Context, ImageButton, Ui, Layout, Frame, Margin};
 use eframe::emath::Align;
 use eframe::epaint::{Color32, ColorImage, FontId, Stroke, Rect};
 
@@ -28,11 +28,13 @@ pub struct PlayerBar {
     pause_icon: RetainedImage,    
     previous_icon: RetainedImage,    
     next_icon: RetainedImage,    
-
-    up_next_width: f32,
 }
 
 impl PlayerBar {
+    const now_playing_thumbnail_size: f32 = 140.0;
+    const up_next_width: f32 = 100.0;
+    const up_next_thumbnail_size: f32 = 80.0;
+
     pub fn new(player: PlayerHandle, retained_images: Arc<RetainedImages>) -> Self {
         Self {
             player,
@@ -43,12 +45,10 @@ impl PlayerBar {
             artist_icon: Self::svg_icon(include_bytes!("../icons/material/group_FILL0_wght400_GRAD0_opsz48.svg")),
             release_icon: Self::svg_icon(include_bytes!("../icons/material/album_FILL0_wght400_GRAD0_opsz48.svg")),
             track_icon: Self::svg_icon(include_bytes!("../icons/material/music_note_FILL0_wght400_GRAD0_opsz48.svg")),
-            play_icon: Self::svg_icon(include_bytes!("../icons/material/play_circle_FILL0_wght400_GRAD0_opsz48.svg")),
-            pause_icon: Self::svg_icon(include_bytes!("../icons/material/pause_circle_FILL0_wght400_GRAD0_opsz48.svg")),
-            next_icon: Self::svg_icon(include_bytes!("../icons/material/skip_next_FILL0_wght400_GRAD0_opsz48.svg")),
-            previous_icon: Self::svg_icon(include_bytes!("../icons/material/skip_previous_FILL0_wght400_GRAD0_opsz48.svg")),
-
-            up_next_width: 88.0,
+            play_icon: Self::svg_icon(include_bytes!("../icons/material/play_circle_FILL1_wght400_GRAD0_opsz48.svg")),
+            pause_icon: Self::svg_icon(include_bytes!("../icons/material/pause_FILL1_wght400_GRAD0_opsz48.svg")),
+            next_icon: Self::svg_icon(include_bytes!("../icons/material/skip_next_FILL1_wght400_GRAD0_opsz48.svg")),
+            previous_icon: Self::svg_icon(include_bytes!("../icons/material/skip_previous_FILL1_wght400_GRAD0_opsz48.svg")),
         }
     }
 
@@ -57,33 +57,31 @@ impl PlayerBar {
     }
 
     pub fn ui(&mut self, ctx: &Context, ui: &mut Ui) {
-        ui.horizontal_centered(|ui| {
-            ui.add_space(16.0);
-            ui.vertical(|ui| {
-                ui.add_space(16.0);
-                ui.horizontal(|ui| {
-                    self.now_playing(ctx, ui);
-                    ui.add_space(4.0);
-                    ui.vertical(|ui| {
-                        ui.set_max_width(ui.available_width() 
-                            - self.up_next_width 
-                            - ui.spacing().item_spacing.x 
-                            - 16.0);
+        ui.horizontal_top(|ui| {
+            Frame::none().inner_margin(Margin {
+                top: 8.0,
+                left: 0.0,
+                bottom: 0.0,
+                right: 0.0,
+            }).show(ui, |ui| {
+                self.now_playing(ctx, ui);
+                ui.vertical(|ui| {
+                    ui.set_width(ui.available_width() - Self::up_next_width);
+                    ui.horizontal_top(|ui| {
                         self.track_info(ctx, ui);
-                        ui.scope(|ui| {
-                            ui.spacing_mut().item_spacing = [0.0, 0.0].into();
-                            self.plot_scrubber.ui(ctx, ui);
-                            self.slider_scrubber.ui(self.player.clone(), ctx, ui);
+                        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                            self.play_controls(ctx, ui);
                         });
-                        self.timers(ctx, ui);
                     });
-                    ui.add_space(4.0);
-                    self.up_next_width = ui.scope(|ui| {
-                        self.up_next(ctx, ui);
-                    }).response.rect.width();
+                    ui.scope(|ui| {
+                        ui.spacing_mut().item_spacing = [0.0, -3.0].into();
+                        self.plot_scrubber.ui(ctx, ui);
+                        self.slider_scrubber.ui(self.player.clone(), ctx, ui);
+                    });
+                    self.timers(ctx, ui);
                 });
             });
-            ui.add_space(16.0);
+            self.up_next(ctx, ui);
         });
     }
 
@@ -96,13 +94,13 @@ impl PlayerBar {
                 .unwrap_or(None);
             let track_title = queue_item
                 .as_ref()
-                .map_or("Track Title".to_string(), |qi| qi.track.title.clone());
+                .map_or("".to_string(), |qi| qi.track.title.clone());
             let release_title = queue_item
                 .as_ref()
-                .map_or("Release Title".to_string(), |qi| qi.release.title.clone());
+                .map_or("".to_string(), |qi| qi.release.title.clone());
             let artist_name = queue_item
                 .as_ref()
-                .map_or("Artist Name".to_string(), |qi| qi.release.artist());
+                .map_or("".to_string(), |qi| qi.release.artist());
 
             self.fav_icon_label(
                 &self.track_icon,
@@ -129,7 +127,7 @@ impl PlayerBar {
     }
 
     pub fn now_playing(&self, ctx: &Context, ui: &mut Ui) {
-        let thumbnail_size = 120;
+        let thumbnail_size: usize = Self::now_playing_thumbnail_size as usize;
         if let Some(item) = self.player.read().unwrap().current_queue_item() {
             let image =
                 self.retained_images
@@ -145,7 +143,7 @@ impl PlayerBar {
     }
 
     pub fn up_next(&self, ctx: &Context, ui: &mut Ui) {
-        let thumbnail_size = 58;
+        let thumbnail_size: usize = Self::up_next_thumbnail_size as usize;
         let queue_item = self
             .player
             .read()
@@ -168,11 +166,12 @@ impl PlayerBar {
             },
         );
 
-        ui.vertical(|ui| {
-            ui.label("Up Next");
+        ui.vertical_centered(|ui| {
+            ui.set_width(Self::up_next_width);
+            ui.small("Up Next");
             ui.add(ImageButton::new(texture_id, [thumbnail_size as f32, thumbnail_size as f32]));
-            ui.label(track_title);
-            ui.label(artist_name);
+            ui.label(Theme::small_n_bold(&track_title));
+            ui.small(artist_name);
         });
     }
 
@@ -192,17 +191,19 @@ impl PlayerBar {
 
     pub fn play_controls(&self, ctx: &Context, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            if ui.button("Previous").clicked() {
-                self.player.write().unwrap().previous();
+            let previous_button = ImageButton::new(self.previous_icon.texture_id(ctx), [42.0, 42.0]).frame(false);
+            let play_pause_button = ImageButton::new(self.play_icon.texture_id(ctx), [48.0, 48.0]).frame(false);
+            let next_button = ImageButton::new(self.next_icon.texture_id(ctx), [42.0, 42.0]).frame(false);
+            // The button order is inverted because the parent UI is right to 
+            // left so that the player controls are right justified. Don't @ me.
+            if ui.add(next_button).clicked() {
+                self.player.write().unwrap().next();
             }
-            if ui.button("Play").clicked() {
+            if ui.add(play_pause_button).clicked() {
                 self.player.write().unwrap().play();
             }
-            if ui.button("Pause").clicked() {
-                self.player.read().unwrap().pause();
-            }
-            if ui.button("Next").clicked() {
-                self.player.write().unwrap().next();
+            if ui.add(previous_button).clicked() {
+                self.player.write().unwrap().previous();
             }
         });
     }

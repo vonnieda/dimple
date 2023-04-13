@@ -1,11 +1,11 @@
 use std::{sync::{Arc, RwLock}};
 
-use eframe::{egui::{self, Context, ImageButton, Ui, Link, RichText, LayerId, Id, TextStyle}, epaint::{Color32, FontId, Mesh, Shape, Rect, Stroke}};
+use eframe::{egui::{self, Context, ImageButton, Ui, LayerId, Frame, Margin}, epaint::{Color32, Mesh, Shape, Rect, Stroke}};
 
 use egui_extras::RetainedImage;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
-use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release, Artist, Genre, Playlist}, dimple::Theme};
+use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release}, dimple::Theme};
 
 use super::{search_bar::SearchBar, player_bar::PlayerBar, card_grid::{CardGrid, Card, LibraryItem}, retained_images::RetainedImages, item_details::ItemDetails};
 
@@ -78,20 +78,27 @@ impl MainScreen {
     pub fn ui(&mut self, ctx: &Context) {        
         self.gradient_background(ctx);
 
-        egui::Window::new("Style").show(ctx, |ui| {
-            ctx.style_ui(ui);
-        });
+        // egui::Window::new("Style").show(ctx, |ui| {
+        //     ctx.style_ui(ui);
+        // });
 
         // ctx.set_debug_on_hover(true);
 
         egui::TopBottomPanel::top("search_bar").show(ctx, |ui| {
-            ui.add_space(16.0);
-            if self.search_bar.ui(ctx, ui).changed() {
-                let query = self.search_bar.query.clone();
-                self.cards = self.cards(&query);
-                self.selected_item = None;
-            }
-            ui.add_space(8.0);
+            Frame::none()
+                .inner_margin(Margin {
+                    left: 8.0,
+                    right: 0.0,
+                    top: 16.0,
+                    bottom: 0.0,
+                })
+                .show(ui, |ui| {
+                if self.search_bar.ui(ctx, ui).changed() {
+                    let query = self.search_bar.query.clone();
+                    self.cards = self.cards(&query);
+                    self.selected_item = None;
+                }
+            });
         });
         
         let panel = egui::TopBottomPanel::bottom("player").show(ctx, |ui| {
@@ -100,23 +107,36 @@ impl MainScreen {
                 painter.rect_filled(last_rect, 0.0, Theme::player_background);
                 painter.line_segment([last_rect.left_top(), last_rect.right_top()], Stroke::new(1.0, Color32::from_gray(0xc3)));
             }
-            ui.vertical(|ui| {
+            Frame::none().inner_margin(Margin {
+                left: 8.0,
+                right: 8.0,
+                top: 2.0,
+                bottom: 10.0,
+            }).show(ui, |ui| {
                 self.player_bar.ui(ctx, ui);
-                ui.add_space(8.0);
             });
         });
         self.last_rect = Some(panel.response.rect);
         
         egui::CentralPanel::default().show(ctx, |ui| {
-            if let Some(item) = &self.selected_item {
-                self.item_details.ui(item.clone(), ctx, ui);
-            }
-            else {
-                let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
-                if action.is_some() {
-                    self.selected_item = action;
-                }
-            }
+            Frame::none()
+                .inner_margin(Margin {
+                    left: 8.0,
+                    right: 8.0,
+                    top: 8.0,
+                    bottom: 8.0,
+                })
+                .show(ui, |ui| {
+                    if let Some(item) = &self.selected_item {
+                        self.item_details.ui(item.clone(), ctx, ui);
+                    }
+                    else {
+                        let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
+                        if action.is_some() {
+                            self.selected_item = action;
+                        }
+                    }
+                });
         });
     }
 
@@ -172,7 +192,6 @@ impl Card for ReleaseCard {
     fn ui(&self, image_width: f32, image_height: f32, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
         let mut action = None;
         ui.vertical(|ui| {
-            ui.spacing_mut().button_padding[0] = 2.0;
             let image_button =
                 ImageButton::new(self.image.read().unwrap().texture_id(ctx), 
                     egui::vec2(image_width, image_height));

@@ -4,17 +4,17 @@
    viewBox="0 96 960 960"
    width="48"
    version="1.1"
-   id="svg509"
-   sodipodi:docname="skip_previous_FILL0_wght400_GRAD0_opsz48.svg"
+   id="svg134"
+   sodipodi:docname="skip_next_FILL1_wght400_GRAD0_opsz48.svg"
    inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
   <defs
-     id="defs513" />
+     id="defs138" />
   <sodipodi:namedview
-     id="namedview511"
+     id="namedview136"
      pagecolor="#ffffff"
      bordercolor="#000000"
      borderopacity="0.25"
@@ -28,12 +28,12 @@
      inkscape:cy="24.031746"
      inkscape:window-width="1250"
      inkscape:window-height="847"
-     inkscape:window-x="2365"
-     inkscape:window-y="124"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
      inkscape:window-maximized="0"
-     inkscape:current-layer="svg509" />
+     inkscape:current-layer="svg134" />
   <path
-     d="M220 816V336h60v480h-60Zm520 0L394 576l346-240v480Zm-60-240Zm0 125V451L499 576l181 125Z"
-     id="path507"
-     style="fill:#f2f2f2" />
+     d="M680 816V336h60v480h-60Zm-460 0V336l346 240-346 240Z"
+     id="path132"
+     style="fill:#ffffff" />
 </svg>

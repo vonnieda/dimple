@@ -16,6 +16,7 @@ use rodio::{OutputStream, Sink};
 //   https://agmprojects.com/blog/packaging-a-game-for-windows-mac-and-linux-with-rust.html
 // TODO all these little caches I keep writing should probably just be converted to
 // a single "thing" like redis
+// TODO figure out a better way to render the svgs - they look like trash
 
 fn main() {
     let mut builder = env_logger::Builder::new();

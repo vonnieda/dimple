@@ -79,6 +79,10 @@ impl Theme {
         RichText::new(str).text_style(TextStyle::Name("Button Bold".into()))
     }
 
+    pub fn small_n_bold(str: &str) -> RichText {
+        RichText::new(str).text_style(TextStyle::Name("Small Bold".into()))
+    }
+
     pub fn set(ctx: &Context) {
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert("Commissioner-Regular".to_owned(),
@@ -105,6 +109,7 @@ impl Theme {
                 (TextStyle::Body, FontId::new(14.0, Proportional)),
                 (TextStyle::Name("Body Bold".into()), FontId::new(14.0, FontFamily::Name("Bold".into()))),
                 (TextStyle::Small, FontId::new(12.0, Proportional)),
+                (TextStyle::Name("Small Bold".into()), FontId::new(12.0, FontFamily::Name("Bold".into()))),
 
                 (TextStyle::Monospace, FontId::new(14.0, Monospace)),
             ].into(),
