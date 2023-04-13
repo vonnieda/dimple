@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use eframe::egui::{Context, ImageButton, Ui, Layout};
 use eframe::emath::Align;
-use eframe::epaint::{Color32, ColorImage, FontId};
+use eframe::epaint::{Color32, ColorImage, FontId, Stroke, Rect};
 
 use egui_extras::RetainedImage;
 
+use crate::dimple::Theme;
 use crate::player::{PlayerHandle};
 
 use super::retained_images::RetainedImages;
@@ -69,8 +70,11 @@ impl PlayerBar {
                             - ui.spacing().item_spacing.x 
                             - 16.0);
                         self.track_info(ctx, ui);
-                        self.plot_scrubber.ui(ctx, ui);
-                        self.slider_scrubber.ui(self.player.clone(), ctx, ui);
+                        ui.scope(|ui| {
+                            ui.spacing_mut().item_spacing = [0.0, 0.0].into();
+                            self.plot_scrubber.ui(ctx, ui);
+                            self.slider_scrubber.ui(self.player.clone(), ctx, ui);
+                        });
                         self.timers(ctx, ui);
                     });
                     ui.add_space(4.0);
@@ -92,26 +96,21 @@ impl PlayerBar {
                 .unwrap_or(None);
             let track_title = queue_item
                 .as_ref()
-                .map_or("".to_string(), |qi| qi.track.title.clone());
+                .map_or("Track Title".to_string(), |qi| qi.track.title.clone());
             let release_title = queue_item
                 .as_ref()
-                .map_or("".to_string(), |qi| qi.release.title.clone());
+                .map_or("Release Title".to_string(), |qi| qi.release.title.clone());
             let artist_name = queue_item
                 .as_ref()
-                .map_or("".to_string(), |qi| qi.release.artist());
+                .map_or("Artist Name".to_string(), |qi| qi.release.artist());
 
-            ui.scope(|ui| {
-                ui.visuals_mut().override_text_color = Some(Color32::from_gray(0xE7));
-                ui.visuals_mut().hyperlink_color = Color32::from_gray(0xE7);
-                ui.style_mut().override_font_id = Some(FontId::proportional(15.0));
-                self.fav_icon_label(
-                    &self.track_icon,
-                    &track_title,
-                    false,
-                    ctx,
-                    ui,
-                );
-            });
+            self.fav_icon_label(
+                &self.track_icon,
+                &track_title,
+                false,
+                ctx,
+                ui,
+            );
             self.fav_icon_label(
                 &self.release_icon,
                 &release_title,
@@ -130,23 +129,23 @@ impl PlayerBar {
     }
 
     pub fn now_playing(&self, ctx: &Context, ui: &mut Ui) {
-        let width = 132;
-        let height = 132;
+        let thumbnail_size = 120;
         if let Some(item) = self.player.read().unwrap().current_queue_item() {
             let image =
                 self.retained_images
-                    .get(item.release.art.first().unwrap(), width, height);
+                    .get(item.release.art.first().unwrap(), thumbnail_size, thumbnail_size);
             ui.add(ImageButton::new(
                 image.read().unwrap().texture_id(ctx),
-                [width as f32, height as f32],
+                [thumbnail_size as f32, thumbnail_size as f32],
             ));
         } else {
-            let image = utils::sample_image(Color32::TRANSPARENT, width, height);
-            ui.add(ImageButton::new(image.texture_id(ctx), [width as f32, height as f32]));
+            let image = utils::sample_image(Color32::TRANSPARENT, thumbnail_size, thumbnail_size);
+            ui.add(ImageButton::new(image.texture_id(ctx), [thumbnail_size as f32, thumbnail_size as f32]));
         }
     }
 
     pub fn up_next(&self, ctx: &Context, ui: &mut Ui) {
+        let thumbnail_size = 58;
         let queue_item = self
             .player
             .read()
@@ -154,16 +153,16 @@ impl PlayerBar {
             .unwrap_or(None);
         let track_title = queue_item
             .as_ref()
-            .map_or("".to_string(), |qi| qi.track.title.clone());
+            .map_or("Track Title".to_string(), |qi| qi.track.title.clone());
         // let release_title = queue_item.as_ref()
         //     .map_or("".to_string(), |qi| qi.release.title.clone());
         let artist_name = queue_item
             .as_ref()
-            .map_or("".to_string(), |qi| qi.release.artist());
+            .map_or("Artist Name".to_string(), |qi| qi.release.artist());
         let texture_id = queue_item.as_ref().map_or(
-            utils::sample_image(Color32::TRANSPARENT, 80, 80).texture_id(&ctx),
+            utils::sample_image(Color32::TRANSPARENT, thumbnail_size, thumbnail_size).texture_id(&ctx),
             |qi| {
-                let image = self.retained_images.get(qi.release.art.first().unwrap(), 80, 80);
+                let image = self.retained_images.get(qi.release.art.first().unwrap(), thumbnail_size, thumbnail_size);
                 let texture_id = image.read().unwrap().texture_id(ctx);
                 texture_id
             },
@@ -171,7 +170,7 @@ impl PlayerBar {
 
         ui.vertical(|ui| {
             ui.label("Up Next");
-            ui.add(ImageButton::new(texture_id, [80.0, 80.0]));
+            ui.add(ImageButton::new(texture_id, [thumbnail_size as f32, thumbnail_size as f32]));
             ui.label(track_title);
             ui.label(artist_name);
         });
@@ -186,8 +185,8 @@ impl PlayerBar {
         ui: &mut Ui,
     ) {
         ui.horizontal(|ui| {
-            ui.image(icon.texture_id(ctx), [18.0, 18.0]);
-            ui.label(label);
+            ui.image(icon.texture_id(ctx), [21.0, 21.0]);
+            ui.label(Theme::bigger(label));
         });
     }
 
@@ -220,12 +219,12 @@ impl PlayerBar {
         let position = Self::split_seconds(self.player.read().unwrap().position());
         let duration = Self::split_seconds(self.player.read().unwrap().duration());
         ui.horizontal(|ui| {
-            ui.label(format!(
+            ui.small(format!(
                 "{:02}:{:02}",
                 position.0, position.1,
             ));
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                ui.label(format!(
+                ui.small(format!(
                     "{:02}:{:02}",
                     duration.0, duration.1,
                 ));

@@ -10,7 +10,7 @@ default-run = "dimple"
 
 [dependencies]
 catppuccin-egui = "2.0"
-eframe = "0.21.3"
+eframe = {version = "0.21.3", features = ["default_fonts"] }
 egui_extras = { version = "0.21.0", features = ["image", "svg"] }
 env_logger = "0.10.0"
 fuzzy-matcher = "*"

@@ -1,8 +1,8 @@
 use std::f64::consts::PI;
 
-use eframe::{egui::{Context, Ui, Slider, plot::{PlotPoints, Line, Plot}}, epaint::Color32};
+use eframe::{egui::{Context, Ui, Slider, plot::{PlotPoints, Line, Plot}}, epaint::{Color32, Stroke}};
 
-use crate::player::PlayerHandle;
+use crate::{player::PlayerHandle, dimple::Theme};
 
 #[derive(Default)]
 pub struct PlotScrubber {
@@ -17,7 +17,8 @@ impl PlotScrubber {
         }).collect();
         let line = Line::new(points)
             .fill(0.0)
-            .color(Color32::DARK_GRAY)
+            .color(Theme::background_top)
+            // .stroke(Stroke::new(3.0, Theme::background_top))
         ;
         Plot::new("my_plot")
             .height(20.0)

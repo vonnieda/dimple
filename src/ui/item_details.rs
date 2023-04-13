@@ -45,8 +45,8 @@ impl ItemDetails {
                 // TODO icon (artist, release, genre, etc)
                 // TODO maybe next to the art we show artist, album, title?
                 ui.scope(|ui| {
-                    ui.style_mut().override_font_id = Some(FontId::new(36.0, FontFamily::Proportional));
-                    ui.visuals_mut().override_text_color = Some(Color32::WHITE);
+                    // ui.style_mut().override_font_id = Some(FontId::new(36.0, FontFamily::Proportional));
+                    // ui.visuals_mut().override_text_color = Some(Color32::WHITE);
                     ui.label(title);
                 });
             });
