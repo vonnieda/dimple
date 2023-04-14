@@ -31,8 +31,8 @@ fn main() {
 
     let mut native_options = eframe::NativeOptions {
         resizable: true,
-        // initial_window_size: Some(egui::vec2(1440.0, 1024.0)),
-        initial_window_size: Some(egui::vec2(1024.0, 720.0)),
+        initial_window_size: Some(egui::vec2(1440.0, 1024.0)),
+        // initial_window_size: Some(egui::vec2(1024.0, 720.0)),
         min_window_size: Some(egui::Vec2 { x: 525.0, y: 575.0 }),
         ..Default::default()
     };

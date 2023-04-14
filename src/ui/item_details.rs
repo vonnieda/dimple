@@ -3,13 +3,15 @@ use std::{sync::Arc};
 use eframe::{egui::{Context, Ui, Color32, Response, ImageButton, Frame, Margin}, epaint::Stroke};
 use egui_extras::RetainedImage;
 
-use crate::{music_library::{Image, Artist, Genre, Release, Track, Playlist}, dimple::Theme, player::PlayerHandle};
+use crate::{music_library::{Image, Artist, Genre, Release, Track, Playlist, Library}, dimple::Theme, player::PlayerHandle, librarian::Librarian};
 
-use super::{card_grid::LibraryItem, utils, retained_images::RetainedImages};
+use super::{card_grid::{LibraryItem, CardGrid, Card}, utils, retained_images::RetainedImages, main_screen::ReleaseCard};
 
+// TODO feels like it's time to split this up
 pub struct ItemDetails {
     retained_images: Arc<RetainedImages>,
     player: PlayerHandle,
+    librarian: Arc<Librarian>,
 
     artist_icon: RetainedImage,
     release_icon: RetainedImage,
@@ -21,11 +23,13 @@ pub struct ItemDetails {
     add_icon: RetainedImage,
 }
 
+// TODO Clearly time to either pass "App" around, or AppContext with all this stuff. Everything needs it.
 impl ItemDetails {
-    pub fn new(retained_images: Arc<RetainedImages>, player: PlayerHandle) -> Self {
+    pub fn new(retained_images: Arc<RetainedImages>, player: PlayerHandle, librarian: Arc<Librarian>) -> Self {
         Self {
             retained_images,
             player,
+            librarian,
 
             artist_icon: Theme::svg_icon(include_bytes!("../icons/material/group_FILL0_wght400_GRAD0_opsz48.svg")),
             release_icon: Theme::svg_icon(include_bytes!("../icons/material/album_FILL0_wght400_GRAD0_opsz48.svg")),
@@ -104,6 +108,7 @@ impl ItemDetails {
     }
 
     pub fn artist(&mut self, artist: &Artist, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
+        let mut action = None;
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.horizontal(|ui| {
@@ -121,12 +126,17 @@ impl ItemDetails {
                         self.genre_links(&artist.genres, ctx, ui);
                     });
                 })
-            })
+            });
+            let cards = self.release_cards_by_artist(artist);
+            if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ctx, ui) {
+                action = Some(item);
+            }
         });
-        None
+        action
     }
 
     pub fn genre(&mut self, genre: &Genre, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
+        let mut action = None;
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.horizontal(|ui| {
@@ -140,9 +150,64 @@ impl ItemDetails {
                         ui.heading(&genre.name);
                     });
                 })
-            })
+            });
+            let cards = self.release_cards_by_genre(genre);
+            if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ctx, ui) {
+                action = Some(item);
+            }
         });
-        None
+        action
+    }
+
+
+    // TODO okay scratched this together real quick to see it in action
+    // and it's glorious. Little cards of releases under artist. But it exposes
+    // the need for several things, like Librarian, to be globalish. 
+    // And maybe helper functions for like Dimple::card_from<T>(T t) for Library
+    // Items.
+    // Mostly need a way to do queries on releases and turn them into cards.
+    fn release_cards_by_artist(&mut self, artist: &Artist) -> Vec<Box<dyn Card>> {
+        let mut releases: Vec<Release> = self.librarian.releases().into_iter()
+            .filter(|release| {
+                release.artists.contains(artist)
+            })
+            .collect();
+
+        // Sort Releases by Artist Name then Release Title
+        releases.sort_by(|a, b| {
+            a.artist().to_uppercase()
+                .cmp(&b.artist().to_uppercase())
+                .then(a.title.to_uppercase().cmp(&b.title.to_uppercase()))
+        });
+
+        // Convert to Cards
+        releases.into_iter()
+            .map(|release| {
+                Box::new(self.card_from_release(&release)) as Box<dyn Card>
+            })
+            .collect()
+    }
+
+    fn release_cards_by_genre(&mut self, genre: &Genre) -> Vec<Box<dyn Card>> {
+        let mut releases: Vec<Release> = self.librarian.releases().into_iter()
+            .filter(|release| {
+                release.genres.contains(genre)
+            })
+            .collect();
+
+        // Sort Releases by Artist Name then Release Title
+        releases.sort_by(|a, b| {
+            a.artist().to_uppercase()
+                .cmp(&b.artist().to_uppercase())
+                .then(a.title.to_uppercase().cmp(&b.title.to_uppercase()))
+        });
+
+        // Convert to Cards
+        releases.into_iter()
+            .map(|release| {
+                Box::new(self.card_from_release(&release)) as Box<dyn Card>
+            })
+            .collect()
     }
 
     pub fn playlist(&mut self, playlist: &Playlist, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
@@ -254,6 +319,14 @@ impl ItemDetails {
             None => utils::sample_image(Color32::TRANSPARENT, width, height).texture_id(ctx),
         };
         ui.image(texture_id, [width as f32, height as f32]);
+    }
+
+    fn card_from_release(&mut self, release: &Release) -> ReleaseCard {
+        ReleaseCard {
+            release: release.clone(),
+            image: self.retained_images.get(release.art.first().unwrap(), 200, 200),
+            player: self.player.clone(),
+        }
     }
 }
 

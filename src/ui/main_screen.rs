@@ -46,7 +46,7 @@ impl MainScreen {
             player_bar: PlayerBar::new(player.clone(), retained_images.clone()),
             cards: Vec::new(),
             history: VecDeque::new(),
-            item_details: ItemDetails::new(retained_images.clone(), player.clone()),
+            item_details: ItemDetails::new(retained_images.clone(), player.clone(), librarian.clone()),
             player_last_rect: None,
         };
         main_screen.cards = main_screen.cards("");
@@ -123,6 +123,8 @@ impl MainScreen {
                         // TODO screens showing lists should auto update
                         Some(HistoryItem::Search(query)) => {
                             // TODO can't run the query every frame
+                            // TODO we should set the search bar query string when
+                            // showing this.
                             self.cards = self.cards(query.clone().as_str());
                             let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
                             if let Some(library_item) = action {
@@ -131,6 +133,7 @@ impl MainScreen {
                         },
                         Some(HistoryItem::Home) => {
                             // TODO can't run the query every frame
+                            // TODO Clear search bar query string
                             self.cards = self.cards("");
                             let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
                             if let Some(library_item) = action {
@@ -139,6 +142,7 @@ impl MainScreen {
                         },
                         None => {
                             // TODO can't run the query every frame
+                            // TODO Clear search bar query string
                             self.cards = self.cards("");
                             let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
                             if let Some(library_item) = action {
@@ -218,9 +222,9 @@ impl MainScreen {
 }
 
 pub struct ReleaseCard {
-    release: Release,
-    image: Arc<RwLock<Arc<RetainedImage>>>,
-    player: PlayerHandle,
+    pub release: Release,
+    pub image: Arc<RwLock<Arc<RetainedImage>>>,
+    pub player: PlayerHandle,
 }
 
 impl ReleaseCard {
