@@ -6,7 +6,8 @@ use eframe::CreationContext;
 use eframe::egui::style::{Widgets, WidgetVisuals, Spacing};
 use eframe::egui::{self, Context, SidePanel, FontDefinitions, FontData, Visuals, Style, TextStyle, RichText, Id, Ui};
 
-use eframe::epaint::{FontFamily, Color32, FontId, Stroke};
+use eframe::epaint::{FontFamily, Color32, FontId, Stroke, TextureId};
+use egui_extras::RetainedImage;
 use rodio::Sink;
 
 use crate::librarian::Librarian;
@@ -66,6 +67,24 @@ impl Theme {
     pub const text: Color32 = Color32::from_gray(206);
     pub const player_background: Color32 = Color32::from_gray(0x17);
 
+    // TODO do a builder style thing for RichText. It almost already is there
+    // but basically just needs defaults for font(), or I need to learn the
+    // idiomatic way to get a font reference. I think the main issue is that
+    // the library doesn't really support font weights yet. If it did...
+    // I like the idea of a set of named styles, 
+
+    // pub fn body(str: &str, size: f32) -> RichText {
+    //     RichText::new(str).font(TextStyle::Body)
+    // }
+
+    // pub fn bold(str: &str, size: f32) -> RichText {
+
+    // }
+
+    pub fn svg_icon(bytes: &[u8]) -> RetainedImage {
+        RetainedImage::from_svg_bytes("", bytes).unwrap()
+    }
+
     // Alias for button
     pub fn bigger(str: &str) -> RichText {
         RichText::new(str).text_style(TextStyle::Button)
@@ -77,6 +96,10 @@ impl Theme {
 
     pub fn big_n_bold(str: &str) -> RichText {
         RichText::new(str).text_style(TextStyle::Name("Button Bold".into()))
+    }
+
+    pub fn small(str: &str) -> RichText {
+        RichText::new(str).text_style(TextStyle::Small)
     }
 
     pub fn small_n_bold(str: &str) -> RichText {
@@ -133,4 +156,14 @@ impl Theme {
         visuals.selection.bg_fill = Self::background_top;
         ctx.set_visuals(visuals);
     }
+}
+
+pub struct Icons {
+
+}
+
+impl Icons {
+    // pub fn get(name: &str, width: usize, height: usize, ctx: &Context) -> TextureId {
+        
+    // }
 }

@@ -31,7 +31,7 @@ pub struct PlayerBar {
 }
 
 impl PlayerBar {
-    const now_playing_thumbnail_size: f32 = 140.0;
+    const now_playing_thumbnail_size: f32 = 130.0;
     const up_next_width: f32 = 100.0;
     const up_next_thumbnail_size: f32 = 80.0;
 
@@ -42,18 +42,14 @@ impl PlayerBar {
             slider_scrubber: SliderScrubber::default(),
             retained_images,
 
-            artist_icon: Self::svg_icon(include_bytes!("../icons/material/group_FILL0_wght400_GRAD0_opsz48.svg")),
-            release_icon: Self::svg_icon(include_bytes!("../icons/material/album_FILL0_wght400_GRAD0_opsz48.svg")),
-            track_icon: Self::svg_icon(include_bytes!("../icons/material/music_note_FILL0_wght400_GRAD0_opsz48.svg")),
-            play_icon: Self::svg_icon(include_bytes!("../icons/material/play_circle_FILL1_wght400_GRAD0_opsz48.svg")),
-            pause_icon: Self::svg_icon(include_bytes!("../icons/material/pause_FILL1_wght400_GRAD0_opsz48.svg")),
-            next_icon: Self::svg_icon(include_bytes!("../icons/material/skip_next_FILL1_wght400_GRAD0_opsz48.svg")),
-            previous_icon: Self::svg_icon(include_bytes!("../icons/material/skip_previous_FILL1_wght400_GRAD0_opsz48.svg")),
+            artist_icon: Theme::svg_icon(include_bytes!("../icons/material/group_FILL0_wght400_GRAD0_opsz48.svg")),
+            release_icon: Theme::svg_icon(include_bytes!("../icons/material/album_FILL0_wght400_GRAD0_opsz48.svg")),
+            track_icon: Theme::svg_icon(include_bytes!("../icons/material/music_note_FILL0_wght400_GRAD0_opsz48.svg")),
+            play_icon: Theme::svg_icon(include_bytes!("../icons/material/play_circle_FILL1_wght400_GRAD0_opsz48.svg")),
+            pause_icon: Theme::svg_icon(include_bytes!("../icons/material/pause_FILL1_wght400_GRAD0_opsz48.svg")),
+            next_icon: Theme::svg_icon(include_bytes!("../icons/material/skip_next_FILL1_wght400_GRAD0_opsz48.svg")),
+            previous_icon: Theme::svg_icon(include_bytes!("../icons/material/skip_previous_FILL1_wght400_GRAD0_opsz48.svg")),
         }
-    }
-
-    pub fn svg_icon(bytes: &[u8]) -> RetainedImage {
-        RetainedImage::from_svg_bytes("", bytes).unwrap()
     }
 
     pub fn ui(&mut self, ctx: &Context, ui: &mut Ui) {
@@ -74,6 +70,8 @@ impl PlayerBar {
                         });
                     });
                     ui.scope(|ui| {
+                        // The negative Y spacing slides the plot behind the
+                        // handle of the slider and makes it look awesome.
                         ui.spacing_mut().item_spacing = [0.0, -3.0].into();
                         self.plot_scrubber.ui(ctx, ui);
                         self.slider_scrubber.ui(self.player.clone(), ctx, ui);
@@ -151,12 +149,12 @@ impl PlayerBar {
             .unwrap_or(None);
         let track_title = queue_item
             .as_ref()
-            .map_or("Track Title".to_string(), |qi| qi.track.title.clone());
+            .map_or("".to_string(), |qi| qi.track.title.clone());
         // let release_title = queue_item.as_ref()
         //     .map_or("".to_string(), |qi| qi.release.title.clone());
         let artist_name = queue_item
             .as_ref()
-            .map_or("Artist Name".to_string(), |qi| qi.release.artist());
+            .map_or("".to_string(), |qi| qi.release.artist());
         let texture_id = queue_item.as_ref().map_or(
             utils::sample_image(Color32::TRANSPARENT, thumbnail_size, thumbnail_size).texture_id(&ctx),
             |qi| {
@@ -168,7 +166,7 @@ impl PlayerBar {
 
         ui.vertical_centered(|ui| {
             ui.set_width(Self::up_next_width);
-            ui.small("Up Next");
+            ui.label(Theme::small("Up Next").weak());
             ui.add(ImageButton::new(texture_id, [thumbnail_size as f32, thumbnail_size as f32]));
             ui.label(Theme::small_n_bold(&track_title));
             ui.small(artist_name);
