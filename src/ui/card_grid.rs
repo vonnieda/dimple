@@ -7,7 +7,7 @@ pub trait Card {
         ctx: &Context, ui: &mut Ui) -> Option<LibraryItem>;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum LibraryItem {
     Artist(Artist),
     Release(Release),

@@ -66,6 +66,10 @@ pub struct Track {
     pub url: String,
     pub title: String,
     pub art: Vec<Image>,
+    #[serde(default)]
+    pub artists: Vec<Artist>,
+    #[serde(default)]
+    pub genres: Vec<Genre>,
 }
 
 #[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]

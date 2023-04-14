@@ -4,7 +4,7 @@ use catppuccin_egui::set_theme;
 use eframe::CreationContext;
 
 use eframe::egui::style::{Widgets, WidgetVisuals, Spacing};
-use eframe::egui::{self, Context, SidePanel, FontDefinitions, FontData, Visuals, Style, TextStyle, RichText, Id, Ui};
+use eframe::egui::{self, Context, SidePanel, FontDefinitions, FontData, Visuals, Style, TextStyle, RichText, Id, Ui, Response, ImageButton};
 
 use eframe::epaint::{FontFamily, Color32, FontId, Stroke, TextureId};
 use egui_extras::RetainedImage;
@@ -16,6 +16,7 @@ use crate::player::Player;
 use crate::player::PlayerHandle;
 use crate::settings::Settings;
 use crate::ui::main_screen::MainScreen;
+use crate::ui::retained_images::RetainedImages;
 
 pub struct Dimple {
     _librarian: Arc<Librarian>,
@@ -156,17 +157,10 @@ impl Theme {
         visuals.selection.bg_fill = Self::background_top;
         ctx.set_visuals(visuals);
     }
-}
 
-pub struct Icons {
+    pub fn icon_button(retained: &RetainedImage, width: usize, height: usize, 
+        ctx: &Context, ui: &mut Ui) -> Response {
 
-}
-
-// TODO pretty soon I need to manage all the icons in one place, and then
-// improve rendering, and be able to change their colors on the fly. So
-// probably need to introduce an SVG library.
-impl Icons {
-    // pub fn get(name: &str, width: usize, height: usize, ctx: &Context) -> TextureId {
-        
-    // }
+        ui.add(ImageButton::new(retained.texture_id(ctx), [width as f32, height as f32]))
+    }
 }

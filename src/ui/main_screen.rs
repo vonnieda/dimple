@@ -1,4 +1,4 @@
-use std::{sync::{Arc, RwLock}};
+use std::{sync::{Arc, RwLock}, collections::VecDeque};
 
 use eframe::{egui::{self, Context, ImageButton, Ui, LayerId, Frame, Margin}, epaint::{Color32, Mesh, Shape, Rect, Stroke}};
 
@@ -7,30 +7,33 @@ use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
 use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release}, dimple::Theme};
 
-use super::{search_bar::SearchBar, player_bar::PlayerBar, card_grid::{CardGrid, Card, LibraryItem}, retained_images::RetainedImages, item_details::ItemDetails};
+use super::{nav_bar::{NavBar, NavEvent}, player_bar::PlayerBar, card_grid::{CardGrid, Card, LibraryItem}, retained_images::RetainedImages, item_details::ItemDetails};
 
 pub struct MainScreen {
     librarian: Arc<Librarian>,
     player: PlayerHandle,
     retained_images: Arc<RetainedImages>,
 
-    search_bar: SearchBar,
+    nav_bar: NavBar,
     card_grid: CardGrid,
+    item_details: ItemDetails,
     player_bar: PlayerBar,
-    last_rect: Option<Rect>,
+
+    player_last_rect: Option<Rect>,
     cards: Vec<Box<dyn Card>>,
 
-    selected_item: Option<LibraryItem>,
-    item_details: ItemDetails,
+    history: VecDeque<HistoryItem>,
 }
 
-// Artist Cards
-// Genre Cards
-// Playlist Cards
-// TODO Release Details
-// TODO Artist Details
-// TODO Genre Details
+pub enum HistoryItem {
+    ItemDetails(LibraryItem),
+    Search(String),
+    Home,
+}
 
+// TODO Artist Cards
+// TODO Genre Cards
+// TODO Playlist Cards
 impl MainScreen {
     pub fn new(player: PlayerHandle, librarian: Arc<Librarian>) -> Self {
         let retained_images = Arc::new(RetainedImages::new(librarian.clone()));
@@ -38,13 +41,13 @@ impl MainScreen {
             librarian: librarian.clone(),
             player: player.clone(),
             retained_images: retained_images.clone(),
-            search_bar: SearchBar::default(),
+            nav_bar: NavBar::default(),
             card_grid: CardGrid::default(),
             player_bar: PlayerBar::new(player.clone(), retained_images.clone()),
             cards: Vec::new(),
-            selected_item: None,
-            item_details: ItemDetails::new(retained_images.clone()),
-            last_rect: None,
+            history: VecDeque::new(),
+            item_details: ItemDetails::new(retained_images.clone(), player.clone()),
+            player_last_rect: None,
         };
         main_screen.cards = main_screen.cards("");
         main_screen
@@ -84,25 +87,32 @@ impl MainScreen {
 
         // ctx.set_debug_on_hover(true);
 
-        egui::TopBottomPanel::top("search_bar").show(ctx, |ui| {
+        egui::TopBottomPanel::top("nav_bar").show(ctx, |ui| {
             Frame::none()
-                .inner_margin(Margin {
-                    left: 8.0,
-                    right: 0.0,
-                    top: 16.0,
-                    bottom: 0.0,
-                })
-                .show(ui, |ui| {
-                if self.search_bar.ui(ctx, ui).changed() {
-                    let query = self.search_bar.query.clone();
-                    self.cards = self.cards(&query);
-                    self.selected_item = None;
+            .inner_margin(Margin {
+                left: 8.0,
+                right: 0.0,
+                top: 16.0,
+                bottom: 0.0,
+            })
+            .show(ui, |ui| {
+                match self.nav_bar.ui(ctx, ui) {
+                    Some(NavEvent::Back) => {
+                        self.history.pop_front();
+                    },
+                    Some(NavEvent::Home) => {
+                        self.history.push_front(HistoryItem::Home);
+                    },
+                    Some(NavEvent::Search(query)) => {
+                        self.history.push_front(HistoryItem::Search(query));
+                    },
+                    None => (),
                 }
             });
         });
         
         let panel = egui::TopBottomPanel::bottom("player").show(ctx, |ui| {
-            if let Some(last_rect) = self.last_rect {
+            if let Some(last_rect) = self.player_last_rect {
                 let painter = ui.painter();
                 painter.rect_filled(last_rect, 0.0, Theme::player_background);
                 painter.line_segment([last_rect.left_top(), last_rect.right_top()], Stroke::new(1.0, Color32::from_gray(0xc3)));
@@ -113,10 +123,12 @@ impl MainScreen {
                 top: 2.0,
                 bottom: 10.0,
             }).show(ui, |ui| {
-                self.player_bar.ui(ctx, ui);
+                if let Some(item) = self.player_bar.ui(ctx, ui) {
+                    self.history.push_front(HistoryItem::ItemDetails(item));
+                }
             });
         });
-        self.last_rect = Some(panel.response.rect);
+        self.player_last_rect = Some(panel.response.rect);
         
         egui::CentralPanel::default().show(ctx, |ui| {
             Frame::none()
@@ -127,14 +139,37 @@ impl MainScreen {
                     bottom: 8.0,
                 })
                 .show(ui, |ui| {
-                    if let Some(item) = &self.selected_item {
-                        self.item_details.ui(item.clone(), ctx, ui);
-                    }
-                    else {
-                        let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
-                        if action.is_some() {
-                            self.selected_item = action;
-                        }
+                    match self.history.front() {
+                        Some(HistoryItem::ItemDetails(item)) => {
+                            if let Some(library_item) = self.item_details.ui(item.clone(), ctx, ui) {
+                                self.history.push_front(HistoryItem::ItemDetails(library_item));
+                            }
+                        },
+                        // TODO screens showing lists should auto update
+                        Some(HistoryItem::Search(query)) => {
+                            // TODO can't run the query every frame
+                            self.cards = self.cards(query.clone().as_str());
+                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
+                            if let Some(library_item) = action {
+                                self.history.push_front(HistoryItem::ItemDetails(library_item));
+                            }
+                        },
+                        Some(HistoryItem::Home) => {
+                            // TODO can't run the query every frame
+                            self.cards = self.cards("");
+                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
+                            if let Some(library_item) = action {
+                                self.history.push_front(HistoryItem::ItemDetails(library_item));
+                            }
+                        },
+                        None => {
+                            // TODO can't run the query every frame
+                            self.cards = self.cards("");
+                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
+                            if let Some(library_item) = action {
+                                self.history.push_front(HistoryItem::ItemDetails(library_item));
+                            }
+                        },
                     }
                 });
         });

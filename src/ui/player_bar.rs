@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use eframe::egui::{Context, ImageButton, Ui, Layout, Frame, Margin};
+use eframe::egui::{Context, ImageButton, Ui, Layout, Frame, Margin, Response};
 use eframe::emath::Align;
 use eframe::epaint::{Color32, ColorImage, FontId, Stroke, Rect};
 
@@ -9,6 +9,7 @@ use egui_extras::RetainedImage;
 use crate::dimple::Theme;
 use crate::player::{PlayerHandle};
 
+use super::card_grid::LibraryItem;
 use super::retained_images::RetainedImages;
 use super::scrubber::{PlotScrubber, SliderScrubber};
 use super::utils;
@@ -31,8 +32,8 @@ pub struct PlayerBar {
 }
 
 impl PlayerBar {
-    const now_playing_thumbnail_size: f32 = 130.0;
-    const up_next_width: f32 = 100.0;
+    const now_playing_thumbnail_size: f32 = 150.0;
+    const up_next_width: f32 = 120.0;
     const up_next_thumbnail_size: f32 = 80.0;
 
     pub fn new(player: PlayerHandle, retained_images: Arc<RetainedImages>) -> Self {
@@ -52,7 +53,8 @@ impl PlayerBar {
         }
     }
 
-    pub fn ui(&mut self, ctx: &Context, ui: &mut Ui) {
+    pub fn ui(&mut self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
+        let mut action = None;
         ui.horizontal_top(|ui| {
             Frame::none().inner_margin(Margin {
                 top: 8.0,
@@ -64,7 +66,9 @@ impl PlayerBar {
                 ui.vertical(|ui| {
                     ui.set_width(ui.available_width() - Self::up_next_width);
                     ui.horizontal_top(|ui| {
-                        self.track_info(ctx, ui);
+                        if let Some(item) = self.track_info(ctx, ui) {
+                            action = Some(item);
+                        }
                         ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                             self.play_controls(ctx, ui);
                         });
@@ -81,66 +85,78 @@ impl PlayerBar {
             });
             self.up_next(ctx, ui);
         });
+
+        action
     }
 
-    pub fn track_info(&self, ctx: &Context, ui: &mut Ui) {
-        ui.vertical(|ui| {
-            let queue_item = self
-                .player
-                .read()
-                .map(|player| player.current_queue_item())
-                .unwrap_or(None);
-            let track_title = queue_item
-                .as_ref()
-                .map_or("".to_string(), |qi| qi.track.title.clone());
-            let release_title = queue_item
-                .as_ref()
-                .map_or("".to_string(), |qi| qi.release.title.clone());
-            let artist_name = queue_item
-                .as_ref()
-                .map_or("".to_string(), |qi| qi.release.artist());
+    pub fn track_info(&self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
+        let queue_item = self
+            .player
+            .read()
+            .map(|player| player.current_queue_item())
+            .unwrap_or(None);
+        match queue_item {
+            Some(queue_item) => {
+                ui.vertical(|ui| {
+                    if self.fav_icon_label(
+                        &self.track_icon,
+                        &queue_item.track.title,
+                        false,
+                        ctx,
+                        ui,
+                    ).clicked() {
+                        return Some(LibraryItem::Track(queue_item.track.clone()));
+                    }
 
-            self.fav_icon_label(
-                &self.track_icon,
-                &track_title,
-                false,
-                ctx,
-                ui,
-            );
-            self.fav_icon_label(
-                &self.release_icon,
-                &release_title,
-                false,
-                ctx,
-                ui,
-            );
-            self.fav_icon_label(
-                &self.artist_icon,
-                &artist_name,
-                false,
-                ctx,
-                ui,
-            );
-        });
+                    if self.fav_icon_label(
+                        &self.release_icon,
+                        &queue_item.release.title,
+                        false,
+                        ctx,
+                        ui,
+                    ).clicked() {
+                        return Some(LibraryItem::Release(queue_item.release.clone()));
+                    }
+
+                    if self.fav_icon_label(
+                        &self.artist_icon,
+                        &queue_item.release.artist(),
+                        false,
+                        ctx,
+                        ui,
+                    ).clicked() {
+                        // TODO lol
+                        return Some(LibraryItem::Artist(queue_item.release.artists.first().unwrap().clone()))
+                    }
+                    None
+                }).inner
+            },
+            None => None,
+        }
     }
 
-    pub fn now_playing(&self, ctx: &Context, ui: &mut Ui) {
+    pub fn now_playing(&self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
         let thumbnail_size: usize = Self::now_playing_thumbnail_size as usize;
         if let Some(item) = self.player.read().unwrap().current_queue_item() {
+            // TODO change to carousel
             let image =
                 self.retained_images
                     .get(item.release.art.first().unwrap(), thumbnail_size, thumbnail_size);
-            ui.add(ImageButton::new(
+            if ui.add(ImageButton::new(
                 image.read().unwrap().texture_id(ctx),
                 [thumbnail_size as f32, thumbnail_size as f32],
-            ));
+            )).clicked() {
+
+            }
         } else {
             let image = utils::sample_image(Color32::TRANSPARENT, thumbnail_size, thumbnail_size);
             ui.add(ImageButton::new(image.texture_id(ctx), [thumbnail_size as f32, thumbnail_size as f32]));
         }
+
+        None
     }
 
-    pub fn up_next(&self, ctx: &Context, ui: &mut Ui) {
+    pub fn up_next(&self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
         let thumbnail_size: usize = Self::up_next_thumbnail_size as usize;
         let queue_item = self
             .player
@@ -171,6 +187,8 @@ impl PlayerBar {
             ui.label(Theme::small_n_bold(&track_title));
             ui.small(artist_name);
         });
+
+        None
     }
 
     pub fn fav_icon_label(
@@ -180,18 +198,18 @@ impl PlayerBar {
         is_fav: bool,
         ctx: &Context,
         ui: &mut Ui,
-    ) {
+    ) -> Response {
         ui.horizontal(|ui| {
-            ui.image(icon.texture_id(ctx), [21.0, 21.0]);
-            ui.label(Theme::bigger(label));
-        });
+            ui.image(icon.texture_id(ctx), [22.0, 22.0]);
+            ui.link(Theme::bigger(label))
+        }).inner
     }
 
     pub fn play_controls(&self, ctx: &Context, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            let previous_button = ImageButton::new(self.previous_icon.texture_id(ctx), [42.0, 42.0]).frame(false);
-            let play_pause_button = ImageButton::new(self.play_icon.texture_id(ctx), [48.0, 48.0]).frame(false);
-            let next_button = ImageButton::new(self.next_icon.texture_id(ctx), [42.0, 42.0]).frame(false);
+        ui.horizontal_top(|ui| {
+            let previous_button = ImageButton::new(self.previous_icon.texture_id(ctx), [48.0, 48.0]);
+            let play_pause_button = ImageButton::new(self.play_icon.texture_id(ctx), [48.0, 48.0]);
+            let next_button = ImageButton::new(self.next_icon.texture_id(ctx), [48.0, 48.0]);
             // The button order is inverted because the parent UI is right to 
             // left so that the player controls are right justified. Don't @ me.
             if ui.add(next_button).clicked() {
