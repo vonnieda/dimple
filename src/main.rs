@@ -17,6 +17,8 @@ use rodio::{OutputStream, Sink};
 // TODO all these little caches I keep writing should probably just be converted to
 // a single "thing" like redis
 // TODO figure out a better way to render the svgs - they look like trash
+// TODO app icon https://github.com/emilk/egui/discussions/1574
+//      https://github.com/KunalBagaria/redock
 
 fn main() {
     let mut builder = env_logger::Builder::new();
@@ -27,10 +29,16 @@ fn main() {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let sink = Arc::new(Sink::try_new(&stream_handle).unwrap());
 
-    let native_options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(1440.0, 1024.0)),
+    let mut native_options = eframe::NativeOptions {
+        resizable: true,
+        // initial_window_size: Some(egui::vec2(1440.0, 1024.0)),
+        initial_window_size: Some(egui::vec2(1024.0, 720.0)),
+        min_window_size: Some(egui::Vec2 { x: 525.0, y: 575.0 }),
         ..Default::default()
     };
+
+    // native_options.set_window_icon_from("./test.png");
+
     eframe::run_native(
         "Dimple",
         native_options,

@@ -162,6 +162,9 @@ pub struct Icons {
 
 }
 
+// TODO pretty soon I need to manage all the icons in one place, and then
+// improve rendering, and be able to change their colors on the fly. So
+// probably need to introduce an SVG library.
 impl Icons {
     // pub fn get(name: &str, width: usize, height: usize, ctx: &Context) -> TextureId {
         

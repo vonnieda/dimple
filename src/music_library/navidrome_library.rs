@@ -1,3 +1,5 @@
+// TODO Check out anyhow https://docs.rs/anyhow/latest/anyhow/
+
 use std::{io::{Cursor}, sync::Arc};
 
 use crossbeam::channel::{Receiver, unbounded};
