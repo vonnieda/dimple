@@ -31,9 +31,9 @@ pub enum HistoryItem {
     Home,
 }
 
-// TODO Artist Cards
-// TODO Genre Cards
-// TODO Playlist Cards
+// TODO I've gone this direction of having deep components bubble up their
+// events but man it's a pain in the ass. Need to rethink the top level of the
+// app and decide if the rest of the UI can just call, like, "navigate"
 impl MainScreen {
     pub fn new(player: PlayerHandle, librarian: Arc<Librarian>) -> Self {
         let retained_images = Arc::new(RetainedImages::new(librarian.clone()));
@@ -51,31 +51,6 @@ impl MainScreen {
         };
         main_screen.cards = main_screen.cards("");
         main_screen
-    }
-
-    fn gradient_background(&mut self, ctx: &Context) {
-        // let painter = ctx.layer_painter(LayerId::new(egui::Order::PanelResizeLine, Id::new("gradient")));
-        let painter = ctx.layer_painter(LayerId::background());
-        let mut mesh = Mesh::default();
-        let rect = painter.clip_rect();
-        let top = Theme::background_top;
-        let middle = Theme::background_middle;
-        let bottom = Theme::background_bottom;
-        mesh.colored_vertex(rect.left_top(), top);
-        mesh.colored_vertex(rect.right_top(), top);
-        mesh.colored_vertex(rect.right_center(), middle);
-        mesh.colored_vertex(rect.left_center(), middle);
-        mesh.add_triangle(0, 1, 2);
-        mesh.add_triangle(0, 2, 3);
-
-        mesh.colored_vertex(rect.left_center(), middle);
-        mesh.colored_vertex(rect.right_center(), middle);
-        mesh.colored_vertex(rect.right_bottom(), bottom);
-        mesh.colored_vertex(rect.left_bottom(), bottom);
-        mesh.add_triangle(4, 5, 6);
-        mesh.add_triangle(4, 6, 7);
-
-        painter.add(Shape::Mesh(mesh));
     }
 
     pub fn ui(&mut self, ctx: &Context) {        
@@ -175,6 +150,34 @@ impl MainScreen {
         });
     }
 
+    fn gradient_background(&mut self, ctx: &Context) {
+        // let painter = ctx.layer_painter(LayerId::new(egui::Order::PanelResizeLine, Id::new("gradient")));
+        let painter = ctx.layer_painter(LayerId::background());
+        let mut mesh = Mesh::default();
+        let rect = painter.clip_rect();
+        let top = Theme::background_top;
+        let middle = Theme::background_middle;
+        let bottom = Theme::background_bottom;
+        mesh.colored_vertex(rect.left_top(), top);
+        mesh.colored_vertex(rect.right_top(), top);
+        mesh.colored_vertex(rect.right_center(), middle);
+        mesh.colored_vertex(rect.left_center(), middle);
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 2, 3);
+
+        mesh.colored_vertex(rect.left_center(), middle);
+        mesh.colored_vertex(rect.right_center(), middle);
+        mesh.colored_vertex(rect.right_bottom(), bottom);
+        mesh.colored_vertex(rect.left_bottom(), bottom);
+        mesh.add_triangle(4, 5, 6);
+        mesh.add_triangle(4, 6, 7);
+
+        painter.add(Shape::Mesh(mesh));
+    }
+
+    // TODO Artist Cards
+    // TODO Genre Cards
+    // TODO Playlist Cards
     /// Get the list of Cards to show in the grid. Performs filtering, sorting,
     /// and caching.
     fn cards(&mut self, query: &str) -> Vec<Box<dyn Card>> {

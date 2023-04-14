@@ -226,6 +226,7 @@ impl NavidromeLibrary {
             url: Self::url(base_url, "artist", &artist.id),
             name: artist.name.clone(),
             art,
+            ..Default::default()
         }
     }
 

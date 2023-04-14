@@ -59,6 +59,8 @@ pub struct Artist {
     pub url: String,
     pub name: String,
     pub art: Vec<Image>,
+    #[serde(default)]
+    pub genres: Vec<Genre>,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]

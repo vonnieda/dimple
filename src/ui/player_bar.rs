@@ -146,9 +146,10 @@ impl PlayerBar {
                 image.read().unwrap().texture_id(ctx),
                 [thumbnail_size as f32, thumbnail_size as f32],
             )).clicked() {
-
+                return Some(LibraryItem::Release(item.release));
             }
-        } else {
+        } 
+        else {
             let image = utils::sample_image(Color32::TRANSPARENT, thumbnail_size, thumbnail_size);
             ui.add(ImageButton::new(image.texture_id(ctx), [thumbnail_size as f32, thumbnail_size as f32]));
         }
@@ -158,37 +159,26 @@ impl PlayerBar {
 
     pub fn up_next(&self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
         let thumbnail_size: usize = Self::up_next_thumbnail_size as usize;
-        let queue_item = self
-            .player
-            .read()
-            .map(|player| player.next_queue_item())
-            .unwrap_or(None);
-        let track_title = queue_item
-            .as_ref()
-            .map_or("".to_string(), |qi| qi.track.title.clone());
-        // let release_title = queue_item.as_ref()
-        //     .map_or("".to_string(), |qi| qi.release.title.clone());
-        let artist_name = queue_item
-            .as_ref()
-            .map_or("".to_string(), |qi| qi.release.artist());
-        let texture_id = queue_item.as_ref().map_or(
-            utils::sample_image(Color32::TRANSPARENT, thumbnail_size, thumbnail_size).texture_id(&ctx),
-            |qi| {
-                let image = self.retained_images.get(qi.release.art.first().unwrap(), thumbnail_size, thumbnail_size);
-                let texture_id = image.read().unwrap().texture_id(ctx);
-                texture_id
-            },
-        );
-
-        ui.vertical_centered(|ui| {
-            ui.set_width(Self::up_next_width);
-            ui.label(Theme::small("Up Next").weak());
-            ui.add(ImageButton::new(texture_id, [thumbnail_size as f32, thumbnail_size as f32]));
-            ui.label(Theme::small_n_bold(&track_title));
-            ui.small(artist_name);
-        });
-
-        None
+        let mut action = None;
+        if let Some(item) = self.player.read().unwrap().current_queue_item() {
+            // TODO change to carousel
+            let image = self.retained_images
+                .get(item.release.art.first().unwrap(), thumbnail_size, thumbnail_size);
+            ui.vertical_centered(|ui| {
+                ui.set_width(Self::up_next_width);
+                ui.label(Theme::small("Up Next").weak());
+                if ui.add(ImageButton::new(image.read().unwrap().texture_id(ctx), [thumbnail_size as f32, thumbnail_size as f32])).clicked() {
+                    action = Some(LibraryItem::Release(item.release.clone()));
+                }
+                if ui.link(Theme::small_n_bold(&item.track.title)).clicked() {
+                    action = Some(LibraryItem::Track(item.track.clone()));
+                }
+                if ui.link(Theme::small(&item.release.artist())).clicked() {
+                    action = Some(LibraryItem::Artist(item.release.artists.first().unwrap().clone()));
+                }
+            });
+        }
+        action
     }
 
     pub fn fav_icon_label(

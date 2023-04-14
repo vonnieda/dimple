@@ -118,8 +118,7 @@ impl ItemDetails {
                     });
                     ui.horizontal(|ui| {
                         ui.label("in");
-                        // TODO
-                        // self.genre_links(&artist.genres, ctx, ui);
+                        self.genre_links(&artist.genres, ctx, ui);
                     });
                 })
             })
