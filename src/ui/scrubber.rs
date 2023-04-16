@@ -24,7 +24,7 @@ impl PlotScrubber {
             // .stroke(Stroke::new(3.0, Theme::background_top))
         ;
         Plot::new("my_plot")
-            .height(20.0)
+            .height(30.0)
             // .width(ui.available_width() * 0.8)
             .show_x(true)
             .show_y(false)

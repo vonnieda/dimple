@@ -23,8 +23,10 @@ pub struct Theme {
 
     pub add_icon: RetainedImage,
     pub artist_icon: RetainedImage,
+    pub back_icon: RetainedImage,
     pub favorite_icon: RetainedImage,
     pub genre_icon: RetainedImage,
+    pub home_icon: RetainedImage,
     pub next_track_icon: RetainedImage,
     pub pause_icon: RetainedImage,
     pub play_icon: RetainedImage,
@@ -57,6 +59,9 @@ impl Theme {
             pause_icon: Theme::svg_icon(include_bytes!("../icons/material/pause_FILL1_wght400_GRAD0_opsz48.svg")),
             next_track_icon: Theme::svg_icon(include_bytes!("../icons/material/skip_next_FILL1_wght400_GRAD0_opsz48.svg")),
             previous_track_icon: Theme::svg_icon(include_bytes!("../icons/material/skip_previous_FILL1_wght400_GRAD0_opsz48.svg")),
+
+            home_icon: Theme::svg_icon(include_bytes!("../icons/material/home_FILL0_wght400_GRAD0_opsz48.svg")),
+            back_icon: Theme::svg_icon(include_bytes!("../icons/material/arrow_back_FILL0_wght400_GRAD0_opsz48.svg")),
         }
     }
 
@@ -113,20 +118,6 @@ impl Theme {
         ctx.set_visuals(visuals);
     }
 
-    // TODO do a builder style thing for RichText. It almost already is there
-    // but basically just needs defaults for font(), or I need to learn the
-    // idiomatic way to get a font reference. I think the main issue is that
-    // the library doesn't really support font weights yet. If it did...
-    // I like the idea of a set of named styles, 
-
-    // pub fn body(str: &str, size: f32) -> RichText {
-    //     RichText::new(str).font(TextStyle::Body)
-    // }
-
-    // pub fn bold(str: &str, size: f32) -> RichText {
-
-    // }
-
     pub fn svg_icon(bytes: &[u8]) -> RetainedImage {
         RetainedImage::from_svg_bytes("", bytes).unwrap()
     }
@@ -158,7 +149,8 @@ impl Theme {
         ui.add(ImageButton::new(retained.texture_id(ctx), [width as f32, height as f32]))
     }
 
-    pub fn carousel(&self, images: &[Image], width: usize, height: usize, ctx: &Context, ui: &mut Ui) {
+    pub fn carousel(&self, images: &[Image], 
+        width: usize, height: usize, ctx: &Context, ui: &mut Ui) -> Response {
         let theme = Theme::get(ctx);
         let texture_id = match images.first() {
             Some(image) => self.retained_images.read().unwrap().get(image, width, height)
@@ -167,7 +159,7 @@ impl Theme {
                 .texture_id(ctx),
             None => utils::sample_image(theme.image_placeholder, width, height).texture_id(ctx),
         };
-        ui.image(texture_id, [width as f32, height as f32]);
+        ui.add(ImageButton::new(texture_id, [width as f32, height as f32]))
     }
 
     pub fn card_from_release(&self, release: &Release) -> ReleaseCard {
@@ -176,4 +168,7 @@ impl Theme {
             image: self.retained_images.read().unwrap().get(release.art.first().unwrap(), 200, 200),
         }
     }
+
+    // TODO links functions like artists, genres used in itemdetails
+    
 }

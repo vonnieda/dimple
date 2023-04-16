@@ -44,7 +44,9 @@ impl PlayerBar {
                 bottom: 0.0,
                 right: 0.0,
             }).show(ui, |ui| {
-                self.now_playing(ctx, ui);
+                if let Some(item) = self.now_playing(ctx, ui) {
+                    action = Some(item);
+                }
                 ui.vertical(|ui| {
                     ui.set_width(ui.available_width() - Self::UP_NEXT_WIDTH);
                     ui.horizontal_top(|ui| {
@@ -55,6 +57,7 @@ impl PlayerBar {
                             self.play_controls(ctx, ui);
                         });
                     });
+                    ui.add_space(8.0);
                     ui.scope(|ui| {
                         // The negative Y spacing slides the plot behind the
                         // handle of the slider and makes it look awesome.
@@ -65,7 +68,9 @@ impl PlayerBar {
                     self.timers(ctx, ui);
                 });
             });
-            self.up_next(ctx, ui);
+            if let Some(item) = self.up_next(ctx, ui) {
+                action = Some(item);
+            }
         });
 
         action
@@ -123,11 +128,9 @@ impl PlayerBar {
         let thumbnail_size: usize = Self::NOW_PLAYING_THUMBNAIL_SIZE as usize;
         if let Some(item) = self.player.read().unwrap().current_queue_item() {
             // TODO track art.
-            // TODO clicked
-            theme.carousel(&item.release.art, thumbnail_size, thumbnail_size, ctx, ui);
-            // )).clicked() {
-            //     return Some(LibraryItem::Release(item.release));
-            // }
+            if theme.carousel(&item.release.art, thumbnail_size, thumbnail_size, ctx, ui).clicked() {
+                return Some(LibraryItem::Release(item.release));
+            }
         } 
         else {
             let image = utils::sample_image(theme.image_placeholder, thumbnail_size, thumbnail_size);
@@ -141,21 +144,28 @@ impl PlayerBar {
         let theme = Theme::get(ctx);
         let thumbnail_size: usize = Self::UP_NEXT_THUMBNAIL_SIZE as usize;
         let mut action = None;
-        if let Some(item) = self.player.read().unwrap().current_queue_item() {
+        if let Some(item) = self.player.read().unwrap().next_queue_item() {
             ui.vertical_centered(|ui| {
                 ui.set_width(Self::UP_NEXT_WIDTH);
                 ui.label(Theme::small("Up Next").weak());
                 // TODO clicked
-                theme.carousel(&item.release.art, thumbnail_size, thumbnail_size, ctx, ui);
-                // if ui.add(ImageButton::new(image.read().unwrap().texture_id(ctx), [thumbnail_size as f32, thumbnail_size as f32])).clicked() {
-                //     action = Some(LibraryItem::Release(item.release.clone()));
-                // }
+                if theme.carousel(&item.release.art, thumbnail_size, thumbnail_size, ctx, ui).clicked() {
+                    action = Some(LibraryItem::Release(item.release.clone()));
+                }
                 if ui.link(Theme::small_n_bold(&item.track.title)).clicked() {
                     action = Some(LibraryItem::Track(item.track.clone()));
                 }
                 if ui.link(Theme::small(&item.release.artist())).clicked() {
                     action = Some(LibraryItem::Artist(item.release.artists.first().unwrap().clone()));
                 }
+            });
+        }
+        else {
+            ui.vertical_centered(|ui| {
+                ui.set_width(Self::UP_NEXT_WIDTH);
+                ui.label(Theme::small("Up Next").weak());
+                let image = utils::sample_image(theme.image_placeholder, thumbnail_size, thumbnail_size);
+                ui.add(ImageButton::new(image.texture_id(ctx), [thumbnail_size as f32, thumbnail_size as f32]));
             });
         }
         action
@@ -170,7 +180,7 @@ impl PlayerBar {
         ui: &mut Ui,
     ) -> Response {
         ui.horizontal(|ui| {
-            ui.image(icon.texture_id(ctx), [22.0, 22.0]);
+            ui.image(icon.texture_id(ctx), [24.0, 24.0]);
             ui.link(Theme::bigger(label))
         }).inner
     }
@@ -178,18 +188,15 @@ impl PlayerBar {
     pub fn play_controls(&self, ctx: &Context, ui: &mut Ui) {
         let theme = Theme::get(ctx);
         ui.horizontal_top(|ui| {
-            let previous_button = ImageButton::new(theme.previous_track_icon.texture_id(ctx), [48.0, 48.0]);
-            let play_pause_button = ImageButton::new(theme.play_icon.texture_id(ctx), [48.0, 48.0]);
-            let next_button = ImageButton::new(theme.next_track_icon.texture_id(ctx), [48.0, 48.0]);
             // The button order is inverted because the parent UI is right to 
             // left so that the player controls are right justified. Don't @ me.
-            if ui.add(next_button).clicked() {
+            if Theme::icon_button(&theme.next_track_icon, 48, 48, ctx, ui).clicked() {
                 self.player.write().unwrap().next();
             }
-            if ui.add(play_pause_button).clicked() {
+            if Theme::icon_button(&theme.play_icon, 48, 48, ctx, ui).clicked() {
                 self.player.write().unwrap().play();
             }
-            if ui.add(previous_button).clicked() {
+            if Theme::icon_button(&theme.previous_track_icon, 48, 48, ctx, ui).clicked() {
                 self.player.write().unwrap().previous();
             }
         });
