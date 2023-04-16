@@ -1,17 +1,18 @@
-use std::sync::Arc;
+
 
 use eframe::egui::{Context, ImageButton, Ui, Layout, Frame, Margin, Response};
 use eframe::emath::Align;
-use eframe::epaint::{Color32, ColorImage, FontId, Stroke, Rect};
+
 
 use egui_extras::RetainedImage;
 
-use crate::dimple::Theme;
-use crate::player::{PlayerHandle};
+
+use crate::player::PlayerHandle;
 
 use super::card_grid::LibraryItem;
-use super::retained_images::RetainedImages;
+
 use super::scrubber::{PlotScrubber, SliderScrubber};
+use super::theme::Theme;
 use super::utils;
 
 #[derive()]
@@ -19,37 +20,18 @@ pub struct PlayerBar {
     player: PlayerHandle,
     plot_scrubber: PlotScrubber,
     slider_scrubber: SliderScrubber,
-    retained_images: Arc<RetainedImages>,
-
-    artist_icon: RetainedImage,
-    release_icon: RetainedImage,
-    track_icon: RetainedImage,
-
-    play_icon: RetainedImage,    
-    pause_icon: RetainedImage,    
-    previous_icon: RetainedImage,    
-    next_icon: RetainedImage,    
 }
 
 impl PlayerBar {
-    const now_playing_thumbnail_size: f32 = 150.0;
-    const up_next_width: f32 = 120.0;
-    const up_next_thumbnail_size: f32 = 80.0;
+    const NOW_PLAYING_THUMBNAIL_SIZE: f32 = 150.0;
+    const UP_NEXT_WIDTH: f32 = 120.0;
+    const UP_NEXT_THUMBNAIL_SIZE: f32 = 80.0;
 
-    pub fn new(player: PlayerHandle, retained_images: Arc<RetainedImages>) -> Self {
+    pub fn new(player: PlayerHandle) -> Self {
         Self {
             player,
             plot_scrubber: PlotScrubber::default(),
             slider_scrubber: SliderScrubber::default(),
-            retained_images,
-
-            artist_icon: Theme::svg_icon(include_bytes!("../icons/material/group_FILL0_wght400_GRAD0_opsz48.svg")),
-            release_icon: Theme::svg_icon(include_bytes!("../icons/material/album_FILL0_wght400_GRAD0_opsz48.svg")),
-            track_icon: Theme::svg_icon(include_bytes!("../icons/material/music_note_FILL0_wght400_GRAD0_opsz48.svg")),
-            play_icon: Theme::svg_icon(include_bytes!("../icons/material/play_circle_FILL1_wght400_GRAD0_opsz48.svg")),
-            pause_icon: Theme::svg_icon(include_bytes!("../icons/material/pause_FILL1_wght400_GRAD0_opsz48.svg")),
-            next_icon: Theme::svg_icon(include_bytes!("../icons/material/skip_next_FILL1_wght400_GRAD0_opsz48.svg")),
-            previous_icon: Theme::svg_icon(include_bytes!("../icons/material/skip_previous_FILL1_wght400_GRAD0_opsz48.svg")),
         }
     }
 
@@ -64,7 +46,7 @@ impl PlayerBar {
             }).show(ui, |ui| {
                 self.now_playing(ctx, ui);
                 ui.vertical(|ui| {
-                    ui.set_width(ui.available_width() - Self::up_next_width);
+                    ui.set_width(ui.available_width() - Self::UP_NEXT_WIDTH);
                     ui.horizontal_top(|ui| {
                         if let Some(item) = self.track_info(ctx, ui) {
                             action = Some(item);
@@ -90,6 +72,7 @@ impl PlayerBar {
     }
 
     pub fn track_info(&self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
+        let theme = Theme::get(ctx);
         let queue_item = self
             .player
             .read()
@@ -99,7 +82,7 @@ impl PlayerBar {
             Some(queue_item) => {
                 ui.vertical(|ui| {
                     if self.fav_icon_label(
-                        &self.track_icon,
+                        &theme.track_icon,
                         &queue_item.track.title,
                         false,
                         ctx,
@@ -109,7 +92,7 @@ impl PlayerBar {
                     }
 
                     if self.fav_icon_label(
-                        &self.release_icon,
+                        &theme.release_icon,
                         &queue_item.release.title,
                         false,
                         ctx,
@@ -119,7 +102,7 @@ impl PlayerBar {
                     }
 
                     if self.fav_icon_label(
-                        &self.artist_icon,
+                        &theme.artist_icon,
                         &queue_item.release.artist(),
                         false,
                         ctx,
@@ -136,21 +119,18 @@ impl PlayerBar {
     }
 
     pub fn now_playing(&self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
-        let thumbnail_size: usize = Self::now_playing_thumbnail_size as usize;
+        let theme = Theme::get(ctx);
+        let thumbnail_size: usize = Self::NOW_PLAYING_THUMBNAIL_SIZE as usize;
         if let Some(item) = self.player.read().unwrap().current_queue_item() {
-            // TODO change to carousel
-            let image =
-                self.retained_images
-                    .get(item.release.art.first().unwrap(), thumbnail_size, thumbnail_size);
-            if ui.add(ImageButton::new(
-                image.read().unwrap().texture_id(ctx),
-                [thumbnail_size as f32, thumbnail_size as f32],
-            )).clicked() {
-                return Some(LibraryItem::Release(item.release));
-            }
+            // TODO track art.
+            // TODO clicked
+            theme.carousel(&item.release.art, thumbnail_size, thumbnail_size, ctx, ui);
+            // )).clicked() {
+            //     return Some(LibraryItem::Release(item.release));
+            // }
         } 
         else {
-            let image = utils::sample_image(Color32::TRANSPARENT, thumbnail_size, thumbnail_size);
+            let image = utils::sample_image(theme.image_placeholder, thumbnail_size, thumbnail_size);
             ui.add(ImageButton::new(image.texture_id(ctx), [thumbnail_size as f32, thumbnail_size as f32]));
         }
 
@@ -158,18 +138,18 @@ impl PlayerBar {
     }
 
     pub fn up_next(&self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
-        let thumbnail_size: usize = Self::up_next_thumbnail_size as usize;
+        let theme = Theme::get(ctx);
+        let thumbnail_size: usize = Self::UP_NEXT_THUMBNAIL_SIZE as usize;
         let mut action = None;
         if let Some(item) = self.player.read().unwrap().current_queue_item() {
-            // TODO change to carousel
-            let image = self.retained_images
-                .get(item.release.art.first().unwrap(), thumbnail_size, thumbnail_size);
             ui.vertical_centered(|ui| {
-                ui.set_width(Self::up_next_width);
+                ui.set_width(Self::UP_NEXT_WIDTH);
                 ui.label(Theme::small("Up Next").weak());
-                if ui.add(ImageButton::new(image.read().unwrap().texture_id(ctx), [thumbnail_size as f32, thumbnail_size as f32])).clicked() {
-                    action = Some(LibraryItem::Release(item.release.clone()));
-                }
+                // TODO clicked
+                theme.carousel(&item.release.art, thumbnail_size, thumbnail_size, ctx, ui);
+                // if ui.add(ImageButton::new(image.read().unwrap().texture_id(ctx), [thumbnail_size as f32, thumbnail_size as f32])).clicked() {
+                //     action = Some(LibraryItem::Release(item.release.clone()));
+                // }
                 if ui.link(Theme::small_n_bold(&item.track.title)).clicked() {
                     action = Some(LibraryItem::Track(item.track.clone()));
                 }
@@ -185,7 +165,7 @@ impl PlayerBar {
         &self,
         icon: &RetainedImage,
         label: &str,
-        is_fav: bool,
+        _is_fav: bool,
         ctx: &Context,
         ui: &mut Ui,
     ) -> Response {
@@ -196,10 +176,11 @@ impl PlayerBar {
     }
 
     pub fn play_controls(&self, ctx: &Context, ui: &mut Ui) {
+        let theme = Theme::get(ctx);
         ui.horizontal_top(|ui| {
-            let previous_button = ImageButton::new(self.previous_icon.texture_id(ctx), [48.0, 48.0]);
-            let play_pause_button = ImageButton::new(self.play_icon.texture_id(ctx), [48.0, 48.0]);
-            let next_button = ImageButton::new(self.next_icon.texture_id(ctx), [48.0, 48.0]);
+            let previous_button = ImageButton::new(theme.previous_track_icon.texture_id(ctx), [48.0, 48.0]);
+            let play_pause_button = ImageButton::new(theme.play_icon.texture_id(ctx), [48.0, 48.0]);
+            let next_button = ImageButton::new(theme.next_track_icon.texture_id(ctx), [48.0, 48.0]);
             // The button order is inverted because the parent UI is right to 
             // left so that the player controls are right justified. Don't @ me.
             if ui.add(next_button).clicked() {

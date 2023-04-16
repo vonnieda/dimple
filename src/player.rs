@@ -1,4 +1,4 @@
-use std::{sync::{Arc, RwLock}, time::{Duration, Instant}};
+use std::{sync::{Arc, RwLock}};
 
 use rodio::Sink;
 
@@ -39,13 +39,13 @@ pub type PlayerHandle = Arc<RwLock<Player>>;
 /// local storage or to try to stream it. 
 impl Player {
     pub fn new(sink: Arc<Sink>, librarian: Arc<Librarian>) -> PlayerHandle {
-        let player = Arc::new(RwLock::new(Self {
+        Arc::new(RwLock::new(Self {
             sink,
             librarian,
             queue: Vec::new(),
             current_queue_item_index: 0,
             position: RwLock::new(0.0),
-        }));
+        }))
 
         // let player_1 = player.clone();
         // std::thread::spawn(move || {
@@ -58,8 +58,6 @@ impl Player {
         //         std::thread::sleep(Duration::from_millis(100));
         //     }
         // });
-
-        player
     }
 
     pub fn queue_release(&mut self, release: &Release) {

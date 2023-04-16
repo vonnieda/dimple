@@ -6,3 +6,5 @@ pub mod scrubber;
 pub mod nav_bar;
 pub mod utils;
 pub mod retained_images;
+pub mod cards;
+pub mod theme;

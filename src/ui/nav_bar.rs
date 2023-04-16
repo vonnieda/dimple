@@ -1,7 +1,7 @@
-use eframe::{egui::{Context, Ui, TextEdit, Response, FontDefinitions, TextStyle, ImageButton}, epaint::{FontId, FontFamily, Color32}};
+use eframe::{egui::{Context, Ui, TextEdit, TextStyle}};
 use egui_extras::RetainedImage;
 
-use crate::dimple::Theme;
+use super::theme::Theme;
 
 pub struct NavBar {
     pub query: String,
@@ -43,10 +43,10 @@ impl NavBar {
                     .show(ui)
                     .response.changed() {
                     
-                    return Some(NavEvent::Search(self.query.clone()));
+                    Some(NavEvent::Search(self.query.clone()))
                 }
                 else {
-                    return None;
+                    None
                 }
             }).inner
         }).inner

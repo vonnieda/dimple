@@ -1,18 +1,17 @@
-use std::{sync::{Arc, RwLock}, collections::VecDeque};
+use std::{sync::{Arc}, collections::VecDeque};
 
-use eframe::{egui::{self, Context, ImageButton, Ui, LayerId, Frame, Margin}, epaint::{Color32, Mesh, Shape, Rect, Stroke}};
+use eframe::{egui::{self, Context, LayerId, Frame, Margin}, epaint::{Color32, Mesh, Shape, Rect, Stroke}};
 
-use egui_extras::RetainedImage;
+
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
-use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release}, dimple::Theme};
+use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release}};
 
-use super::{nav_bar::{NavBar, NavEvent}, player_bar::PlayerBar, card_grid::{CardGrid, Card, LibraryItem}, retained_images::RetainedImages, item_details::ItemDetails};
+use super::{nav_bar::{NavBar, NavEvent}, player_bar::PlayerBar, card_grid::{CardGrid, Card, LibraryItem}, item_details::ItemDetails, theme::Theme};
 
 pub struct MainScreen {
     librarian: Arc<Librarian>,
-    player: PlayerHandle,
-    retained_images: Arc<RetainedImages>,
+    _player: PlayerHandle,
 
     nav_bar: NavBar,
     card_grid: CardGrid,
@@ -36,24 +35,22 @@ pub enum HistoryItem {
 // app and decide if the rest of the UI can just call, like, "navigate"
 impl MainScreen {
     pub fn new(player: PlayerHandle, librarian: Arc<Librarian>) -> Self {
-        let retained_images = Arc::new(RetainedImages::new(librarian.clone()));
-        let mut main_screen = Self {
+        Self {
             librarian: librarian.clone(),
-            player: player.clone(),
-            retained_images: retained_images.clone(),
+            _player: player.clone(),
             nav_bar: NavBar::default(),
             card_grid: CardGrid::default(),
-            player_bar: PlayerBar::new(player.clone(), retained_images.clone()),
+            player_bar: PlayerBar::new(player.clone()),
             cards: Vec::new(),
             history: VecDeque::new(),
-            item_details: ItemDetails::new(retained_images.clone(), player.clone(), librarian.clone()),
+            item_details: ItemDetails::new(player, librarian),
             player_last_rect: None,
-        };
-        main_screen.cards = main_screen.cards("");
-        main_screen
+        }
     }
 
-    pub fn ui(&mut self, ctx: &Context) {        
+    pub fn ui(&mut self, ctx: &Context) {     
+        let theme = Theme::get(ctx);
+
         self.gradient_background(ctx);
 
         // egui::Window::new("Style").show(ctx, |ui| {
@@ -61,6 +58,10 @@ impl MainScreen {
         // });
 
         // ctx.set_debug_on_hover(true);
+
+        if self.player_last_rect.is_none() {
+            self.cards = self.cards("", ctx);
+        }
 
         egui::TopBottomPanel::top("nav_bar").show(ctx, |ui| {
             Frame::none()
@@ -89,7 +90,7 @@ impl MainScreen {
         let panel = egui::TopBottomPanel::bottom("player").show(ctx, |ui| {
             if let Some(last_rect) = self.player_last_rect {
                 let painter = ui.painter();
-                painter.rect_filled(last_rect, 0.0, Theme::player_background);
+                painter.rect_filled(last_rect, 0.0, theme.player_background);
                 painter.line_segment([last_rect.left_top(), last_rect.right_top()], Stroke::new(1.0, Color32::from_gray(0xc3)));
             }
             Frame::none().inner_margin(Margin {
@@ -125,7 +126,7 @@ impl MainScreen {
                             // TODO can't run the query every frame
                             // TODO we should set the search bar query string when
                             // showing this.
-                            self.cards = self.cards(query.clone().as_str());
+                            self.cards = self.cards(query.clone().as_str(), ctx);
                             let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
                             if let Some(library_item) = action {
                                 self.history.push_front(HistoryItem::ItemDetails(library_item));
@@ -134,7 +135,7 @@ impl MainScreen {
                         Some(HistoryItem::Home) => {
                             // TODO can't run the query every frame
                             // TODO Clear search bar query string
-                            self.cards = self.cards("");
+                            self.cards = self.cards("", ctx);
                             let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
                             if let Some(library_item) = action {
                                 self.history.push_front(HistoryItem::ItemDetails(library_item));
@@ -143,7 +144,7 @@ impl MainScreen {
                         None => {
                             // TODO can't run the query every frame
                             // TODO Clear search bar query string
-                            self.cards = self.cards("");
+                            self.cards = self.cards("", ctx);
                             let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
                             if let Some(library_item) = action {
                                 self.history.push_front(HistoryItem::ItemDetails(library_item));
@@ -155,13 +156,14 @@ impl MainScreen {
     }
 
     fn gradient_background(&mut self, ctx: &Context) {
+        let theme = Theme::get(ctx);
         // let painter = ctx.layer_painter(LayerId::new(egui::Order::PanelResizeLine, Id::new("gradient")));
         let painter = ctx.layer_painter(LayerId::background());
         let mut mesh = Mesh::default();
         let rect = painter.clip_rect();
-        let top = Theme::background_top;
-        let middle = Theme::background_middle;
-        let bottom = Theme::background_bottom;
+        let top = theme.background_top;
+        let middle = theme.background_middle;
+        let bottom = theme.background_bottom;
         mesh.colored_vertex(rect.left_top(), top);
         mesh.colored_vertex(rect.right_top(), top);
         mesh.colored_vertex(rect.right_center(), middle);
@@ -184,7 +186,7 @@ impl MainScreen {
     // TODO Playlist Cards
     /// Get the list of Cards to show in the grid. Performs filtering, sorting,
     /// and caching.
-    fn cards(&mut self, query: &str) -> Vec<Box<dyn Card>> {
+    fn cards(&self, query: &str, ctx: &Context) -> Vec<Box<dyn Card>> {
         // Filter Releases by the query
         let matcher = SkimMatcherV2::default();
         let mut releases: Vec<Release> = self.librarian.releases().into_iter()
@@ -205,61 +207,12 @@ impl MainScreen {
         });
 
         // Convert to Cards
+        let theme = Theme::get(ctx);
         releases.into_iter()
             .map(|release| {
-                Box::new(self.card_from_release(&release)) as Box<dyn Card>
+                Box::new(theme.card_from_release(&release)) as Box<dyn Card>
             })
             .collect()
     }
-
-    fn card_from_release(&mut self, release: &Release) -> ReleaseCard {
-        ReleaseCard {
-            release: release.clone(),
-            image: self.retained_images.get(release.art.first().unwrap(), 200, 200),
-            player: self.player.clone(),
-        }
-    }
-}
-
-pub struct ReleaseCard {
-    pub release: Release,
-    pub image: Arc<RwLock<Arc<RetainedImage>>>,
-    pub player: PlayerHandle,
-}
-
-impl ReleaseCard {
-}
-
-impl Card for ReleaseCard {
-    fn ui(&self, image_width: f32, image_height: f32, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
-        let mut action = None;
-        ui.vertical(|ui| {
-            let image_button =
-                ImageButton::new(self.image.read().unwrap().texture_id(ctx), 
-                    egui::vec2(image_width, image_height));
-            // art
-            if ui.add(image_button).clicked() {
-                action = Some(LibraryItem::Release(self.release.clone()));
-            }
-            // title
-            if ui.link(Theme::big_n_bold(&self.release.title)).clicked() {
-                action = Some(LibraryItem::Release(self.release.clone()));
-            }
-            // Show each artist as a clickable link separated by commas
-            ui.horizontal_wrapped(|ui| {
-                ui.spacing_mut().item_spacing = [0.0, 0.0].into();
-                let len = self.release.artists.len();
-                for (i, artist) in self.release.artists.iter().enumerate() {
-                    if ui.link(&self.release.artist()).clicked() {
-                        action = Some(LibraryItem::Artist(artist.clone()));
-                    }
-                    if i < len - 1 {
-                        ui.label(",");
-                    }
-                }
-            });
-        });
-        action
-    }   
 }
 

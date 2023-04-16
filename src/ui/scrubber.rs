@@ -1,15 +1,18 @@
-use std::f64::consts::PI;
 
-use eframe::{egui::{Context, Ui, Slider, plot::{PlotPoints, Line, Plot}}, epaint::{Color32, Stroke}};
 
-use crate::{player::PlayerHandle, dimple::Theme};
+use eframe::{egui::{Context, Ui, Slider, plot::{PlotPoints, Line, Plot}}};
+
+use crate::{player::PlayerHandle};
+
+use super::theme::Theme;
 
 #[derive(Default)]
 pub struct PlotScrubber {
 }
 
 impl PlotScrubber {
-    pub fn ui(&self, _ctx: &Context, ui: &mut Ui) {
+    pub fn ui(&self, ctx: &Context, ui: &mut Ui) {
+        let theme = Theme::get(ctx);
         let points: PlotPoints = (0..1000).map(|x| {
             let x = x as f64;
             let y = f(x).powf(2.0);
@@ -17,7 +20,7 @@ impl PlotScrubber {
         }).collect();
         let line = Line::new(points)
             .fill(0.0)
-            .color(Theme::background_top)
+            .color(theme.background_top)
             // .stroke(Stroke::new(3.0, Theme::background_top))
         ;
         Plot::new("my_plot")

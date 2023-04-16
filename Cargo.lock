@@ -550,15 +550,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "catppuccin-egui"
-version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c840bcad5f36bba893de10ad208359b4b6bab36c60262af8e7883f2843350475"
-dependencies = [
- "egui",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1002,7 +993,6 @@ dependencies = [
 name = "dimple"
 version = "0.1.0"
 dependencies = [
- "catppuccin-egui",
  "config",
  "crossbeam",
  "data-encoding",

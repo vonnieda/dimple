@@ -106,31 +106,31 @@ pub trait HasArtwork {
 
 impl HasArtwork for Release {
     fn art(&self) -> Vec<Image> {
-        return self.art.clone();
+        self.art.clone()
     }
 }
 
 impl HasArtwork for Artist {
     fn art(&self) -> Vec<Image> {
-        return self.art.clone();
+        self.art.clone()
     }
 }
 
 impl HasArtwork for Genre {
     fn art(&self) -> Vec<Image> {
-        return self.art.clone();
+        self.art.clone()
     }
 }
 
 impl HasArtwork for Playlist {
     fn art(&self) -> Vec<Image> {
-        return self.art.clone();
+        self.art.clone()
     }
 }
 
 impl HasArtwork for Track {
     fn art(&self) -> Vec<Image> {
-        return self.art.clone();
+        self.art.clone()
     }
 }
 

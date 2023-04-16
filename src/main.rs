@@ -1,9 +1,3 @@
-use std::sync::Arc;
-
-use dimple::dimple::Dimple;
-use eframe::egui::{self};
-use rodio::{OutputStream, Sink};
-
 // TODO tile size slider
 // TODO check out bliss and bliss-rs https://github.com/Polochon-street/bliss-rs for smart playlist generation
 // TODO escape should clear search
@@ -19,6 +13,13 @@ use rodio::{OutputStream, Sink};
 // TODO figure out a better way to render the svgs - they look like trash
 // TODO app icon https://github.com/emilk/egui/discussions/1574
 //      https://github.com/KunalBagaria/redock
+// TODO test gapless playback: Us and Them -> And Colour You Like
+
+use std::sync::Arc;
+
+use dimple::dimple::Dimple;
+use eframe::egui::{self};
+use rodio::{OutputStream, Sink};
 
 fn main() {
     let mut builder = env_logger::Builder::new();
@@ -29,7 +30,7 @@ fn main() {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     let sink = Arc::new(Sink::try_new(&stream_handle).unwrap());
 
-    let mut native_options = eframe::NativeOptions {
+    let native_options = eframe::NativeOptions {
         resizable: true,
         initial_window_size: Some(egui::vec2(1440.0, 1024.0)),
         // initial_window_size: Some(egui::vec2(1024.0, 720.0)),
