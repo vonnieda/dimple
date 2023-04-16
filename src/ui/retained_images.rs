@@ -13,7 +13,7 @@ pub struct RetainedImages {
     // for fast startup.
     retained_images: Arc<Mutex<HashMap<String, Arc<RetainedImage>>>>,
     thread_pool: Arc<Mutex<ThreadPool>>,
-    librarian: Arc<Mutex<Arc<Librarian>>>,
+    librarian: Arc<RwLock<Arc<Librarian>>>,
 }
 
 impl RetainedImages {
@@ -21,7 +21,7 @@ impl RetainedImages {
         Self {
             retained_images: Arc::new(Mutex::new(HashMap::new())),
             thread_pool: Arc::new(Mutex::new(ThreadPool::default())),
-            librarian: Arc::new(Mutex::new(librarian)),
+            librarian: Arc::new(RwLock::new(librarian)),
         }
     }
 
@@ -50,7 +50,7 @@ impl RetainedImages {
         let retained_images_1 = self.retained_images.clone();
         let retained_1 = retained.clone();
         self.thread_pool.lock().unwrap().execute(move || {
-            if let Ok(dynamic) = librarian_1.lock().unwrap().image(&image_1) {
+            if let Ok(dynamic) = librarian_1.read().unwrap().image(&image_1) {
                 let new_retained = Arc::new(utils::dynamic_to_retained("", &dynamic));
                 retained_images_1.lock().unwrap().insert(key, new_retained.clone());
                 *retained_1.write().unwrap() = new_retained;
