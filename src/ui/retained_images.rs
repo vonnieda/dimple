@@ -35,6 +35,8 @@ impl RetainedImages {
         let key = format!("{}:{}x{}", image.url, width, height);
         
         if let Some(image) = self.retained_images.lock().unwrap().get(&key) {
+            // TODO gotta be a better way than creating a new lock every time. 
+            // Probably needs to be stored as the lock.
             return Arc::new(RwLock::new(image.clone()));
         }
 

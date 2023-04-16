@@ -3,7 +3,6 @@ use std::sync::{Arc, RwLock};
 use eframe::{epaint::Color32, egui::{RichText, TextStyle, Context, FontData, Id}};
 use egui_extras::RetainedImage;
 
-use eframe::egui::style::{Widgets};
 use eframe::egui::{FontDefinitions, Visuals, Style, Ui, Response, ImageButton};
 
 use eframe::epaint::{FontFamily, FontId, Stroke};
@@ -106,9 +105,6 @@ impl Theme {
             panel_fill: Color32::TRANSPARENT, // So the background is visible
             text_cursor_preview: true,
             slider_trailing_fill: true,
-            widgets: Widgets {
-                ..Default::default()
-            },
             ..Default::default()
         };
         visuals.widgets.noninteractive.fg_stroke = Stroke::new(0., self.text);
