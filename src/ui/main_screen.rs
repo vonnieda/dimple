@@ -207,12 +207,7 @@ impl MainScreen {
         });
 
         // Convert to Cards
-        let theme = Theme::get(ctx);
-        releases.into_iter()
-            .map(|release| {
-                Box::new(release) as Box<dyn Card>
-            })
-            .collect()
+        releases.into_iter().map(|release| Box::new(release) as Box<dyn Card>).collect()
     }
 }
 

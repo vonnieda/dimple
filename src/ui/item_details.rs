@@ -1,8 +1,8 @@
 use std::{sync::{Arc, RwLock}};
 
-use eframe::{egui::{Context, Ui, Grid}};
+use eframe::{egui::{Ui, Grid}};
 
-use crate::{music_library::{Artist, Genre, Release, Track, Playlist, Library}, player::{PlayerHandle, Player}, librarian::Librarian};
+use crate::{music_library::{Artist, Genre, Release, Track, Playlist}, player::{PlayerHandle, Player}, librarian::Librarian};
 
 use super::{card_grid::{LibraryItem, CardGrid, Card}, theme::Theme};
 
@@ -145,8 +145,9 @@ impl ItemDetails {
                     });
                 })
             });
-            let cards = self.release_cards_by_artist(artist, ui.ctx());
-            if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ui) {
+            let releases = self.librarian.releases_by_artist(&artist);
+            let cards: Vec<Box<dyn Card>> = releases.into_iter().map(|release| Box::new(release) as Box<dyn Card>).collect();
+            if let Some(item) = CardGrid::default().ui(cards.as_slice(), 100.0, 100.0, ui) {
                 action = Some(item);
             }
         });
@@ -170,65 +171,13 @@ impl ItemDetails {
                     });
                 })
             });
-            let cards = self.release_cards_by_genre(genre, ui.ctx());
+            let releases = self.librarian.releases_by_genre(&genre);
+            let cards: Vec<Box<dyn Card>> = releases.into_iter().map(|release| Box::new(release) as Box<dyn Card>).collect();
             if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ui) {
                 action = Some(item);
             }
         });
         action
-    }
-
-
-    // TODO okay scratched this together real quick to see it in action
-    // and it's glorious. Little cards of releases under artist. But it exposes
-    // the need for several things, like Librarian, to be globalish. 
-    // And maybe helper functions for like Dimple::card_from<T>(T t) for Library
-    // Items.
-    // Mostly need a way to do queries on releases and turn them into cards.
-    fn release_cards_by_artist(&mut self, artist: &Artist, ctx: &Context) -> Vec<Box<dyn Card>> {
-        let theme = Theme::get(ctx);
-        let mut releases: Vec<Release> = self.librarian.releases().into_iter()
-            .filter(|release| {
-                release.artists.contains(artist)
-            })
-            .collect();
-
-        // Sort Releases by Artist Name then Release Title
-        releases.sort_by(|a, b| {
-            a.artist().to_uppercase()
-                .cmp(&b.artist().to_uppercase())
-                .then(a.title.to_uppercase().cmp(&b.title.to_uppercase()))
-        });
-
-        // Convert to Cards
-        releases.into_iter()
-            .map(move |release| {
-                Box::new(release) as Box<dyn Card>
-            })
-            .collect()
-    }
-
-    fn release_cards_by_genre(&mut self, genre: &Genre, ctx: &Context) -> Vec<Box<dyn Card>> {
-        let theme = Theme::get(ctx);
-        let mut releases: Vec<Release> = self.librarian.releases().into_iter()
-            .filter(|release| {
-                release.genres.contains(genre)
-            })
-            .collect();
-
-        // Sort Releases by Artist Name then Release Title
-        releases.sort_by(|a, b| {
-            a.artist().to_uppercase()
-                .cmp(&b.artist().to_uppercase())
-                .then(a.title.to_uppercase().cmp(&b.title.to_uppercase()))
-        });
-
-        // Convert to Cards
-        releases.into_iter()
-            .map(|release| {
-                Box::new(release) as Box<dyn Card>
-            })
-            .collect()
     }
 
     pub fn playlist(&mut self, playlist: &Playlist, ui: &mut Ui) -> Option<LibraryItem> {

@@ -15,3 +15,4 @@ pub fn dynamic_to_retained(debug_name: &str, image: &DynamicImage) -> RetainedIm
 pub fn sample_image(color: Color32, width: usize, height: usize) -> RetainedImage {
     RetainedImage::from_color_image("", ColorImage::new([width, height], color))
 }
+

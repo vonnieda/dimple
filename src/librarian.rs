@@ -1,8 +1,8 @@
-use std::{sync::{Arc, RwLock}};
+use std::{sync::{Arc, RwLock}, collections::HashSet};
 
 use crossbeam::channel::{Receiver};
 
-use crate::{music_library::{Library, Release, Image, Track, local_library::LocalLibrary, LibraryConfig, navidrome_library::NavidromeLibrary}, settings::Settings};
+use crate::{music_library::{Library, Release, Image, Track, local_library::LocalLibrary, LibraryConfig, navidrome_library::NavidromeLibrary, Artist, Genre}, settings::Settings};
 
 #[derive(Debug)]
 pub struct Librarian {
@@ -44,6 +44,42 @@ impl Librarian {
         for library in libraries.iter() {
             self.refresh_library(library);
         }
+    }
+
+    /// TODO all these shortcut methods might end up in Library since they apply
+    /// there too, and may be more efficient being called directly. Defaults
+    /// can just be these ones that filter.
+    pub fn artists(&self) -> Vec<Artist> {
+        self.releases()
+            .iter()
+            .flat_map(|release| release.artists.into_iter())
+            .collect::<Vec<Artist>>()
+    }
+
+    pub fn artists_by_genre(&self, genre: &Genre) -> Vec<Artist> {
+        Vec::new()
+    }
+
+    pub fn genres(&self) -> Vec<Genre> {
+        Vec::new()
+    }
+
+    pub fn genres_by_artist(&self, artist: &Artist) -> Vec<Genre> {
+        Vec::new()
+    }
+
+    pub fn releases_by_artist(&self, artist: &Artist) -> Vec<Release> {
+        self.releases()
+            .into_iter()
+            .filter(|release| release.artists.contains(artist))
+            .collect()
+    }
+
+    pub fn releases_by_genre(&self, genre: &Genre) -> Vec<Release> {
+        self.releases()
+            .into_iter()
+            .filter(|release| release.genres.contains(genre))
+            .collect()
     }
 }
 
