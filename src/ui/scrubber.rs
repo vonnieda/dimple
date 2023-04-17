@@ -1,6 +1,6 @@
 
 
-use eframe::{egui::{Context, Ui, Slider, plot::{PlotPoints, Line, Plot}}};
+use eframe::{egui::{Ui, Slider, plot::{PlotPoints, Line, Plot}}};
 
 use crate::{player::PlayerHandle};
 
@@ -11,8 +11,8 @@ pub struct PlotScrubber {
 }
 
 impl PlotScrubber {
-    pub fn ui(&self, ctx: &Context, ui: &mut Ui) {
-        let theme = Theme::get(ctx);
+    pub fn ui(&self, ui: &mut Ui) {
+        let theme = Theme::get(ui.ctx());
         let points: PlotPoints = (0..1000).map(|x| {
             let x = x as f64;
             let y = f(x).powf(2.0);
@@ -60,7 +60,7 @@ pub struct SliderScrubber {
 }
 
 impl SliderScrubber {
-    pub fn ui(&self, player: PlayerHandle, _ctx: &Context, ui: &mut Ui) {
+    pub fn ui(&self, player: PlayerHandle, ui: &mut Ui) {
         let position = player.read().unwrap().position();
         let duration = player.read().unwrap().duration();
         let mut mut_position: f32 = position;

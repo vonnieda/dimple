@@ -1,6 +1,6 @@
 use std::sync::{RwLock, Arc};
 
-use eframe::egui::{ImageButton, Context, Ui, self};
+use eframe::egui::{ImageButton, Ui, self};
 use egui_extras::RetainedImage;
 
 use crate::{music_library::Release};
@@ -23,11 +23,11 @@ impl ReleaseCard {
 }
 
 impl Card for ReleaseCard {
-    fn ui(&self, image_width: f32, image_height: f32, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
+    fn ui(&self, image_width: f32, image_height: f32, ui: &mut Ui) -> Option<LibraryItem> {
         let mut action = None;
         ui.vertical(|ui| {
             let image_button =
-                ImageButton::new(self.image.read().unwrap().texture_id(ctx), 
+                ImageButton::new(self.image.read().unwrap().texture_id(ui.ctx()), 
                     egui::vec2(image_width, image_height));
             // art
             if ui.add(image_button).clicked() {

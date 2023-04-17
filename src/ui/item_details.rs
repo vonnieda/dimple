@@ -42,27 +42,27 @@ impl ItemDetails {
     ///     
     // Artist: Art(Carousel), Name, Genre(s), Grid(Releases), Grid(More Artists Like This)
     // Track: Art(Carousel), Title, Lyrics
-    pub fn ui(&mut self, item: LibraryItem, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
+    pub fn ui(&mut self, item: LibraryItem, ui: &mut Ui) -> Option<LibraryItem> {
         use LibraryItem::*;
 
         match item {
-            Release(release) => self.release(&release, ctx, ui),
-            Artist(artist) => self.artist(&artist, ctx, ui),
-            Genre(genre) => self.genre(&genre, ctx, ui),
-            Playlist(playlist) => self.playlist(&playlist, ctx, ui),
-            Track(track) => self.track(&track, ctx, ui),
+            Release(release) => self.release(&release, ui),
+            Artist(artist) => self.artist(&artist, ui),
+            Genre(genre) => self.genre(&genre, ui),
+            Playlist(playlist) => self.playlist(&playlist, ui),
+            Track(track) => self.track(&track, ui),
         }
     }
 
-    pub fn release(&mut self, release: &Release, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
-        let theme = Theme::get(ctx);
+    pub fn release(&mut self, release: &Release, ui: &mut Ui) -> Option<LibraryItem> {
+        let theme = Theme::get(ui.ctx());
         let mut action = None;
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
-                        theme.carousel(&release.art, 250, 250, ctx, ui);
-                        self.play_controls(&LibraryItem::Release(release.clone()), ctx, ui);
+                        theme.carousel(&release.art, 250, ui);
+                        self.play_controls(&LibraryItem::Release(release.clone()), ui);
                     });
                 });
                 ui.vertical(|ui| {
@@ -71,13 +71,13 @@ impl ItemDetails {
                     });
                     ui.horizontal(|ui| {
                         ui.label("by");
-                        if let Some(item) = self.artist_links(&release.artists, ctx, ui) {
+                        if let Some(item) = self.artist_links(&release.artists, ui) {
                             action = Some(item);
                         }
                     });
                     ui.horizontal(|ui| {
                         ui.label("in");
-                        if let Some(item) = self.genre_links(&release.genres, ctx, ui) {
+                        if let Some(item) = self.genre_links(&release.genres, ui) {
                             action = Some(item);
                         }
                     });
@@ -87,15 +87,15 @@ impl ItemDetails {
         action
     }
 
-    pub fn artist(&mut self, artist: &Artist, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
-        let theme = Theme::get(ctx);
+    pub fn artist(&mut self, artist: &Artist, ui: &mut Ui) -> Option<LibraryItem> {
+        let theme = Theme::get(ui.ctx());
         let mut action = None;
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
-                        theme.carousel(&artist.art, 250, 250, ctx, ui);
-                        self.play_controls(&LibraryItem::Artist(artist.clone()), ctx, ui);
+                        theme.carousel(&artist.art, 250, ui);
+                        self.play_controls(&LibraryItem::Artist(artist.clone()), ui);
                     });
                 });
                 ui.vertical(|ui| {
@@ -104,27 +104,27 @@ impl ItemDetails {
                     });
                     ui.horizontal(|ui| {
                         ui.label("in");
-                        self.genre_links(&artist.genres, ctx, ui);
+                        self.genre_links(&artist.genres, ui);
                     });
                 })
             });
-            let cards = self.release_cards_by_artist(artist, ctx);
-            if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ctx, ui) {
+            let cards = self.release_cards_by_artist(artist, ui.ctx());
+            if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ui) {
                 action = Some(item);
             }
         });
         action
     }
 
-    pub fn genre(&mut self, genre: &Genre, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
-        let theme = Theme::get(ctx);
+    pub fn genre(&mut self, genre: &Genre, ui: &mut Ui) -> Option<LibraryItem> {
+        let theme = Theme::get(ui.ctx());
         let mut action = None;
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
-                        theme.carousel(&genre.art, 250, 250, ctx, ui);
-                        self.play_controls(&LibraryItem::Genre(genre.clone()), ctx, ui);
+                        theme.carousel(&genre.art, 250, ui);
+                        self.play_controls(&LibraryItem::Genre(genre.clone()), ui);
                     });
                 });
                 ui.vertical(|ui| {
@@ -133,8 +133,8 @@ impl ItemDetails {
                     });
                 })
             });
-            let cards = self.release_cards_by_genre(genre, ctx);
-            if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ctx, ui) {
+            let cards = self.release_cards_by_genre(genre, ui.ctx());
+            if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ui) {
                 action = Some(item);
             }
         });
@@ -194,14 +194,14 @@ impl ItemDetails {
             .collect()
     }
 
-    pub fn playlist(&mut self, playlist: &Playlist, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
-        let theme = Theme::get(ctx);
+    pub fn playlist(&mut self, playlist: &Playlist, ui: &mut Ui) -> Option<LibraryItem> {
+        let theme = Theme::get(ui.ctx());
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
-                        theme.carousel(&playlist.art, 250, 250, ctx, ui);
-                        self.play_controls(&LibraryItem::Playlist(playlist.clone()), ctx, ui);
+                        theme.carousel(&playlist.art, 250, ui);
+                        self.play_controls(&LibraryItem::Playlist(playlist.clone()), ui);
                     });
                 });
                 ui.vertical(|ui| {
@@ -214,15 +214,15 @@ impl ItemDetails {
         None
     }
 
-    pub fn track(&mut self, track: &Track, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
-        let theme = Theme::get(ctx);
+    pub fn track(&mut self, track: &Track, ui: &mut Ui) -> Option<LibraryItem> {
+        let theme = Theme::get(ui.ctx());
         let mut action = None;
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
-                        theme.carousel(&track.art, 250, 250, ctx, ui);
-                        self.play_controls(&LibraryItem::Track(track.clone()), ctx, ui);
+                        theme.carousel(&track.art, 250, ui);
+                        self.play_controls(&LibraryItem::Track(track.clone()), ui);
                     });
                 });
                 ui.vertical(|ui| {
@@ -231,13 +231,13 @@ impl ItemDetails {
                     });
                     ui.horizontal(|ui| {
                         ui.label("by");
-                        if let Some(item) = self.artist_links(&track.artists, ctx, ui) {
+                        if let Some(item) = self.artist_links(&track.artists, ui) {
                             action = Some(item);
                         }
                     });
                     ui.horizontal(|ui| {
                         ui.label("in");
-                        self.genre_links(&track.genres, ctx, ui);
+                        self.genre_links(&track.genres, ui);
                     });
                 })
             })
@@ -245,9 +245,9 @@ impl ItemDetails {
         action
     }
 
-    pub fn play_controls(&self, library_item: &LibraryItem, ctx: &Context, ui: &mut Ui) {
-        let theme = Theme::get(ctx);
-        if Theme::icon_button(&theme.add_icon, 48, 48, ctx, ui).clicked() {
+    pub fn play_controls(&self, library_item: &LibraryItem, ui: &mut Ui) {
+        let theme = Theme::get(ui.ctx());
+        if Theme::icon_button(&theme.add_icon, 48, 48, ui).clicked() {
             match library_item {
                 LibraryItem::Release(release) => {
                     self.player.write().unwrap().queue_release(release);
@@ -260,7 +260,7 @@ impl ItemDetails {
         }
     }
 
-    pub fn artist_links(&self, artists: &Vec<Artist>, _ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
+    pub fn artist_links(&self, artists: &Vec<Artist>, ui: &mut Ui) -> Option<LibraryItem> {
         // Show each artist as a clickable link separated by commas
         let mut action = None;
         ui.horizontal_wrapped(|ui| {
@@ -278,7 +278,7 @@ impl ItemDetails {
         action
     }
 
-    pub fn genre_links(&self, genres: &Vec<Genre>, _ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
+    pub fn genre_links(&self, genres: &Vec<Genre>, ui: &mut Ui) -> Option<LibraryItem> {
         // Show each genre as a clickable link separated by commas
         let mut action = None;
         ui.horizontal_wrapped(|ui| {

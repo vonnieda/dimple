@@ -143,26 +143,26 @@ impl Theme {
         RichText::new(str).text_style(TextStyle::Name("Small Bold".into()))
     }
 
-    pub fn icon_button(retained: &RetainedImage, width: usize, height: usize, 
-        ctx: &Context, ui: &mut Ui) -> Response {
+    pub fn icon_button(retained: &RetainedImage, width: usize, height: usize, ui: &mut Ui) -> Response {
 
-        ui.add(ImageButton::new(retained.texture_id(ctx), [width as f32, height as f32]))
+        ui.add(ImageButton::new(retained.texture_id(ui.ctx()), [width as f32, height as f32]))
     }
 
-    pub fn carousel(&self, images: &[Image], 
-        width: usize, height: usize, ctx: &Context, ui: &mut Ui) -> Response {
-        let theme = Theme::get(ctx);
+    pub fn carousel(&self, images: &[Image], width: usize, ui: &mut Ui) -> Response {
+        let theme = Theme::get(ui.ctx());
         let texture_id = match images.first() {
-            Some(image) => self.retained_images.read().unwrap().get(image, width, height)
+            Some(image) => self.retained_images.read().unwrap().get(image, width, width)
                 .read()
                 .unwrap()
-                .texture_id(ctx),
-            None => utils::sample_image(theme.image_placeholder, width, height).texture_id(ctx),
+                .texture_id(ui.ctx()),
+            None => utils::sample_image(theme.image_placeholder, width, width).texture_id(ui.ctx()),
         };
-        ui.add(ImageButton::new(texture_id, [width as f32, height as f32]))
+        ui.add(ImageButton::new(texture_id, [width as f32, width as f32]))
     }
 
     pub fn card_from_release(&self, release: &Release) -> ReleaseCard {
+        // TODO now we can get the theme stuff from the UI we can drop this entirely
+        // and just impl Card for Release
         ReleaseCard {
             release: release.clone(),
             image: self.retained_images.read().unwrap().get(release.art.first().unwrap(), 200, 200),
@@ -170,5 +170,5 @@ impl Theme {
     }
 
     // TODO links functions like artists, genres used in itemdetails
-    
+
 }

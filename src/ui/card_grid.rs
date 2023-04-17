@@ -1,10 +1,9 @@
-use eframe::egui::{self, Context, Ui, ScrollArea, Grid};
+use eframe::egui::{self, Ui, ScrollArea, Grid};
 
 use crate::music_library::{Artist, Release, Genre, Playlist, Track};
 
 pub trait Card {
-    fn ui(&self, image_width: f32, image_height: f32, 
-        ctx: &Context, ui: &mut Ui) -> Option<LibraryItem>;
+    fn ui(&self, image_width: f32, image_height: f32, ui: &mut Ui) -> Option<LibraryItem>;
 }
 
 #[derive(Clone, Debug)]
@@ -25,7 +24,7 @@ pub struct CardGrid {
 // Oh, a hint, might also need Grid::show_rows
 impl CardGrid {
     pub fn ui(&self, cards: &[Box<dyn Card>], image_width: f32, 
-        image_height: f32, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
+        image_height: f32, ui: &mut Ui) -> Option<LibraryItem> {
 
         ui.spacing_mut().scroll_bar_width = 18.0;
         ui.spacing_mut().scroll_bar_outer_margin = 0.0;
@@ -58,7 +57,7 @@ impl CardGrid {
                         .spacing(egui::vec2(card_spacing, row_spacing))
                         .show(ui, |ui| {
                             for (i, card) in cards.iter().enumerate() {
-                                if let Some(a) = card.ui(image_width, image_height, ctx, ui) {
+                                if let Some(a) = card.ui(image_width, image_height, ui) {
                                     action = Some(a);
                                 }
                                 if i % num_columns == num_columns - 1 {

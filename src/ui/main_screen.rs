@@ -72,7 +72,7 @@ impl MainScreen {
                 bottom: 0.0,
             })
             .show(ui, |ui| {
-                match self.nav_bar.ui(ctx, ui) {
+                match self.nav_bar.ui(ui) {
                     Some(NavEvent::Back) => {
                         self.history.pop_front();
                     },
@@ -99,7 +99,7 @@ impl MainScreen {
                 top: 2.0,
                 bottom: 10.0,
             }).show(ui, |ui| {
-                if let Some(item) = self.player_bar.ui(ctx, ui) {
+                if let Some(item) = self.player_bar.ui(ui) {
                     self.history.push_front(HistoryItem::ItemDetails(item));
                 }
             });
@@ -117,7 +117,7 @@ impl MainScreen {
                 .show(ui, |ui| {
                     match self.history.front() {
                         Some(HistoryItem::ItemDetails(item)) => {
-                            if let Some(library_item) = self.item_details.ui(item.clone(), ctx, ui) {
+                            if let Some(library_item) = self.item_details.ui(item.clone(), ui) {
                                 self.history.push_front(HistoryItem::ItemDetails(library_item));
                             }
                         },
@@ -127,7 +127,7 @@ impl MainScreen {
                             // TODO we should set the search bar query string when
                             // showing this.
                             self.cards = self.cards(query.clone().as_str(), ctx);
-                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
+                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ui);
                             if let Some(library_item) = action {
                                 self.history.push_front(HistoryItem::ItemDetails(library_item));
                             }
@@ -136,7 +136,7 @@ impl MainScreen {
                             // TODO can't run the query every frame
                             // TODO Clear search bar query string
                             self.cards = self.cards("", ctx);
-                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
+                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ui);
                             if let Some(library_item) = action {
                                 self.history.push_front(HistoryItem::ItemDetails(library_item));
                             }
@@ -145,7 +145,7 @@ impl MainScreen {
                             // TODO can't run the query every frame
                             // TODO Clear search bar query string
                             self.cards = self.cards("", ctx);
-                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ctx, ui);
+                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ui);
                             if let Some(library_item) = action {
                                 self.history.push_front(HistoryItem::ItemDetails(library_item));
                             }

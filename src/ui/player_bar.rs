@@ -1,11 +1,7 @@
-
-
-use eframe::egui::{Context, ImageButton, Ui, Layout, Frame, Margin, Response};
+use eframe::egui::{Frame, ImageButton, Layout, Margin, Response, Ui};
 use eframe::emath::Align;
 
-
 use egui_extras::RetainedImage;
-
 
 use crate::player::PlayerHandle;
 
@@ -35,40 +31,42 @@ impl PlayerBar {
         }
     }
 
-    pub fn ui(&mut self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
+    pub fn ui(&mut self, ui: &mut Ui) -> Option<LibraryItem> {
         let mut action = None;
         ui.horizontal_top(|ui| {
-            Frame::none().inner_margin(Margin {
-                top: 8.0,
-                left: 0.0,
-                bottom: 0.0,
-                right: 0.0,
-            }).show(ui, |ui| {
-                if let Some(item) = self.now_playing(ctx, ui) {
-                    action = Some(item);
-                }
-                ui.vertical(|ui| {
-                    ui.set_width(ui.available_width() - Self::UP_NEXT_WIDTH);
-                    ui.horizontal_top(|ui| {
-                        if let Some(item) = self.track_info(ctx, ui) {
-                            action = Some(item);
-                        }
-                        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                            self.play_controls(ctx, ui);
+            Frame::none()
+                .inner_margin(Margin {
+                    top: 8.0,
+                    left: 0.0,
+                    bottom: 0.0,
+                    right: 0.0,
+                })
+                .show(ui, |ui| {
+                    if let Some(item) = self.now_playing(ui) {
+                        action = Some(item);
+                    }
+                    ui.vertical(|ui| {
+                        ui.set_width(ui.available_width() - Self::UP_NEXT_WIDTH);
+                        ui.horizontal_top(|ui| {
+                            if let Some(item) = self.track_info(ui) {
+                                action = Some(item);
+                            }
+                            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                                self.play_controls(ui);
+                            });
                         });
+                        ui.add_space(8.0);
+                        ui.scope(|ui| {
+                            // The negative Y spacing slides the plot behind the
+                            // handle of the slider and makes it look awesome.
+                            ui.spacing_mut().item_spacing = [0.0, -3.0].into();
+                            self.plot_scrubber.ui(ui);
+                            self.slider_scrubber.ui(self.player.clone(), ui);
+                        });
+                        self.timers(ui);
                     });
-                    ui.add_space(8.0);
-                    ui.scope(|ui| {
-                        // The negative Y spacing slides the plot behind the
-                        // handle of the slider and makes it look awesome.
-                        ui.spacing_mut().item_spacing = [0.0, -3.0].into();
-                        self.plot_scrubber.ui(ctx, ui);
-                        self.slider_scrubber.ui(self.player.clone(), ctx, ui);
-                    });
-                    self.timers(ctx, ui);
                 });
-            });
-            if let Some(item) = self.up_next(ctx, ui) {
+            if let Some(item) = self.up_next(ui) {
                 action = Some(item);
             }
         });
@@ -76,127 +74,135 @@ impl PlayerBar {
         action
     }
 
-    pub fn track_info(&self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
-        let theme = Theme::get(ctx);
-        let queue_item = self
-            .player
-            .read()
-            .map(|player| player.current_queue_item())
-            .unwrap_or(None);
-        match queue_item {
-            Some(queue_item) => {
-                ui.vertical(|ui| {
-                    if self.fav_icon_label(
-                        &theme.track_icon,
-                        &queue_item.track.title,
-                        false,
-                        ctx,
-                        ui,
-                    ).clicked() {
-                        return Some(LibraryItem::Track(queue_item.track.clone()));
-                    }
+    pub fn track_info(&self, ui: &mut Ui) -> Option<LibraryItem> {
+        let theme = Theme::get(ui.ctx());
+        let queue_item = self.player.read().unwrap().current_queue_item();
+        let track_title = queue_item
+            .as_ref()
+            .map_or(String::new(), |f| f.track.title.clone());
+        let release_title = queue_item
+            .as_ref()
+            .map_or(String::new(), |f| f.release.title.clone());
+        let artist_name = queue_item
+            .as_ref()
+            .map_or(String::new(), |f| f.release.artist());
+        let mut action = None;
+        ui.vertical(|ui| {
+            if self
+                .icon_label(&theme.track_icon, &track_title, ui)
+                .clicked()
+            {
+                if let Some(queue_item) = &queue_item {
+                    action = Some(LibraryItem::Track(queue_item.track.clone()));
+                }
+            }
 
-                    if self.fav_icon_label(
-                        &theme.release_icon,
-                        &queue_item.release.title,
-                        false,
-                        ctx,
-                        ui,
-                    ).clicked() {
-                        return Some(LibraryItem::Release(queue_item.release.clone()));
-                    }
+            if self
+                .icon_label(&theme.release_icon, &release_title, ui)
+                .clicked()
+            {
+                if let Some(queue_item) = &queue_item {
+                    action = Some(LibraryItem::Release(queue_item.release.clone()));
+                }
+            }
 
-                    if self.fav_icon_label(
-                        &theme.artist_icon,
-                        &queue_item.release.artist(),
-                        false,
-                        ctx,
-                        ui,
-                    ).clicked() {
-                        // TODO lol
-                        return Some(LibraryItem::Artist(queue_item.release.artists.first().unwrap().clone()))
-                    }
-                    None
-                }).inner
-            },
-            None => None,
-        }
+            if self
+                .icon_label(&theme.artist_icon, &artist_name, ui)
+                .clicked()
+            {
+                if let Some(queue_item) = &queue_item {
+                    action = Some(LibraryItem::Artist(
+                        queue_item.release.artists.first().unwrap().clone(),
+                    ));
+                }
+            }
+        });
+        action
     }
 
-    pub fn now_playing(&self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
-        let theme = Theme::get(ctx);
+    pub fn now_playing(&self, ui: &mut Ui) -> Option<LibraryItem> {
+        let theme = Theme::get(ui.ctx());
         let thumbnail_size: usize = Self::NOW_PLAYING_THUMBNAIL_SIZE as usize;
         if let Some(item) = self.player.read().unwrap().current_queue_item() {
             // TODO track art.
-            if theme.carousel(&item.release.art, thumbnail_size, thumbnail_size, ctx, ui).clicked() {
+            if theme
+                .carousel(&item.release.art, thumbnail_size, ui)
+                .clicked()
+            {
                 return Some(LibraryItem::Release(item.release));
             }
-        } 
-        else {
-            let image = utils::sample_image(theme.image_placeholder, thumbnail_size, thumbnail_size);
-            ui.add(ImageButton::new(image.texture_id(ctx), [thumbnail_size as f32, thumbnail_size as f32]));
+        } else {
+            let image =
+                utils::sample_image(theme.image_placeholder, thumbnail_size, thumbnail_size);
+            ui.add(ImageButton::new(
+                image.texture_id(ui.ctx()),
+                [thumbnail_size as f32, thumbnail_size as f32],
+            ));
         }
 
         None
     }
 
-    pub fn up_next(&self, ctx: &Context, ui: &mut Ui) -> Option<LibraryItem> {
-        let theme = Theme::get(ctx);
+    // TODO lets get queue viewing
+    pub fn up_next(&self, ui: &mut Ui) -> Option<LibraryItem> {
+        let theme = Theme::get(ui.ctx());
         let thumbnail_size: usize = Self::UP_NEXT_THUMBNAIL_SIZE as usize;
         let mut action = None;
-        if let Some(item) = self.player.read().unwrap().next_queue_item() {
-            ui.vertical_centered(|ui| {
-                ui.set_width(Self::UP_NEXT_WIDTH);
-                ui.label(Theme::small("Up Next").weak());
-                // TODO clicked
-                if theme.carousel(&item.release.art, thumbnail_size, thumbnail_size, ctx, ui).clicked() {
-                    action = Some(LibraryItem::Release(item.release.clone()));
+
+        let queue_item = self.player.read().unwrap().next_queue_item();
+        let release_art = queue_item
+            .as_ref()
+            .map_or(vec![], |f| f.release.art.clone());
+        let track_title = queue_item
+            .as_ref()
+            .map_or(String::new(), |f| f.track.title.clone());
+        let artist_name = queue_item
+            .as_ref()
+            .map_or(String::new(), |f| f.release.artist());
+        ui.vertical_centered(|ui| {
+            ui.set_width(Self::UP_NEXT_WIDTH);
+            ui.label(Theme::small("Up Next").weak());
+            if theme.carousel(&release_art, thumbnail_size, ui).clicked() {
+                if let Some(queue_item) = &queue_item {
+                    action = Some(LibraryItem::Release(queue_item.release.clone()));
                 }
-                if ui.link(Theme::small_n_bold(&item.track.title)).clicked() {
-                    action = Some(LibraryItem::Track(item.track.clone()));
+            }
+            if ui.link(Theme::small_n_bold(&track_title)).clicked() {
+                if let Some(queue_item) = &queue_item {
+                    action = Some(LibraryItem::Track(queue_item.track.clone()));
                 }
-                if ui.link(Theme::small(&item.release.artist())).clicked() {
-                    action = Some(LibraryItem::Artist(item.release.artists.first().unwrap().clone()));
+            }
+            if ui.link(Theme::small(&artist_name)).clicked() {
+                if let Some(queue_item) = &queue_item {
+                    action = Some(LibraryItem::Artist(
+                        queue_item.release.artists.first().unwrap().clone(),
+                    ));
                 }
-            });
-        }
-        else {
-            ui.vertical_centered(|ui| {
-                ui.set_width(Self::UP_NEXT_WIDTH);
-                ui.label(Theme::small("Up Next").weak());
-                let image = utils::sample_image(theme.image_placeholder, thumbnail_size, thumbnail_size);
-                ui.add(ImageButton::new(image.texture_id(ctx), [thumbnail_size as f32, thumbnail_size as f32]));
-            });
-        }
+            }
+        });
         action
     }
 
-    pub fn fav_icon_label(
-        &self,
-        icon: &RetainedImage,
-        label: &str,
-        _is_fav: bool,
-        ctx: &Context,
-        ui: &mut Ui,
-    ) -> Response {
+    pub fn icon_label(&self, icon: &RetainedImage, label: &str, ui: &mut Ui) -> Response {
         ui.horizontal(|ui| {
-            ui.image(icon.texture_id(ctx), [24.0, 24.0]);
+            ui.image(icon.texture_id(ui.ctx()), [24.0, 24.0]);
             ui.link(Theme::bigger(label))
-        }).inner
+        })
+        .inner
     }
 
-    pub fn play_controls(&self, ctx: &Context, ui: &mut Ui) {
-        let theme = Theme::get(ctx);
+    pub fn play_controls(&self, ui: &mut Ui) {
+        let theme = Theme::get(ui.ctx());
         ui.horizontal_top(|ui| {
-            // The button order is inverted because the parent UI is right to 
+            // The button order is inverted because the parent UI is right to
             // left so that the player controls are right justified. Don't @ me.
-            if Theme::icon_button(&theme.next_track_icon, 48, 48, ctx, ui).clicked() {
+            if Theme::icon_button(&theme.next_track_icon, 48, 48, ui).clicked() {
                 self.player.write().unwrap().next();
             }
-            if Theme::icon_button(&theme.play_icon, 48, 48, ctx, ui).clicked() {
+            if Theme::icon_button(&theme.play_icon, 48, 48, ui).clicked() {
                 self.player.write().unwrap().play();
             }
-            if Theme::icon_button(&theme.previous_track_icon, 48, 48, ctx, ui).clicked() {
+            if Theme::icon_button(&theme.previous_track_icon, 48, 48, ui).clicked() {
                 self.player.write().unwrap().previous();
             }
         });
@@ -210,19 +216,13 @@ impl PlayerBar {
         (minutes, seconds, tenths_of_second)
     }
 
-    pub fn timers(&self, _ctx: &Context, ui: &mut Ui) {
+    pub fn timers(&self, ui: &mut Ui) {
         let position = Self::split_seconds(self.player.read().unwrap().position());
         let duration = Self::split_seconds(self.player.read().unwrap().duration());
         ui.horizontal(|ui| {
-            ui.small(format!(
-                "{:02}:{:02}",
-                position.0, position.1,
-            ));
+            ui.small(format!("{:02}:{:02}", position.0, position.1,));
             ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-                ui.small(format!(
-                    "{:02}:{:02}",
-                    duration.0, duration.1,
-                ));
+                ui.small(format!("{:02}:{:02}", duration.0, duration.1,));
             });
         });
     }
