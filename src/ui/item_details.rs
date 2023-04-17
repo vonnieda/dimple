@@ -1,9 +1,8 @@
-use std::{sync::Arc};
+use std::{sync::{Arc, RwLock}, collections::HashSet};
 
-use eframe::{egui::{Context, Ui}};
+use eframe::{egui::{Context, Ui, Grid}};
 
-
-use crate::{music_library::{Artist, Genre, Release, Track, Playlist, Library}, player::PlayerHandle, librarian::Librarian};
+use crate::{music_library::{Artist, Genre, Release, Track, Playlist, Library}, player::{PlayerHandle, Player}, librarian::Librarian};
 
 use super::{card_grid::{LibraryItem, CardGrid, Card}, theme::Theme};
 
@@ -21,27 +20,6 @@ impl ItemDetails {
         }
     }
 
-    // Links for artist(s), release, genre(s)
-    // So, for each kind of thing, what do we show?
-    // 
-    /// Release(release)
-    ///     Vertical
-    ///         Horizontal
-    ///             Carousel(art, 300, 300)
-    ///             Vertical
-    ///                 Horizontal
-    ///                     ImageButton(release_icon)
-    ///                     Heading(release.title)
-    ///                 Horizontal
-    ///                     ImageButton(artist_icon)
-    ///                     Links(release.artists)
-    ///                 Horizontal
-    ///                     ImageButton(genre_icon)
-    ///                     Links(release.genres)
-    ///         CardGrid(more_like_this)
-    ///     
-    // Artist: Art(Carousel), Name, Genre(s), Grid(Releases), Grid(More Artists Like This)
-    // Track: Art(Carousel), Title, Lyrics
     pub fn ui(&mut self, item: LibraryItem, ui: &mut Ui) -> Option<LibraryItem> {
         use LibraryItem::*;
 
@@ -51,7 +29,66 @@ impl ItemDetails {
             Genre(genre) => self.genre(&genre, ui),
             Playlist(playlist) => self.playlist(&playlist, ui),
             Track(track) => self.track(&track, ui),
+            Player(player) => self.player(player.clone(), ui),
         }
+    }
+
+    pub fn player(&mut self, player: Arc<RwLock<Player>>, ui: &mut Ui) -> Option<LibraryItem> {
+        let theme = Theme::get(ui.ctx());
+        let mut action = None;
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| {
+                ui.horizontal(|ui| {
+                    ui.vertical(|ui| {
+                        // TODO generate cool artwork for the playlist
+                        theme.carousel(&vec![], 250, ui);
+                        // self.play_controls(&LibraryItem::Release(release.clone()), ui);
+                    });
+                });
+                ui.vertical(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.heading("Now Playing");
+                    });
+                    ui.horizontal(|ui| {
+                        let mut artists = Vec::new();
+                        for queue_item in player.read().unwrap().queue.iter() {
+                            for artist in &queue_item.release.artists {
+                                if !artists.contains(artist) {
+                                    artists.push(artist.clone());
+                                }
+                            }
+                        }
+                        ui.label("by");
+                        if let Some(item) = self.artist_links(&artists, ui) {
+                            action = Some(item);
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        let mut genres = Vec::new();
+                        for queue_item in player.read().unwrap().queue.iter() {
+                            for genre in &queue_item.release.genres {
+                                if !genres.contains(genre) {
+                                    genres.push(genre.clone());
+                                }
+                            }
+                        }
+                        ui.label("in");
+                        if let Some(item) = self.genre_links(&genres, ui) {
+                            action = Some(item);
+                        }
+                    });
+                });
+            });
+            Grid::new("tracks").show(ui, |ui| {
+                for (i, queue_item) in player.read().unwrap().queue.iter().enumerate() {
+                    ui.label(&i.to_string());
+                    ui.label(&queue_item.track.title);
+                    ui.label(&queue_item.release.title);
+                    ui.end_row();
+                }
+            });
+        });
+        action
     }
 
     pub fn release(&mut self, release: &Release, ui: &mut Ui) -> Option<LibraryItem> {
@@ -256,6 +293,7 @@ impl ItemDetails {
                 LibraryItem::Genre(_) => todo!(),
                 LibraryItem::Playlist(_) => todo!(),
                 LibraryItem::Track(_track) => todo!(),
+                LibraryItem::Player(player) => todo!(),
             }
         }
     }
@@ -271,14 +309,14 @@ impl ItemDetails {
                     action = Some(LibraryItem::Artist(artist.clone()));
                 }
                 if i < len - 1 {
-                    ui.label(",");
+                    ui.label(", ");
                 }
             }
         });
         action
     }
 
-    pub fn genre_links(&self, genres: &Vec<Genre>, ui: &mut Ui) -> Option<LibraryItem> {
+    pub fn genre_links(&self, genres: &[Genre], ui: &mut Ui) -> Option<LibraryItem> {
         // Show each genre as a clickable link separated by commas
         let mut action = None;
         ui.horizontal_wrapped(|ui| {
@@ -289,7 +327,7 @@ impl ItemDetails {
                     action = Some(LibraryItem::Genre(genre.clone()));
                 }
                 if i < len - 1 {
-                    ui.label(",");
+                    ui.label(", ");
                 }
             }
         });
@@ -297,3 +335,26 @@ impl ItemDetails {
     }
 }
 
+
+
+// Links for artist(s), release, genre(s)
+// So, for each kind of thing, what do we show?
+// 
+// Release(release)
+//     Vertical
+//         Horizontal
+//             Carousel(art, 300, 300)
+//             Vertical
+//                 Horizontal
+//                     ImageButton(release_icon)
+//                     Heading(release.title)
+//                 Horizontal
+//                     ImageButton(artist_icon)
+//                     Links(release.artists)
+//                 Horizontal
+//                     ImageButton(genre_icon)
+//                     Links(release.genres)
+//         CardGrid(more_like_this)
+//     
+// Artist: Art(Carousel), Name, Genre(s), Grid(Releases), Grid(More Artists Like This)
+// Track: Art(Carousel), Title, Lyrics

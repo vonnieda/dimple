@@ -67,7 +67,8 @@ impl PlayerBar {
                     });
                 });
             if let Some(item) = self.up_next(ui) {
-                action = Some(item);
+                action = Some(LibraryItem::Player(self.player.clone()));
+                // action = Some(item);
             }
         });
 
@@ -143,7 +144,10 @@ impl PlayerBar {
         None
     }
 
-    // TODO lets get queue viewing
+    /// TODO lets get queue viewing
+    /// Think that's just ItemDetails for a Player?
+    /// I don't hate that...
+    /// 
     pub fn up_next(&self, ui: &mut Ui) -> Option<LibraryItem> {
         let theme = Theme::get(ui.ctx());
         let thumbnail_size: usize = Self::UP_NEXT_THUMBNAIL_SIZE as usize;

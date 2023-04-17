@@ -1,4 +1,4 @@
-use std::{sync::{Arc, RwLock}};
+use std::{sync::{Arc, RwLock}, fmt::Debug};
 
 use rodio::Sink;
 
@@ -7,10 +7,17 @@ use crate::{music_library::{Track, Release, Library}, librarian::Librarian};
 pub struct Player {
     sink: Arc<Sink>,
     librarian: Arc<Librarian>,
-    queue: Vec<QueueItem>,
+    pub queue: Vec<QueueItem>,
     current_queue_item_index: usize,
+    // TODO temporary, just so we can play with the slider.
     position: RwLock<f32>,
 }
+
+// impl Debug for Arc<Sink> {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         f.debug_struct("Arc").finish()
+//     }
+// }
 
 #[derive(Clone, Debug)]
 pub struct QueueItem {
@@ -35,7 +42,7 @@ pub type PlayerHandle = Arc<RwLock<Player>>;
 /// 
 /// The player handles fetching, caching, and playing tracks. 
 /// 
-/// The Librarian needs to be able to make the decisino to supply the track from
+/// The Librarian needs to be able to make the decision to supply the track from
 /// local storage or to try to stream it. 
 impl Player {
     pub fn new(sink: Arc<Sink>, librarian: Arc<Librarian>) -> PlayerHandle {

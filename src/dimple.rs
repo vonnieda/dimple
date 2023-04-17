@@ -2,10 +2,7 @@ use std::sync::Arc;
 
 use eframe::CreationContext;
 
-
 use eframe::egui::{self, Id};
-
-
 
 use rodio::Sink;
 

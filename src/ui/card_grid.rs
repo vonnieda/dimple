@@ -1,18 +1,21 @@
+use std::sync::{Arc, RwLock};
+
 use eframe::egui::{self, Ui, ScrollArea, Grid};
 
-use crate::music_library::{Artist, Release, Genre, Playlist, Track};
+use crate::{music_library::{Artist, Release, Genre, Playlist, Track}, player::Player};
 
 pub trait Card {
     fn ui(&self, image_width: f32, image_height: f32, ui: &mut Ui) -> Option<LibraryItem>;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum LibraryItem {
     Artist(Artist),
     Release(Release),
     Genre(Genre),
     Playlist(Playlist),
     Track(Track),
+    Player(Arc<RwLock<Player>>),
 }
 
 #[derive(Default)]

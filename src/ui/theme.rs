@@ -143,8 +143,8 @@ impl Theme {
         RichText::new(str).text_style(TextStyle::Name("Small Bold".into()))
     }
 
+    // TODO work on frame
     pub fn icon_button(retained: &RetainedImage, width: usize, height: usize, ui: &mut Ui) -> Response {
-
         ui.add(ImageButton::new(retained.texture_id(ui.ctx()), [width as f32, height as f32]))
     }
 

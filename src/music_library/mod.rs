@@ -54,7 +54,7 @@ impl Release {
     }
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Artist {
     pub url: String,
     pub name: String,
@@ -74,7 +74,7 @@ pub struct Track {
     pub genres: Vec<Genre>,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Genre {
     pub url: String,
     pub name: String,
@@ -88,7 +88,7 @@ pub struct Playlist {
     pub art: Vec<Image>,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Image {
     pub url: String,
 }
