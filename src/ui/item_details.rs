@@ -1,4 +1,4 @@
-use std::{sync::{Arc, RwLock}, collections::HashSet};
+use std::{sync::{Arc, RwLock}};
 
 use eframe::{egui::{Context, Ui, Grid}};
 
@@ -29,7 +29,7 @@ impl ItemDetails {
             Genre(genre) => self.genre(&genre, ui),
             Playlist(playlist) => self.playlist(&playlist, ui),
             Track(track) => self.track(&track, ui),
-            Player(player) => self.player(player.clone(), ui),
+            Player(player) => self.player(player, ui),
         }
     }
 
@@ -41,7 +41,7 @@ impl ItemDetails {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
                         // TODO generate cool artwork for the playlist
-                        theme.carousel(&vec![], 250, ui);
+                        theme.carousel(&[], 250, ui);
                         // self.play_controls(&LibraryItem::Release(release.clone()), ui);
                     });
                 });
@@ -203,7 +203,7 @@ impl ItemDetails {
         // Convert to Cards
         releases.into_iter()
             .map(move |release| {
-                Box::new(theme.card_from_release(&release)) as Box<dyn Card>
+                Box::new(release) as Box<dyn Card>
             })
             .collect()
     }
@@ -226,7 +226,7 @@ impl ItemDetails {
         // Convert to Cards
         releases.into_iter()
             .map(|release| {
-                Box::new(theme.card_from_release(&release)) as Box<dyn Card>
+                Box::new(release) as Box<dyn Card>
             })
             .collect()
     }
@@ -293,7 +293,7 @@ impl ItemDetails {
                 LibraryItem::Genre(_) => todo!(),
                 LibraryItem::Playlist(_) => todo!(),
                 LibraryItem::Track(_track) => todo!(),
-                LibraryItem::Player(player) => todo!(),
+                LibraryItem::Player(_player) => todo!(),
             }
         }
     }

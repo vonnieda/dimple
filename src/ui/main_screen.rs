@@ -210,7 +210,7 @@ impl MainScreen {
         let theme = Theme::get(ctx);
         releases.into_iter()
             .map(|release| {
-                Box::new(theme.card_from_release(&release)) as Box<dyn Card>
+                Box::new(release) as Box<dyn Card>
             })
             .collect()
     }

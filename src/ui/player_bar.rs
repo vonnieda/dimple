@@ -66,7 +66,9 @@ impl PlayerBar {
                         self.timers(ui);
                     });
                 });
-            if let Some(item) = self.up_next(ui) {
+            if let Some(_item) = self.up_next(ui) {
+                // TODO for now just overriding all clicks from up next to
+                // go to the play queue view.
                 action = Some(LibraryItem::Player(self.player.clone()));
                 // action = Some(item);
             }

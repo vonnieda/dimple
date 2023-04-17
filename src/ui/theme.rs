@@ -9,7 +9,7 @@ use eframe::epaint::{FontFamily, FontId, Stroke};
 
 use crate::{librarian::Librarian, music_library::{Image, Release}};
 
-use super::{retained_images::RetainedImages, utils, cards::ReleaseCard};
+use super::{retained_images::RetainedImages, utils};
 
 pub struct Theme {
     pub retained_images: Arc<RwLock<RetainedImages>>,
@@ -160,15 +160,5 @@ impl Theme {
         ui.add(ImageButton::new(texture_id, [width as f32, width as f32]))
     }
 
-    pub fn card_from_release(&self, release: &Release) -> ReleaseCard {
-        // TODO now we can get the theme stuff from the UI we can drop this entirely
-        // and just impl Card for Release
-        ReleaseCard {
-            release: release.clone(),
-            image: self.retained_images.read().unwrap().get(release.art.first().unwrap(), 200, 200),
-        }
-    }
-
     // TODO links functions like artists, genres used in itemdetails
-
 }
