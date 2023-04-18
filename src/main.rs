@@ -22,16 +22,12 @@ use std::sync::Arc;
 
 use dimple::dimple::Dimple;
 use eframe::egui::{self};
-use rodio::{OutputStream, Sink};
 
 fn main() {
     let mut builder = env_logger::Builder::new();
     builder.filter_level(log::LevelFilter::Info);
     builder.format_timestamp_millis();
     builder.init();
-
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let sink = Arc::new(Sink::try_new(&stream_handle).unwrap());
 
     let native_options = eframe::NativeOptions {
         resizable: true,
@@ -46,7 +42,7 @@ fn main() {
     eframe::run_native(
         "Dimple",
         native_options,
-        Box::new(|cc| Box::new(Dimple::new(cc, sink))),
+        Box::new(|cc| Box::new(Dimple::new(cc))),
     )
     .expect("eframe: pardon me, but no thank you");
 }

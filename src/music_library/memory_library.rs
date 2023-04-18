@@ -1,7 +1,6 @@
-use std::{collections::HashMap, sync::RwLock, io::Cursor};
+use std::{collections::HashMap, sync::{RwLock, mpsc::Receiver}, io::Cursor};
 
 use image::DynamicImage;
-use rodio::Decoder;
 
 use super::{Library, Release, Image};
 
@@ -32,8 +31,8 @@ impl Library for MemoryLibrary {
         "Memory".to_string()
     }
 
-    fn releases(&self) -> crossbeam::channel::Receiver<super::Release> {
-        let (sender, receiver) = crossbeam::channel::unbounded();
+    fn releases(&self) -> Receiver<super::Release> {
+        let (sender, receiver) = std::sync::mpsc::channel::<Release>();
         for release in self.releases.read().unwrap().values() {
             sender.send(release.clone()).unwrap();
         }
@@ -47,13 +46,8 @@ impl Library for MemoryLibrary {
         Err("Not found".to_string())
     }
 
-    fn stream(&self, _track: &super::Track, _sink: &rodio::Sink) -> Result<(), String> {
-        if let Some(stream) = self.streams.read().unwrap().get(&_track.url) {
-            let source = Decoder::new(Cursor::new(stream.clone())).unwrap();
-            _sink.append(source);
-            return Ok(());
-        }
-        Err("Not found".to_string())
+    fn stream(&self, _track: &super::Track) -> Result<Vec<u8>, String> {
+        todo!();
     }
 
     fn merge_release(&self, _library: &dyn Library, _release: &Release) -> Result<(), String> {

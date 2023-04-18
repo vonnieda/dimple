@@ -1,12 +1,10 @@
 // TODO Check out anyhow https://docs.rs/anyhow/latest/anyhow/
 
-use std::{io::{Cursor}, sync::Arc};
+use std::{io::{Cursor}, sync::{Arc, mpsc::Receiver}};
 
-use crossbeam::channel::{Receiver, unbounded};
 use data_encoding::{BASE64};
 use image::DynamicImage;
 
-use rodio::{Decoder, Sink};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sunk::{Client, Album, Media, song::Song, Streamable};
@@ -54,7 +52,7 @@ impl Library for NavidromeLibrary {
 
     fn releases(&self) -> Receiver<Release> {
         let client = Arc::new(Box::new(self.new_client().unwrap()));
-        let (sender, receiver) = unbounded::<Release>();
+        let (sender, receiver) = std::sync::mpsc::channel::<Release>();
         let base_url = self.base_url();
 
         thread::spawn(move || {
@@ -115,14 +113,11 @@ impl Library for NavidromeLibrary {
         Ok(dynamic_image)
     }
 
-    fn stream(&self, track: &Track, sink: &Sink) -> Result<(), String> {
+    fn stream(&self, track: &Track) -> Result<Vec<u8>, String> {
         let (_object_type, id) = self.un_url(&track.url);
         let client = self.new_client()?;
         let song = Song::get(&client, &id).unwrap();
-        let stream = song.stream(&client).unwrap();
-        let source = Decoder::new(Cursor::new(stream)).unwrap();
-        sink.append(source);
-        Ok(())
+        song.stream(&client).map_err(|err| err.to_string())
     }
 }
 

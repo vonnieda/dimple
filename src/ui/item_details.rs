@@ -29,11 +29,11 @@ impl ItemDetails {
             Genre(genre) => self.genre(&genre, ui),
             Playlist(playlist) => self.playlist(&playlist, ui),
             Track(track) => self.track(&track, ui),
-            Player(player) => self.player(player, ui),
+            Player(player) => self.now_playing(player, ui),
         }
     }
 
-    pub fn player(&mut self, player: Arc<RwLock<Player>>, ui: &mut Ui) -> Option<LibraryItem> {
+    pub fn now_playing(&mut self, player: Arc<RwLock<Player>>, ui: &mut Ui) -> Option<LibraryItem> {
         let theme = Theme::get(ui.ctx());
         let mut action = None;
         ui.vertical(|ui| {
@@ -41,7 +41,11 @@ impl ItemDetails {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
                         // TODO generate cool artwork for the playlist
-                        theme.carousel(&[], 250, ui);
+                        let mut art = vec![];
+                        if let Some(item) = player.read().unwrap().current_queue_item() {
+                            art = item.release.art;
+                        }
+                        theme.carousel(&art, 250, ui);
                         // self.play_controls(&LibraryItem::Release(release.clone()), ui);
                     });
                 });
@@ -51,7 +55,7 @@ impl ItemDetails {
                     });
                     ui.horizontal(|ui| {
                         let mut artists = Vec::new();
-                        for queue_item in player.read().unwrap().queue.iter() {
+                        for queue_item in player.read().unwrap().queue().iter() {
                             for artist in &queue_item.release.artists {
                                 if !artists.contains(artist) {
                                     artists.push(artist.clone());
@@ -65,7 +69,7 @@ impl ItemDetails {
                     });
                     ui.horizontal(|ui| {
                         let mut genres = Vec::new();
-                        for queue_item in player.read().unwrap().queue.iter() {
+                        for queue_item in player.read().unwrap().queue().iter() {
                             for genre in &queue_item.release.genres {
                                 if !genres.contains(genre) {
                                     genres.push(genre.clone());
@@ -80,7 +84,7 @@ impl ItemDetails {
                 });
             });
             Grid::new("tracks").show(ui, |ui| {
-                for (i, queue_item) in player.read().unwrap().queue.iter().enumerate() {
+                for (i, queue_item) in player.read().unwrap().queue().iter().enumerate() {
                     ui.label(&i.to_string());
                     ui.label(&queue_item.track.title);
                     ui.label(&queue_item.release.title);

@@ -2,10 +2,10 @@
 // TODO figure out how to speed up first play. I think this is because
 //      the method I'm using to get the track downloads the whole thing
 //      first instead of streaming from the start.
-// TODO figure out how I'm getting duration and position back
 
 use std::{sync::{Arc, RwLock, mpsc::{Sender, Receiver}}, fmt::Debug, time::{Duration, Instant}, io::Cursor};
 
+use eframe::egui::Context;
 use playback_rs::{Song, Hint};
 
 use crate::{music_library::{Track, Release, Library}, librarian::Librarian};
@@ -14,33 +14,39 @@ pub struct Player {
     sender: Sender<PlayerCommand>,
     receiver: Receiver<PlayerCommand>,
     player_state: Arc<RwLock<PlayerState>>,
+    ctx: Context,
 }
 
 impl Player {
-    pub fn new(librarian: Arc<Librarian>) -> PlayerHandle {
+    pub fn new(librarian: Arc<Librarian>, ctx: &Context) -> PlayerHandle {
         let (sender_1, receiver_1) = std::sync::mpsc::channel::<PlayerCommand>();
         let (sender_2, receiver_2) = std::sync::mpsc::channel::<PlayerCommand>();
 
         let play_queue = Arc::new(RwLock::new(PlayerState::default()));
 
         let play_queue_1 = play_queue.clone();
-        std::thread::spawn(move || Self::run(sender_2, receiver_1, librarian, play_queue_1));
+        let ctx_1 = ctx.clone();
+        std::thread::spawn(move || Self::run(sender_2, receiver_1, 
+            librarian, play_queue_1, &ctx_1));
 
         Arc::new(RwLock::new(Self {
             sender: sender_1,
             receiver: receiver_2,
             player_state: play_queue,
+            ctx: ctx.clone(),
         }))
+    }
+
+    pub fn queue(&self) -> Vec<QueueItem> {
+        self.player_state.read().unwrap().queue.clone()
     }
 
     pub fn queue_release(&mut self, release: &Release) {
         self.player_state.write().unwrap().queue_release(release);
-        self.play();
     }
 
     pub fn queue_track(&mut self, release: &Release, track: &Track) {
         self.player_state.write().unwrap().queue_track(release, track);
-        self.play();
     }
 
     pub fn current_queue_item(&self) -> Option<QueueItem> {
@@ -82,21 +88,26 @@ impl Player {
     pub fn run(_sender: Sender<PlayerCommand>, 
         receiver: Receiver<PlayerCommand>, 
         librarian: Arc<Librarian>,
-        player_state: Arc<RwLock<PlayerState>>) {
+        player_state: Arc<RwLock<PlayerState>>,
+        ctx: &Context) {
 
         let inner = playback_rs::Player::new(None).unwrap();
         loop {
-            // Process any new commands and by way of the timeout, pause
-            // this loop for up to 100ms. 
+            // Process incoming commands
+            // TODO process all in the queue.
             match receiver.recv_timeout(Duration::from_millis(100)) {
                 Ok(PlayerCommand::Play) => {
                     inner.set_playing(true);
                 },
                 Ok(PlayerCommand::Next) => {
+                    player_state.write().unwrap().next();
                     inner.skip();
                 },
                 Ok(PlayerCommand::Previous) => {
-                    todo!();
+                    player_state.write().unwrap().previous();
+                    // TODO eventually I think this pulls from a cache
+                    // so taht previouses are very fast.
+                    inner.stop();
                 },
                 Ok(PlayerCommand::Seek(position)) => {
                     inner.seek(Duration::from_secs_f32(position));
@@ -107,6 +118,8 @@ impl Player {
                 Err(_) => {},
             }
 
+            // If the current song is not loaded, load it
+            // TODO background these
             if !inner.has_current_song() {
                 if let Some(item) = player_state.read().unwrap().current_queue_item() {
                     let track = item.track;
@@ -115,6 +128,7 @@ impl Player {
                 }
             }
 
+            // If the next song is not loaded, load it
             if !inner.has_next_song() {
                 if let Some(item) = player_state.read().unwrap().next_queue_item() {
                     let track = item.track;
@@ -123,6 +137,7 @@ impl Player {
                 }
             }
 
+            // Update shared state
             if let Some((position, duration)) = inner.get_playback_position() {
                 player_state.write().unwrap().position = position.as_secs_f32();
                 player_state.write().unwrap().duration = duration.as_secs_f32();
@@ -131,6 +146,11 @@ impl Player {
                 player_state.write().unwrap().position = 0.0;
                 player_state.write().unwrap().duration = 0.0;
             }
+
+            // Refresh the context
+            // TODO this is a hack - UI stuff doesn't belong here, but didn't
+            // yet come up with a better way to do it.
+            ctx.request_repaint();
         }
     }
 

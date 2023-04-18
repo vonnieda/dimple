@@ -48,7 +48,7 @@ impl Dimple {
         });
 
         // Set up the music player
-        let player = Player::new(librarian.clone());
+        let player = Player::new(librarian.clone(), &ctx);
 
         Self {
             main_screen: MainScreen::new(player.clone(), librarian.clone()),

@@ -1,6 +1,4 @@
-use std::{sync::{Arc, RwLock}, collections::HashSet};
-
-use crossbeam::channel::{Receiver};
+use std::{sync::{Arc, RwLock, mpsc::Receiver}, collections::HashSet};
 
 use crate::{music_library::{Library, Release, Image, Track, local_library::LocalLibrary, LibraryConfig, navidrome_library::NavidromeLibrary, Artist, Genre}, settings::Settings};
 
@@ -104,13 +102,13 @@ impl Library for Librarian {
         Err("Not found".to_string())
     }
 
-    fn stream(&self, track: &Track, sink: &rodio::Sink) -> Result<(), String>{
-        if self.disk_cache.stream(track, sink).is_ok() {
-            return Ok(());
+    fn stream(&self, track: &Track) -> Result<Vec<u8>, String> {
+        if let Ok(stream) = self.disk_cache.stream(track) {
+            return Ok(stream);
         }
         for library in self.libraries.read().unwrap().iter() {
-            if library.stream(track, sink).is_ok() {
-                return Ok(());
+            if let Ok(stream) = library.stream(track) {
+                return Ok(stream);
             }
         }
         Err("Not found".to_string())

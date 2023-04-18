@@ -1,4 +1,5 @@
-use crossbeam::channel::{unbounded, Receiver};
+use std::sync::mpsc::Receiver;
+
 use image::DynamicImage;
 use log::{debug};
 
@@ -56,7 +57,7 @@ impl Library for LocalLibrary {
     }
     
     fn releases(&self) -> Receiver<Release> {
-        let (sender, receiver) = unbounded::<Release>();
+        let (sender, receiver) = std::sync::mpsc::channel::<Release>();
         let releases = self.releases.iter();
         std::thread::spawn(move || {
             let pool = ThreadPool::default();
@@ -78,8 +79,8 @@ impl Library for LocalLibrary {
             .map_or(Err("".to_string()), Ok)
     }
 
-    fn stream(&self, _track: &super::Track, _sink: &rodio::Sink) -> Result<(), String> {
-        Err("Not yet implemented".to_string())
+    fn stream(&self, _track: &super::Track) -> Result<Vec<u8>, String> {
+        Err("todo!".to_string())
     }
 
     fn merge_release(&self, library: &dyn Library, release: &Release) -> Result<(), String> {
