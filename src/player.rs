@@ -1,23 +1,153 @@
-use std::{sync::{Arc, RwLock}, fmt::Debug};
+// TODO play next track when one finishes
+// TODO figure out how to speed up first play. I think this is because
+//      the method I'm using to get the track downloads the whole thing
+//      first instead of streaming from the start.
+// TODO figure out how I'm getting duration and position back
 
-use rodio::Sink;
+use std::{sync::{Arc, RwLock, mpsc::{Sender, Receiver}}, fmt::Debug, time::{Duration, Instant}, io::Cursor};
+
+use playback_rs::{Song, Hint};
 
 use crate::{music_library::{Track, Release, Library}, librarian::Librarian};
 
-pub struct Player {
-    sink: Arc<Sink>,
-    librarian: Arc<Librarian>,
-    pub queue: Vec<QueueItem>,
-    current_queue_item_index: usize,
-    // TODO temporary, just so we can play with the slider.
-    position: RwLock<f32>,
+pub struct Player {    
+    sender: Sender<PlayerCommand>,
+    receiver: Receiver<PlayerCommand>,
+    player_state: Arc<RwLock<PlayerState>>,
 }
 
-// impl Debug for Arc<Sink> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("Arc").finish()
-//     }
-// }
+impl Player {
+    pub fn new(librarian: Arc<Librarian>) -> PlayerHandle {
+        let (sender_1, receiver_1) = std::sync::mpsc::channel::<PlayerCommand>();
+        let (sender_2, receiver_2) = std::sync::mpsc::channel::<PlayerCommand>();
+
+        let play_queue = Arc::new(RwLock::new(PlayerState::default()));
+
+        let play_queue_1 = play_queue.clone();
+        std::thread::spawn(move || Self::run(sender_2, receiver_1, librarian, play_queue_1));
+
+        Arc::new(RwLock::new(Self {
+            sender: sender_1,
+            receiver: receiver_2,
+            player_state: play_queue,
+        }))
+    }
+
+    pub fn queue_release(&mut self, release: &Release) {
+        self.player_state.write().unwrap().queue_release(release);
+        self.play();
+    }
+
+    pub fn queue_track(&mut self, release: &Release, track: &Track) {
+        self.player_state.write().unwrap().queue_track(release, track);
+        self.play();
+    }
+
+    pub fn current_queue_item(&self) -> Option<QueueItem> {
+        self.player_state.read().unwrap().current_queue_item()
+    }
+
+    pub fn next_queue_item(&self) -> Option<QueueItem> {
+        self.player_state.read().unwrap().next_queue_item()
+    }
+
+    pub fn play(&mut self) {
+        self.sender.send(PlayerCommand::Play).unwrap();
+    }
+
+    pub fn pause(&self) {
+        self.sender.send(PlayerCommand::Pause).unwrap();
+    }
+
+    pub fn next(&mut self) {
+        self.sender.send(PlayerCommand::Next).unwrap();
+    }
+
+    pub fn previous(&mut self) {
+        self.sender.send(PlayerCommand::Previous).unwrap();
+    }
+
+    pub fn duration(&self) -> f32 {
+        self.player_state.read().unwrap().duration
+    }
+
+    pub fn position(&self) -> f32 {
+        self.player_state.read().unwrap().position
+    }
+
+    pub fn seek(&self, position: f32) {
+        self.sender.send(PlayerCommand::Seek(position)).unwrap();
+    }
+
+    pub fn run(_sender: Sender<PlayerCommand>, 
+        receiver: Receiver<PlayerCommand>, 
+        librarian: Arc<Librarian>,
+        player_state: Arc<RwLock<PlayerState>>) {
+
+        let inner = playback_rs::Player::new(None).unwrap();
+        loop {
+            // Process any new commands and by way of the timeout, pause
+            // this loop for up to 100ms. 
+            match receiver.recv_timeout(Duration::from_millis(100)) {
+                Ok(PlayerCommand::Play) => {
+                    inner.set_playing(true);
+                },
+                Ok(PlayerCommand::Next) => {
+                    inner.skip();
+                },
+                Ok(PlayerCommand::Previous) => {
+                    todo!();
+                },
+                Ok(PlayerCommand::Seek(position)) => {
+                    inner.seek(Duration::from_secs_f32(position));
+                },
+                Ok(PlayerCommand::Pause) => {
+                    inner.set_playing(false);
+                },
+                Err(_) => {},
+            }
+
+            if !inner.has_current_song() {
+                if let Some(item) = player_state.read().unwrap().current_queue_item() {
+                    let track = item.track;
+                    let song = Self::get_song(librarian.clone(), &track);
+                    inner.play_song_now(&song, None).unwrap();
+                }
+            }
+
+            if !inner.has_next_song() {
+                if let Some(item) = player_state.read().unwrap().next_queue_item() {
+                    let track = item.track;
+                    let song = Self::get_song(librarian.clone(), &track);
+                    inner.play_song_next(&song, None).unwrap();
+                }
+            }
+
+            if let Some((position, duration)) = inner.get_playback_position() {
+                player_state.write().unwrap().position = position.as_secs_f32();
+                player_state.write().unwrap().duration = duration.as_secs_f32();
+            }
+            else {
+                player_state.write().unwrap().position = 0.0;
+                player_state.write().unwrap().duration = 0.0;
+            }
+        }
+    }
+
+    fn get_song(librarian: Arc<Librarian>, track: &Track) -> Song {
+        let t = Instant::now();
+        log::info!("downloading {}", track.title);
+        let stream = librarian.stream(track).unwrap();
+        log::info!("downloaded {} bytes in {} seconds", 
+            stream.len(), 
+            Instant::now().duration_since(t).as_secs_f32());
+        let song = Song::new(Box::new(Cursor::new(stream)), 
+            &Hint::new(), 
+            None).unwrap();
+        log::info!("converted to song");
+        song
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct QueueItem {
@@ -27,46 +157,26 @@ pub struct QueueItem {
 
 pub type PlayerHandle = Arc<RwLock<Player>>;
 
-// TODO play next track when one finishes
-// TODO cache next track
-// TODO figure out how to speed up first play. I think this is because
-//      the method I'm using to get the track downloads the whole thing
-//      first instead of streaming from the start.
-// TODO for gapless, whenever we change tracks we load that track and
-//      the next into the sink. And maybe the previous.
-//      So then next and previous just do those things on the sound.
+#[derive(Clone)]
+pub enum PlayerCommand {
+    Play,
+    Pause,
+    Next,
+    Previous,
+    Seek(f32),
+}
 
-/// The player maintains an editable play queue of release-tracks. release-track
-/// because each track has to be associated with a release to get metadata
-/// about it.
-/// 
-/// The player handles fetching, caching, and playing tracks. 
-/// 
-/// The Librarian needs to be able to make the decision to supply the track from
-/// local storage or to try to stream it. 
-impl Player {
-    pub fn new(sink: Arc<Sink>, librarian: Arc<Librarian>) -> PlayerHandle {
-        Arc::new(RwLock::new(Self {
-            sink,
-            librarian,
-            queue: Vec::new(),
-            current_queue_item_index: 0,
-            position: RwLock::new(0.0),
-        }))
+#[derive(Default, Clone, Debug)]
+pub struct PlayerState {
+    pub queue: Vec<QueueItem>,
+    pub index: usize,
+    pub duration: f32,
+    pub position: f32,
+}
 
-        // let player_1 = player.clone();
-        // std::thread::spawn(move || {
-        //     loop {
-        //         if !player_1.read().unwrap().sink.empty() {
-        //             player_1.read().unwrap().sink.sleep_until_end();
-        //             log::info!("Playing next track");
-        //             player_1.write().unwrap().next();
-        //         }
-        //         std::thread::sleep(Duration::from_millis(100));
-        //     }
-        // });
-    }
-
+// TODO i think this becomes the primary class and the stuff above becomes
+// the player inteface or something
+impl PlayerState {
     pub fn queue_release(&mut self, release: &Release) {
         for track in &release.tracks {
             self.queue_track(release, track);
@@ -78,112 +188,39 @@ impl Player {
             release: release.clone(),
             track: track.clone()
         });
-        self.play();
     }
 
     pub fn current_queue_item(&self) -> Option<QueueItem> {
-        if self.current_queue_item_index >= self.queue.len() {
+        if self.index >= self.queue.len() {
             return None;
         }
-        Some(self.queue[self.current_queue_item_index].clone())
+        Some(self.queue[self.index].clone())
     }
 
     pub fn next_queue_item(&self) -> Option<QueueItem> {
-        if self.current_queue_item_index + 1 >= self.queue.len() {
+        if self.index + 1 >= self.queue.len() {
             return None;
         }
-        Some(self.queue[self.current_queue_item_index + 1].clone())
+        Some(self.queue[self.index + 1].clone())
     }
 
-    pub fn play(&mut self) {
-        // If the playlist is empty, do nothing.
-        if self.queue.is_empty() {
-            return;
-        }
-
-        // If the sink is empty, load the current track.
-        if self.sink.empty() {
-            let queue_item = self.queue[self.current_queue_item_index].clone();
-            let _release = queue_item.release;
-            let track = queue_item.track;
-            let librarian = self.librarian.clone();
-            let sink = self.sink.clone();
-            // TODO i don't think the play below is safe, cause what if this
-            // hasn't started downloading yet when it runs?
-            // Probably time to figure out caching of songs.
-            std::thread::spawn(move || {
-                librarian.stream(&track, &sink).unwrap();
-            });
-            // TODO stopping here, tired. playing with preloading the next track.
-            // if self.current_track_index < self.queue.len() - 1 {
-            //     let next_track = self.queue[self.current_track_index + 1].clone();
-            //     self.librarian.stream(&next_track, &self.sink).unwrap();
-            // }
-        }
-        
-        // And play it.
-        self.sink.play();
-    }
-
-    pub fn pause(&self) {
-        self.sink.pause();
+    pub fn is_empty(&self) -> bool {
+        self.queue.is_empty()
     }
 
     pub fn next(&mut self) {
-        // If the playlist is empty, do nothing.
-        if self.queue.is_empty() {
-            return;
-        }
-
         // Increment or restart the queue
-        self.current_queue_item_index = (self.current_queue_item_index + 1) % self.queue.len();
-
-        // If we were already playing, stop and play the new track
-        if !self.sink.empty() {
-            self.sink.clear();
-            self.sink.sleep_until_end();
-            self.play();
-        }
+        self.index = (self.index + 1) % self.queue.len();
     }
 
     pub fn previous(&mut self) {
-        // If the playlist is empty, do nothing.
-        if self.queue.is_empty() {
-            return;
-        }
-
         // Decrement or restart the queue
-        if self.current_queue_item_index == 0 {
-            self.current_queue_item_index = self.queue.len() - 1;
+        if self.index == 0 {
+            self.index = self.queue.len() - 1;
         }
         else {
-            self.current_queue_item_index -= 1;
+            self.index -= 1;
         }
-
-        // If we were already playing, stop and play the new track
-        if !self.sink.empty() {
-            self.sink.clear();
-            self.sink.sleep_until_end();
-            self.play();
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.sink.stop();
-        self.queue.clear();
-        self.current_queue_item_index = 0;
-    }
-
-    pub fn duration(&self) -> f32 {
-        367.8
-    }
-
-    pub fn position(&self) -> f32 {
-        *self.position.read().unwrap()
-    }
-
-    pub fn seek(&self, position: f32) {
-        *self.position.write().unwrap() = position;
     }
 }
 

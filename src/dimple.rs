@@ -4,8 +4,6 @@ use eframe::CreationContext;
 
 use eframe::egui::{self, Id};
 
-use rodio::Sink;
-
 use crate::librarian::Librarian;
 
 use crate::player::Player;
@@ -29,7 +27,7 @@ impl eframe::App for Dimple {
 }
 
 impl Dimple {
-    pub fn new(cc: &CreationContext, sink: Arc<Sink>) -> Self {
+    pub fn new(cc: &CreationContext) -> Self {
         // Load settings
         let settings = Settings::default();
 
@@ -50,7 +48,7 @@ impl Dimple {
         });
 
         // Set up the music player
-        let player = Player::new(sink, librarian.clone());
+        let player = Player::new(librarian.clone());
 
         Self {
             main_screen: MainScreen::new(player.clone(), librarian.clone()),

@@ -16,6 +16,7 @@
 // TODO test gapless playback: Us and Them -> And Colour You Like
 // TODO I think I can drop the state from almost all of the components now
 // that Theme is in the ui. Try it - would simplify a ton.
+// TODO don't quit on click close.
 
 use std::sync::Arc;
 

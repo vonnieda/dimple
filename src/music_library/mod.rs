@@ -3,11 +3,9 @@
 /// came from. In other words, given the same library config, it should be
 /// possible to re-load the object from the library with the same URL.
 
-use std::{fmt::Debug};
+use std::{fmt::Debug, sync::mpsc::Receiver};
 
-use crossbeam::channel::Receiver;
 use image::DynamicImage;
-use rodio::{Sink};
 use serde::{Serialize, Deserialize};
 
 use self::{navidrome_library::NavidromeConfig, local_library::LocalConfig};
@@ -25,7 +23,7 @@ pub trait Library: Send + Sync {
     fn image(&self, _image: &Image) -> Result<DynamicImage, String>;
 
     // TODO I wanted to have this return a Source but I couldn't figure out how.
-    fn stream(&self, _track: &Track, _sink: &Sink) -> Result<(), String>;
+    fn stream(&self, _track: &Track) -> Result<Vec<u8>, String>;
 
     fn merge_release(&self, _library: &dyn Library, _release: &Release) -> Result<(), String> {
         todo!();
@@ -63,6 +61,9 @@ pub struct Artist {
     pub genres: Vec<Genre>,
 }
 
+// TODO I think this is gonna need a way to get back to the release. Giving
+// more credence to everything just having an ID and the vectors being
+// vectors of IDs.
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Track {
     pub url: String,
