@@ -119,7 +119,7 @@ impl Librarian {
         artists
     }
 
-    pub fn similar_genres(&self, genre: Genre) -> Vec<Genre> {
+    pub fn similar_genres(&self, genre: &Genre) -> Vec<Genre> {
         let mut genres = self.artists_by_genre(&genre)
             .into_iter()
             .flat_map(|artist| self.genres_by_artist(&artist).into_iter())

@@ -64,7 +64,6 @@ impl ItemDetails {
                                 }
                             }
                         }
-                        ui.label("by");
                         if let Some(item) = self.artist_links(&artists, ui) {
                             action = Some(item);
                         }
@@ -78,7 +77,6 @@ impl ItemDetails {
                                 }
                             }
                         }
-                        ui.label("in");
                         if let Some(item) = self.genre_links(&genres, ui) {
                             action = Some(item);
                         }
@@ -113,13 +111,11 @@ impl ItemDetails {
                         ui.label(Theme::heading3(&release.title));
                     });
                     ui.horizontal(|ui| {
-                        ui.label("by");
                         if let Some(item) = self.artist_links(&release.artists, ui) {
                             action = Some(item);
                         }
                     });
                     ui.horizontal(|ui| {
-                        ui.label("in");
                         if let Some(item) = self.genre_links(&release.genres, ui) {
                             action = Some(item);
                         }
@@ -154,29 +150,27 @@ impl ItemDetails {
                         Theme::icon_button(&theme.artist_icon, 48, 48, ui);
                         ui.label(Theme::heading3(&artist.name));
                     });
-                    ui.horizontal(|ui| {
-                        ui.spacing_mut().item_spacing = [0.0, 0.0].into();
-                        let genres = self.librarian.genres_by_artist(artist);
-                        ui.label("in");
-                        if let Some(item) = self.genre_links(&genres, ui) {
-                            action = Some(item);
-                        }
-                    });
+                    let genres = self.librarian.genres_by_artist(artist);
+                    if let Some(item) = self.genre_links(&genres, ui) {
+                        action = Some(item);
+                    }
                 })
             });
             ui.heading("Releases");
             let releases = self.librarian.releases_by_artist(artist);
             let cards: Vec<Box<dyn Card>> = releases.into_iter().map(|release| Box::new(release) as Box<dyn Card>).collect();
-            if let Some(item) = CardGrid::default().ui(cards.as_slice(), 100.0, 100.0, ui) {
+            if let Some(item) = CardGrid::default().ui2("releases", cards.as_slice(), 100.0, 100.0, ui) {
                 action = Some(item);
             }
+            ui.add_space(16.0);
 
             ui.heading("Similar Artists");
             let artists = self.librarian.similar_artists(artist);
             let cards: Vec<Box<dyn Card>> = artists.into_iter().map(|artist| Box::new(artist) as Box<dyn Card>).collect();
-            if let Some(item) = CardGrid::default().ui(cards.as_slice(), 100.0, 100.0, ui) {
+            if let Some(item) = CardGrid::default().ui2("similar_artists", cards.as_slice(), 100.0, 100.0, ui) {
                 action = Some(item);
             }
+            ui.add_space(16.0);
         });
         action
     }
@@ -198,19 +192,30 @@ impl ItemDetails {
                     });
                 })
             });
+
             ui.label(Theme::heading("Artists"));
             let artists = self.librarian.artists_by_genre(genre);
             let cards: Vec<Box<dyn Card>> = artists.into_iter().map(|artist| Box::new(artist) as Box<dyn Card>).collect();
-            if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ui) {
+            if let Some(item) = CardGrid::default().ui2("artists", &cards, 100.0, 100.0, ui) {
                 action = Some(item);
             }
+            ui.add_space(16.0);
 
             ui.label(Theme::heading("Releases"));
             let releases = self.librarian.releases_by_genre(genre);
             let cards: Vec<Box<dyn Card>> = releases.into_iter().map(|release| Box::new(release) as Box<dyn Card>).collect();
-            if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ui) {
+            if let Some(item) = CardGrid::default().ui2("releases", &cards, 100.0, 100.0, ui) {
                 action = Some(item);
             }
+            ui.add_space(16.0);
+
+            ui.heading("Similar Genres");
+            let genres = self.librarian.similar_genres(genre);
+            let cards: Vec<Box<dyn Card>> = genres.into_iter().map(|genre| Box::new(genre) as Box<dyn Card>).collect();
+            if let Some(item) = CardGrid::default().ui2("similar_genres", cards.as_slice(), 100.0, 100.0, ui) {
+                action = Some(item);
+            }
+            ui.add_space(16.0);
         });
         action
     }
@@ -250,16 +255,12 @@ impl ItemDetails {
                     ui.horizontal(|ui| {
                         ui.label(Theme::heading3(&track.title));
                     });
-                    ui.horizontal(|ui| {
-                        ui.label("by");
-                        if let Some(item) = self.artist_links(&track.artists, ui) {
-                            action = Some(item);
-                        }
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("in");
-                        self.genre_links(&track.genres, ui);
-                    });
+                    if let Some(item) = self.artist_links(&track.artists, ui) {
+                        action = Some(item);
+                    }
+                    if let Some(item) = self.genre_links(&track.genres, ui) {
+                        action = Some(item);
+                    }
                 })
             })
         });
@@ -287,6 +288,7 @@ impl ItemDetails {
         let mut action = None;
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing = [0.0, 0.0].into();
+            ui.label("by ");
             let len = artists.len();
             for (i, artist) in artists.iter().enumerate() {
                 if ui.link(&artist.name).clicked() {
@@ -305,6 +307,7 @@ impl ItemDetails {
         let mut action = None;
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing = [0.0, 0.0].into();
+            ui.label("in ");
             let len = genres.len();
             for (i, genre) in genres.iter().enumerate() {
                 if ui.link(&genre.name).clicked() {
