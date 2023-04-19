@@ -53,7 +53,7 @@ impl ItemDetails {
                 });
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        ui.heading("Now Playing");
+                        ui.label(Theme::heading3("Now Playing"));
                     });
                     ui.horizontal(|ui| {
                         let mut artists = Vec::new();
@@ -110,7 +110,7 @@ impl ItemDetails {
                 });
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        ui.heading(&release.title);
+                        ui.label(Theme::heading3(&release.title));
                     });
                     ui.horizontal(|ui| {
                         ui.label("by");
@@ -151,16 +151,29 @@ impl ItemDetails {
                 });
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        ui.heading(&artist.name);
+                        Theme::icon_button(&theme.artist_icon, 48, 48, ui);
+                        ui.label(Theme::heading3(&artist.name));
                     });
                     ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing = [0.0, 0.0].into();
+                        let genres = self.librarian.genres_by_artist(artist);
                         ui.label("in");
-                        self.genre_links(&artist.genres, ui);
+                        if let Some(item) = self.genre_links(&genres, ui) {
+                            action = Some(item);
+                        }
                     });
                 })
             });
-            let releases = self.librarian.releases_by_artist(&artist);
+            ui.heading("Releases");
+            let releases = self.librarian.releases_by_artist(artist);
             let cards: Vec<Box<dyn Card>> = releases.into_iter().map(|release| Box::new(release) as Box<dyn Card>).collect();
+            if let Some(item) = CardGrid::default().ui(cards.as_slice(), 100.0, 100.0, ui) {
+                action = Some(item);
+            }
+
+            ui.heading("Similar Artists");
+            let artists = self.librarian.similar_artists(artist);
+            let cards: Vec<Box<dyn Card>> = artists.into_iter().map(|artist| Box::new(artist) as Box<dyn Card>).collect();
             if let Some(item) = CardGrid::default().ui(cards.as_slice(), 100.0, 100.0, ui) {
                 action = Some(item);
             }
@@ -181,11 +194,19 @@ impl ItemDetails {
                 });
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        ui.heading(&genre.name);
+                        ui.label(Theme::heading3(&genre.name));
                     });
                 })
             });
-            let releases = self.librarian.releases_by_genre(&genre);
+            ui.label(Theme::heading("Artists"));
+            let artists = self.librarian.artists_by_genre(genre);
+            let cards: Vec<Box<dyn Card>> = artists.into_iter().map(|artist| Box::new(artist) as Box<dyn Card>).collect();
+            if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ui) {
+                action = Some(item);
+            }
+
+            ui.label(Theme::heading("Releases"));
+            let releases = self.librarian.releases_by_genre(genre);
             let cards: Vec<Box<dyn Card>> = releases.into_iter().map(|release| Box::new(release) as Box<dyn Card>).collect();
             if let Some(item) = CardGrid::default().ui(&cards, 100.0, 100.0, ui) {
                 action = Some(item);
@@ -206,7 +227,7 @@ impl ItemDetails {
                 });
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        ui.heading(&playlist.name);
+                        ui.label(Theme::heading3(&playlist.name));
                     });
                 })
             })
@@ -227,7 +248,7 @@ impl ItemDetails {
                 });
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        ui.heading(&track.title);
+                        ui.label(Theme::heading3(&track.title));
                     });
                     ui.horizontal(|ui| {
                         ui.label("by");
@@ -298,15 +319,13 @@ impl ItemDetails {
     }
 }
 
-
-
 // Links for artist(s), release, genre(s)
 // So, for each kind of thing, what do we show?
 // 
 // Release(release)
 //     Vertical
 //         Horizontal
-//             Carousel(art, 300, 300)
+//             Carousel(art, 250)
 //             Vertical
 //                 Horizontal
 //                     ImageButton(release_icon)
@@ -321,3 +340,24 @@ impl ItemDetails {
 //     
 // Artist: Art(Carousel), Name, Genre(s), Grid(Releases), Grid(More Artists Like This)
 // Track: Art(Carousel), Title, Lyrics
+
+// Release(release.*)
+//   carousel(art)
+//   label(title)
+//   label("by") links(artists)
+//   label("in") links(genres)
+//   label("Tracks")
+//   table(tracks)
+//   label("Similar To")
+//   grid(similar_artists)
+//
+// Artist(artist.*)
+//   carousel(art)
+//   label(name)
+//   label("in" ) links(genres)
+//   label("Releases")
+//   grid(releases)
+//   label("Similar To")
+//   grid(similar_artists)
+//  
+

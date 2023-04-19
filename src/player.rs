@@ -125,9 +125,9 @@ impl Player {
                 if let Some(item) = player_state.read().unwrap().current_queue_item() {
                     let track = item.track;
                     match td.get(&track) {
-                        TrackProgress::Error => todo!(),
-                        TrackProgress::Downloading => {},
-                        TrackProgress::Ready(_, song) => inner.play_song_now(&song, None).unwrap(),
+                        TrackDownloadProgress::Error => todo!(),
+                        TrackDownloadProgress::Downloading => {},
+                        TrackDownloadProgress::Ready(_, song) => inner.play_song_now(&song, None).unwrap(),
                     }
                 }
             }
@@ -140,9 +140,9 @@ impl Player {
                 if let Some(item) = player_state.read().unwrap().next_queue_item() {
                     let track = item.track;
                     match td.get(&track) {
-                        TrackProgress::Error => todo!(),
-                        TrackProgress::Downloading => {},
-                        TrackProgress::Ready(_, song) => inner.play_song_next(&song, None).unwrap(),
+                        TrackDownloadProgress::Error => todo!(),
+                        TrackDownloadProgress::Downloading => {},
+                        TrackDownloadProgress::Ready(_, song) => inner.play_song_next(&song, None).unwrap(),
                     }
                 }
             }
@@ -193,8 +193,6 @@ pub struct PlayerState {
     pub is_playing: bool,
 }
 
-// TODO i think this becomes the primary class and the stuff above becomes
-// the player inteface or something
 impl PlayerState {
     pub fn queue_release(&mut self, release: &Release) {
         for track in &release.tracks {
@@ -243,7 +241,7 @@ impl PlayerState {
     }
 }
 
-pub enum TrackProgress {
+pub enum TrackDownloadProgress {
     Error,
     Downloading,
     Ready(Track, Song)
@@ -265,12 +263,12 @@ impl TrackDownloader {
         }
     }
 
-    pub fn get(&mut self, track: &Track) -> TrackProgress {
+    pub fn get(&mut self, track: &Track) -> TrackDownloadProgress {
         if let Some(song) = self.songs.read().unwrap().get(track) {
-            TrackProgress::Ready(track.clone(), song.clone())
+            TrackDownloadProgress::Ready(track.clone(), song.clone())
         }
         else if self.downloads.read().unwrap().contains(track) {
-            TrackProgress::Downloading
+            TrackDownloadProgress::Downloading
         }
         else {
             log::info!("downloading {}", track.title);
@@ -287,7 +285,7 @@ impl TrackDownloader {
                 log::info!("converted to song");
                 songs.write().unwrap().insert(track.clone(), song);
             });    
-            TrackProgress::Downloading
+            TrackDownloadProgress::Downloading
         }
     }
 }

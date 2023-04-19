@@ -91,6 +91,8 @@ impl Theme {
         use FontFamily::{Monospace, Proportional};
         let style = Style {
             text_styles: [
+                (TextStyle::Name("Heading 3".into()), FontId::new(46.0, Proportional)),
+                (TextStyle::Name("Heading 2".into()), FontId::new(36.0, Proportional)),
                 (TextStyle::Heading, FontId::new(26.0, Proportional)),
                 (TextStyle::Button, FontId::new(16.0, Proportional)),
                 (TextStyle::Name("Button Bold".into()), FontId::new(16.0, FontFamily::Name("Bold".into()))),
@@ -120,6 +122,18 @@ impl Theme {
 
     pub fn svg_icon(bytes: &[u8]) -> RetainedImage {
         RetainedImage::from_svg_bytes("", bytes).unwrap()
+    }
+
+    pub fn heading3(str: &str) -> RichText {
+        RichText::new(str).text_style(TextStyle::Name("Heading 3".into()))
+    }
+
+    pub fn heading2(str: &str) -> RichText {
+        RichText::new(str).text_style(TextStyle::Name("Heading 2".into()))
+    }
+
+    pub fn heading(str: &str) -> RichText {
+        RichText::new(str).text_style(TextStyle::Heading)
     }
 
     // Alias for button
