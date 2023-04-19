@@ -146,10 +146,6 @@ impl PlayerBar {
         None
     }
 
-    /// TODO lets get queue viewing
-    /// Think that's just ItemDetails for a Player?
-    /// I don't hate that...
-    /// 
     pub fn up_next(&self, ui: &mut Ui) -> Option<LibraryItem> {
         let theme = Theme::get(ui.ctx());
         let thumbnail_size: usize = Self::UP_NEXT_THUMBNAIL_SIZE as usize;
@@ -205,7 +201,12 @@ impl PlayerBar {
             if Theme::icon_button(&theme.next_track_icon, 48, 48, ui).clicked() {
                 self.player.write().unwrap().next();
             }
-            if Theme::icon_button(&theme.play_icon, 48, 48, ui).clicked() {
+            if self.player.read().unwrap().is_playing() {
+                if Theme::icon_button(&theme.pause_icon, 48, 48, ui).clicked() {
+                    self.player.write().unwrap().pause();
+                }
+            }
+            else if Theme::icon_button(&theme.play_icon, 48, 48, ui).clicked() {
                 self.player.write().unwrap().play();
             }
             if Theme::icon_button(&theme.previous_track_icon, 48, 48, ui).clicked() {

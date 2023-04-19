@@ -29,10 +29,10 @@ impl CardGrid {
     pub fn ui(&self, cards: &[Box<dyn Card>], image_width: f32, 
         image_height: f32, ui: &mut Ui) -> Option<LibraryItem> {
 
-        ui.spacing_mut().scroll_bar_width = 18.0;
-        ui.spacing_mut().scroll_bar_outer_margin = 0.0;
-        ui.spacing_mut().scroll_bar_inner_margin = 0.0;
-        ui.spacing_mut().scroll_handle_min_length = 24.0;
+        // ui.spacing_mut().scroll_bar_width = 18.0;
+        // ui.spacing_mut().scroll_bar_outer_margin = 0.0;
+        // ui.spacing_mut().scroll_bar_inner_margin = 0.0;
+        // ui.spacing_mut().scroll_handle_min_length = 24.0;
         ui.spacing_mut().button_padding[0] = 2.0;
 
         // This mess calculates the card spacing based on the available width

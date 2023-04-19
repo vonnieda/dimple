@@ -13,12 +13,9 @@
 // TODO figure out a better way to render the svgs - they look like trash
 // TODO app icon https://github.com/emilk/egui/discussions/1574
 //      https://github.com/KunalBagaria/redock
-// TODO test gapless playback: Us and Them -> And Colour You Like
 // TODO I think I can drop the state from almost all of the components now
 // that Theme is in the ui. Try it - would simplify a ton.
 // TODO don't quit on click close.
-
-use std::sync::Arc;
 
 use dimple::dimple::Dimple;
 use eframe::egui::{self};

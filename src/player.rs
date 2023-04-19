@@ -2,8 +2,10 @@
 // TODO figure out how to speed up first play. I think this is because
 //      the method I'm using to get the track downloads the whole thing
 //      first instead of streaming from the start.
+// TODO I had to break this up into weird pieces to make things threaded,
+// so I need to revisit that and either document it, or clean it up.
 
-use std::{sync::{Arc, RwLock, mpsc::{Sender, Receiver}}, fmt::Debug, time::{Duration, Instant}, io::Cursor};
+use std::{sync::{Arc, RwLock, mpsc::{Sender, Receiver}}, fmt::Debug, time::{Duration}, io::Cursor, collections::{HashMap, HashSet}};
 
 use eframe::egui::Context;
 use playback_rs::{Song, Hint};
@@ -12,28 +14,23 @@ use crate::{music_library::{Track, Release, Library}, librarian::Librarian};
 
 pub struct Player {    
     sender: Sender<PlayerCommand>,
-    receiver: Receiver<PlayerCommand>,
     player_state: Arc<RwLock<PlayerState>>,
-    ctx: Context,
 }
 
 impl Player {
     pub fn new(librarian: Arc<Librarian>, ctx: &Context) -> PlayerHandle {
-        let (sender_1, receiver_1) = std::sync::mpsc::channel::<PlayerCommand>();
-        let (sender_2, receiver_2) = std::sync::mpsc::channel::<PlayerCommand>();
+        let (sender, receiver) = std::sync::mpsc::channel::<PlayerCommand>();
 
         let play_queue = Arc::new(RwLock::new(PlayerState::default()));
 
         let play_queue_1 = play_queue.clone();
         let ctx_1 = ctx.clone();
-        std::thread::spawn(move || Self::run(sender_2, receiver_1, 
-            librarian, play_queue_1, &ctx_1));
+        std::thread::spawn(move || Self::run(receiver, librarian, 
+            play_queue_1, &ctx_1));
 
         Arc::new(RwLock::new(Self {
-            sender: sender_1,
-            receiver: receiver_2,
+            sender,
             player_state: play_queue,
-            ctx: ctx.clone(),
         }))
     }
 
@@ -85,13 +82,17 @@ impl Player {
         self.sender.send(PlayerCommand::Seek(position)).unwrap();
     }
 
-    pub fn run(_sender: Sender<PlayerCommand>, 
-        receiver: Receiver<PlayerCommand>, 
+    pub fn is_playing(&self) -> bool {
+        self.player_state.read().unwrap().is_playing
+    }
+
+    pub fn run(receiver: Receiver<PlayerCommand>, 
         librarian: Arc<Librarian>,
         player_state: Arc<RwLock<PlayerState>>,
         ctx: &Context) {
 
         let inner = playback_rs::Player::new(None).unwrap();
+        let mut td = TrackDownloader::new(librarian);
         loop {
             // Process incoming commands
             // TODO process all in the queue.
@@ -105,8 +106,6 @@ impl Player {
                 },
                 Ok(PlayerCommand::Previous) => {
                     player_state.write().unwrap().previous();
-                    // TODO eventually I think this pulls from a cache
-                    // so taht previouses are very fast.
                     inner.stop();
                 },
                 Ok(PlayerCommand::Seek(position)) => {
@@ -118,22 +117,33 @@ impl Player {
                 Err(_) => {},
             }
 
+            // TODO this one and the next block can get out of sync with what's
+            // playing  when skipping quickly. Need to keep track of which
+            // track is actually loaded and change it whenever it is wrong.
             // If the current song is not loaded, load it
-            // TODO background these
             if !inner.has_current_song() {
                 if let Some(item) = player_state.read().unwrap().current_queue_item() {
                     let track = item.track;
-                    let song = Self::get_song(librarian.clone(), &track);
-                    inner.play_song_now(&song, None).unwrap();
+                    match td.get(&track) {
+                        TrackProgress::Error => todo!(),
+                        TrackProgress::Downloading => {},
+                        TrackProgress::Ready(_, song) => inner.play_song_now(&song, None).unwrap(),
+                    }
                 }
             }
+
+            // TODO not taking care of switching the queue song when the next
+            // song plays in.
 
             // If the next song is not loaded, load it
             if !inner.has_next_song() {
                 if let Some(item) = player_state.read().unwrap().next_queue_item() {
                     let track = item.track;
-                    let song = Self::get_song(librarian.clone(), &track);
-                    inner.play_song_next(&song, None).unwrap();
+                    match td.get(&track) {
+                        TrackProgress::Error => todo!(),
+                        TrackProgress::Downloading => {},
+                        TrackProgress::Ready(_, song) => inner.play_song_next(&song, None).unwrap(),
+                    }
                 }
             }
 
@@ -144,28 +154,15 @@ impl Player {
             }
             else {
                 player_state.write().unwrap().position = 0.0;
-                player_state.write().unwrap().duration = 0.0;
+                player_state.write().unwrap().duration = 0.1;
             }
+            player_state.write().unwrap().is_playing = inner.is_playing();
 
             // Refresh the context
             // TODO this is a hack - UI stuff doesn't belong here, but didn't
             // yet come up with a better way to do it.
             ctx.request_repaint();
         }
-    }
-
-    fn get_song(librarian: Arc<Librarian>, track: &Track) -> Song {
-        let t = Instant::now();
-        log::info!("downloading {}", track.title);
-        let stream = librarian.stream(track).unwrap();
-        log::info!("downloaded {} bytes in {} seconds", 
-            stream.len(), 
-            Instant::now().duration_since(t).as_secs_f32());
-        let song = Song::new(Box::new(Cursor::new(stream)), 
-            &Hint::new(), 
-            None).unwrap();
-        log::info!("converted to song");
-        song
     }
 }
 
@@ -184,6 +181,7 @@ pub enum PlayerCommand {
     Next,
     Previous,
     Seek(f32),
+    // DownloadComplete(Vec<u8>),
 }
 
 #[derive(Default, Clone, Debug)]
@@ -192,6 +190,7 @@ pub struct PlayerState {
     pub index: usize,
     pub duration: f32,
     pub position: f32,
+    pub is_playing: bool,
 }
 
 // TODO i think this becomes the primary class and the stuff above becomes
@@ -244,3 +243,51 @@ impl PlayerState {
     }
 }
 
+pub enum TrackProgress {
+    Error,
+    Downloading,
+    Ready(Track, Song)
+}
+
+// TODO pre-load other songs in the queue
+struct TrackDownloader {
+    downloads: Arc<RwLock<HashSet<Track>>>,
+    songs: Arc<RwLock<HashMap<Track, Song>>>,
+    librarian: Arc<Librarian>,
+}
+
+impl TrackDownloader {
+    pub fn new(librarian: Arc<Librarian>) -> Self {
+        Self {
+            downloads: Arc::new(RwLock::new(HashSet::new())),
+            songs: Arc::new(RwLock::new(HashMap::new())),
+            librarian,
+        }
+    }
+
+    pub fn get(&mut self, track: &Track) -> TrackProgress {
+        if let Some(song) = self.songs.read().unwrap().get(track) {
+            TrackProgress::Ready(track.clone(), song.clone())
+        }
+        else if self.downloads.read().unwrap().contains(track) {
+            TrackProgress::Downloading
+        }
+        else {
+            log::info!("downloading {}", track.title);
+            self.downloads.write().unwrap().insert(track.clone());
+            let librarian = self.librarian.clone();
+            let track = track.clone();
+            let songs = self.songs.clone();
+            std::thread::spawn(move || {
+                let stream = librarian.stream(&track).unwrap();
+                log::info!("downloaded {} bytes", stream.len());
+                let song = Song::new(Box::new(Cursor::new(stream)), 
+                    &Hint::new(), 
+                    None).unwrap();
+                log::info!("converted to song");
+                songs.write().unwrap().insert(track.clone(), song);
+            });    
+            TrackProgress::Downloading
+        }
+    }
+}

@@ -1,4 +1,4 @@
-use std::{sync::{Arc, RwLock, mpsc::Receiver}, collections::HashSet};
+use std::{sync::{Arc, RwLock, mpsc::Receiver}};
 
 use crate::{music_library::{Library, Release, Image, Track, local_library::LocalLibrary, LibraryConfig, navidrome_library::NavidromeLibrary, Artist, Genre}, settings::Settings};
 
@@ -48,13 +48,18 @@ impl Librarian {
     /// there too, and may be more efficient being called directly. Defaults
     /// can just be these ones that filter.
     pub fn artists(&self) -> Vec<Artist> {
-        self.releases()
+        let mut artists = self.releases()
             .iter()
             .flat_map(|release| release.artists.into_iter())
-            .collect::<Vec<Artist>>()
+            .collect::<Vec<Artist>>();
+        artists.sort_by(|a, b| {
+            a.name.to_lowercase()
+                .cmp(&b.name.to_lowercase())
+        });
+        artists
     }
 
-    pub fn artists_by_genre(&self, genre: &Genre) -> Vec<Artist> {
+    pub fn artists_by_genre(&self, _genre: &Genre) -> Vec<Artist> {
         Vec::new()
     }
 
@@ -62,22 +67,34 @@ impl Librarian {
         Vec::new()
     }
 
-    pub fn genres_by_artist(&self, artist: &Artist) -> Vec<Genre> {
+    pub fn genres_by_artist(&self, _artist: &Artist) -> Vec<Genre> {
         Vec::new()
     }
 
     pub fn releases_by_artist(&self, artist: &Artist) -> Vec<Release> {
-        self.releases()
+        let mut releases = self.releases()
             .into_iter()
             .filter(|release| release.artists.contains(artist))
-            .collect()
+            .collect::<Vec<Release>>();
+        releases.sort_by(|a, b| {
+            a.artist().to_lowercase()
+                .cmp(&b.artist().to_lowercase())
+                .then(a.title.to_lowercase().cmp(&b.title.to_lowercase()))
+        });
+        releases
     }
 
     pub fn releases_by_genre(&self, genre: &Genre) -> Vec<Release> {
-        self.releases()
+        let mut releases = self.releases()
             .into_iter()
             .filter(|release| release.genres.contains(genre))
-            .collect()
+            .collect::<Vec<Release>>();
+        releases.sort_by(|a, b| {
+            a.artist().to_lowercase()
+                .cmp(&b.artist().to_lowercase())
+                .then(a.title.to_lowercase().cmp(&b.title.to_lowercase()))
+        });
+        releases
     }
 }
 

@@ -7,7 +7,7 @@ use eframe::egui::{FontDefinitions, Visuals, Style, Ui, Response, ImageButton};
 
 use eframe::epaint::{FontFamily, FontId, Stroke};
 
-use crate::{librarian::Librarian, music_library::{Image, Release}};
+use crate::{librarian::Librarian, music_library::{Image}};
 
 use super::{retained_images::RetainedImages, utils};
 

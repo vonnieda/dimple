@@ -64,7 +64,7 @@ pub struct Artist {
 // TODO I think this is gonna need a way to get back to the release. Giving
 // more credence to everything just having an ID and the vectors being
 // vectors of IDs.
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
 pub struct Track {
     pub url: String,
     pub title: String,

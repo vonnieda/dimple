@@ -1,6 +1,6 @@
 use std::{sync::{Arc, RwLock}};
 
-use eframe::{egui::{Ui, Grid}};
+use eframe::{egui::{Ui, Grid, ScrollArea}};
 
 use crate::{music_library::{Artist, Genre, Release, Track, Playlist}, player::{PlayerHandle, Player}, librarian::Librarian};
 
@@ -23,14 +23,16 @@ impl ItemDetails {
     pub fn ui(&mut self, item: LibraryItem, ui: &mut Ui) -> Option<LibraryItem> {
         use LibraryItem::*;
 
-        match item {
-            Release(release) => self.release(&release, ui),
-            Artist(artist) => self.artist(&artist, ui),
-            Genre(genre) => self.genre(&genre, ui),
-            Playlist(playlist) => self.playlist(&playlist, ui),
-            Track(track) => self.track(&track, ui),
-            Player(player) => self.now_playing(player, ui),
-        }
+        ScrollArea::new([false, true]).auto_shrink([false, false]).show(ui, |ui| {
+            match item {
+                Release(release) => self.release(&release, ui),
+                Artist(artist) => self.artist(&artist, ui),
+                Genre(genre) => self.genre(&genre, ui),
+                Playlist(playlist) => self.playlist(&playlist, ui),
+                Track(track) => self.track(&track, ui),
+                Player(player) => self.now_playing(player, ui),
+            }
+        }).inner
     }
 
     pub fn now_playing(&mut self, player: Arc<RwLock<Player>>, ui: &mut Ui) -> Option<LibraryItem> {
@@ -123,6 +125,14 @@ impl ItemDetails {
                         }
                     });
                 });
+            });
+            Grid::new("tracks").show(ui, |ui| {
+                for (i, track) in release.tracks.iter().enumerate() {
+                    ui.label(&i.to_string());
+                    ui.label(&track.title);
+                    ui.label(&release.title);
+                    ui.end_row();
+                }
             });
         });
         action
