@@ -91,7 +91,10 @@ impl MainScreen {
             });
         
         egui::TopBottomPanel::bottom("player")
-            .frame(Frame::none().inner_margin(Margin::same(8.0)).fill(theme.player_background))
+            .frame(Frame::none()
+                .inner_margin(Margin::same(8.0))
+                .fill(theme.player_background)
+            )
             .show(ctx, |ui| {
                 if let Some(item) = self.player_bar.ui(ui) {
                     self.history.push_front(HistoryItem::ItemDetails(item));
