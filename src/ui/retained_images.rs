@@ -1,4 +1,4 @@
-use std::{sync::{Arc, RwLock, Mutex}, collections::HashMap};
+use std::{sync::{Arc, RwLock, Mutex}, collections::HashMap, time::Duration};
 
 use eframe::epaint::{Color32, ColorImage};
 use egui_extras::RetainedImage;
@@ -18,13 +18,18 @@ pub struct RetainedImages {
 
 impl RetainedImages {
     pub fn new(librarian: Arc<Librarian>) -> Self {
+        // std::thread::spawn(|| {
+        //     loop {
+        //         log::info!("{} {}", self.retained_im)
+        //         std::thread::sleep(Duration::from_secs_f32(5.0));
+        //     }
+        // });
         Self {
             retained_images: Arc::new(Mutex::new(HashMap::new())),
             thread_pool: Arc::new(Mutex::new(ThreadPool::default())),
             librarian: Arc::new(RwLock::new(librarian)),
         }
     }
-
 
     /// Get a thumbnail for the given Image, returning a RetainedImage.
     /// Caches for performance. Unbounded for now.

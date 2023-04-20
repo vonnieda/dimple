@@ -1,11 +1,11 @@
-use std::{sync::{Arc}, collections::VecDeque};
+use std::{sync::{Arc}, collections::VecDeque, cmp::Ordering};
 
-use eframe::{egui::{self, Context, LayerId, Frame, Margin}, epaint::{Color32, Mesh, Shape, Rect, Stroke}};
+use eframe::{egui::{self, Context, LayerId, Frame, Margin, ScrollArea}, epaint::{Color32, Mesh, Shape, Rect, Stroke}};
 
 
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
-use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release}};
+use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release, Genre, Artist}};
 
 use super::{nav_bar::{NavBar, NavEvent}, player_bar::PlayerBar, card_grid::{CardGrid, Card, LibraryItem}, item_details::ItemDetails, theme::Theme};
 
@@ -19,8 +19,6 @@ pub struct MainScreen {
     player_bar: PlayerBar,
 
     player_last_rect: Option<Rect>,
-    cards: Vec<Box<dyn Card>>,
-
     history: VecDeque<HistoryItem>,
 }
 
@@ -33,6 +31,11 @@ pub enum HistoryItem {
 // TODO I've gone this direction of having deep components bubble up their
 // events but man it's a pain in the ass. Need to rethink the top level of the
 // app and decide if the rest of the UI can just call, like, "navigate"
+
+// Okay, so, yes Dimple::navigate(), that builds into the URL idea (ala
+// dimple://artist/album). 
+// But also I think it's time to split at least the content area into three
+// components: dashboard, search results, item details. 
 impl MainScreen {
     pub fn new(player: PlayerHandle, librarian: Arc<Librarian>) -> Self {
         Self {
@@ -41,7 +44,7 @@ impl MainScreen {
             nav_bar: NavBar::default(),
             card_grid: CardGrid::default(),
             player_bar: PlayerBar::new(player.clone()),
-            cards: Vec::new(),
+            // cards: Vec::new(),
             history: VecDeque::new(),
             item_details: ItemDetails::new(player, librarian),
             player_last_rect: None,
@@ -58,10 +61,6 @@ impl MainScreen {
         // });
 
         // ctx.set_debug_on_hover(true);
-
-        if self.player_last_rect.is_none() {
-            self.cards = self.cards("", ctx);
-        }
 
         egui::TopBottomPanel::top("nav_bar").show(ctx, |ui| {
             Frame::none()
@@ -115,49 +114,71 @@ impl MainScreen {
                     bottom: 8.0,
                 })
                 .show(ui, |ui| {
-                    match self.history.front() {
-                        Some(HistoryItem::ItemDetails(item)) => {
-                            if let Some(library_item) = self.item_details.ui(item.clone(), ui) {
-                                self.history.push_front(HistoryItem::ItemDetails(library_item));
-                            }
-                        },
-                        // TODO screens showing lists should auto update
-                        Some(HistoryItem::Search(query)) => {
-                            // TODO can't run the query every frame
-                            // TODO we should set the search bar query string when
-                            // showing this.
-                            self.cards = self.cards(query.clone().as_str(), ctx);
-                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ui);
-                            if let Some(library_item) = action {
-                                self.history.push_front(HistoryItem::ItemDetails(library_item));
-                            }
-                        },
-                        Some(HistoryItem::Home) => {
-                            // TODO can't run the query every frame
-                            // TODO Clear search bar query string
-                            self.cards = self.cards("", ctx);
-                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ui);
-                            if let Some(library_item) = action {
-                                self.history.push_front(HistoryItem::ItemDetails(library_item));
-                            }
-                        },
-                        None => {
-                            // TODO can't run the query every frame
-                            // TODO Clear search bar query string
-                            self.cards = self.cards("", ctx);
-                            let action = self.card_grid.ui(&self.cards, 200.0, 200.0, ui);
-                            if let Some(library_item) = action {
-                                self.history.push_front(HistoryItem::ItemDetails(library_item));
-                            }
-                        },
-                    }
+                    ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                        match self.history.front() {
+                            Some(HistoryItem::Home) | None => {
+                                // TODO Clear search bar query string
+                                let cards = self.home();
+                                let action = self.card_grid.ui2("home", &cards, 200.0, 200.0, ui);
+                                if let Some(library_item) = action {
+                                    self.history.push_front(HistoryItem::ItemDetails(library_item));
+                                }
+                            },
+                            Some(HistoryItem::Search(query)) => {
+                                // TODO can't run the query every frame
+                                // TODO we should set the search bar query string when
+                                // showing this.
+                                for (category, cards) in self.search(query.clone().as_str()) {
+                                    ui.label(Theme::heading(&category));
+                                    let action = self.card_grid.ui2(&category, &cards, 200.0, 200.0, ui);
+                                    if let Some(library_item) = action {
+                                        self.history.push_front(HistoryItem::ItemDetails(library_item));
+                                    }
+                                    ui.add_space(16.0);
+                                }
+                            },
+                            Some(HistoryItem::ItemDetails(item)) => {
+                                if let Some(library_item) = self.item_details.ui(item.clone(), ui) {
+                                    self.history.push_front(HistoryItem::ItemDetails(library_item));
+                                }
+                            },
+                        }
+                    });
                 });
         });
     }
 
+    pub fn home(&self) -> Vec<Box<dyn Card>>  {
+        self.librarian.genres()
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<Box<dyn Card>>>()
+    }
+    
+    fn search(&self, query: &str) -> Vec<(String, Vec<Box<dyn Card>>)> {
+        let matcher = SkimMatcherV2::default();
+        let artists = self.librarian.artists().into_iter()
+            .filter(|artist| matcher.fuzzy_match(&artist.name, query).is_some())
+            .map(Into::into)
+            .collect::<Vec<Box<dyn Card>>>();
+        let mut releases = self.librarian.releases().into_iter()
+            .filter(|release| matcher.fuzzy_match(&release.title, query).is_some())
+            .map(Into::into)
+            .collect::<Vec<Box<dyn Card>>>();
+        releases.sort_by_key(|release| release.title());
+        let genres = self.librarian.genres().into_iter()
+            .filter(|genre| matcher.fuzzy_match(&genre.name, query).is_some())
+            .map(Into::into)
+            .collect::<Vec<Box<dyn Card>>>();
+        vec![
+            ("Artists".to_owned(), artists), 
+            ("Releases".to_owned(), releases), 
+            ("Genres".to_owned(), genres)
+        ]
+    }
+
     fn gradient_background(&mut self, ctx: &Context) {
         let theme = Theme::get(ctx);
-        // let painter = ctx.layer_painter(LayerId::new(egui::Order::PanelResizeLine, Id::new("gradient")));
         let painter = ctx.layer_painter(LayerId::background());
         let mut mesh = Mesh::default();
         let rect = painter.clip_rect();
@@ -179,35 +200,6 @@ impl MainScreen {
         mesh.add_triangle(4, 6, 7);
 
         painter.add(Shape::Mesh(mesh));
-    }
-
-    // TODO Artist Cards
-    // TODO Genre Cards
-    // TODO Playlist Cards
-    /// Get the list of Cards to show in the grid. Performs filtering, sorting,
-    /// and caching.
-    fn cards(&self, query: &str, ctx: &Context) -> Vec<Box<dyn Card>> {
-        // Filter Releases by the query
-        let matcher = SkimMatcherV2::default();
-        let mut releases: Vec<Release> = self.librarian.releases().into_iter()
-            .filter(|release| {
-                let haystack = format!("{} {}", release.title, release.artist())
-                    .to_uppercase();
-                return matcher
-                    .fuzzy_match(haystack.as_str(), query)
-                    .is_some();
-            })
-            .collect();
-
-        // Sort Releases by Artist Name then Release Title
-        releases.sort_by(|a, b| {
-            a.artist().to_uppercase()
-                .cmp(&b.artist().to_uppercase())
-                .then(a.title.to_uppercase().cmp(&b.title.to_uppercase()))
-        });
-
-        // Convert to Cards
-        releases.into_iter().map(|release| Box::new(release) as Box<dyn Card>).collect()
     }
 }
 

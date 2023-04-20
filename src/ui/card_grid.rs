@@ -6,6 +6,7 @@ use crate::{music_library::{Artist, Release, Genre, Playlist, Track}, player::Pl
 
 pub trait Card {
     fn ui(&self, image_width: f32, image_height: f32, ui: &mut Ui) -> Option<LibraryItem>;
+    fn title(&self) -> String;
 }
 
 #[derive(Clone)]

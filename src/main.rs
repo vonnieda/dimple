@@ -16,6 +16,9 @@
 // TODO I think I can drop the state from almost all of the components now
 // that Theme is in the ui. Try it - would simplify a ton.
 // TODO don't quit on click close.
+// TODO okay actually i need to think about this MORE as a browser. Navigation
+// is when we run the queries. Maybe we just the run the query when we create
+// the screen and then we stick that on the stack?
 
 use dimple::dimple::Dimple;
 use eframe::egui::{self};

@@ -70,6 +70,8 @@ impl Librarian {
         let mut artists = self.releases()
             .iter()
             .flat_map(|release| release.artists.into_iter())
+            .collect::<HashSet<Artist>>()
+            .into_iter()
             .collect::<Vec<Artist>>();
         Self::sort_artists(&mut artists);
         artists
