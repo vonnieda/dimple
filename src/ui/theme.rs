@@ -17,9 +17,12 @@ pub struct Theme {
     pub background_top: Color32,
     pub background_middle: Color32,
     pub background_bottom: Color32,
-    pub player_background: Color32,
-    pub image_placeholder: Color32,
-    pub text: Color32,
+    // TODO see if any of these can be done with existing egui theme colors
+    // instead.
+    // pub player_background: Color32,
+    // pub image_placeholder: Color32,
+    // pub text: Color32,
+    // pub detail_panel: Color32,
 
     pub add_icon: RetainedImage,
     pub artist_icon: RetainedImage,
@@ -39,12 +42,16 @@ impl Theme {
     pub fn new(librarian: Arc<Librarian>) -> Self {
         Self {
             retained_images: Arc::new(RwLock::new(RetainedImages::new(librarian))),
+            // background_top: Color32::from_rgb(186, 136, 255),
+            // background_middle: Color32::from_gray(240),
+            // background_bottom: Color32::from_gray(240),
             background_top: Color32::from_rgb(0x54, 0x3b, 0x67),
             background_middle: Color32::from_rgb(0x21, 0x21, 0x21),
             background_bottom: Color32::from_rgb(0x21, 0x21, 0x21),
-            player_background: Color32::from_gray(0x17),
-            image_placeholder: Color32::from_gray(0x33),
-            text: Color32::from_gray(206),
+            // player_background: Color32::from_gray(0x17),
+            // image_placeholder: Color32::from_gray(0x33),
+            // detail_panel: Color32::from_gray(0xcc),
+            // text: Color32::from_gray(206),
 
             add_icon: Self::svg_icon(include_bytes!("../icons/material/add_circle_FILL0_wght400_GRAD0_opsz48.svg")),
             artist_icon: Self::svg_icon(include_bytes!("../icons/material/group_FILL0_wght400_GRAD0_opsz48.svg")),
@@ -89,33 +96,34 @@ impl Theme {
         ctx.set_fonts(fonts);
     
         use FontFamily::{Monospace, Proportional};
+        let Bold: FontFamily = FontFamily::Name("Bold".into());
         let style = Style {
+            // https://stackoverflow.com/questions/5410066/what-are-the-default-font-sizes-in-pixels-for-the-html-heading-tags-h1-h2/70720104#70720104
             text_styles: [
-                (TextStyle::Name("Heading 3".into()), FontId::new(46.0, Proportional)),
-                (TextStyle::Name("Heading 2".into()), FontId::new(36.0, Proportional)),
-                (TextStyle::Heading, FontId::new(26.0, Proportional)),
+                (TextStyle::Heading, FontId::new(32.0, Bold.clone())),
+                (TextStyle::Name("Heading 1".into()), FontId::new(32.0, Bold.clone())),
+                (TextStyle::Name("Heading 2".into()), FontId::new(24.0, Bold.clone())),
+                (TextStyle::Name("Heading 3".into()), FontId::new(18.72, Bold.clone())),
                 (TextStyle::Button, FontId::new(16.0, Proportional)),
-                (TextStyle::Name("Button Bold".into()), FontId::new(16.0, FontFamily::Name("Bold".into()))),
-                (TextStyle::Body, FontId::new(14.0, Proportional)),
-                (TextStyle::Name("Body Bold".into()), FontId::new(14.0, FontFamily::Name("Bold".into()))),
-                (TextStyle::Small, FontId::new(12.0, Proportional)),
-                (TextStyle::Name("Small Bold".into()), FontId::new(12.0, FontFamily::Name("Bold".into()))),
+                (TextStyle::Body, FontId::new(16.0, Proportional)),
+                (TextStyle::Small, FontId::new(13.28, Proportional)),
 
-                (TextStyle::Monospace, FontId::new(14.0, Monospace)),
+                (TextStyle::Name("Button Bold".into()), FontId::new(16.0, Bold.clone())),
+                (TextStyle::Name("Body Bold".into()), FontId::new(16.0, Bold.clone())),
+                (TextStyle::Name("Small Bold".into()), FontId::new(12.0, Bold.clone())),
+
+                (TextStyle::Monospace, FontId::new(16.0, Monospace)),
             ].into(),
             ..Default::default()
         };
         ctx.set_style(style);
 
-        let mut visuals = Visuals {
-            hyperlink_color: self.text,
-            panel_fill: Color32::TRANSPARENT, // So the background is visible
-            text_cursor_preview: true,
-            slider_trailing_fill: true,
-            ..Default::default()
-        };
-        visuals.widgets.noninteractive.fg_stroke = Stroke::new(0., self.text);
-        visuals.widgets.noninteractive.bg_stroke = Stroke::NONE; // Hide lines between panels
+        let mut visuals = Visuals::dark();
+        // Set default text color
+        visuals.widgets.noninteractive.fg_stroke = Stroke::new(0., Color32::from_gray(206));
+        // Set hyperlink color same as text color.
+        visuals.hyperlink_color = visuals.widgets.noninteractive.fg_stroke.color;
+        // TODO move this into the scrubber.
         visuals.selection.bg_fill = self.background_top;
         ctx.set_visuals(visuals);
     }
@@ -132,34 +140,36 @@ impl Theme {
         RichText::new(str).text_style(TextStyle::Name("Heading 2".into()))
     }
 
-    pub fn heading(str: &str) -> RichText {
+    pub fn heading1(str: &str) -> RichText {
         RichText::new(str).text_style(TextStyle::Heading)
     }
 
-    // Alias for button
-    pub fn bigger(str: &str) -> RichText {
-        RichText::new(str).text_style(TextStyle::Button)
+    pub fn heading(str: &str) -> RichText {
+        RichText::new(str).text_style(TextStyle::Heading)
     }
 
     pub fn bold(str: &str) -> RichText {
         RichText::new(str).text_style(TextStyle::Name("Body Bold".into()))
     }
 
-    pub fn big_n_bold(str: &str) -> RichText {
-        RichText::new(str).text_style(TextStyle::Name("Button Bold".into()))
-    }
-
     pub fn small(str: &str) -> RichText {
         RichText::new(str).text_style(TextStyle::Small)
     }
 
-    pub fn small_n_bold(str: &str) -> RichText {
+    pub fn small_bold(str: &str) -> RichText {
         RichText::new(str).text_style(TextStyle::Name("Small Bold".into()))
     }
 
     // TODO work on frame
     pub fn icon_button(retained: &RetainedImage, width: usize, height: usize, ui: &mut Ui) -> Response {
-        ui.add(ImageButton::new(retained.texture_id(ui.ctx()), [width as f32, height as f32]))
+        ui.scope(|ui| {
+            ui.visuals_mut().widgets.inactive.weak_bg_fill = Color32::TRANSPARENT;
+            ui.visuals_mut().widgets.hovered.weak_bg_fill = Color32::TRANSPARENT;
+            ui.visuals_mut().widgets.active.weak_bg_fill = Color32::TRANSPARENT;
+            let button = ImageButton::new(retained.texture_id(ui.ctx()), 
+                [width as f32, height as f32]);
+            ui.add(button)
+        }).inner
     }
 
     pub fn carousel(&self, images: &[Image], width: usize, ui: &mut Ui) -> Response {
@@ -169,7 +179,7 @@ impl Theme {
                 .read()
                 .unwrap()
                 .texture_id(ui.ctx()),
-            None => utils::sample_image(theme.image_placeholder, width, width).texture_id(ui.ctx()),
+            None => utils::sample_image(Color32::BLACK, width, width).texture_id(ui.ctx()),
         };
         ui.add(ImageButton::new(texture_id, [width as f32, width as f32]))
     }

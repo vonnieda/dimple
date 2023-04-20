@@ -26,7 +26,7 @@ impl PlotScrubber {
         Plot::new("my_plot")
             .height(30.0)
             // .width(ui.available_width() * 0.8)
-            .show_x(true)
+            .show_x(false)
             .show_y(false)
             .show_background(false)
             .show_axes([false; 2])
@@ -65,8 +65,8 @@ impl SliderScrubber {
         let duration = player.read().unwrap().duration();
         let mut mut_position: f32 = position;
         let slider = Slider::new(&mut mut_position, 0.0..=duration)
-            .show_value(false)
-            .trailing_fill(true);
+            .trailing_fill(true)
+            .show_value(false);
         ui.spacing_mut().slider_width = ui.available_width();
         if ui.add(slider).changed() {
             player.read().unwrap().seek(mut_position);

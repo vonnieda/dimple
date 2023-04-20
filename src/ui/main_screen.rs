@@ -18,7 +18,6 @@ pub struct MainScreen {
     item_details: ItemDetails,
     player_bar: PlayerBar,
 
-    player_last_rect: Option<Rect>,
     history: VecDeque<HistoryItem>,
 }
 
@@ -47,7 +46,6 @@ impl MainScreen {
             // cards: Vec::new(),
             history: VecDeque::new(),
             item_details: ItemDetails::new(player, librarian),
-            player_last_rect: None,
         }
     }
 
@@ -56,21 +54,32 @@ impl MainScreen {
 
         self.gradient_background(ctx);
 
-        // egui::Window::new("Style").show(ctx, |ui| {
-        //     ctx.style_ui(ui);
+        egui::Window::new("Style").show(ctx, |ui| {
+            ctx.style_ui(ui);
+        });
+
+        // egui::Window::new("Inspection").show(ctx, |ui| {
+        //     ctx.inspection_ui(ui);
+        // });
+
+        // egui::Window::new("Settings").show(ctx, |ui| {
+        //     ctx.settings_ui(ui);
+        // });
+
+        // egui::Window::new("Memory").show(ctx, |ui| {
+        //     ctx.memory_ui(ui);
+        // });
+
+        // egui::Window::new("Textures").show(ctx, |ui| {
+        //     ctx.texture_ui(ui);
         // });
 
         // ctx.set_debug_on_hover(true);
 
-        egui::TopBottomPanel::top("nav_bar").show(ctx, |ui| {
-            Frame::none()
-            .inner_margin(Margin {
-                left: 8.0,
-                right: 0.0,
-                top: 16.0,
-                bottom: 0.0,
-            })
-            .show(ui, |ui| {
+        egui::TopBottomPanel::top("nav_bar")
+            .frame(Frame::none().inner_margin(Margin::same(8.0)))
+            .show_separator_line(false)
+            .show(ctx, |ui| {
                 match self.nav_bar.ui(ui) {
                     Some(NavEvent::Back) => {
                         self.history.pop_front();
@@ -84,66 +93,50 @@ impl MainScreen {
                     None => (),
                 }
             });
-        });
         
-        let panel = egui::TopBottomPanel::bottom("player").show(ctx, |ui| {
-            if let Some(last_rect) = self.player_last_rect {
-                let painter = ui.painter();
-                painter.rect_filled(last_rect, 0.0, theme.player_background);
-                painter.line_segment([last_rect.left_top(), last_rect.right_top()], Stroke::new(1.0, Color32::from_gray(0xc3)));
-            }
-            Frame::none().inner_margin(Margin {
-                left: 8.0,
-                right: 8.0,
-                top: 2.0,
-                bottom: 10.0,
-            }).show(ui, |ui| {
+        egui::TopBottomPanel::bottom("player")
+            .frame(Frame::none().inner_margin(Margin::same(8.0)))
+            .show(ctx, |ui| {
                 if let Some(item) = self.player_bar.ui(ui) {
                     self.history.push_front(HistoryItem::ItemDetails(item));
                 }
             });
-        });
-        self.player_last_rect = Some(panel.response.rect);
         
-        egui::CentralPanel::default().show(ctx, |ui| {
-            Frame::none()
-                .inner_margin(Margin {
-                    left: 8.0,
-                    right: 8.0,
-                    top: 8.0,
-                    bottom: 8.0,
-                })
-                .show(ui, |ui| {
-                    ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-                        match self.history.front() {
-                            Some(HistoryItem::Home) | None => {
-                                // TODO Clear search bar query string
-                                let cards = self.home();
-                                let action = self.card_grid.ui2("home", &cards, 200.0, 200.0, ui);
+        egui::CentralPanel::default()
+            .frame(Frame::none().inner_margin(Margin::same(8.0)))
+            .show(ctx, |ui| {
+                ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+                    match self.history.front() {
+                        Some(HistoryItem::Home) | None => {
+                            // TODO Clear search bar query string
+                            let cards = self.home();
+                            let action = self.card_grid.ui("home", &cards, 200.0, 200.0, ui);
+                            if let Some(library_item) = action {
+                                self.history.push_front(HistoryItem::ItemDetails(library_item));
+                            }
+                        },
+                        Some(HistoryItem::Search(query)) => {
+                            // TODO can't run the query every frame
+                            // TODO we should set the search bar query string when
+                            // showing this.
+                            for (category, cards) in self.search(query.clone().as_str()) {
+                                if cards.is_empty() {
+                                    continue;
+                                }
+                                ui.label(Theme::heading(&category));
+                                let action = self.card_grid.ui(&category, &cards, 200.0, 200.0, ui);
                                 if let Some(library_item) = action {
                                     self.history.push_front(HistoryItem::ItemDetails(library_item));
                                 }
-                            },
-                            Some(HistoryItem::Search(query)) => {
-                                // TODO can't run the query every frame
-                                // TODO we should set the search bar query string when
-                                // showing this.
-                                for (category, cards) in self.search(query.clone().as_str()) {
-                                    ui.label(Theme::heading(&category));
-                                    let action = self.card_grid.ui2(&category, &cards, 200.0, 200.0, ui);
-                                    if let Some(library_item) = action {
-                                        self.history.push_front(HistoryItem::ItemDetails(library_item));
-                                    }
-                                    ui.add_space(16.0);
-                                }
-                            },
-                            Some(HistoryItem::ItemDetails(item)) => {
-                                if let Some(library_item) = self.item_details.ui(item.clone(), ui) {
-                                    self.history.push_front(HistoryItem::ItemDetails(library_item));
-                                }
-                            },
-                        }
-                    });
+                                ui.add_space(32.0);
+                            }
+                        },
+                        Some(HistoryItem::ItemDetails(item)) => {
+                            if let Some(library_item) = self.item_details.ui(item.clone(), ui) {
+                                self.history.push_front(HistoryItem::ItemDetails(library_item));
+                            }
+                        },
+                    }
                 });
         });
     }
@@ -179,12 +172,15 @@ impl MainScreen {
 
     fn gradient_background(&mut self, ctx: &Context) {
         let theme = Theme::get(ctx);
-        let painter = ctx.layer_painter(LayerId::background());
-        let mut mesh = Mesh::default();
-        let rect = painter.clip_rect();
+
         let top = theme.background_top;
         let middle = theme.background_middle;
         let bottom = theme.background_bottom;
+
+        let painter = ctx.layer_painter(LayerId::background());
+        let mut mesh = Mesh::default();
+        let rect = painter.clip_rect();
+        
         mesh.colored_vertex(rect.left_top(), top);
         mesh.colored_vertex(rect.right_top(), top);
         mesh.colored_vertex(rect.right_center(), middle);

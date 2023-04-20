@@ -14,7 +14,7 @@ impl Card for Release {
                 action = Some(LibraryItem::Release(self.clone()));
             }
             // title
-            if ui.link(Theme::big_n_bold(&self.title)).clicked() {
+            if ui.link(Theme::bold(&self.title)).clicked() {
                 action = Some(LibraryItem::Release(self.clone()));
             }
             // Show each artist as a clickable link separated by commas
@@ -50,7 +50,7 @@ impl Card for Artist {
                 action = Some(LibraryItem::Artist(self.clone()));
             }
             // name
-            if ui.link(Theme::big_n_bold(&self.name)).clicked() {
+            if ui.link(Theme::bold(&self.name)).clicked() {
                 action = Some(LibraryItem::Artist(self.clone()));
             }
         });
@@ -73,7 +73,7 @@ impl Card for Genre {
                 action = Some(LibraryItem::Genre(self.clone()));
             }
             // name
-            if ui.link(Theme::big_n_bold(&self.name)).clicked() {
+            if ui.link(Theme::bold(&self.name)).clicked() {
                 action = Some(LibraryItem::Genre(self.clone()));
             }
         });

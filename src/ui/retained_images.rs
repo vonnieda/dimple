@@ -1,4 +1,4 @@
-use std::{sync::{Arc, RwLock, Mutex}, collections::HashMap, time::Duration};
+use std::{sync::{Arc, RwLock, Mutex}, collections::HashMap};
 
 use eframe::epaint::{Color32, ColorImage};
 use egui_extras::RetainedImage;
@@ -11,7 +11,7 @@ use super::utils;
 pub struct RetainedImages {
     // TODO see if we can cache this on disk
     // for fast startup.
-    retained_images: Arc<Mutex<HashMap<String, Arc<RetainedImage>>>>,
+    retained_images: Arc<RwLock<HashMap<String, Arc<RetainedImage>>>>,
     thread_pool: Arc<Mutex<ThreadPool>>,
     librarian: Arc<RwLock<Arc<Librarian>>>,
 }
@@ -25,7 +25,7 @@ impl RetainedImages {
         //     }
         // });
         Self {
-            retained_images: Arc::new(Mutex::new(HashMap::new())),
+            retained_images: Arc::new(RwLock::new(HashMap::new())),
             thread_pool: Arc::new(Mutex::new(ThreadPool::default())),
             librarian: Arc::new(RwLock::new(librarian)),
         }
@@ -39,7 +39,7 @@ impl RetainedImages {
         
         let key = format!("{}:{}x{}", image.url, width, height);
         
-        if let Some(image) = self.retained_images.lock().unwrap().get(&key) {
+        if let Some(image) = self.retained_images.read().unwrap().get(&key) {
             // TODO gotta be a better way than creating a new lock every time. 
             // Probably needs to be stored as the lock.
             return Arc::new(RwLock::new(image.clone()));
@@ -49,7 +49,7 @@ impl RetainedImages {
         // a function, or even a class
         let placeholder = ColorImage::new([width, height], Color32::BLACK);
         let retained_arc = Arc::new(RetainedImage::from_color_image("", placeholder));
-        self.retained_images.lock().unwrap().insert(key.clone(), retained_arc.clone());
+        self.retained_images.write().unwrap().insert(key.clone(), retained_arc.clone());
         let retained = Arc::new(RwLock::new(retained_arc));
 
         let librarian_1 = self.librarian.clone();
@@ -59,7 +59,7 @@ impl RetainedImages {
         self.thread_pool.lock().unwrap().execute(move || {
             if let Ok(dynamic) = librarian_1.read().unwrap().image(&image_1) {
                 let new_retained = Arc::new(utils::dynamic_to_retained("", &dynamic));
-                retained_images_1.lock().unwrap().insert(key, new_retained.clone());
+                retained_images_1.write().unwrap().insert(key, new_retained.clone());
                 *retained_1.write().unwrap() = new_retained;
             }
         });

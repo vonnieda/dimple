@@ -1,6 +1,7 @@
 use eframe::egui::{Frame, ImageButton, Layout, Margin, Response, Ui};
 use eframe::emath::Align;
 
+use eframe::epaint::Color32;
 use egui_extras::RetainedImage;
 
 use crate::player::PlayerHandle;
@@ -134,9 +135,10 @@ impl PlayerBar {
             {
                 return Some(LibraryItem::Release(item.release));
             }
-        } else {
+        } 
+        else {
             let image =
-                utils::sample_image(theme.image_placeholder, thumbnail_size, thumbnail_size);
+                utils::sample_image(Color32::BLACK, thumbnail_size, thumbnail_size);
             ui.add(ImageButton::new(
                 image.texture_id(ui.ctx()),
                 [thumbnail_size as f32, thumbnail_size as f32],
@@ -169,7 +171,7 @@ impl PlayerBar {
                     action = Some(LibraryItem::Release(queue_item.release.clone()));
                 }
             }
-            if ui.link(Theme::small_n_bold(&track_title)).clicked() {
+            if ui.link(Theme::small_bold(&track_title)).clicked() {
                 if let Some(queue_item) = &queue_item {
                     action = Some(LibraryItem::Track(queue_item.track.clone()));
                 }
@@ -188,7 +190,7 @@ impl PlayerBar {
     pub fn icon_label(&self, icon: &RetainedImage, label: &str, ui: &mut Ui) -> Response {
         ui.horizontal(|ui| {
             ui.image(icon.texture_id(ui.ctx()), [24.0, 24.0]);
-            ui.link(Theme::bigger(label))
+            ui.link(label)
         })
         .inner
     }
