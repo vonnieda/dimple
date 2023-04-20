@@ -1,7 +1,7 @@
 use eframe::egui::{Frame, ImageButton, Layout, Margin, Response, Ui};
 use eframe::emath::Align;
 
-use eframe::epaint::Color32;
+
 use egui_extras::RetainedImage;
 
 use crate::player::PlayerHandle;
@@ -138,7 +138,7 @@ impl PlayerBar {
         } 
         else {
             let image =
-                utils::sample_image(Color32::BLACK, thumbnail_size, thumbnail_size);
+                utils::sample_image(theme.image_placeholder, thumbnail_size, thumbnail_size);
             ui.add(ImageButton::new(
                 image.texture_id(ui.ctx()),
                 [thumbnail_size as f32, thumbnail_size as f32],

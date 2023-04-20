@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use eframe::egui::{self, Ui, ScrollArea, Grid};
+use eframe::egui::{self, Ui, Grid};
 
 use crate::{music_library::{Artist, Release, Genre, Playlist, Track}, player::Player};
 

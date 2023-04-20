@@ -1,11 +1,11 @@
-use std::{sync::{Arc}, collections::VecDeque, cmp::Ordering};
+use std::{sync::{Arc}, collections::VecDeque};
 
-use eframe::{egui::{self, Context, LayerId, Frame, Margin, ScrollArea}, epaint::{Color32, Mesh, Shape, Rect, Stroke}};
+use eframe::{egui::{self, Context, LayerId, Frame, Margin, ScrollArea}, epaint::{Mesh, Shape}};
 
 
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
-use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library, Release, Genre, Artist}};
+use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library}};
 
 use super::{nav_bar::{NavBar, NavEvent}, player_bar::PlayerBar, card_grid::{CardGrid, Card, LibraryItem}, item_details::ItemDetails, theme::Theme};
 
@@ -91,7 +91,7 @@ impl MainScreen {
             });
         
         egui::TopBottomPanel::bottom("player")
-            .frame(Frame::none().inner_margin(Margin::same(8.0)))
+            .frame(Frame::none().inner_margin(Margin::same(8.0)).fill(theme.player_background))
             .show(ctx, |ui| {
                 if let Some(item) = self.player_bar.ui(ui) {
                     self.history.push_front(HistoryItem::ItemDetails(item));

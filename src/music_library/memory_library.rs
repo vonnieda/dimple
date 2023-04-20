@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::{RwLock, mpsc::Receiver}, io::Cursor};
+use std::{collections::HashMap, sync::{RwLock, mpsc::Receiver}};
 
 use image::DynamicImage;
 
@@ -13,7 +13,7 @@ use super::{Library, Release, Image};
 pub struct MemoryLibrary {
     releases: RwLock<HashMap<String, Release>>,
     images: RwLock<HashMap<String, DynamicImage>>,
-    streams: RwLock<HashMap<String, Vec<u8>>>,
+    _streams: RwLock<HashMap<String, Vec<u8>>>,
 }
 
 impl MemoryLibrary {

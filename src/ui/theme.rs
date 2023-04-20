@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use eframe::{epaint::{Color32, Rounding}, egui::{RichText, TextStyle, Context, FontData, Id}};
+use eframe::{epaint::{Color32}, egui::{RichText, TextStyle, Context, FontData, Id}};
 use egui_extras::RetainedImage;
 
 use eframe::egui::{FontDefinitions, Visuals, Style, Ui, Response, ImageButton};
@@ -19,10 +19,10 @@ pub struct Theme {
     pub background_bottom: Color32,
     // TODO see if any of these can be done with existing egui theme colors
     // instead.
-    // pub player_background: Color32,
-    // pub image_placeholder: Color32,
-    // pub text: Color32,
-    // pub detail_panel: Color32,
+    pub player_background: Color32,
+    pub image_placeholder: Color32,
+    pub text: Color32,
+    pub detail_panel: Color32,
 
     pub add_icon: RetainedImage,
     pub artist_icon: RetainedImage,
@@ -42,16 +42,13 @@ impl Theme {
     pub fn new(librarian: Arc<Librarian>) -> Self {
         Self {
             retained_images: Arc::new(RwLock::new(RetainedImages::new(librarian))),
-            // background_top: Color32::from_rgb(186, 136, 255),
-            // background_middle: Color32::from_gray(240),
-            // background_bottom: Color32::from_gray(240),
             background_top: Color32::from_rgb(0x54, 0x3b, 0x67),
             background_middle: Color32::from_rgb(0x21, 0x21, 0x21),
             background_bottom: Color32::from_rgb(0x21, 0x21, 0x21),
-            // player_background: Color32::from_gray(0x17),
-            // image_placeholder: Color32::from_gray(0x33),
-            // detail_panel: Color32::from_gray(0xcc),
-            // text: Color32::from_gray(206),
+            player_background: Color32::from_gray(0x17),
+            image_placeholder: Color32::from_gray(0x33),
+            detail_panel: Color32::from_gray(0xcc),
+            text: Color32::from_gray(220),
 
             add_icon: Self::svg_icon(include_bytes!("../icons/material/add_circle_FILL0_wght400_GRAD0_opsz48.svg")),
             artist_icon: Self::svg_icon(include_bytes!("../icons/material/group_FILL0_wght400_GRAD0_opsz48.svg")),
@@ -96,7 +93,7 @@ impl Theme {
         ctx.set_fonts(fonts);
     
         use FontFamily::{Monospace, Proportional};
-        let Bold: FontFamily = FontFamily::Name("Bold".into());
+        let bold: FontFamily = FontFamily::Name("Bold".into());
         let style = Style {
             // https://stackoverflow.com/questions/5410066/what-are-the-default-font-sizes-in-pixels-for-the-html-heading-tags-h1-h2/70720104#70720104
             text_styles: [
@@ -108,13 +105,13 @@ impl Theme {
                 (TextStyle::Body, FontId::new(16.0, Proportional)),
                 (TextStyle::Small, FontId::new(13.28, Proportional)),
 
-                (TextStyle::Name("Heading Bold".into()), FontId::new(32.0, Bold.clone())),
-                (TextStyle::Name("Heading 1 Bold".into()), FontId::new(32.0, Bold.clone())),
-                (TextStyle::Name("Heading 2 Bold".into()), FontId::new(24.0, Bold.clone())),
-                (TextStyle::Name("Heading 3 Bold".into()), FontId::new(18.72, Bold.clone())),
-                (TextStyle::Name("Button Bold".into()), FontId::new(16.0, Bold.clone())),
-                (TextStyle::Name("Body Bold".into()), FontId::new(16.0, Bold.clone())),
-                (TextStyle::Name("Small Bold".into()), FontId::new(12.0, Bold.clone())),
+                (TextStyle::Name("Heading Bold".into()), FontId::new(32.0, bold.clone())),
+                (TextStyle::Name("Heading 1 Bold".into()), FontId::new(32.0, bold.clone())),
+                (TextStyle::Name("Heading 2 Bold".into()), FontId::new(24.0, bold.clone())),
+                (TextStyle::Name("Heading 3 Bold".into()), FontId::new(18.72, bold.clone())),
+                (TextStyle::Name("Button Bold".into()), FontId::new(16.0, bold.clone())),
+                (TextStyle::Name("Body Bold".into()), FontId::new(16.0, bold.clone())),
+                (TextStyle::Name("Small Bold".into()), FontId::new(12.0, bold)),
 
                 (TextStyle::Monospace, FontId::new(16.0, Monospace)),
             ].into(),
@@ -124,7 +121,7 @@ impl Theme {
 
         let mut visuals = Visuals::dark();
         // Set default text color
-        visuals.widgets.noninteractive.fg_stroke = Stroke::new(0., Color32::from_gray(206));
+        visuals.widgets.noninteractive.fg_stroke = Stroke::new(0., self.text);
         // Set hyperlink color same as text color.
         visuals.hyperlink_color = visuals.widgets.noninteractive.fg_stroke.color;
         // TODO move this into the scrubber.
@@ -183,7 +180,7 @@ impl Theme {
                 .read()
                 .unwrap()
                 .texture_id(ui.ctx()),
-            None => utils::sample_image(Color32::BLACK, width, width).texture_id(ui.ctx()),
+            None => utils::sample_image(theme.image_placeholder, width, width).texture_id(ui.ctx()),
         };
         ui.add(ImageButton::new(texture_id, [width as f32, width as f32]))
     }

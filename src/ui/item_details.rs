@@ -1,6 +1,6 @@
 use std::{sync::{Arc, RwLock}};
 
-use eframe::{egui::{Ui, Grid, ScrollArea, Frame, Margin, Spinner, Slider}, epaint::{Color32, Shadow, Stroke}};
+use eframe::{egui::{Ui, Grid, ScrollArea, Frame}};
 
 use crate::{music_library::{Artist, Genre, Release, Track, Playlist}, player::{PlayerHandle, Player}, librarian::Librarian};
 
@@ -172,7 +172,7 @@ impl ItemDetails {
 
             ui.heading("Similar Artists");
             let artists = &self.librarian.similar_artists(artist);
-            let cards: Vec<Box<dyn Card>> = artists.into_iter()
+            let cards: Vec<Box<dyn Card>> = artists.iter()
                 .take(10)
                 .map(|artist| Box::new(artist.clone()) as Box<dyn Card>)
                 .collect();

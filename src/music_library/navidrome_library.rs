@@ -1,6 +1,6 @@
 // TODO Check out anyhow https://docs.rs/anyhow/latest/anyhow/
 
-use std::{io::{Cursor}, sync::{Arc, mpsc::Receiver}};
+use std::{sync::{Arc, mpsc::Receiver}};
 
 use data_encoding::{BASE64};
 use image::DynamicImage;

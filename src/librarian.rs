@@ -111,7 +111,7 @@ impl Librarian {
     }
 
     pub fn similar_artists(&self, artist: &Artist) -> Vec<Artist> {
-        let mut artists = self.genres_by_artist(&artist)
+        let mut artists = self.genres_by_artist(artist)
             .into_iter()
             .flat_map(|genre| self.artists_by_genre(&genre).into_iter())
             .collect::<HashSet<Artist>>()
@@ -122,7 +122,7 @@ impl Librarian {
     }
 
     pub fn similar_genres(&self, genre: &Genre) -> Vec<Genre> {
-        let mut genres = self.artists_by_genre(&genre)
+        let mut genres = self.artists_by_genre(genre)
             .into_iter()
             .flat_map(|artist| self.genres_by_artist(&artist).into_iter())
             .collect::<HashSet<Genre>>()

@@ -5,7 +5,7 @@ use crate::{music_library::{Release, Artist, Genre}};
 use super::{card_grid::{Card, LibraryItem}, theme::Theme};
 
 impl Card for Release {
-    fn ui(&self, image_width: f32, image_height: f32, ui: &mut Ui) -> Option<LibraryItem> {
+    fn ui(&self, image_width: f32, _image_height: f32, ui: &mut Ui) -> Option<LibraryItem> {
         let theme = Theme::get(ui.ctx());
         let mut action = None;
         ui.vertical(|ui| {
@@ -41,7 +41,7 @@ impl Card for Release {
 }
 
 impl Card for Artist {
-    fn ui(&self, image_width: f32, image_height: f32, ui: &mut Ui) -> Option<LibraryItem> {
+    fn ui(&self, image_width: f32, _image_height: f32, ui: &mut Ui) -> Option<LibraryItem> {
         let theme = Theme::get(ui.ctx());
         let mut action = None;
         ui.vertical(|ui| {
@@ -63,7 +63,7 @@ impl Card for Artist {
 }
 
 impl Card for Genre {
-    fn ui(&self, image_width: f32, image_height: f32, ui: &mut Ui) -> Option<LibraryItem> {
+    fn ui(&self, image_width: f32, _image_height: f32, ui: &mut Ui) -> Option<LibraryItem> {
         let theme = Theme::get(ui.ctx());
         let mut action = None;
         ui.vertical(|ui| {
@@ -86,22 +86,21 @@ impl Card for Genre {
     }
 }
 
-impl Into<Box<dyn Card>> for Release {
-    fn into(self) -> Box<dyn Card> {
-        Box::new(self)
+impl From<Release> for Box<dyn Card> {
+    fn from(value: Release) -> Self {
+        Box::new(value)
     }
 }
 
-impl Into<Box<dyn Card>> for Genre {
-    fn into(self) -> Box<dyn Card> {
-        Box::new(self)
+impl From<Artist> for Box<dyn Card> {
+    fn from(value: Artist) -> Self {
+        Box::new(value)
     }
 }
 
-impl Into<Box<dyn Card>> for Artist {
-    fn into(self) -> Box<dyn Card> {
-        Box::new(self)
+impl From<Genre> for Box<dyn Card> {
+    fn from(value: Genre) -> Self {
+        Box::new(value)
     }
 }
-
 
