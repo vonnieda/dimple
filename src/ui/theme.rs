@@ -100,14 +100,18 @@ impl Theme {
         let style = Style {
             // https://stackoverflow.com/questions/5410066/what-are-the-default-font-sizes-in-pixels-for-the-html-heading-tags-h1-h2/70720104#70720104
             text_styles: [
-                (TextStyle::Heading, FontId::new(32.0, Bold.clone())),
-                (TextStyle::Name("Heading 1".into()), FontId::new(32.0, Bold.clone())),
-                (TextStyle::Name("Heading 2".into()), FontId::new(24.0, Bold.clone())),
-                (TextStyle::Name("Heading 3".into()), FontId::new(18.72, Bold.clone())),
+                (TextStyle::Heading, FontId::new(32.0, Proportional)),
+                (TextStyle::Name("Heading 1".into()), FontId::new(32.0, Proportional)),
+                (TextStyle::Name("Heading 2".into()), FontId::new(24.0, Proportional)),
+                (TextStyle::Name("Heading 3".into()), FontId::new(18.72, Proportional)),
                 (TextStyle::Button, FontId::new(16.0, Proportional)),
                 (TextStyle::Body, FontId::new(16.0, Proportional)),
                 (TextStyle::Small, FontId::new(13.28, Proportional)),
 
+                (TextStyle::Name("Heading Bold".into()), FontId::new(32.0, Bold.clone())),
+                (TextStyle::Name("Heading 1 Bold".into()), FontId::new(32.0, Bold.clone())),
+                (TextStyle::Name("Heading 2 Bold".into()), FontId::new(24.0, Bold.clone())),
+                (TextStyle::Name("Heading 3 Bold".into()), FontId::new(18.72, Bold.clone())),
                 (TextStyle::Name("Button Bold".into()), FontId::new(16.0, Bold.clone())),
                 (TextStyle::Name("Body Bold".into()), FontId::new(16.0, Bold.clone())),
                 (TextStyle::Name("Small Bold".into()), FontId::new(12.0, Bold.clone())),

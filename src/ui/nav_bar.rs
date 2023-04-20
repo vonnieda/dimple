@@ -28,7 +28,8 @@ impl NavBar {
                 if TextEdit::singleline(&mut self.query)
                     .hint_text("What sounds good?")
                     .desired_width(f32::INFINITY)
-                    .font(TextStyle::Name("Heading".into()))
+                    .font(TextStyle::Heading)
+                    // .font(TextStyle::Name("Heading 2".into()))
                     .show(ui)
                     .response.changed() {
                     

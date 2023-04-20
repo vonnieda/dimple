@@ -54,16 +54,12 @@ impl MainScreen {
 
         self.gradient_background(ctx);
 
-        // egui::Window::new("Style").show(ctx, |ui| {
-        //     ctx.style_ui(ui);
+        // egui::Window::new("Settings").show(ctx, |ui| {
+        //     ctx.settings_ui(ui);
         // });
 
         // egui::Window::new("Inspection").show(ctx, |ui| {
         //     ctx.inspection_ui(ui);
-        // });
-
-        // egui::Window::new("Settings").show(ctx, |ui| {
-        //     ctx.settings_ui(ui);
         // });
 
         // egui::Window::new("Memory").show(ctx, |ui| {
@@ -77,7 +73,7 @@ impl MainScreen {
         // ctx.set_debug_on_hover(true);
 
         egui::TopBottomPanel::top("nav_bar")
-            .frame(Frame::none().inner_margin(Margin::same(8.0)))
+            .frame(Frame::none().inner_margin(Margin { top: 16.0, right: 8.0, bottom: 8.0, left: 8.0, }))
             .show_separator_line(false)
             .show(ctx, |ui| {
                 match self.nav_bar.ui(ui) {
