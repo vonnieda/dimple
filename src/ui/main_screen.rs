@@ -54,9 +54,9 @@ impl MainScreen {
 
         self.gradient_background(ctx);
 
-        egui::Window::new("Style").show(ctx, |ui| {
-            ctx.style_ui(ui);
-        });
+        // egui::Window::new("Style").show(ctx, |ui| {
+        //     ctx.style_ui(ui);
+        // });
 
         // egui::Window::new("Inspection").show(ctx, |ui| {
         //     ctx.inspection_ui(ui);

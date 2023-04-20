@@ -19,16 +19,16 @@ impl NavBar {
         let theme = Theme::get(ui.ctx());
         ui.vertical(|ui| {
             ui.horizontal(move |ui| {
-                if Theme::icon_button(&theme.home_icon, 42, 42, ui).clicked() {
+                if Theme::icon_button(&theme.home_icon, 36, 36, ui).clicked() {
                     return Some(NavEvent::Home);
                 }
-                if Theme::icon_button(&theme.back_icon, 42, 42, ui).clicked() {
+                if Theme::icon_button(&theme.back_icon, 36, 36, ui).clicked() {
                     return Some(NavEvent::Back);
                 }
                 if TextEdit::singleline(&mut self.query)
                     .hint_text("What sounds good?")
                     .desired_width(f32::INFINITY)
-                    .font(TextStyle::Heading)
+                    .font(TextStyle::Name("Heading".into()))
                     .show(ui)
                     .response.changed() {
                     

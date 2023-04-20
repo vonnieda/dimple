@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use eframe::{epaint::Color32, egui::{RichText, TextStyle, Context, FontData, Id}};
+use eframe::{epaint::{Color32, Rounding}, egui::{RichText, TextStyle, Context, FontData, Id}};
 use egui_extras::RetainedImage;
 
 use eframe::egui::{FontDefinitions, Visuals, Style, Ui, Response, ImageButton};
@@ -63,7 +63,7 @@ impl Theme {
             play_icon: Self::svg_icon(include_bytes!("../icons/material/play_circle_FILL0_wght400_GRAD0_opsz48.svg")),
             // play_icon: Theme::svg_icon(include_bytes!("../icons/material/play_circle_FILL1_wght400_GRAD0_opsz48.svg")),
 
-            pause_icon: Theme::svg_icon(include_bytes!("../icons/material/pause_FILL1_wght400_GRAD0_opsz48.svg")),
+            pause_icon: Theme::svg_icon(include_bytes!("../icons/material/pause_circle_FILL0_wght400_GRAD0_opsz48.svg")),
             next_track_icon: Theme::svg_icon(include_bytes!("../icons/material/skip_next_FILL1_wght400_GRAD0_opsz48.svg")),
             previous_track_icon: Theme::svg_icon(include_bytes!("../icons/material/skip_previous_FILL1_wght400_GRAD0_opsz48.svg")),
 
@@ -163,7 +163,7 @@ impl Theme {
     // TODO work on frame
     pub fn icon_button(retained: &RetainedImage, width: usize, height: usize, ui: &mut Ui) -> Response {
         ui.scope(|ui| {
-            ui.visuals_mut().widgets.inactive.weak_bg_fill = Color32::TRANSPARENT;
+            ui.visuals_mut().widgets.inactive.weak_bg_fill = Color32::TRANSPARENT;            
             ui.visuals_mut().widgets.hovered.weak_bg_fill = Color32::TRANSPARENT;
             ui.visuals_mut().widgets.active.weak_bg_fill = Color32::TRANSPARENT;
             let button = ImageButton::new(retained.texture_id(ui.ctx()), 

@@ -102,7 +102,7 @@ impl ItemDetails {
                 ui.horizontal(|ui| {
                     ui.vertical(|ui| {
                         theme.carousel(&release.art, 250, ui);
-                        // self.play_controls(&LibraryItem::Release(release.clone()), ui);
+                        self.play_controls(&LibraryItem::Release(release.clone()), ui);
                     });
                 });
                 ui.vertical(|ui| {
@@ -292,7 +292,11 @@ impl ItemDetails {
                 LibraryItem::Release(release) => {
                     self.player.write().unwrap().queue_release(release);
                 },
-                LibraryItem::Artist(_) => todo!(),
+                LibraryItem::Artist(artist) => {
+                    for release in self.librarian.releases_by_artist(artist) {
+                        self.player.write().unwrap().queue_release(&release);
+                    }
+                },
                 LibraryItem::Genre(_) => todo!(),
                 LibraryItem::Playlist(_) => todo!(),
                 LibraryItem::Track(_track) => todo!(),
