@@ -10,7 +10,7 @@ default-run = "dimple"
 
 [dependencies]
 eframe = {version = "0.21.3", features = ["default_fonts"] }
-egui_extras = { version = "0.21.0", features = ["image", "svg"] }
+egui_extras = { version = "0.21.0", features = ["image"] }
 env_logger = "0.10.0"
 fuzzy-matcher = "*"
 image = { version = "0.24.5", features = ["jpeg", "png"] }
@@ -29,5 +29,6 @@ data-encoding = "2.3.3"
 threadpool = "1.8.1"
 playback-rs = "0.4.2"
 resvg = "0.31.0"
+prominence = "0.1.0"
 
 

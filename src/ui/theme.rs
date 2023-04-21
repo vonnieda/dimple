@@ -6,7 +6,7 @@ use egui_extras::{RetainedImage};
 use eframe::egui::{FontDefinitions, Visuals, Style, Ui, Response, ImageButton};
 
 use eframe::epaint::{FontFamily, FontId, Stroke};
-use resvg::{usvg::{TreeParsing}, FitTo};
+use resvg::{usvg::{TreeParsing, NodeKind, Group, Node, NodeExt, Text}, FitTo};
 
 use crate::{librarian::Librarian, music_library::{Image}};
 
@@ -51,20 +51,20 @@ impl Theme {
             detail_panel: Color32::from_gray(0xcc),
             text: Color32::from_gray(220),
 
-            artist_icon: Self::svg_icon(include_bytes!("../icons/feather/users.svg")),
-            genre_icon: Self::svg_icon(include_bytes!("../icons/feather/compass.svg")),
-            release_icon: Self::svg_icon(include_bytes!("../icons/feather/disc.svg")),
-            track_icon: Self::svg_icon(include_bytes!("../icons/feather/music.svg")),
-            favorite_icon: Self::svg_icon(include_bytes!("../icons/feather/heart.svg")),
+            artist_icon: SvgIcon::new(include_bytes!("../icons/feather/users.svg")),
+            genre_icon: SvgIcon::new(include_bytes!("../icons/feather/compass.svg")),
+            release_icon: SvgIcon::new(include_bytes!("../icons/feather/disc.svg")),
+            track_icon: SvgIcon::new(include_bytes!("../icons/feather/music.svg")),
+            favorite_icon: SvgIcon::new(include_bytes!("../icons/feather/heart.svg")),
 
-            add_icon: Self::svg_icon(include_bytes!("../icons/feather/plus.svg")),
-            play_icon: Self::svg_icon(include_bytes!("../icons/feather/play-circle.svg")),
-            pause_icon: Theme::svg_icon(include_bytes!("../icons/feather/pause-circle.svg")),
-            next_track_icon: Theme::svg_icon(include_bytes!("../icons/feather/skip-back.svg")),
-            previous_track_icon: Theme::svg_icon(include_bytes!("../icons/feather/skip-forward.svg")),
+            add_icon: SvgIcon::new(include_bytes!("../icons/feather/plus.svg")),
+            play_icon: SvgIcon::new(include_bytes!("../icons/feather/play-circle.svg")),
+            pause_icon: SvgIcon::new(include_bytes!("../icons/feather/pause-circle.svg")),
+            next_track_icon: SvgIcon::new(include_bytes!("../icons/feather/skip-forward.svg")),
+            previous_track_icon: SvgIcon::new(include_bytes!("../icons/feather/skip-back.svg")),
 
-            home_icon: Theme::svg_icon(include_bytes!("../icons/feather/home.svg")),
-            back_icon: Theme::svg_icon(include_bytes!("../icons/feather/arrow-left.svg")),
+            home_icon: SvgIcon::new(include_bytes!("../icons/feather/home.svg")),
+            back_icon: SvgIcon::new(include_bytes!("../icons/feather/arrow-left.svg")),
         }
     }
 
@@ -128,11 +128,6 @@ impl Theme {
         ctx.set_visuals(visuals);
     }
 
-    pub fn svg_icon(bytes: &[u8]) -> SvgIcon {
-        // RetainedImage::from_svg_bytes("", bytes).unwrap()
-        SvgIcon::new(bytes)
-    }
-
     pub fn heading3(str: &str) -> RichText {
         RichText::new(str).text_style(TextStyle::Name("Heading 3".into()))
     }
@@ -161,7 +156,7 @@ impl Theme {
         RichText::new(str).text_style(TextStyle::Name("Small Bold".into()))
     }
 
-    pub fn icon_button(retained: &RetainedImage, width: usize, height: usize, ui: &mut Ui) -> Response {
+    pub fn image_button(retained: &RetainedImage, width: usize, height: usize, ui: &mut Ui) -> Response {
         ui.scope(|ui| {
             ui.visuals_mut().widgets.inactive.weak_bg_fill = Color32::TRANSPARENT;            
             ui.visuals_mut().widgets.hovered.weak_bg_fill = Color32::TRANSPARENT;
@@ -175,7 +170,7 @@ impl Theme {
     pub fn svg_button(svg_icon: &SvgIcon, width: usize, height: usize, ui: &mut Ui) -> Response {
         let fit_to = FitTo::Size(width as u32, height as u32);
         let retained = svg_icon.retained(fit_to);
-        Self::icon_button(&retained, width, height, ui)
+        Self::image_button(&retained, width, height, ui)
     }
 
     pub fn svg_image(svg_icon: &SvgIcon, width: usize, height: usize, ui: &mut Ui) -> Response {
@@ -197,6 +192,8 @@ impl Theme {
     }
 }
 
+/// Stores the bytes of an SVG and renders RetainedImages from the SVG
+/// on demand. Caches rendered images internally.
 pub struct SvgIcon {
     svg_bytes: Vec<u8>,
     renders: RwLock<HashMap<String, Arc<RetainedImage>>>,
@@ -223,9 +220,23 @@ impl SvgIcon {
             return retained.clone()
         }
 
-        // Render
+        // If not cached, render
+        let retained = self.render(fit_to);
+
+        // Store it in the cache and return
+        let result = Arc::new(retained);
+        self.renders.write().unwrap().insert(key, result.clone());
+        result
+    }
+
+    fn render(&self, fit_to: FitTo) -> RetainedImage {
         let opt = resvg::usvg::Options::default();
-        let rtree = resvg::usvg::Tree::from_data(&self.svg_bytes, &opt).unwrap();
+        let mut wrapped: Vec<u8> = Vec::new();
+        wrapped.extend(r#"<svg xmlns="http://www.w3.org/2000/svg" color="white">"#.as_bytes());
+        wrapped.extend(&self.svg_bytes);
+        wrapped.extend(r#"</svg>"#.as_bytes());
+        let rtree = resvg::usvg::Tree::from_data(&wrapped, &opt).unwrap();
+
         let pixmap_size = rtree.size.to_screen_size();
         let [w, h] = match fit_to {
             FitTo::Original => [pixmap_size.width(), pixmap_size.height()],
@@ -250,12 +261,6 @@ impl SvgIcon {
             pixmap.as_mut())
             .unwrap();
         let image = eframe::egui::ColorImage::from_rgba_unmultiplied([w as _, h as _], pixmap.data());
-        let retained = RetainedImage::from_color_image("", image);
-
-        // Cache
-        let result = Arc::new(retained);
-        self.renders.write().unwrap().insert(key, result.clone());
-
-        result
+        RetainedImage::from_color_image("", image)
     }
 }

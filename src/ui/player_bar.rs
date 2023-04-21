@@ -1,13 +1,7 @@
 use eframe::egui::{Frame, ImageButton, Layout, Margin, Response, Ui};
 use eframe::emath::Align;
-
-
-use egui_extras::RetainedImage;
-
 use crate::player::PlayerHandle;
-
 use super::card_grid::LibraryItem;
-
 use super::scrubber::{PlotScrubber, SliderScrubber};
 use super::theme::{Theme, SvgIcon};
 use super::utils;
