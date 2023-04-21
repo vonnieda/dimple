@@ -9,7 +9,7 @@ use crate::player::PlayerHandle;
 use super::card_grid::LibraryItem;
 
 use super::scrubber::{PlotScrubber, SliderScrubber};
-use super::theme::Theme;
+use super::theme::{Theme, SvgIcon};
 use super::utils;
 
 #[derive()]
@@ -187,9 +187,9 @@ impl PlayerBar {
         action
     }
 
-    pub fn icon_label(&self, icon: &RetainedImage, label: &str, ui: &mut Ui) -> Response {
+    pub fn icon_label(&self, icon: &SvgIcon, label: &str, ui: &mut Ui) -> Response {
         ui.horizontal(|ui| {
-            ui.image(icon.texture_id(ui.ctx()), [24.0, 24.0]);
+            Theme::svg_image(icon, 24, 24, ui);
             ui.link(label)
         })
         .inner
@@ -200,18 +200,18 @@ impl PlayerBar {
         ui.horizontal_top(|ui| {
             // The button order is inverted because the parent UI is right to
             // left so that the player controls are right justified. Don't @ me.
-            if Theme::icon_button(&theme.next_track_icon, 48, 48, ui).clicked() {
+            if Theme::svg_button(&theme.next_track_icon, 48, 48, ui).clicked() {
                 self.player.write().unwrap().next();
             }
             if self.player.read().unwrap().is_playing() {
-                if Theme::icon_button(&theme.pause_icon, 48, 48, ui).clicked() {
+                if Theme::svg_button(&theme.pause_icon, 48, 48, ui).clicked() {
                     self.player.write().unwrap().pause();
                 }
             }
-            else if Theme::icon_button(&theme.play_icon, 48, 48, ui).clicked() {
+            else if Theme::svg_button(&theme.play_icon, 48, 48, ui).clicked() {
                 self.player.write().unwrap().play();
             }
-            if Theme::icon_button(&theme.previous_track_icon, 48, 48, ui).clicked() {
+            if Theme::svg_button(&theme.previous_track_icon, 48, 48, ui).clicked() {
                 self.player.write().unwrap().previous();
             }
         });

@@ -150,7 +150,6 @@ impl ItemDetails {
                 });
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
-                        Theme::icon_button(&theme.artist_icon, 48, 48, ui);
                         ui.label(Theme::heading(&artist.name));
                     });
                     let genres = self.librarian.genres_by_artist(artist);
@@ -287,7 +286,7 @@ impl ItemDetails {
 
     pub fn play_controls(&self, library_item: &LibraryItem, ui: &mut Ui) {
         let theme = Theme::get(ui.ctx());
-        if Theme::icon_button(&theme.add_icon, 48, 48, ui).clicked() {
+        if Theme::svg_button(&theme.add_icon, 48, 48, ui).clicked() {
             match library_item {
                 LibraryItem::Release(release) => {
                     self.player.write().unwrap().queue_release(release);

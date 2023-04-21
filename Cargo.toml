@@ -28,5 +28,6 @@ sha2 = "0.10.6"
 data-encoding = "2.3.3"
 threadpool = "1.8.1"
 playback-rs = "0.4.2"
+resvg = "0.31.0"
 
 

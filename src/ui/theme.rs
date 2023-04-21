@@ -1,11 +1,12 @@
-use std::sync::{Arc, RwLock};
+use std::{sync::{Arc, RwLock}, collections::HashMap};
 
 use eframe::{epaint::{Color32}, egui::{RichText, TextStyle, Context, FontData, Id}};
-use egui_extras::RetainedImage;
+use egui_extras::{RetainedImage};
 
 use eframe::egui::{FontDefinitions, Visuals, Style, Ui, Response, ImageButton};
 
 use eframe::epaint::{FontFamily, FontId, Stroke};
+use resvg::{usvg::{TreeParsing}, FitTo};
 
 use crate::{librarian::Librarian, music_library::{Image}};
 
@@ -24,18 +25,18 @@ pub struct Theme {
     pub text: Color32,
     pub detail_panel: Color32,
 
-    pub add_icon: RetainedImage,
-    pub artist_icon: RetainedImage,
-    pub back_icon: RetainedImage,
-    pub favorite_icon: RetainedImage,
-    pub genre_icon: RetainedImage,
-    pub home_icon: RetainedImage,
-    pub next_track_icon: RetainedImage,
-    pub pause_icon: RetainedImage,
-    pub play_icon: RetainedImage,
-    pub previous_track_icon: RetainedImage,
-    pub release_icon: RetainedImage,
-    pub track_icon: RetainedImage,
+    pub add_icon: SvgIcon,
+    pub artist_icon: SvgIcon,
+    pub back_icon: SvgIcon,
+    pub favorite_icon: SvgIcon,
+    pub genre_icon: SvgIcon,
+    pub home_icon: SvgIcon,
+    pub next_track_icon: SvgIcon,
+    pub pause_icon: SvgIcon,
+    pub play_icon: SvgIcon,
+    pub previous_track_icon: SvgIcon,
+    pub release_icon: SvgIcon,
+    pub track_icon: SvgIcon,
 }
 
 impl Theme {
@@ -50,22 +51,20 @@ impl Theme {
             detail_panel: Color32::from_gray(0xcc),
             text: Color32::from_gray(220),
 
-            add_icon: Self::svg_icon(include_bytes!("../icons/material/add_circle_FILL0_wght400_GRAD0_opsz48.svg")),
-            artist_icon: Self::svg_icon(include_bytes!("../icons/material/group_FILL0_wght400_GRAD0_opsz48.svg")),
-            genre_icon: Self::svg_icon(include_bytes!("../icons/material/theater_comedy_FILL0_wght400_GRAD0_opsz48.svg")),
-            release_icon: Self::svg_icon(include_bytes!("../icons/material/album_FILL0_wght400_GRAD0_opsz48.svg")),
-            track_icon: Self::svg_icon(include_bytes!("../icons/material/music_note_FILL0_wght400_GRAD0_opsz48.svg")),
-            favorite_icon: Self::svg_icon(include_bytes!("../icons/material/favorite_FILL0_wght400_GRAD0_opsz48.svg")),
+            artist_icon: Self::svg_icon(include_bytes!("../icons/feather/users.svg")),
+            genre_icon: Self::svg_icon(include_bytes!("../icons/feather/compass.svg")),
+            release_icon: Self::svg_icon(include_bytes!("../icons/feather/disc.svg")),
+            track_icon: Self::svg_icon(include_bytes!("../icons/feather/music.svg")),
+            favorite_icon: Self::svg_icon(include_bytes!("../icons/feather/heart.svg")),
 
-            play_icon: Self::svg_icon(include_bytes!("../icons/material/play_circle_FILL0_wght400_GRAD0_opsz48.svg")),
-            // play_icon: Theme::svg_icon(include_bytes!("../icons/material/play_circle_FILL1_wght400_GRAD0_opsz48.svg")),
+            add_icon: Self::svg_icon(include_bytes!("../icons/feather/plus.svg")),
+            play_icon: Self::svg_icon(include_bytes!("../icons/feather/play-circle.svg")),
+            pause_icon: Theme::svg_icon(include_bytes!("../icons/feather/pause-circle.svg")),
+            next_track_icon: Theme::svg_icon(include_bytes!("../icons/feather/skip-back.svg")),
+            previous_track_icon: Theme::svg_icon(include_bytes!("../icons/feather/skip-forward.svg")),
 
-            pause_icon: Theme::svg_icon(include_bytes!("../icons/material/pause_circle_FILL0_wght400_GRAD0_opsz48.svg")),
-            next_track_icon: Theme::svg_icon(include_bytes!("../icons/material/skip_next_FILL1_wght400_GRAD0_opsz48.svg")),
-            previous_track_icon: Theme::svg_icon(include_bytes!("../icons/material/skip_previous_FILL1_wght400_GRAD0_opsz48.svg")),
-
-            home_icon: Theme::svg_icon(include_bytes!("../icons/material/home_FILL0_wght400_GRAD0_opsz48.svg")),
-            back_icon: Theme::svg_icon(include_bytes!("../icons/material/arrow_back_FILL0_wght400_GRAD0_opsz48.svg")),
+            home_icon: Theme::svg_icon(include_bytes!("../icons/feather/home.svg")),
+            back_icon: Theme::svg_icon(include_bytes!("../icons/feather/arrow-left.svg")),
         }
     }
 
@@ -129,8 +128,9 @@ impl Theme {
         ctx.set_visuals(visuals);
     }
 
-    pub fn svg_icon(bytes: &[u8]) -> RetainedImage {
-        RetainedImage::from_svg_bytes("", bytes).unwrap()
+    pub fn svg_icon(bytes: &[u8]) -> SvgIcon {
+        // RetainedImage::from_svg_bytes("", bytes).unwrap()
+        SvgIcon::new(bytes)
     }
 
     pub fn heading3(str: &str) -> RichText {
@@ -161,7 +161,6 @@ impl Theme {
         RichText::new(str).text_style(TextStyle::Name("Small Bold".into()))
     }
 
-    // TODO work on frame
     pub fn icon_button(retained: &RetainedImage, width: usize, height: usize, ui: &mut Ui) -> Response {
         ui.scope(|ui| {
             ui.visuals_mut().widgets.inactive.weak_bg_fill = Color32::TRANSPARENT;            
@@ -171,6 +170,18 @@ impl Theme {
                 [width as f32, height as f32]);
             ui.add(button)
         }).inner
+    }
+
+    pub fn svg_button(svg_icon: &SvgIcon, width: usize, height: usize, ui: &mut Ui) -> Response {
+        let fit_to = FitTo::Size(width as u32, height as u32);
+        let retained = svg_icon.retained(fit_to);
+        Self::icon_button(&retained, width, height, ui)
+    }
+
+    pub fn svg_image(svg_icon: &SvgIcon, width: usize, height: usize, ui: &mut Ui) -> Response {
+        let fit_to = FitTo::Size(width as u32, height as u32);
+        let retained = svg_icon.retained(fit_to);
+        ui.image(retained.texture_id(ui.ctx()), [width as f32, height as f32])
     }
 
     pub fn carousel(&self, images: &[Image], width: usize, ui: &mut Ui) -> Response {
@@ -184,6 +195,67 @@ impl Theme {
         };
         ui.add(ImageButton::new(texture_id, [width as f32, width as f32]))
     }
+}
 
-    // TODO links functions like artists, genres used in itemdetails
+pub struct SvgIcon {
+    svg_bytes: Vec<u8>,
+    renders: RwLock<HashMap<String, Arc<RetainedImage>>>,
+}
+
+impl SvgIcon {
+    pub fn new(svg_bytes: &[u8]) -> Self {
+        Self {
+            svg_bytes: svg_bytes.into(),
+            renders: RwLock::new(HashMap::new()),
+        }
+    }
+
+    pub fn retained(&self, fit_to: FitTo) -> Arc<RetainedImage> {
+        // Check the cache for an existing render at this size.
+        let key = match fit_to {
+            FitTo::Original => "original".to_string(),
+            FitTo::Width(w) => format!("width({})", w),
+            FitTo::Height(h) => format!("height({})", h),
+            FitTo::Size(w, h) => format!("size({}, {})", w, h),
+            FitTo::Zoom(f) => format!("zoom{}", f),
+        };
+        if let Some(retained) = self.renders.read().unwrap().get(&key) {
+            return retained.clone()
+        }
+
+        // Render
+        let opt = resvg::usvg::Options::default();
+        let rtree = resvg::usvg::Tree::from_data(&self.svg_bytes, &opt).unwrap();
+        let pixmap_size = rtree.size.to_screen_size();
+        let [w, h] = match fit_to {
+            FitTo::Original => [pixmap_size.width(), pixmap_size.height()],
+            FitTo::Size(w, h) => [w, h],
+            FitTo::Height(h) => [
+                (pixmap_size.width() as f32 * (h as f32 / pixmap_size.height() as f32)) as u32,
+                h,
+            ],
+            FitTo::Width(w) => [
+                w,
+                (pixmap_size.height() as f32 * (w as f32 / pixmap_size.width() as f32)) as u32,
+            ],
+            FitTo::Zoom(z) => [
+                (pixmap_size.width() as f32 * z) as u32,
+                (pixmap_size.height() as f32 * z) as u32,
+            ],
+        };
+        let mut pixmap = resvg::tiny_skia::Pixmap::new(w, h).unwrap();
+        resvg::render(&rtree, 
+            fit_to, 
+            Default::default(), 
+            pixmap.as_mut())
+            .unwrap();
+        let image = eframe::egui::ColorImage::from_rgba_unmultiplied([w as _, h as _], pixmap.data());
+        let retained = RetainedImage::from_color_image("", image);
+
+        // Cache
+        let result = Arc::new(retained);
+        self.renders.write().unwrap().insert(key, result.clone());
+
+        result
+    }
 }
