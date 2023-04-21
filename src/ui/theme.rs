@@ -6,7 +6,7 @@ use egui_extras::{RetainedImage};
 use eframe::egui::{FontDefinitions, Visuals, Style, Ui, Response, ImageButton};
 
 use eframe::epaint::{FontFamily, FontId, Stroke};
-use resvg::{usvg::{TreeParsing, NodeKind, Group, Node, NodeExt, Text}, FitTo};
+use resvg::{usvg::{TreeParsing}, FitTo};
 
 use crate::{librarian::Librarian, music_library::{Image}};
 
@@ -231,11 +231,7 @@ impl SvgIcon {
 
     fn render(&self, fit_to: FitTo) -> RetainedImage {
         let opt = resvg::usvg::Options::default();
-        let mut wrapped: Vec<u8> = Vec::new();
-        wrapped.extend(r#"<svg xmlns="http://www.w3.org/2000/svg" color="white">"#.as_bytes());
-        wrapped.extend(&self.svg_bytes);
-        wrapped.extend(r#"</svg>"#.as_bytes());
-        let rtree = resvg::usvg::Tree::from_data(&wrapped, &opt).unwrap();
+        let rtree = resvg::usvg::Tree::from_data(&self.svg_bytes, &opt).unwrap();
 
         let pixmap_size = rtree.size.to_screen_size();
         let [w, h] = match fit_to {
@@ -255,6 +251,19 @@ impl SvgIcon {
             ],
         };
         let mut pixmap = resvg::tiny_skia::Pixmap::new(w, h).unwrap();
+
+        let mut wrapped: Vec<u8> = Vec::new();
+        // width="24" height="24" viewBox="0 0 24 24"
+        let wrapper = format!(r#"<svg xmlns="http://www.w3.org/2000/svg" width="{}" height="{}" viewBox="0 0 {} {}" color="white">"#, 
+            pixmap_size.width(), pixmap_size.height(), 
+            pixmap_size.width(), pixmap_size.height());
+        println!("{}", wrapper);
+        wrapped.extend(wrapper.as_bytes());
+        wrapped.extend(&self.svg_bytes);
+        wrapped.extend(r#"</svg>"#.as_bytes());
+        let rtree = resvg::usvg::Tree::from_data(&wrapped, &opt).unwrap();
+
+
         resvg::render(&rtree, 
             fit_to, 
             Default::default(), 
