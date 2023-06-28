@@ -1,14 +1,15 @@
 use std::{sync::{Arc, RwLock}, collections::HashMap};
 
-use eframe::{epaint::{Color32}, egui::{RichText, TextStyle, Context, FontData, Id}};
+use eframe::{epaint::{Color32, ColorImage}, egui::{RichText, TextStyle, Context, FontData, Id}};
 use egui_extras::{RetainedImage};
 
 use eframe::egui::{FontDefinitions, Visuals, Style, Ui, Response, ImageButton};
 
 use eframe::epaint::{FontFamily, FontId, Stroke};
+use image::DynamicImage;
 use resvg::{usvg::{TreeParsing}, FitTo};
 
-use crate::{librarian::Librarian, music_library::{Image}};
+use crate::{librarian::Librarian, music_library::{Image, Library, HasArtwork, Genre}};
 
 use super::{retained_images::RetainedImages, utils};
 
@@ -76,19 +77,33 @@ impl Theme {
 
     pub fn set(&self, ctx: &Context) {
         let mut fonts = FontDefinitions::default();
-        // fonts.font_data.insert("Commissioner-Regular".to_owned(),
-        //    FontData::from_static(include_bytes!("../fonts/Commissioner/static/Commissioner/Commissioner-Regular.ttf")));
-        // fonts.font_data.insert("Commissioner-Bold".to_owned(),
-        //    FontData::from_static(include_bytes!("../fonts/Commissioner/static/Commissioner/Commissioner-Bold.ttf")));
+
+        egui_phosphor::add_to_fonts(&mut fonts);
+
+        fonts.font_data.insert("Commissioner-Regular".to_owned(),
+           FontData::from_static(include_bytes!("../fonts/Commissioner/static/Commissioner/Commissioner-Regular.ttf")));
+        fonts.font_data.insert("Commissioner-Bold".to_owned(),
+           FontData::from_static(include_bytes!("../fonts/Commissioner/static/Commissioner/Commissioner-Bold.ttf")));
+
         fonts.font_data.insert("Roboto-Regular".to_owned(),
            FontData::from_static(include_bytes!("../fonts/Roboto/Roboto-Regular.ttf")));
         fonts.font_data.insert("Roboto-Bold".to_owned(),
            FontData::from_static(include_bytes!("../fonts/Roboto/Roboto-Bold.ttf")));
            
+        fonts.font_data.insert("Manrope-Regular".to_owned(),
+           FontData::from_static(include_bytes!("../fonts/Manrope/fonts/ttf/Manrope-Regular.ttf")));
+        fonts.font_data.insert("Manrope-Bold".to_owned(),
+           FontData::from_static(include_bytes!("../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf")));
+           
         // fonts.families.get_mut(&FontFamily::Proportional).unwrap().insert(0, "Commissioner-Regular".to_owned());
         // fonts.families.insert(FontFamily::Name("Bold".into()), vec!["Commissioner-Bold".into()]);
-        fonts.families.get_mut(&FontFamily::Proportional).unwrap().insert(0, "Roboto-Regular".to_owned());
-        fonts.families.insert(FontFamily::Name("Bold".into()), vec!["Roboto-Bold".into()]);
+
+        // fonts.families.get_mut(&FontFamily::Proportional).unwrap().insert(0, "Roboto-Regular".to_owned());
+        // fonts.families.insert(FontFamily::Name("Bold".into()), vec!["Roboto-Bold".into()]);
+
+        fonts.families.get_mut(&FontFamily::Proportional).unwrap().insert(0, "Manrope-Regular".to_owned());
+        fonts.families.insert(FontFamily::Name("Bold".into()), vec!["Manrope-Bold".into()]);
+
         ctx.set_fonts(fonts);
     
         use FontFamily::{Monospace, Proportional};
@@ -190,6 +205,32 @@ impl Theme {
         };
         ui.add(ImageButton::new(texture_id, [width as f32, width as f32]))
     }
+
+    // pub fn get_art(genre: &Genre, librarian: &Librarian) -> Vec<Image> {
+    //     if !genre.art().is_empty() {
+    //         return genre.art();
+    //     }
+
+    //     let image = DynamicImage::new_rgba8(500, 500);
+
+    //     // librarian.releases_by_genre(genre)
+    //     //     .iter()
+    //     //     .
+    // }
+
+    // pub fn get_art(librarian: &Librarian, ideas: Vec<Image>) -> Vec<Image> {
+        // if ideas.is_empty() {
+        //     // TODO generate something abstract
+        //     return vec![];
+        // }
+
+        // create a new image of the same size
+        // let image = ColorImage::new([500, 500], Color32::BLACK);
+        // let dynamic = DynamicImage::
+
+        // take four random images and make a collage
+        // let output = ColorImage::new(size, color)
+    // }
 }
 
 /// Stores the bytes of an SVG and renders RetainedImages from the SVG
@@ -262,7 +303,6 @@ impl SvgIcon {
         wrapped.extend(&self.svg_bytes);
         wrapped.extend(r#"</svg>"#.as_bytes());
         let rtree = resvg::usvg::Tree::from_data(&wrapped, &opt).unwrap();
-
 
         resvg::render(&rtree, 
             fit_to, 

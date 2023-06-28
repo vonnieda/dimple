@@ -1,4 +1,4 @@
-use eframe::egui::{Frame, ImageButton, Layout, Margin, Response, Ui};
+use eframe::egui::{Frame, ImageButton, Layout, Margin, Response, Ui, RichText};
 use eframe::emath::Align;
 use crate::player::PlayerHandle;
 use super::card_grid::LibraryItem;
@@ -87,7 +87,7 @@ impl PlayerBar {
         let mut action = None;
         ui.vertical(|ui| {
             if self
-                .icon_label(&theme.track_icon, &track_title, ui)
+                .icon_label(egui_phosphor::MUSIC_NOTES, &track_title, ui)
                 .clicked()
             {
                 if let Some(queue_item) = &queue_item {
@@ -96,7 +96,7 @@ impl PlayerBar {
             }
 
             if self
-                .icon_label(&theme.release_icon, &release_title, ui)
+                .icon_label(egui_phosphor::VINYL_RECORD, &release_title, ui)
                 .clicked()
             {
                 if let Some(queue_item) = &queue_item {
@@ -105,7 +105,7 @@ impl PlayerBar {
             }
 
             if self
-                .icon_label(&theme.artist_icon, &artist_name, ui)
+                .icon_label(egui_phosphor::USERS_THREE, &artist_name, ui)
                 .clicked()
             {
                 if let Some(queue_item) = &queue_item {
@@ -181,9 +181,9 @@ impl PlayerBar {
         action
     }
 
-    pub fn icon_label(&self, icon: &SvgIcon, label: &str, ui: &mut Ui) -> Response {
-        ui.horizontal(|ui| {
-            Theme::svg_image(icon, 24, 24, ui);
+    pub fn icon_label(&self, icon: &str, label: &str, ui: &mut Ui) -> Response {
+        ui.horizontal_top(|ui| {
+            ui.label(RichText::new(icon).size(20.0));
             ui.link(label)
         })
         .inner

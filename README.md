@@ -1,6 +1,6 @@
 # Dimple
 
-A desktop music player that gives you control of your music.
+A cross-platform, desktop music player that celebrates music, and privacy.
 
 - Private. Gives you control of your music and listening data. All
   processing and recommendations are computed locally. Your data stays put.
@@ -20,7 +20,6 @@ A desktop music player that gives you control of your music.
 
 I wrote this because I love music, and I love listening to music. I wrote this
 to empower music listeners. Explore, discover, and enjoy music on your terms.
-Not theirs.
 
 # Features
 

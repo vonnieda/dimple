@@ -24,6 +24,9 @@ pub struct MainScreen {
 pub enum HistoryItem {
     ItemDetails(LibraryItem),
     Search(String),
+    Artists,
+    Genres,
+    Releases,
     Home,
 }
 
@@ -106,7 +109,7 @@ impl MainScreen {
             .show(ctx, |ui| {
                 ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
                     match self.history.front() {
-                        Some(HistoryItem::Home) | None => {
+                        Some(HistoryItem::Home) => {
                             // TODO Clear search bar query string
                             let cards = self.home();
                             let action = self.card_grid.ui("home", &cards, 200.0, 200.0, ui);
@@ -134,6 +137,20 @@ impl MainScreen {
                             if let Some(library_item) = self.item_details.ui(item.clone(), ui) {
                                 self.history.push_front(HistoryItem::ItemDetails(library_item));
                             }
+                        },
+                        Some(HistoryItem::Artists) | None => {
+                            let artists = self.librarian.artists();
+                            let cards: Vec<Box<dyn Card>> = artists.into_iter()
+                                .map(|artist| Box::new(artist) as Box<dyn Card>)
+                                .collect();
+                            let action = self.card_grid.ui("artists", &cards, 200.0, 200.0, ui);
+                            if let Some(library_item) = action {
+                                self.history.push_front(HistoryItem::ItemDetails(library_item));
+                            }
+                        },
+                        Some(HistoryItem::Releases) => {
+                        },
+                        Some(HistoryItem::Genres) => {
                         },
                     }
                 });
