@@ -1,15 +1,14 @@
 use std::{sync::{Arc, RwLock}, collections::HashMap};
 
-use eframe::{epaint::{Color32, ColorImage}, egui::{RichText, TextStyle, Context, FontData, Id}};
+use eframe::{epaint::{Color32}, egui::{RichText, TextStyle, Context, FontData, Id, FontDefinitions}};
 use egui_extras::{RetainedImage};
 
-use eframe::egui::{FontDefinitions, Visuals, Style, Ui, Response, ImageButton};
+use eframe::egui::{Visuals, Style, Ui, Response, ImageButton};
 
 use eframe::epaint::{FontFamily, FontId, Stroke};
-use image::DynamicImage;
 use resvg::{usvg::{TreeParsing}, FitTo};
 
-use crate::{librarian::Librarian, music_library::{Image, Library, HasArtwork, Genre}};
+use crate::{librarian::Librarian, music_library::{Image}};
 
 use super::{retained_images::RetainedImages, utils};
 

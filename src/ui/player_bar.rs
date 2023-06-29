@@ -3,7 +3,7 @@ use eframe::emath::Align;
 use crate::player::PlayerHandle;
 use super::card_grid::LibraryItem;
 use super::scrubber::{PlotScrubber, SliderScrubber};
-use super::theme::{Theme, SvgIcon};
+use super::theme::{Theme};
 use super::utils;
 
 #[derive()]

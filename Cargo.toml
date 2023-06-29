@@ -9,8 +9,8 @@ publish = false
 default-run = "dimple"
 
 [dependencies]
-eframe = {version = "0.21.3", features = ["default_fonts"] }
-egui_extras = { version = "0.21.0", features = ["image"] }
+eframe = {version = "0.22", features = ["default_fonts"] }
+egui_extras = { version = "0.22", features = ["image"] }
 env_logger = "0.10.0"
 fuzzy-matcher = "*"
 image = { version = "0.24.5", features = ["jpeg", "png"] }
