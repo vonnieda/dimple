@@ -13,7 +13,6 @@ use self::{navidrome_library::NavidromeConfig, local_library::LocalConfig};
 pub mod local_library;
 pub mod image_cache;
 pub mod navidrome_library;
-pub mod memory_library;
 
 pub trait Library: Send + Sync {
     fn name(&self) -> String;
@@ -63,7 +62,7 @@ pub struct Artist {
 
 // TODO I think this is gonna need a way to get back to the release. Giving
 // more credence to everything just having an ID and the vectors being
-// vectors of IDs.
+// vectors of IDs. And I can add getters that take the request.
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
 pub struct Track {
     pub url: String,
