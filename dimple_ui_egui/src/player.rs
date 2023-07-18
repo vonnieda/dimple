@@ -93,7 +93,22 @@ impl Player {
 
         let inner = playback_rs::Player::new(None).unwrap();
         let mut td = TrackDownloader::new(librarian);
+        let mut current_queue_item:Option<QueueItem> = None;
+        let mut next_queue_item:Option<QueueItem> = None;
         loop {
+            // First, we check if the song has advanced to the next song. The
+            // playback-rs library doesn't give us access to the current
+            // track information once it's set so we shadow it in
+            // current_queue_item and next_queue_item. So, if the player
+            // has no next song set, but we think one should have been, then
+            // we assume the song has advanced.
+            if !inner.has_next_song() && next_queue_item.is_some() {
+                // If there is another song in the queue 
+                player_state
+            }
+
+
+
             // Process incoming commands
             // TODO process all in the queue.
             match receiver.recv_timeout(Duration::from_millis(100)) {
@@ -285,6 +300,7 @@ impl TrackDownloader {
                 log::info!("converted to song");
                 songs.write().unwrap().insert(track.clone(), song);
             });    
+            // TODO remove the download
             TrackDownloadProgress::Downloading
         }
     }
