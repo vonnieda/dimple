@@ -1,6 +1,6 @@
 use std::{time::Instant};
 
-use dimple::{music_library::{Library}, dimple::Settings, librarian::Librarian};
+use dimple_ui_egui::{music_library::{Library}, dimple::Settings, librarian::Librarian};
 
 fn time_library(library: &dyn Library) {
     log::info!("{}: Testing", 

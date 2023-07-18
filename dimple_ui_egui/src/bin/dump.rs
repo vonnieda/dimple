@@ -1,4 +1,4 @@
-use dimple::{dimple::Settings, librarian::Librarian, music_library::Library};
+use dimple_ui_egui::{dimple::Settings, librarian::Librarian, music_library::Library};
 
 fn main() {
     let mut builder = env_logger::Builder::new();

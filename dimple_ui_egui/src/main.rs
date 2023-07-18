@@ -20,7 +20,7 @@
 // is when we run the queries. Maybe we just the run the query when we create
 // the screen and then we stick that on the stack?
 
-use dimple::dimple::Dimple;
+use dimple_ui_egui::dimple::Dimple;
 use eframe::egui::{self};
 
 fn main() {

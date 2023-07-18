@@ -104,7 +104,7 @@ impl Player {
             // we assume the song has advanced.
             if !inner.has_next_song() && next_queue_item.is_some() {
                 // If there is another song in the queue 
-                player_state
+                // player_state
             }
 
 
