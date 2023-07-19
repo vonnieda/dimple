@@ -5,12 +5,10 @@
 // TODO I had to break this up into weird pieces to make things threaded,
 // so I need to revisit that and either document it, or clean it up.
 
-use std::{sync::{Arc, RwLock, mpsc::{Sender, Receiver}}, fmt::Debug, time::{Duration}, io::Cursor, collections::{HashMap, HashSet}};
+use std::{sync::{Arc, RwLock, mpsc::{Sender, Receiver}}, fmt::Debug, io::Cursor, collections::{HashMap, HashSet}, time::Duration};
 
-use eframe::egui::Context;
+use dimple_core::{model::{Release, Track}, library::Library};
 use playback_rs::{Song, Hint};
-
-use crate::{music_library::{Track, Release, Library}, librarian::Librarian};
 
 pub struct Player {    
     sender: Sender<PlayerCommand>,
@@ -18,15 +16,14 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(librarian: Arc<Librarian>, ctx: &Context) -> PlayerHandle {
+    pub fn new(library: Arc<Box<dyn Library>>) -> PlayerHandle {
         let (sender, receiver) = std::sync::mpsc::channel::<PlayerCommand>();
 
         let play_queue = Arc::new(RwLock::new(PlayerState::default()));
 
         let play_queue_1 = play_queue.clone();
-        let ctx_1 = ctx.clone();
-        std::thread::spawn(move || Self::run(receiver, librarian, 
-            play_queue_1, &ctx_1));
+        std::thread::spawn(move || Self::run(receiver, library, 
+            play_queue_1));
 
         Arc::new(RwLock::new(Self {
             sender,
@@ -87,14 +84,13 @@ impl Player {
     }
 
     pub fn run(receiver: Receiver<PlayerCommand>, 
-        librarian: Arc<Librarian>,
-        player_state: Arc<RwLock<PlayerState>>,
-        ctx: &Context) {
+        library: Arc<Box<dyn Library>>,
+        player_state: Arc<RwLock<PlayerState>>) {
 
         let inner = playback_rs::Player::new(None).unwrap();
-        let mut td = TrackDownloader::new(librarian);
-        let mut current_queue_item:Option<QueueItem> = None;
-        let mut next_queue_item:Option<QueueItem> = None;
+        let mut td = TrackDownloader::new(library);
+        let _current_queue_item:Option<QueueItem> = None;
+        let next_queue_item:Option<QueueItem> = None;
         loop {
             // First, we check if the song has advanced to the next song. The
             // playback-rs library doesn't give us access to the current
@@ -176,7 +172,7 @@ impl Player {
             // Refresh the context
             // TODO this is a hack - UI stuff doesn't belong here, but didn't
             // yet come up with a better way to do it.
-            ctx.request_repaint();
+            // ctx.request_repaint();
         }
     }
 }
@@ -266,15 +262,15 @@ pub enum TrackDownloadProgress {
 struct TrackDownloader {
     downloads: Arc<RwLock<HashSet<Track>>>,
     songs: Arc<RwLock<HashMap<Track, Song>>>,
-    librarian: Arc<Librarian>,
+    library: Arc<Box<dyn Library>>,
 }
 
 impl TrackDownloader {
-    pub fn new(librarian: Arc<Librarian>) -> Self {
+    pub fn new(library: Arc<Box<dyn Library>>) -> Self {
         Self {
             downloads: Arc::new(RwLock::new(HashSet::new())),
             songs: Arc::new(RwLock::new(HashMap::new())),
-            librarian,
+            library,
         }
     }
 
@@ -288,11 +284,11 @@ impl TrackDownloader {
         else {
             log::info!("downloading {}", track.title);
             self.downloads.write().unwrap().insert(track.clone());
-            let librarian = self.librarian.clone();
+            let library = self.library.clone();
             let track = track.clone();
             let songs = self.songs.clone();
             std::thread::spawn(move || {
-                let stream = librarian.stream(&track).unwrap();
+                let stream = library.stream(&track).unwrap();
                 log::info!("downloaded {} bytes", stream.len());
                 let song = Song::new(Box::new(Cursor::new(stream)), 
                     &Hint::new(), 
