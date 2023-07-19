@@ -1,8 +1,7 @@
 // TODO Check out anyhow https://docs.rs/anyhow/latest/anyhow/
 
-use std::{sync::{Arc, mpsc::Receiver}};
-
-use data_encoding::{BASE64};
+use data_encoding::BASE64;
+use dimple_core::{image_cache::ImageCache, library::Library, model::{Release, Image, Track, Artist, Genre}};
 use image::DynamicImage;
 
 use serde::{Deserialize, Serialize};
@@ -11,9 +10,7 @@ use sunk::{Client, Album, Media, song::Song, Streamable};
 use threadpool::ThreadPool;
 use url::Url;
 
-use super::{Library, Release, Image, Track, image_cache::ImageCache};
-
-use std::iter::Iterator;
+use std::{iter::Iterator, sync::{mpsc::Receiver, Arc}};
 
 use std::thread;
 
@@ -56,8 +53,6 @@ impl Library for NavidromeLibrary {
         let base_url = self.base_url();
 
         thread::spawn(move || {
-            let sender = sender.clone();
-
             let pool = ThreadPool::default();
 
             for artist in sunk::Artist::list(&client, 0).unwrap() {
@@ -177,7 +172,7 @@ impl NavidromeLibrary {
     // </subsonic-response>
     fn sunk_artist_album_to_dimple_release(base_url: &str, 
         artist: &sunk::Artist,
-        album: &sunk::Album) -> crate::music_library::Release {
+        album: &sunk::Album) -> Release {
             let url = Self::url(base_url, "album", &album.id); 
             let title = album.name.clone();
             let artists = vec![
@@ -212,12 +207,12 @@ impl NavidromeLibrary {
     // <album id="11061" name="Who Made Who" coverArt="al-11061" songCount="9" created="2004-11-08T23:43:18" duration="2291" artist="AC/DC" artistId="5432"/>
     // </artist>
     // </subsonic-response>
-    fn sunk_artist_to_dimple_artist(base_url: &str, artist: &sunk::Artist) -> crate::music_library::Artist {
+    fn sunk_artist_to_dimple_artist(base_url: &str, artist: &sunk::Artist) -> Artist {
         let art = artist.cover_id().map_or(
             vec![], 
             |cover_id| vec![Self::sunk_image_to_dimple_image(base_url, cover_id)]
         );
-        crate::music_library::Artist {
+        Artist {
             url: Self::url(base_url, "artist", &artist.id),
             name: artist.name.clone(),
             art,
@@ -225,8 +220,8 @@ impl NavidromeLibrary {
         }
     }
 
-    fn sunk_image_to_dimple_image(base_url: &str, image_id: &str) -> crate::music_library::Image {
-        crate::music_library::Image {
+    fn sunk_image_to_dimple_image(base_url: &str, image_id: &str) -> Image {
+        Image {
             url: Self::url(base_url, "image", image_id)
         }
     }
@@ -243,8 +238,8 @@ impl NavidromeLibrary {
     // <genre songCount="14" albumCount="1">Live</genre>
     // </genres>
     // </subsonic-response>
-    fn sunk_genre_to_dimple_genre(base_url: &str, genre_name: &str) -> crate::music_library::Genre {
-        crate::music_library::Genre {
+    fn sunk_genre_to_dimple_genre(base_url: &str, genre_name: &str) -> Genre {
+        Genre {
             url: Self::url(base_url, "genre", &Self::string_to_id(genre_name)),
             name: genre_name.to_string(),
             art: vec![],
@@ -255,7 +250,7 @@ impl NavidromeLibrary {
     // <subsonic-response status="ok" version="1.8.0">
     // <song id="48228" parent="48203" title="You Shook Me All Night Long" album="Back In Black" artist="AC/DC" isDir="false" coverArt="48203" created="2004-11-08T23:33:11" duration="210" bitRate="112" size="2945619" suffix="mp3" contentType="audio/mpeg" isVideo="false" path="ACDC/Back in black/ACDC - You Shook Me All Night Long.mp3"/>
     // </subsonic-response>
-    fn sunk_song_to_dimple_track(base_url: &str, song: &sunk::song::Song) -> crate::music_library::Track {
+    fn sunk_song_to_dimple_track(base_url: &str, song: &sunk::song::Song) -> Track {
         Track {
             url: Self::url(base_url, "track", &song.id),
             title: song.title.clone(),

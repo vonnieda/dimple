@@ -1,8 +1,11 @@
 [workspace]
 members = [
-    "dimple_librarian",
+    "dimple_core",
     "dimple_player",
+    "dimple_sled_library",
+    "dimple_navidrome_library",
     "dimple_cli",
     "dimple_ui_egui",
+    # "dimple_folder_library",
 ]
 resolver="2"

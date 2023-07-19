@@ -1,39 +1,5 @@
-/// Objects all have a URL. The URL must uniquely identify that object and
-/// it should, at least, have a scheme that matches the library it
-/// came from. In other words, given the same library config, it should be
-/// possible to re-load the object from the library with the same URL.
-
-use std::{fmt::Debug, sync::mpsc::Receiver};
-
-use image::DynamicImage;
-use serde::{Serialize, Deserialize};
-
-use self::{navidrome_library::NavidromeConfig, local_library::LocalConfig};
-
-pub mod local_library;
-pub mod image_cache;
-pub mod navidrome_library;
-
-pub trait Library: Send + Sync {
-    fn name(&self) -> String;
-
-    fn releases(&self) -> Receiver<Release>;
-
-    fn image(&self, _image: &Image) -> Result<DynamicImage, String>;
-
-    // TODO I wanted to have this return a Source but I couldn't figure out how.
-    fn stream(&self, _track: &Track) -> Result<Vec<u8>, String>;
-
-    fn merge_release(&self, _library: &dyn Library, _release: &Release) -> Result<(), String> {
-        todo!();
-    }
-}
-
-impl Debug for dyn Library {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.name())
-    }
-}
+use serde::Deserialize;
+use serde::Serialize;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct Release {
@@ -93,12 +59,12 @@ pub struct Image {
     pub url: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(tag = "type")]
-pub enum LibraryConfig {
-    Navidrome(NavidromeConfig),
-    Local(LocalConfig),
-}
+// #[derive(Debug, Deserialize, Serialize)]
+// #[serde(tag = "type")]
+// pub enum LibraryConfig {
+//     Navidrome(NavidromeConfig),
+//     Local(LocalConfig),
+// }
 
 pub trait HasArtwork {
     fn art(&self) -> Vec<Image>;

@@ -3,7 +3,9 @@ use std::io::Cursor;
 use image::{imageops::FilterType, DynamicImage, ImageOutputFormat};
 use sled::Tree;
 
-/// Caches and scales downloaded images using Sled
+/// Caches and scales downloaded images using Sled. Meant to be used as the
+/// storage target of a more specific cache that wants to store images, and
+/// which already uses Sled.
 #[derive(Clone, Debug)]
 pub struct ImageCache {
     tree: Tree,

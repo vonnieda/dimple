@@ -1,7 +1,7 @@
 use std::sync::mpsc::Receiver;
 
+use dimple_core::{model::{Release, Track, Image}, library::Library, image_cache::ImageCache};
 use image::DynamicImage;
-use log::{debug};
 
 use serde::{Deserialize, Serialize};
 /// A local music library living in a directory. Stores data with Sled.
@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 
 use sled::Tree;
 use threadpool::ThreadPool;
-use super::{Release, image_cache::ImageCache, Library, Image};
 
 #[derive(Debug)]
 
@@ -79,7 +78,7 @@ impl Library for LocalLibrary {
             .map_or(Err("".to_string()), Ok)
     }
 
-    fn stream(&self, _track: &super::Track) -> Result<Vec<u8>, String> {
+    fn stream(&self, _track: &Track) -> Result<Vec<u8>, String> {
         Err("todo!".to_string())
     }
 
@@ -90,7 +89,7 @@ impl Library for LocalLibrary {
         for image in &release.art {
             if let Ok(dynamic_image) = library.image(image) {
                 let url = &image.url;
-                debug!("Storing image for {} at {}", release.title, url);
+                log::debug!("Storing image for {} at {}", release.title, url);
                 self.images.insert(url, &dynamic_image);
             }
         }

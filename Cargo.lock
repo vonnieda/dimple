@@ -1043,19 +1043,52 @@ name = "dimple_cli"
 version = "0.1.0"
 
 [[package]]
-name = "dimple_librarian"
+name = "dimple_core"
 version = "0.1.0"
+dependencies = [
+ "image",
+ "serde",
+ "sled",
+]
+
+[[package]]
+name = "dimple_navidrome_library"
+version = "0.1.0"
+dependencies = [
+ "data-encoding",
+ "dimple_core",
+ "image",
+ "log",
+ "serde",
+ "sha2",
+ "sled",
+ "sunk",
+ "threadpool",
+ "url 2.4.0",
+]
 
 [[package]]
 name = "dimple_player"
 version = "0.1.0"
 
 [[package]]
+name = "dimple_sled_library"
+version = "0.1.0"
+dependencies = [
+ "dimple_core",
+ "image",
+ "log",
+ "serde",
+ "serde_json",
+ "sled",
+ "threadpool",
+]
+
+[[package]]
 name = "dimple_ui_egui"
 version = "0.1.0"
 dependencies = [
  "config",
- "data-encoding",
  "eframe",
  "egui-phosphor",
  "egui_extras",
@@ -1066,13 +1099,7 @@ dependencies = [
  "playback-rs",
  "prominence",
  "resvg",
- "serde",
- "serde_json",
  "serde_yaml",
- "sha2",
- "sled",
- "sunk",
- "threadpool",
  "ulid",
  "url 2.4.0",
  "walkdir",

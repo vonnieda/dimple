@@ -1,0 +1,19 @@
+[package]
+name = "dimple_navidrome_library"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sunk = { path = "lib/sunk" }
+dimple_core = { path = "../dimple_core" }
+serde = { version = "1.0.158", features = ["derive"] }
+image = { version = "0.24.5", features = ["jpeg", "png"] }
+sled = "0.34.7"
+log = "0.4.17"
+data-encoding = "2.3.3"
+url = "2.3.1"
+sha2 = "0.10.6"
+threadpool = "1.8.1"
+
