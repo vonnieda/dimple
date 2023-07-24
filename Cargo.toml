@@ -3,9 +3,13 @@ members = [
     "dimple_core",
     "dimple_sled_library",
     "dimple_navidrome_library",
-    "dimple_folder_library",
+    # "dimple_folder_library",
     "dimple_player",
-    # "dimple_cli",
-    # "dimple_ui_egui",
+    "dimple_cli",
+    "dimple_ui_egui",
 ]
 resolver="2"
+
+[toolchain]
+channel = "nightly"
+

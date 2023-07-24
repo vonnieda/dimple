@@ -1,8 +1,8 @@
 use std::sync::{Arc, RwLock};
 
+use dimple_core::model::{Artist, Release, Genre, Playlist, Track};
+use dimple_player::player::Player;
 use eframe::egui::{self, Ui, Grid};
-
-use crate::{music_library::{Artist, Release, Genre, Playlist, Track}, player::Player};
 
 pub trait Card {
     fn ui(&self, image_width: f32, image_height: f32, ui: &mut Ui) -> Option<LibraryItem>;

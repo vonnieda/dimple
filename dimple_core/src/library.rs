@@ -1,4 +1,4 @@
-use std::{sync::mpsc::Receiver, collections::HashSet, fmt::Debug};
+use std::{sync::{mpsc::Receiver, Arc, RwLock}, collections::HashSet, fmt::Debug};
 
 use image::DynamicImage;
 
@@ -8,6 +8,10 @@ use crate::model::{Release, Image, Track, Artist, Genre};
 /// it should, at least, have a scheme that matches the library it
 /// came from. In other words, given the same library config, it should be
 /// possible to re-load the object from the library with the same URL.
+
+pub type LibraryHandle = Arc<dyn Library>;
+
+pub type LibrariesHandle = Arc<RwLock<Vec<LibraryHandle>>>;
 
 pub trait Library: Send + Sync {
     fn name(&self) -> String;

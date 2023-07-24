@@ -1,7 +1,14 @@
 use config::Config;
+use dimple_navidrome_library::navidrome_library::NavidromeConfig;
+use dimple_sled_library::local_library::LocalConfig;
 use serde::{Deserialize, Serialize};
 
-use crate::music_library::LibraryConfig;
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "type")]
+pub enum LibraryConfig {
+    Navidrome(NavidromeConfig),
+    Local(LocalConfig),
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Settings {

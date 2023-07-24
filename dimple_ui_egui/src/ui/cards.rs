@@ -1,6 +1,5 @@
-use eframe::egui::{Ui};
-
-use crate::{music_library::{Release, Artist, Genre}};
+use dimple_core::model::{Release, Artist, Genre};
+use eframe::egui::Ui;
 
 use super::{card_grid::{Card, LibraryItem}, theme::Theme};
 

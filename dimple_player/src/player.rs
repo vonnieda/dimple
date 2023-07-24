@@ -7,7 +7,7 @@
 
 use std::{sync::{Arc, RwLock, mpsc::{Sender, Receiver}}, fmt::Debug, io::Cursor, collections::{HashMap, HashSet}, time::Duration};
 
-use dimple_core::{model::{Release, Track}, library::Library};
+use dimple_core::{model::{Release, Track}, library::{Library, LibraryHandle}};
 use playback_rs::{Song, Hint};
 
 pub struct Player {    
@@ -16,7 +16,7 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(library: Arc<Box<dyn Library>>) -> PlayerHandle {
+    pub fn new(library: LibraryHandle) -> PlayerHandle {
         let (sender, receiver) = std::sync::mpsc::channel::<PlayerCommand>();
 
         let play_queue = Arc::new(RwLock::new(PlayerState::default()));
@@ -84,7 +84,7 @@ impl Player {
     }
 
     pub fn run(receiver: Receiver<PlayerCommand>, 
-        library: Arc<Box<dyn Library>>,
+        library: LibraryHandle,
         player_state: Arc<RwLock<PlayerState>>) {
 
         let inner = playback_rs::Player::new(None).unwrap();
@@ -262,11 +262,11 @@ pub enum TrackDownloadProgress {
 struct TrackDownloader {
     downloads: Arc<RwLock<HashSet<Track>>>,
     songs: Arc<RwLock<HashMap<Track, Song>>>,
-    library: Arc<Box<dyn Library>>,
+    library: LibraryHandle,
 }
 
 impl TrackDownloader {
-    pub fn new(library: Arc<Box<dyn Library>>) -> Self {
+    pub fn new(library: LibraryHandle) -> Self {
         Self {
             downloads: Arc::new(RwLock::new(HashSet::new())),
             songs: Arc::new(RwLock::new(HashMap::new())),

@@ -1,8 +1,8 @@
-use std::{sync::{Arc, RwLock, mpsc::Receiver}, collections::HashSet};
+use std::{sync::{Arc, mpsc::Receiver}};
 
-use crate::{music_library::{Library, Release, Image, Track, LibraryConfig, Artist, Genre}, settings::Settings};
+use dimple_core::{library::{LibrariesHandle, Library, LibraryHandle}, model::{Release, Image, Track}};
+use dimple_sled_library::local_library::LocalLibrary;
 
-/// An instance of Librarian is a
 #[derive(Debug)]
 pub struct Librarian {
     disk_cache: LocalLibrary,
@@ -18,13 +18,8 @@ impl Default for Librarian {
     }
 }
 
-type LibraryHandle = Arc<Box<dyn Library>>;
-
-type LibrariesHandle = Arc<RwLock<Vec<LibraryHandle>>>;
-
 impl Librarian {
-    pub fn add_library(&mut self, library: Box<dyn Library>) {
-        let library = Arc::new(library);
+    pub fn add_library(&mut self, library: LibraryHandle) {
         self.libraries.write().unwrap().push(library.clone());
     }
 
@@ -34,7 +29,7 @@ impl Librarian {
 
     pub fn refresh_library(&self, library: &LibraryHandle) {
         for release in library.releases() {
-            self.disk_cache.merge_release(library.as_ref().as_ref(), &release).unwrap();
+            self.disk_cache.merge_release(library.as_ref(), &release).unwrap();
         }
     }
 
@@ -87,24 +82,5 @@ impl Library for Librarian {
 
 }
 
-// impl From<Vec<LibraryConfig>> for Librarian {
-//     fn from(configs: Vec<LibraryConfig>) -> Self {
-//         let mut librarian = Self::default();
-//         for config in configs {
-//             let library: Box<dyn Library> = match config {
-//                 LibraryConfig::Navidrome(config) => Box::new(NavidromeLibrary::from(config)),
-//                 LibraryConfig::Local(config) => Box::new(LocalLibrary::from(config)),
-//             };
-//             librarian.add_library(library)
-//         }
-//         librarian
-//     }
-// }
-
-// impl From<Settings> for Librarian {
-//     fn from(settings: Settings) -> Self {
-//         Librarian::from(settings.libraries)
-//     }
-// }
 
 

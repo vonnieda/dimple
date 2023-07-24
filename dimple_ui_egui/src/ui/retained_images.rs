@@ -1,10 +1,9 @@
 use std::{sync::{Arc, RwLock, Mutex}, collections::HashMap};
 
+use dimple_core::{library::LibraryHandle, model::Image};
 use eframe::epaint::{Color32, ColorImage};
 use egui_extras::RetainedImage;
 use threadpool::ThreadPool;
-
-use crate::{music_library::{Image, Library}, librarian::Librarian};
 
 use super::utils;
 
@@ -13,11 +12,11 @@ pub struct RetainedImages {
     // for fast startup.
     retained_images: Arc<RwLock<HashMap<String, Arc<RetainedImage>>>>,
     thread_pool: Arc<Mutex<ThreadPool>>,
-    librarian: Arc<RwLock<Arc<Librarian>>>,
+    library: LibraryHandle,
 }
 
 impl RetainedImages {
-    pub fn new(librarian: Arc<Librarian>) -> Self {
+    pub fn new(library: LibraryHandle) -> Self {
         // std::thread::spawn(|| {
         //     loop {
         //         log::info!("{} {}", self.retained_im)
@@ -27,7 +26,7 @@ impl RetainedImages {
         Self {
             retained_images: Arc::new(RwLock::new(HashMap::new())),
             thread_pool: Arc::new(Mutex::new(ThreadPool::default())),
-            librarian: Arc::new(RwLock::new(librarian)),
+            library: library.clone(),
         }
     }
 
@@ -52,12 +51,12 @@ impl RetainedImages {
         self.retained_images.write().unwrap().insert(key.clone(), retained_arc.clone());
         let retained = Arc::new(RwLock::new(retained_arc));
 
-        let librarian_1 = self.librarian.clone();
+        let library_1 = self.library.clone();
         let image_1 = image.clone();
         let retained_images_1 = self.retained_images.clone();
         let retained_1 = retained.clone();
         self.thread_pool.lock().unwrap().execute(move || {
-            if let Ok(dynamic) = librarian_1.read().unwrap().image(&image_1) {
+            if let Ok(dynamic) = library_1.image(&image_1) {
                 let new_retained = Arc::new(utils::dynamic_to_retained("", &dynamic));
                 retained_images_1.write().unwrap().insert(key, new_retained.clone());
                 *retained_1.write().unwrap() = new_retained;

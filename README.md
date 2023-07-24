@@ -23,7 +23,7 @@ to empower music listeners. Explore, discover, and enjoy music on your terms.
 
 # Features
 
-- [ ] Smart mixes/radio for anything: artists, albums, genres, moods, decades,
+- [ ] Smart stations for anything: artists, albums, genres, moods, decades,
       etc. Anything can be the source for a new mix.
 - [ ] Offline support: stores metadata for all tracks locally, and track audio
       for all tracks marked offine. 
@@ -46,7 +46,7 @@ to empower music listeners. Explore, discover, and enjoy music on your terms.
   - [ ] Lyrics display
 - [ ] Daily and "part of day" mixes
 - [ ] Learns from every interaction. Previous, next, skip, repeat, scrub, like,
-      like AGAIN. Like Scrobbling on steroids.
+      like AGAIN. Like scrobbling on steroids.
 
 # FAQ
 

@@ -1,20 +1,21 @@
 use std::sync::Arc;
 
+use dimple_core::library::{LibraryHandle, Library};
+use dimple_navidrome_library::navidrome_library::NavidromeLibrary;
+use dimple_player::player::{Player, PlayerHandle};
+use dimple_sled_library::local_library::LocalLibrary;
 use eframe::CreationContext;
 
 use eframe::egui::{self, Id};
 
-use crate::librarian::Librarian;
-
-use crate::player::Player;
-use crate::player::PlayerHandle;
-use crate::settings::Settings;
+use crate::dimple_library::Librarian;
+use crate::settings::{Settings, LibraryConfig};
 use crate::ui::main_screen::MainScreen;
 
 use crate::ui::theme::Theme;
 
 pub struct Dimple {
-    _librarian: Arc<Librarian>,
+    _library: LibraryHandle,
     _player: PlayerHandle,
     _theme: Arc<Theme>,
     main_screen: MainScreen,
@@ -31,16 +32,16 @@ impl Dimple {
         // Load settings
         let settings = Settings::default();
 
-        // Setup The Librarian
-        let librarian = Arc::new(Librarian::from(settings.libraries));
-        let librarian_1 = librarian.clone();
+        // Load the Library
+        let librarian: Arc<Librarian> = Arc::new(Librarian::from(settings.libraries));
+        let library: LibraryHandle = librarian.clone();
         std::thread::spawn(move || {
-            librarian_1.refresh_all_libraries();
+            librarian.refresh_all_libraries();
         });
 
         // Set theme
         let ctx = cc.egui_ctx.clone();
-        let theme = Arc::new(Theme::new(librarian.clone()));
+        let theme = Arc::new(Theme::new(library.clone()));
         theme.set(&ctx);
         // TODO Move this into Theme::set, and maybe move that into new.
         ctx.data_mut(|wr| {
@@ -48,14 +49,33 @@ impl Dimple {
         });
 
         // Set up the music player
-        let player = Player::new(librarian.clone(), &ctx);
+        let player = Player::new(library.clone());
 
         Self {
-            main_screen: MainScreen::new(player.clone(), librarian.clone()),
-            _librarian: librarian,
+            main_screen: MainScreen::new(player.clone(), library.clone()),
+            _library: library,
             _player: player,
             _theme: theme,
         }
     }
 }
 
+impl From<Vec<LibraryConfig>> for Librarian {
+    fn from(configs: Vec<LibraryConfig>) -> Self {
+        let mut librarian = Self::default();
+        for config in configs {
+            let library: LibraryHandle = match config {
+                LibraryConfig::Navidrome(config) => Arc::new(NavidromeLibrary::from(config)),
+                LibraryConfig::Local(config) => Arc::new(LocalLibrary::from(config)),
+            };
+            librarian.add_library(library);
+        }
+        librarian
+    }
+}
+
+impl From<Settings> for Librarian {
+    fn from(settings: Settings) -> Self {
+        Librarian::from(settings.libraries)
+    }
+}

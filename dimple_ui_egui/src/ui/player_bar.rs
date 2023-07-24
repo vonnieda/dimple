@@ -1,6 +1,6 @@
+use dimple_player::player::PlayerHandle;
 use eframe::egui::{Frame, ImageButton, Layout, Margin, Response, Ui, RichText};
 use eframe::emath::Align;
-use crate::player::PlayerHandle;
 use super::card_grid::LibraryItem;
 use super::scrubber::{PlotScrubber, SliderScrubber};
 use super::theme::{Theme};

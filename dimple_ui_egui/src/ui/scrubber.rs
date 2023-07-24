@@ -1,8 +1,7 @@
 
 
+use dimple_player::player::PlayerHandle;
 use eframe::{egui::{Ui, Slider, plot::{PlotPoints, Line, Plot}}};
-
-use crate::{player::PlayerHandle};
 
 use super::theme::Theme;
 

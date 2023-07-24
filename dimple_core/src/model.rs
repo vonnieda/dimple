@@ -59,13 +59,6 @@ pub struct Image {
     pub url: String,
 }
 
-// #[derive(Debug, Deserialize, Serialize)]
-// #[serde(tag = "type")]
-// pub enum LibraryConfig {
-//     Navidrome(NavidromeConfig),
-//     Local(LocalConfig),
-// }
-
 pub trait HasArtwork {
     fn art(&self) -> Vec<Image>;
 }

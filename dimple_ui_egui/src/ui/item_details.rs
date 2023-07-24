@@ -1,21 +1,21 @@
 use std::{sync::{Arc, RwLock}};
 
+use dimple_core::{model::{Release, Artist, Genre, Playlist, Track}, library::LibraryHandle};
+use dimple_player::player::{PlayerHandle, Player};
 use eframe::{egui::{Ui, Grid, ScrollArea, Frame}};
-
-use crate::{music_library::{Artist, Genre, Release, Track, Playlist}, player::{PlayerHandle, Player}, librarian::Librarian};
 
 use super::{card_grid::{LibraryItem, CardGrid, Card}, theme::Theme};
 
 pub struct ItemDetails {
     player: PlayerHandle,
-    librarian: Arc<Librarian>,
+    library: LibraryHandle,
 }
 
 impl ItemDetails {
-    pub fn new(player: PlayerHandle, librarian: Arc<Librarian>) -> Self {
+    pub fn new(player: PlayerHandle, library: LibraryHandle) -> Self {
         Self {
             player,
-            librarian,
+            library,
         }
     }
 
@@ -152,14 +152,14 @@ impl ItemDetails {
                     ui.horizontal(|ui| {
                         ui.label(Theme::heading(&artist.name));
                     });
-                    let genres = self.librarian.genres_by_artist(artist);
+                    let genres = self.library.genres_by_artist(artist);
                     if let Some(item) = self.genre_links(&genres, ui) {
                         action = Some(item);
                     }
                 })
             });
             ui.heading("Releases");
-            let releases = self.librarian.releases_by_artist(artist);
+            let releases = self.library.releases_by_artist(artist);
             let cards: Vec<Box<dyn Card>> = releases.into_iter()
                 .take(10)
                 .map(|release| Box::new(release) as Box<dyn Card>)
@@ -170,7 +170,7 @@ impl ItemDetails {
             ui.add_space(32.0);
 
             ui.heading("Similar Artists");
-            let artists = &self.librarian.similar_artists(artist);
+            let artists = &self.library.similar_artists(artist);
             let cards: Vec<Box<dyn Card>> = artists.iter()
                 .take(10)
                 .map(|artist| Box::new(artist.clone()) as Box<dyn Card>)
@@ -202,7 +202,7 @@ impl ItemDetails {
             });
 
             ui.label(Theme::heading("Artists"));
-            let artists = self.librarian.artists_by_genre(genre);
+            let artists = self.library.artists_by_genre(genre);
             let cards: Vec<Box<dyn Card>> = artists.into_iter()
                 .take(10)
                 .map(|artist| Box::new(artist) as Box<dyn Card>)
@@ -213,7 +213,7 @@ impl ItemDetails {
             ui.add_space(32.0);
 
             ui.label(Theme::heading("Releases"));
-            let releases = self.librarian.releases_by_genre(genre);
+            let releases = self.library.releases_by_genre(genre);
             let cards: Vec<Box<dyn Card>> = releases.into_iter()
                 .take(10)
                 .map(|release| Box::new(release) as Box<dyn Card>)
@@ -224,7 +224,7 @@ impl ItemDetails {
             ui.add_space(32.0);
 
             ui.heading("Similar Genres");
-            let genres = self.librarian.similar_genres(genre);
+            let genres = self.library.similar_genres(genre);
             let cards: Vec<Box<dyn Card>> = genres.into_iter()
                 .take(10)
                 .map(|genre| Box::new(genre) as Box<dyn Card>)
@@ -292,7 +292,7 @@ impl ItemDetails {
                     self.player.write().unwrap().queue_release(release);
                 },
                 LibraryItem::Artist(artist) => {
-                    for release in self.librarian.releases_by_artist(artist) {
+                    for release in self.library.releases_by_artist(artist) {
                         self.player.write().unwrap().queue_release(&release);
                     }
                 },

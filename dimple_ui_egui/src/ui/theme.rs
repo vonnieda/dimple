@@ -1,5 +1,6 @@
 use std::{sync::{Arc, RwLock}, collections::HashMap};
 
+use dimple_core::{library::LibraryHandle, model::Image};
 use eframe::{epaint::{Color32}, egui::{RichText, TextStyle, Context, FontData, Id, FontDefinitions}};
 use egui_extras::{RetainedImage};
 
@@ -7,8 +8,6 @@ use eframe::egui::{Visuals, Style, Ui, Response, ImageButton};
 
 use eframe::epaint::{FontFamily, FontId, Stroke};
 use resvg::{usvg::{TreeParsing}, FitTo};
-
-use crate::{librarian::Librarian, music_library::{Image}};
 
 use super::{retained_images::RetainedImages, utils};
 
@@ -40,9 +39,9 @@ pub struct Theme {
 }
 
 impl Theme {
-    pub fn new(librarian: Arc<Librarian>) -> Self {
+    pub fn new(library: LibraryHandle) -> Self {
         Self {
-            retained_images: Arc::new(RwLock::new(RetainedImages::new(librarian))),
+            retained_images: Arc::new(RwLock::new(RetainedImages::new(library))),
             background_top: Color32::from_rgb(0x54, 0x3b, 0x67),
             background_middle: Color32::from_rgb(0x21, 0x21, 0x21),
             background_bottom: Color32::from_rgb(0x21, 0x21, 0x21),

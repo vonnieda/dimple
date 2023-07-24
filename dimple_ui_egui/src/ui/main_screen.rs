@@ -1,16 +1,17 @@
 use std::{sync::{Arc}, collections::VecDeque};
 
+use dimple_core::library::LibraryHandle;
+use dimple_player::player::PlayerHandle;
 use eframe::{egui::{self, Context, LayerId, Frame, Margin, ScrollArea}, epaint::{Mesh, Shape}};
 
 
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
-use crate::{player::PlayerHandle, librarian::Librarian, music_library::{Library}};
 
 use super::{nav_bar::{NavBar, NavEvent}, player_bar::PlayerBar, card_grid::{CardGrid, Card, LibraryItem}, item_details::ItemDetails, theme::Theme};
 
 pub struct MainScreen {
-    librarian: Arc<Librarian>,
+    library: LibraryHandle,
     _player: PlayerHandle,
 
     nav_bar: NavBar,
@@ -39,16 +40,16 @@ pub enum HistoryItem {
 // But also I think it's time to split at least the content area into three
 // components: dashboard, search results, item details. 
 impl MainScreen {
-    pub fn new(player: PlayerHandle, librarian: Arc<Librarian>) -> Self {
+    pub fn new(player: PlayerHandle, library: LibraryHandle) -> Self {
         Self {
-            librarian: librarian.clone(),
+            library: library.clone(),
             _player: player.clone(),
             nav_bar: NavBar::default(),
             card_grid: CardGrid::default(),
             player_bar: PlayerBar::new(player.clone()),
             // cards: Vec::new(),
             history: VecDeque::new(),
-            item_details: ItemDetails::new(player, librarian),
+            item_details: ItemDetails::new(player, library),
         }
     }
 
@@ -139,7 +140,7 @@ impl MainScreen {
                             }
                         },
                         Some(HistoryItem::Artists) | None => {
-                            let artists = self.librarian.artists();
+                            let artists = self.library.artists();
                             let cards: Vec<Box<dyn Card>> = artists.into_iter()
                                 .map(|artist| Box::new(artist) as Box<dyn Card>)
                                 .collect();
@@ -158,7 +159,7 @@ impl MainScreen {
     }
 
     pub fn home(&self) -> Vec<Box<dyn Card>>  {
-        self.librarian.genres()
+        self.library.genres()
             .into_iter()
             .map(Into::into)
             .collect::<Vec<Box<dyn Card>>>()
@@ -166,16 +167,16 @@ impl MainScreen {
     
     fn search(&self, query: &str) -> Vec<(String, Vec<Box<dyn Card>>)> {
         let matcher = SkimMatcherV2::default();
-        let artists = self.librarian.artists().into_iter()
+        let artists = self.library.artists().into_iter()
             .filter(|artist| matcher.fuzzy_match(&artist.name, query).is_some())
             .map(Into::into)
             .collect::<Vec<Box<dyn Card>>>();
-        let mut releases = self.librarian.releases().into_iter()
+        let mut releases = self.library.releases().into_iter()
             .filter(|release| matcher.fuzzy_match(&release.title, query).is_some())
             .map(Into::into)
             .collect::<Vec<Box<dyn Card>>>();
         releases.sort_by_key(|release| release.title());
-        let genres = self.librarian.genres().into_iter()
+        let genres = self.library.genres().into_iter()
             .filter(|genre| matcher.fuzzy_match(&genre.name, query).is_some())
             .map(Into::into)
             .collect::<Vec<Box<dyn Card>>>();
