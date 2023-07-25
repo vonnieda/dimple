@@ -47,10 +47,3 @@ to empower music listeners. Explore, discover, and enjoy music on your terms.
 - [ ] Daily and "part of day" mixes
 - [ ] Learns from every interaction. Previous, next, skip, repeat, scrub, like,
       like AGAIN. Like scrobbling on steroids.
-
-# FAQ
-
-- Dimple? Simple Desktop Music Player.
-- Why Rust? I wanted to learn Rust.
-- Why egui? I wanted to learn egui.
-

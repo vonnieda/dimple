@@ -1,18 +1,18 @@
-use std::{sync::{Arc, mpsc::Receiver}};
+use std::sync::mpsc::Receiver;
 
 use dimple_core::{library::{LibrariesHandle, Library, LibraryHandle}, model::{Release, Image, Track}};
-use dimple_sled_library::local_library::LocalLibrary;
+use dimple_sled_library::sled_library::SledLibrary;
 
 #[derive(Debug)]
 pub struct Librarian {
-    disk_cache: LocalLibrary,
+    local_library: SledLibrary,
     libraries: LibrariesHandle,
 }
 
 impl Default for Librarian {
     fn default() -> Self {
         Self { 
-            disk_cache: LocalLibrary::new("cache", "cache"),
+            local_library: SledLibrary::new("cache", "cache"),
             libraries: Default::default(), 
         }
     }
@@ -29,7 +29,7 @@ impl Librarian {
 
     pub fn refresh_library(&self, library: &LibraryHandle) {
         for release in library.releases() {
-            self.disk_cache.merge_release(library.as_ref(), &release).unwrap();
+            self.local_library.merge_release(library.as_ref(), &release).unwrap();
         }
     }
 
@@ -47,11 +47,11 @@ impl Library for Librarian {
     }
     
     fn releases(&self) -> Receiver<Release> {
-        self.disk_cache.releases()
+        self.local_library.releases()
     }
 
     fn image(&self, image: &Image) -> Result<image::DynamicImage, String> {
-        if let Ok(image) = self.disk_cache.image(image) {
+        if let Ok(image) = self.local_library.image(image) {
             return Ok(image);
         }
         for library in self.libraries.read().unwrap().iter() {
@@ -63,7 +63,7 @@ impl Library for Librarian {
     }
 
     fn stream(&self, track: &Track) -> Result<Vec<u8>, String> {
-        if let Ok(stream) = self.disk_cache.stream(track) {
+        if let Ok(stream) = self.local_library.stream(track) {
             return Ok(stream);
         }
         for library in self.libraries.read().unwrap().iter() {
@@ -77,7 +77,7 @@ impl Library for Librarian {
     fn merge_release(&self, library: &dyn Library, release: &Release) 
         -> Result<(), String> {
 
-        self.disk_cache.merge_release(library, release)
+        self.local_library.merge_release(library, release)
     }
 
 }

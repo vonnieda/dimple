@@ -3,7 +3,7 @@ use std::sync::Arc;
 use dimple_core::library::{LibraryHandle, Library};
 use dimple_navidrome_library::navidrome_library::NavidromeLibrary;
 use dimple_player::player::{Player, PlayerHandle};
-use dimple_sled_library::local_library::LocalLibrary;
+use dimple_sled_library::sled_library::SledLibrary;
 use eframe::CreationContext;
 
 use eframe::egui::{self, Id};
@@ -66,7 +66,7 @@ impl From<Vec<LibraryConfig>> for Librarian {
         for config in configs {
             let library: LibraryHandle = match config {
                 LibraryConfig::Navidrome(config) => Arc::new(NavidromeLibrary::from(config)),
-                LibraryConfig::Local(config) => Arc::new(LocalLibrary::from(config)),
+                LibraryConfig::Sled(config) => Arc::new(SledLibrary::from(config)),
             };
             librarian.add_library(library);
         }

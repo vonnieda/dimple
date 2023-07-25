@@ -1,13 +1,13 @@
 use config::Config;
-use dimple_navidrome_library::navidrome_library::NavidromeConfig;
-use dimple_sled_library::local_library::LocalConfig;
+use dimple_navidrome_library::navidrome_library::NavidromeLibraryConfig;
+use dimple_sled_library::sled_library::SledLibraryConfig;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]
 pub enum LibraryConfig {
-    Navidrome(NavidromeConfig),
-    Local(LocalConfig),
+    Navidrome(NavidromeLibraryConfig),
+    Sled(SledLibraryConfig),
 }
 
 #[derive(Debug, Deserialize, Serialize)]

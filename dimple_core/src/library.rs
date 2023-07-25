@@ -4,18 +4,20 @@ use image::DynamicImage;
 
 use crate::model::{Release, Image, Track, Artist, Genre};
 
-/// Objects all have a URL. The URL must uniquely identify that object and
-/// it should, at least, have a scheme that matches the library it
-/// came from. In other words, given the same library config, it should be
-/// possible to re-load the object from the library with the same URL.
-
 pub type LibraryHandle = Arc<dyn Library>;
 
 pub type LibrariesHandle = Arc<RwLock<Vec<LibraryHandle>>>;
 
+/// Library is a generic interface to a source of music and/or music metadata.
+/// Well known services that would qualify as a Library are Spotify, Apple Music,
+/// Deezer, Last.fm, Bandcamp, etc. By implementing at least some of the methods
+/// of Library for one of these services we can integrate that Library's data
+/// into Dimple.
 pub trait Library: Send + Sync {
+    /// Get a user friendly display name for the Library.
     fn name(&self) -> String;
 
+    /// Get the list of releases 
     fn releases(&self) -> Receiver<Release>;
 
     fn image(&self, _image: &Image) -> Result<DynamicImage, String>;
@@ -27,6 +29,7 @@ pub trait Library: Send + Sync {
         todo!();
     }
 
+    // These shorcuts can probably be moved to a Queries sub-type or something.
     fn releases_by_artist(&self, artist: &Artist) -> Vec<Release> {
         let mut releases = self.releases()
             .iter()

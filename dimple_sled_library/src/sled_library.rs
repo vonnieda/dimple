@@ -4,16 +4,17 @@ use dimple_core::{model::{Release, Track, Image}, library::Library, image_cache:
 use image::DynamicImage;
 
 use serde::{Deserialize, Serialize};
-/// A local music library living in a directory. Stores data with Sled.
-/// Faster than remote, but slower than memory. This is how the app stores
-/// the combined library from all the remotes.
 
 use sled::Tree;
 use threadpool::ThreadPool;
 
 #[derive(Debug)]
 
-pub struct LocalLibrary {
+/// A local music library living in a directory. Stores data with Sled.
+/// Faster than remote, but slower than memory. This is how the app stores
+/// the combined library from all the remotes. Object are serialized as JSON,
+/// media is stored raw.
+pub struct SledLibrary {
     _ulid: String,
     name: String,
     releases: Tree,
@@ -22,12 +23,12 @@ pub struct LocalLibrary {
 }
 
 #[derive(Deserialize, Debug, Serialize)]
-pub struct LocalConfig {
+pub struct SledLibraryConfig {
     pub ulid: String,
     pub name: String,
 }
 
-impl LocalLibrary {
+impl SledLibrary {
     pub fn new(ulid: &str, name: &str) -> Self {
         // TODO magic
         let db = sled::open(format!("data/{}", ulid)).unwrap();
@@ -44,13 +45,13 @@ impl LocalLibrary {
     }
 }
 
-impl From<LocalConfig> for LocalLibrary {
-    fn from(config: LocalConfig) -> Self {
+impl From<SledLibraryConfig> for SledLibrary {
+    fn from(config: SledLibraryConfig) -> Self {
         Self::new(&config.ulid, &config.name)
     }
 }
 
-impl Library for LocalLibrary {
+impl Library for SledLibrary {
     fn name(&self) -> String {
         self.name.to_string()
     }

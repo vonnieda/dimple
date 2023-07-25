@@ -24,7 +24,7 @@ pub struct NavidromeLibrary {
 }
 
 #[derive(Deserialize, Debug, Serialize, Default)]
-pub struct NavidromeConfig {
+pub struct NavidromeLibraryConfig {
     pub ulid: String,
     pub name: String,
     pub site: String,
@@ -32,8 +32,8 @@ pub struct NavidromeConfig {
     pub password: String,
 }
 
-impl From<NavidromeConfig> for NavidromeLibrary {
-    fn from(config: NavidromeConfig) -> Self {
+impl From<NavidromeLibraryConfig> for NavidromeLibrary {
+    fn from(config: NavidromeLibraryConfig) -> Self {
         Self::new(&config.ulid, 
             &config.name, 
             &config.site, 
