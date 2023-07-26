@@ -10,21 +10,23 @@ export struct CardModel {
 }
 
 export component Card inherits VerticalLayout {
-    in property <CardModel> model;
+    width: 250px;
     spacing: 2px;
+
+    in property <CardModel> model;
+    
     Rectangle {
+        width: 250px;
+        height: 250px;
         border-radius: 6px;
         clip: true;
         Image {
+            width: 250px;
+            height: 250px;
             source: model.image;
-            min-width: 250px;
-            min-height: 250px;
         }    
     }
-    Rectangle {
-        width: 1px;
-        height: 2px;
-    }
+    Rectangle {}
     Text {
         font-weight: 900;
         text: model.title;
