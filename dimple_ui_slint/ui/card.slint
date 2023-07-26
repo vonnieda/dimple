@@ -1,12 +1,22 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 
+// TODO can this just be properties of the Card? Can I create cards in the Rust
+// code?
+export struct CardModel {
+    image: image,
+    title: string,
+    // TODO eventually subtitles as they will all be links to artists.
+    sub-title: string,
+}
+
 export component Card inherits VerticalLayout {
+    in property <CardModel> model;
     spacing: 2px;
     Rectangle {
         border-radius: 6px;
         clip: true;
         Image {
-            source: @image-url("../images/light.png");
+            source: model.image;
             min-width: 250px;
             min-height: 250px;
         }    
@@ -17,10 +27,10 @@ export component Card inherits VerticalLayout {
     }
     Text {
         font-weight: 900;
-        text: "Focus Infinite Ring";
+        text: model.title;
     }
     Text {
         color: #5d5d5d;
-        text: "Jellyfish Brothers";
+        text: model.sub-title;
     }
 }
