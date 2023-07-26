@@ -8,7 +8,7 @@ use eframe::CreationContext;
 
 use eframe::egui::{self, Id};
 
-use crate::dimple_library::Librarian;
+use crate::librarian::Librarian;
 use crate::settings::{Settings, LibraryConfig};
 use crate::ui::main_screen::MainScreen;
 

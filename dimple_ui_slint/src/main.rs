@@ -1,13 +1,13 @@
 slint::include_modules!();
 
 fn main() -> Result<(), slint::PlatformError> {
-    let ui = AppWindow::new()?;
+    let mut builder = env_logger::Builder::new();
+    builder.filter_level(log::LevelFilter::Info);
+    builder.format_timestamp_millis();
+    builder.parse_default_env();
+    builder.init();
 
-    let ui_handle = ui.as_weak();
-    ui.on_request_increase_value(move || {
-        let ui = ui_handle.unwrap();
-        ui.set_counter(ui.get_counter() + 1);
-    });
+    let ui = AppWindow::new()?;
 
     ui.run()
 }

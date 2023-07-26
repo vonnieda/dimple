@@ -1,5 +1,5 @@
 [package]
-name = "dimple-ui-slint"
+name = "slint-template"
 version = "0.1.0"
 authors = ["Jason von Nieda <jason@vonnieda.org>"]
 edition = "2021"
@@ -8,9 +8,7 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4.19"
-slint = "1.1.1"
-env_logger = "0.10.0"
+slint = "1.0"
 
 [build-dependencies]
-slint-build = "1.1"
+slint-build = "1.0"

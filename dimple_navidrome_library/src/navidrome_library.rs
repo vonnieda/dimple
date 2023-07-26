@@ -53,20 +53,25 @@ impl Library for NavidromeLibrary {
         let base_url = self.base_url();
 
         thread::spawn(move || {
+            // TODO try rewriting as async
             let pool = ThreadPool::default();
 
+            log::info!("Fetching artist list");
             for artist in sunk::Artist::list(&client, 0).unwrap() {
                 let sender = sender.clone();
                 let client = client.clone();
                 let base_url = base_url.clone();
+                let pool_1 = pool.clone();
                 pool.execute(move || {
-                    let pool = ThreadPool::default();
+                    // let pool = ThreadPool::default();
+                    log::info!("Fetching artist {}", artist.name);
                     for shallow_album in artist.albums(&client.clone()).unwrap() {
                         let client = client.clone();
                         let base_url = base_url.clone();
                         let artist = artist.clone();
                         let sender = sender.clone();
-                        pool.execute(move || {
+                        pool_1.execute(move || {
+                            log::info!("Fetching album {} - {}", artist.name, shallow_album.name);
                             let album = Album::get(&client, &shallow_album.id).unwrap();
                             let release = Self::sunk_artist_album_to_dimple_release(&base_url, 
                                 &artist, 
@@ -96,7 +101,7 @@ impl Library for NavidromeLibrary {
             cover_id: Some(id.to_string()),
             ..Default::default()
         };
-        log::debug!("Downloading {}", id);
+        log::info!("Downloading image {}", id);
         let client = self.new_client()?;
         let bytes = album.cover_art(&client, 0).map_err(|e| e.to_string())?;
         let dynamic_image = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
@@ -112,6 +117,7 @@ impl Library for NavidromeLibrary {
         let (_object_type, id) = self.un_url(&track.url);
         let client = self.new_client()?;
         let song = Song::get(&client, &id).unwrap();
+        log::info!("Streaming {}", id);
         song.stream(&client).map_err(|err| err.to_string())
     }
 }
