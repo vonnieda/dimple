@@ -1,0 +1,36 @@
+import { Button, VerticalBox , ScrollView, TextEdit, LineEdit} from "std-widgets.slint";
+import { CardGrid } from "card_grid.slint";
+import { Card, CardModel } from "card.slint";
+import { PlayerBar } from "player_bar.slint";
+import { NavBar } from "nav_bar.slint";
+
+export component AppWindow inherits Window {
+    preferred-width: 1440px;
+    preferred-height: 1024px;
+    default-font-size: 14px;
+
+    // TODO SOC we should just pass the AppWindow, or whatever it becomes, to
+    // the things that need to call on it, rather than bubbling the events.
+    callback nav-home <=> nav_bar.nav-home;
+    callback nav-albums <=> nav_bar.nav-albums;
+    callback nav-artists <=> nav_bar.nav-artists;
+    callback nav-genres <=> nav_bar.nav-genres;
+    callback nav-search <=> nav_bar.nav-search;
+
+    in property <[CardModel]> cards <=> card_grid.cards;
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 20px;
+
+        nav_bar := NavBar {  
+
+        }
+        card_grid := CardGrid {
+
+        }
+        player_bar := PlayerBar { 
+
+        }
+    }
+}

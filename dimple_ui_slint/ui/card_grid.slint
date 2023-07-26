@@ -1,0 +1,30 @@
+import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
+import { Card, CardModel } from "card.slint";
+
+
+// TODO the way Music does it's card image sizing is very smoove. It maintains
+// a constant margin on the left and right and then keeps the images between
+// about 170 and 235
+export component CardGrid inherits ScrollView {
+    min-width: 500px;
+    min-height: 500px;
+
+    // TODO this is causing a lot of problems; seems to be a race condition
+    // where as the cols changes when resizing it causing a brief lockup.
+    // Oh, looks like it only happens when resizing with mouse, not with a
+    // window action. So maybe events overloading.
+    property <int> cols: Math.floor(self.width / 1px / 270);
+
+    in property <[CardModel]> cards: [];
+
+    VerticalLayout {
+        spacing: 20px;
+        for row in Math.ceil(cards.length / cols): HorizontalLayout {
+            alignment: center;
+            spacing: 20px;
+            for col in cols: Card {
+                 model: cards[row * cols + col];
+            }
+        }
+    }
+}

@@ -1,5 +1,5 @@
 [package]
-name = "dimple-ui-slint"
+name = "dimple_ui_slint"
 version = "0.1.0"
 authors = ["Jason von Nieda <jason@vonnieda.org>"]
 edition = "2021"
@@ -15,6 +15,9 @@ dimple_core = { path = "../dimple_core" }
 dimple_player = { path = "../dimple_player" }
 dimple_sled_library = { path = "../dimple_sled_library" }
 dimple_navidrome_library = { path = "../dimple_navidrome_library" }
+serde = "1.0.175"
+config = "0.13.3"
+image = "0.24.6"
 
 
 [build-dependencies]

@@ -1,0 +1,31 @@
+import { Button , LineEdit} from "std-widgets.slint";
+export component NavBar inherits HorizontalLayout {
+    callback nav-home();
+    callback nav-albums();
+    callback nav-artists();
+    callback nav-genres();
+    callback nav-search(string);
+
+    spacing: 10px;
+    Button {
+        text: "Home";
+        clicked => { root.nav-home(); }
+    }
+    Button {
+        text: "Albums";
+        clicked => { root.nav-albums(); }
+    }
+    Button {
+        text: "Artists";
+        clicked => { root.nav-artists(); }
+    }
+    Button {
+        text: "Genres";
+        clicked => { root.nav-genres(); }
+    }
+    LineEdit {
+        horizontal-stretch: 1;
+        placeholder-text: "What sounds good?";
+        edited(text) => { root.nav-search(text); }
+    }
+}

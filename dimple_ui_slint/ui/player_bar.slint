@@ -1,0 +1,18 @@
+export component PlayerBar inherits Rectangle {
+    background: #aeaeae;
+    HorizontalLayout {
+        spacing: 10px;
+        Image {
+            source: @image-url("../images/dark.png");
+            width: 100px;
+        }    
+        VerticalLayout {
+            Text {
+                text: "Title";
+            }
+            Text {
+                text: "Artist";
+            }
+        }
+    }
+}

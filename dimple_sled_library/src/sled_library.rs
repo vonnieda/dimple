@@ -87,13 +87,13 @@ impl Library for SledLibrary {
         // Store Release art
         // TODO check if we already have the image, and decide if we're
         //      still going to merge, if so.
-        // for image in &release.art {
-        //     if let Ok(dynamic_image) = library.image(image) {
-        //         let url = &image.url;
-        //         log::info!("Storing image for {} at {}", release.title, url);
-        //         self.images.insert(url, &dynamic_image);
-        //     }
-        // }
+        for image in &release.art {
+            if let Ok(dynamic_image) = library.image(image) {
+                let url = &image.url;
+                log::info!("Storing image for {} at {}", release.title, url);
+                self.images.insert(url, &dynamic_image);
+            }
+        }
 
         // Store Release
         let json = serde_json::to_vec(release).unwrap();
