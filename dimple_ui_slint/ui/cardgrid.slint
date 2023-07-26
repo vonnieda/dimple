@@ -19,12 +19,51 @@ export component CardGrid inherits ScrollView {
         { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
         { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
         { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
+        { image: @image-url("../images/dark.png"), title: "The Ending Peace", sub-title: "War Without Thought" },
+        { image: @image-url("../images/dark.png"), title: "Dark Blue Pen", sub-title: "Human Emotion" },
+        { image: @image-url("../images/light.png"), title: "Flower Time", sub-title: "War" },
     ];
 
     VerticalLayout {
         spacing: 20px;
-        alignment: center;
         for row in Math.ceil(cards.length / cols): HorizontalLayout {
+            alignment: center;
             spacing: 20px;
             for col in cols: Card {
                  model: cards[row * cols + col];
