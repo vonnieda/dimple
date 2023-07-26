@@ -1,48 +1,5 @@
-import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
-
-export component Card inherits VerticalLayout {
-    spacing: 2px;
-    Rectangle {
-        border-radius: 6px;
-        clip: true;
-        Image {
-            source: @image-url("../images/light.png");
-            min-width: 250px;
-            min-height: 250px;
-        }    
-    }
-    Rectangle {
-        width: 1px;
-        height: 2px;
-    }
-    Text {
-        font-weight: 900;
-        text: "Focus Infinite Ring";
-    }
-    Text {
-        color: #5d5d5d;
-        text: "Jellyfish Brothers";
-    }
-}
-
-// TODO the way Music does it's card image sizing is very smoove. It maintains
-// a constant margin on the left and right and then keeps the images between
-// about 170 and 235
-export component CardGrid inherits ScrollView {
-    in-out property <int> n: 1000;
-    in-out property <int> cols: Math.floor(self.width / 1px / 270);
-
-    VerticalLayout {
-        spacing: 20px;
-        alignment: center;
-        for row in Math.ceil(n / cols): HorizontalLayout {
-            spacing: 20px;
-            for col in cols: Card {
-    
-            }
-        }
-    }
-}
+import { Button, VerticalBox , ScrollView, TextEdit, LineEdit} from "std-widgets.slint";
+import { CardGrid } from "cardgrid.slint";
 
 export component AppWindow inherits Window {
     preferred-width: 1440px;
@@ -51,13 +8,25 @@ export component AppWindow inherits Window {
 
     VerticalLayout {
         padding: 20px;
+        spacing: 10px;
 
         HorizontalLayout {
+            spacing: 10px;
             Button {
                 text: "Home";
             }
-            TextInput {
-                text: "Search";
+            Button {
+                text: "Albums";
+            }
+            Button {
+                text: "Artists";
+            }
+            Button {
+                text: "Genres";
+            }
+            LineEdit {
+                horizontal-stretch: 1;
+                placeholder-text: "What sounds good?";
             }
         }
         CardGrid {
