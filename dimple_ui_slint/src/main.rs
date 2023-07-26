@@ -91,8 +91,8 @@ fn nav_artists(library: LibraryHandle, ui: Weak<AppWindow>) {
         log::info!("Sending cards to UI.");
         ui.upgrade_in_event_loop(move |ui| { 
                 log::info!("Converting artist cards to card models.");
-                let cards: Vec<CardModel> = artist_cards.iter()
-                    .map(dynamic_image_card_to_card_model)
+                let cards: Vec<CardModel> = artist_cards.into_iter()
+                    .map(Into::into)
                     .collect();
 
                 log::info!("Setting cards.");
@@ -118,8 +118,8 @@ fn nav_albums(library: LibraryHandle, ui: Weak<AppWindow>) {
         log::info!("Sending cards to UI.");
         ui.upgrade_in_event_loop(move |ui| { 
                 log::info!("Converting album cards to card models.");
-                let cards: Vec<CardModel> = album_cards.iter()
-                    .map(dynamic_image_card_to_card_model)
+                let cards: Vec<CardModel> = album_cards.into_iter()
+                    .map(Into::into)
                     .collect();
 
                 log::info!("Setting cards.");
@@ -145,8 +145,8 @@ fn nav_genres(library: LibraryHandle, ui: Weak<AppWindow>) {
         log::info!("Sending cards to UI.");
         ui.upgrade_in_event_loop(move |ui| { 
                 log::info!("Converting cards to card models.");
-                let cards: Vec<CardModel> = cards.iter()
-                    .map(dynamic_image_card_to_card_model)
+                let cards: Vec<CardModel> = cards.into_iter()
+                    .map(Into::into)
                     .collect();
 
                 log::info!("Setting cards.");
@@ -202,11 +202,12 @@ fn genre_to_card(genre: &Genre, library: LibraryHandle) -> DynamicImageCard {
     }
 }
 
-fn dynamic_image_card_to_card_model(dynamic_image_card: &DynamicImageCard) -> CardModel {
-    CardModel {
-        title: dynamic_image_card.title.clone().into(),
-        sub_title: dynamic_image_card.sub_title.clone().into(),
-        image: dynamic_image_to_slint_image(&dynamic_image_card.image),
+impl From<DynamicImageCard> for CardModel {
+    fn from(value: DynamicImageCard) -> Self {
+        CardModel {
+            title: value.title.clone().into(),
+            sub_title: value.sub_title.clone().into(),
+            image: dynamic_image_to_slint_image(&value.image),
+        }
     }
 }
-
