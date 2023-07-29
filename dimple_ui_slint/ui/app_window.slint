@@ -4,14 +4,54 @@ import { Card, CardModel } from "card.slint";
 import { PlayerBar } from "player_bar.slint";
 import { NavBar } from "nav_bar.slint";
 
+import "../fonts/Manrope/fonts/ttf/Manrope-ExtraLight.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-Light.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-Regular.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-Medium.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-SemiBold.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
+
+import "../fonts/Noto_Sans/NotoSans-Thin.ttf";
+import "../fonts/Noto_Sans/NotoSans-ExtraLight.ttf";
+import "../fonts/Noto_Sans/NotoSans-Light.ttf";
+import "../fonts/Noto_Sans/NotoSans-Regular.ttf";
+import "../fonts/Noto_Sans/NotoSans-Medium.ttf";
+import "../fonts/Noto_Sans/NotoSans-SemiBold.ttf";
+import "../fonts/Noto_Sans/NotoSans-Bold.ttf";
+import "../fonts/Noto_Sans/NotoSans-ExtraBold.ttf";
+import "../fonts/Noto_Sans/NotoSans-Black.ttf";
+
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Thin.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraLight.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Light.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Regular.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Medium.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-SemiBold.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Bold.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraBold.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Black.ttf";
+
+import "../fonts/Roboto/Roboto-Thin.ttf";
+import "../fonts/Roboto/Roboto-Light.ttf";
+import "../fonts/Roboto/Roboto-Regular.ttf";
+import "../fonts/Roboto/Roboto-Medium.ttf";
+import "../fonts/Roboto/Roboto-Bold.ttf";
+import "../fonts/Roboto/Roboto-Black.ttf";
+
+export { Card }
+
 export component AppWindow inherits Window {
     preferred-width: 1440px;
     preferred-height: 1024px;
-    default-font-size: 14px;
+    default-font-size: 15px;
+    default-font-weight: 400;
+    // default-font-family: "Roboto";
+    // default-font-family: "Commissioner";
+    default-font-family: "Manrope";
+    // default-font-family: "NotoSans";
     title: "Dimple";
 
-    // TODO SOC we should just pass the AppWindow, or whatever it becomes, to
-    // the things that need to call on it, rather than bubbling the events.
     callback nav-home <=> nav_bar.nav-home;
     callback nav-albums <=> nav_bar.nav-albums;
     callback nav-artists <=> nav_bar.nav-artists;
@@ -20,6 +60,10 @@ export component AppWindow inherits Window {
 
     in property <[CardModel]> cards <=> card_grid.cards;
 
+    callback card-image-clicked <=> card_grid.card-image-clicked;
+
+    background: @linear-gradient(0deg, #43addb 0%, #edd0a0 50%, #b15bb3 100%);    
+    
     VerticalLayout {
         padding: 20px;
         spacing: 20px;

@@ -1,7 +1,6 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Card, CardModel } from "card.slint";
 
-
 // TODO the way Music does it's card image sizing is very smoove. It maintains
 // a constant margin on the left and right and then keeps the images between
 // about 170 and 235
@@ -15,7 +14,25 @@ export component CardGrid inherits ScrollView {
     // window action. So maybe events overloading.
     property <int> cols: Math.floor(self.width / 1px / 270);
 
-    in property <[CardModel]> cards: [];
+    in-out property <[CardModel]> cards: [
+        {
+            title: "Forbidden Triangle",
+            sub-title: "The Final Transformation Into A Happy, Appreciative Robot",
+            image: @image-url("../images/light.png"),
+        },
+        {
+            title: "Triforce Zenith",
+            sub-title: "Trap House",
+            image: @image-url("../images/dark.png"),
+        },
+        {
+            title: "Moist Owlette",
+            sub-title: "Suffering",
+            image: @image-url("../images/light.png"),
+        },
+    ];
+
+    callback card-image-clicked(string);
 
     VerticalLayout {
         spacing: 20px;
@@ -24,6 +41,7 @@ export component CardGrid inherits ScrollView {
             spacing: 20px;
             for col in cols: Card {
                  model: cards[row * cols + col];
+                 image-clicked => { root.card-image-clicked(self.model.url) }
             }
         }
     }

@@ -1365,6 +1365,8 @@ dependencies = [
  "env_logger",
  "image",
  "log",
+ "num-complex",
+ "rand 0.8.5",
  "serde",
  "slint",
  "slint-build",

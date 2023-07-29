@@ -17,12 +17,6 @@ pub struct RetainedImages {
 
 impl RetainedImages {
     pub fn new(library: LibraryHandle) -> Self {
-        // std::thread::spawn(|| {
-        //     loop {
-        //         log::info!("{} {}", self.retained_im)
-        //         std::thread::sleep(Duration::from_secs_f32(5.0));
-        //     }
-        // });
         Self {
             retained_images: Arc::new(RwLock::new(HashMap::new())),
             thread_pool: Arc::new(Mutex::new(ThreadPool::default())),

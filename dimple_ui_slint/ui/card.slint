@@ -7,32 +7,59 @@ export struct CardModel {
     title: string,
     // TODO eventually subtitles as they will all be links to artists.
     sub-title: string,
+    url: string,
 }
 
 export component Card inherits VerticalLayout {
     width: 250px;
     spacing: 2px;
 
-    in property <CardModel> model;
-    
-    Rectangle {
+    in property <CardModel> model: {
+        image: @image-url("../images/dark.png"),
+        title: "A Reign of Fish",
+        sub-title: "Fresh Pliers",
+        url: "internal://1231792128374089732402",
+    };
+    in property <string> url;
+
+    callback image-clicked(string);
+    callback title-clicked(string);
+    callback sub-title-clicked(string);
+
+    alignment: start;
+
+    image-area := TouchArea {
         width: 250px;
         height: 250px;
-        border-radius: 6px;
-        clip: true;
-        Image {
-            width: 250px;
-            height: 250px;
-            source: model.image;
-        }    
+        mouse-cursor: pointer;
+        clicked => { root.image-clicked(root.url); }
+        Rectangle {
+            width: 100%;
+            height: 100%;
+            border-radius: 5px;
+            clip: true;
+            Image {
+                width: 100%;
+                height: 100%;
+                source: model.image;
+            }    
+        }
     }
     Rectangle {}
-    Text {
-        font-weight: 900;
-        text: model.title;
+    title-area := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.title-clicked(root.url); }
+        title := Text {
+            font-weight: 600;
+            text: model.title;
+        }
     }
-    Text {
-        color: #5d5d5d;
-        text: model.sub-title;
+    sub-title-area := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.sub-title-clicked(root.url); }
+        Text {
+            text: model.sub-title;
+            wrap: no-wrap;
+        }
     }
 }

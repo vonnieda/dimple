@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use dimple_core::{library::{LibraryHandle, Library}, model::{HasArtwork, Artist, Release, Genre}};
-use dimple_ui_slint::{settings::Settings, librarian::Librarian};
-use image::{DynamicImage, RgbaImage};
-use slint::{SharedString, ModelRc, Image, SharedPixelBuffer, Rgba8Pixel, Weak};
+use dimple_core::{library::{LibraryHandle, Library}, model::{HasArtwork, Artist, Release, Genre, Image}};
+use dimple_player::player::Player;
+use dimple_ui_slint::{settings::Settings, librarian::Librarian, image};
+use ::image::{DynamicImage, RgbaImage, RgbImage};
+use slint::{SharedString, ModelRc, SharedPixelBuffer, Rgba8Pixel, Weak, Rgb8Pixel};
 
 slint::include_modules!();
 
@@ -11,7 +12,12 @@ struct DynamicImageCard {
     title: String,
     sub_title: String,
     image: DynamicImage,
+    url: String,
 }
+
+// TODO might try checking this in and then redoing it keeping the cardgrid
+// and card here. It would simplify the code so much to not have to bubble
+// stuff up and down all the time. Worth thinking about.
 
 fn main() -> Result<(), slint::PlatformError> {
     let mut builder = env_logger::Builder::new();
@@ -27,6 +33,10 @@ fn main() -> Result<(), slint::PlatformError> {
     log::info!("Loading libraries.");
     let librarian: Arc<Librarian> = Arc::new(Librarian::from(settings.libraries));
     let library: LibraryHandle = librarian.clone();
+
+    log::info!("Creating player.");
+    let library_1 = library.clone();
+    let player = Player::new(library_1);
 
     log::info!("Initializing UI.");
     let ui = AppWindow::new()?;
@@ -55,6 +65,12 @@ fn main() -> Result<(), slint::PlatformError> {
         nav_genres(library_1.clone(), ui_1.clone());
     });
 
+    let player_1 = player.clone();
+    ui.on_card_image_clicked(move |url: SharedString| {
+        // player_1.read().unwrap().queue_release(release)
+        println!("{}", url);
+    });
+
     ui.invoke_nav_home();
 
     // let ui_handle = ui.as_weak();
@@ -67,6 +83,16 @@ fn main() -> Result<(), slint::PlatformError> {
     //     log::info!("Refreshing libraries.");
     //     librarian.refresh_all_libraries();
     // });
+
+    // Launch a thread to monitor the player and update the player bar.
+    // TODO Do better.
+    let library_1 = library.clone();
+    let ui_1 = ui.as_weak();    
+    std::thread::spawn(move || {
+        loop {
+
+        }
+    });
 
     log::info!("Running UI.");
     ui.run()
@@ -157,16 +183,6 @@ fn nav_genres(library: LibraryHandle, ui: Weak<AppWindow>) {
     });
 }
 
-fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
-    let rgba8_image = dynamic_image.clone().into_rgba8();
-    let shared_pixbuf = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
-        rgba8_image.as_raw(),
-        rgba8_image.width(),
-        rgba8_image.height(),
-    );
-    slint::Image::from_rgba8(shared_pixbuf)
-}
-
 fn artist_to_card(artist: &Artist, library: LibraryHandle) -> DynamicImageCard {
     // TODO wow, yikes. How many times do we clone / shuffle the
     // image data here?
@@ -177,6 +193,7 @@ fn artist_to_card(artist: &Artist, library: LibraryHandle) -> DynamicImageCard {
         title: artist.name.clone(),
         sub_title: "".into(),
         image: dynamic_image,
+        url: artist.url.clone(),
     }
 }
 
@@ -188,6 +205,7 @@ fn release_to_card(release: &Release, library: LibraryHandle) -> DynamicImageCar
         title: release.title.clone(),
         sub_title: release.artist(),
         image: dynamic_image,
+        url: release.url.clone(),
     }
 }
 
@@ -198,8 +216,30 @@ fn genre_to_card(genre: &Genre, library: LibraryHandle) -> DynamicImageCard {
     DynamicImageCard {
         title: genre.name.clone(),
         sub_title: "".into(),
-        image: RgbaImage::new(500, 500).into(),
+        image: crate::image::generate_abstract_image(500, 500, &[], &[]),
+        url: genre.url.clone(),
     }
+}
+
+// fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
+//     let rgba8_image = dynamic_image.clone().into_rgba8();
+//     let shared_pixbuf = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+//         rgba8_image.as_raw(),
+//         rgba8_image.width(),
+//         rgba8_image.height(),
+//     );
+//     slint::Image::from_rgba8(shared_pixbuf)
+// }
+
+fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
+    // TODO may be possible to limit the number of copies here
+    let rgb8_image = dynamic_image.clone().into_rgb8();
+    let shared_pixbuf = SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(
+        rgb8_image.as_raw(),
+        rgb8_image.width(),
+        rgb8_image.height(),
+    );
+    slint::Image::from_rgb8(shared_pixbuf)
 }
 
 impl From<DynamicImageCard> for CardModel {
@@ -208,6 +248,13 @@ impl From<DynamicImageCard> for CardModel {
             title: value.title.clone().into(),
             sub_title: value.sub_title.clone().into(),
             image: dynamic_image_to_slint_image(&value.image),
+            url: value.url.into(),
         }
     }
 }
+
+// /// Load the given image from cache, or from the library and then cache it,
+// /// and return it.
+// fn dimple_image_to_dynamic_image(dimple_image: &Image, library: &dyn Library) -> DynamicImage {
+// }
+

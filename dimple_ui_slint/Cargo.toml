@@ -18,6 +18,8 @@ dimple_navidrome_library = { path = "../dimple_navidrome_library" }
 serde = "1.0.175"
 config = "0.13.3"
 image = "0.24.6"
+num-complex = "0.4.3"
+rand = "0.8.5"
 
 
 [build-dependencies]
