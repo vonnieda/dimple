@@ -1,4 +1,5 @@
 import { Slider } from "std-widgets.slint";
+import { Palette } from "common.slint";
 
 export component PlayerBar inherits Rectangle {
     in property <image> current-image;
@@ -16,12 +17,12 @@ export component PlayerBar inherits Rectangle {
         Rectangle {
             width: img.width;
             height: img.height;
-            border-radius: 5px;
+            border-radius: Palette.image-border-radius;
             clip: true;
             img := Image {
                 source: @image-url("../images/dark.png");
-                width: 120px;
-                height: 120px;
+                width: Palette.image-width-medium;
+                height: Palette.image-width-medium;
             }    
         }
         Rectangle {
@@ -38,9 +39,9 @@ export component PlayerBar inherits Rectangle {
                         
                     }
                     Text {
-                        font-weight: 600;
-                        font-size: 16px;
-                        color: black;
+                        font-size: Palette.font-size-medium;
+                        font-weight: Palette.font-weight-title;
+                        color: Palette.text-color-title;
                         text: "Trap Party in the Trap House";
                         vertical-alignment: bottom;
                     }
@@ -53,8 +54,9 @@ export component PlayerBar inherits Rectangle {
                         width: 20px;
                     }
                     Text {
-                        color: #000000;
-                        font-size: 16px;
+                        font-size: Palette.font-size-medium;
+                        font-weight: Palette.font-weight-sub-title;
+                        color: Palette.text-color-sub-title;
                         text: "Trappin' in Kawaii 2023";
                         vertical-alignment: bottom;
                     }
@@ -67,8 +69,9 @@ export component PlayerBar inherits Rectangle {
                         width: 20px;
                     }
                     Text {
-                        color: #000000;
-                        font-size: 16px;
+                        font-size: Palette.font-size-medium;
+                        font-weight: Palette.font-weight-sub-title;
+                        color: Palette.text-color-sub-title;
                         text: "Grid of Benjamins";
                         vertical-alignment: bottom;
                     }
@@ -82,12 +85,12 @@ export component PlayerBar inherits Rectangle {
                 HorizontalLayout {
                     Text {
                         text: "09:30";
-                        font-size: 12px;
+                        font-size: Palette.font-size-small;
                     }
                     Text {
                         horizontal-alignment: right;
                         text: "09:30";
-                        font-size: 12px;
+                        font-size: Palette.font-size-small;
                     }
                 }
             }
@@ -95,30 +98,34 @@ export component PlayerBar inherits Rectangle {
         VerticalLayout {
             alignment: start;
             spacing: 2px;
-            width: r.width;
-            r := Rectangle {
-                width: img2.width;
-                height: img2.height;
-                border-radius: 5px;
-                clip: true;
-                img2 := Image {
-                    source: @image-url("../images/light.png");
-                    width: 70px;
-                    height: 70px;
-                }    
+            width: r.width * 1.5;
+            HorizontalLayout {
+                alignment: center;
+                r := Rectangle {
+                    width: img2.width;
+                    height: img2.height;
+                    border-radius: Palette.image-border-radius;
+                    clip: true;
+                    img2 := Image {
+                        source: @image-url("../images/light.png");
+                        width: Palette.image-width-small;
+                        height: Palette.image-width-small;
+                    }    
+                }
             }
             Text {
+                font-size: Palette.font-size-small;
+                font-weight: Palette.font-weight-title;
+                color: Palette.text-color-title;
                 horizontal-alignment: center;
-                font-weight: 600;
-                font-size: 11px;
-                color: #000;
                 text: "Finality Season";
                 wrap: word-wrap;
             }
             Text {
+                font-size: Palette.font-size-small;
+                font-weight: Palette.font-weight-sub-title;
+                color: Palette.text-color-sub-title;
                 horizontal-alignment: center;
-                font-size: 11px;
-                color: #000000;
                 text: "The Frigid Depths of the Heart of the Kit-Kat CEO";
                 wrap: word-wrap;
             }

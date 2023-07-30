@@ -12,22 +12,25 @@ import "../fonts/Manrope/fonts/ttf/Manrope-SemiBold.ttf";
 import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
 import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
 import { ArtistDetails } from "artist_details.slint";
+import { AlbumDetails } from "album_details.slint";
+
+import { Palette } from "common.slint";
 
 export component AppWindow inherits Window {
     callback navigate(string);
 
-    in-out property <int> page: 0;
+    in-out property <int> page: 1;
 
     preferred-width: 1440px;
     preferred-height: 1024px;
-    default-font-size: 15px;
-    default-font-weight: 400;
-    default-font-family: "Manrope";
+    default-font-size: Palette.font-size-default;
+    default-font-weight: Palette.font-weight-default;
+    default-font-family: Palette.font-family-default;
     title: "Dimple";
 
     // background: @linear-gradient(0deg, #43addb 0%, #edd0a0 50%, #b15bb3 100%);    
-    background: @linear-gradient(0deg, #b9efff 0%, #ffffff 50%, #ffaee8 100%);    
-    // background: @linear-gradient(0deg, #ff9cea 0%, #ffc7b3 50%, #ff96e8 100%);    
+    // background: @linear-gradient(0deg, #b9efff 0%, #ffffff 50%, #ffaee8 100%);    
+    background: @linear-gradient(0deg, #ff9cea 0%, #ffc7b3 50%, #ff96e8 100%);    
     
     VerticalLayout {
         padding: 20px;
@@ -37,11 +40,13 @@ export component AppWindow inherits Window {
             navigate(url) => { root.navigate(url); }
         }
         if page == 0: card_grid := CardGrid {
+            vertical-stretch: 1;
             navigate(url) => { root.navigate(url); }
         }   
         if page == 1: artist_details := ArtistDetails {  
+            vertical-stretch: 1;
         }
-        Rectangle {
+        if page == 2: album_details := AlbumDetails {  
             vertical-stretch: 1;
         }
         player_bar := PlayerBar { 

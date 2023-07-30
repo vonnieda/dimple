@@ -48,7 +48,7 @@ fn main() -> Result<(), slint::PlatformError> {
             else {
                 ui.set_page(1);
             }
-        })?;
+        }).unwrap();
     });
 
     log::info!("Running UI.");

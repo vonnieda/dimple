@@ -1,5 +1,6 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { ImageLink, Link } from "./common.slint";
+import { Palette } from "common.slint";
 
 export struct CardModel {
     image: ImageLink,
@@ -17,19 +18,19 @@ export component Card inherits VerticalLayout {
         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
     };
 
-    width: 250px;
+    width: Palette.image-width-large;
     spacing: 2px;
     alignment: start;
 
     image-area := TouchArea {
         width: root.width;
-        height: 250px;
+        height: Palette.image-width-large;
         mouse-cursor: pointer;
         clicked => { root.navigate(model.image.url); }
         Rectangle {
             width: 100%;
             height: 100%;
-            border-radius: 5px;
+            border-radius: Palette.image-border-radius;
             clip: true;
             Image {
                 width: 100%;
@@ -45,8 +46,10 @@ export component Card inherits VerticalLayout {
         mouse-cursor: pointer;
         clicked => { root.navigate(model.title.url); }
         title := Text {
+            font-size: Palette.font-size-medium;
+            font-weight: Palette.font-weight-title;
+            color: Palette.text-color-title;
             width: root.width;
-            font-weight: 600;
             text: model.title.name;
             wrap: word-wrap;
         }
@@ -55,6 +58,9 @@ export component Card inherits VerticalLayout {
         mouse-cursor: pointer;
         clicked => { root.navigate(model.sub-title.url); }
         Text {
+            font-size: Palette.font-size-medium;
+            font-weight: Palette.font-weight-sub-title;
+            color: Palette.text-color-sub-title;
             width: root.width;
             text: model.sub-title.name;
             wrap: word-wrap;

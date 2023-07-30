@@ -39,9 +39,6 @@ export component CardGrid inherits ScrollView {
     // window action. So maybe events overloading.
     property <int> cols: Math.floor(self.width / 1px / 270);
 
-    min-width: 500px;
-    min-height: 500px;
-
     VerticalLayout {
         spacing: 20px;
         for row in Math.ceil(model.cards.length / cols): HorizontalLayout {
