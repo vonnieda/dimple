@@ -1,7 +1,5 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 
-// TODO can this just be properties of the Card? Can I create cards in the Rust
-// code? Cause then I could set colors and all and that would be cool.
 export struct CardModel {
     image: image,
     title: string,
@@ -20,19 +18,18 @@ export component Card inherits VerticalLayout {
         sub-title: "Fresh Pliers",
         url: "internal://1231792128374089732402",
     };
-    in property <string> url;
 
-    callback image-clicked(string);
-    callback title-clicked(string);
-    callback sub-title-clicked(string);
+    callback image-clicked(CardModel);
+    callback title-clicked(CardModel);
+    callback sub-title-clicked(CardModel);
 
     alignment: start;
 
     image-area := TouchArea {
-        width: 250px;
+        width: root.width;
         height: 250px;
         mouse-cursor: pointer;
-        clicked => { root.image-clicked(root.url); }
+        clicked => { root.image-clicked(model); }
         Rectangle {
             width: 100%;
             height: 100%;
@@ -48,18 +45,21 @@ export component Card inherits VerticalLayout {
     Rectangle {}
     title-area := TouchArea {
         mouse-cursor: pointer;
-        clicked => { root.title-clicked(root.url); }
+        clicked => { root.title-clicked(model); }
         title := Text {
+            width: root.width;
             font-weight: 600;
             text: model.title;
+            wrap: word-wrap;
         }
     }
     sub-title-area := TouchArea {
         mouse-cursor: pointer;
-        clicked => { root.sub-title-clicked(root.url); }
+        clicked => { root.sub-title-clicked(model); }
         Text {
+            width: root.width;
             text: model.sub-title;
-            wrap: no-wrap;
+            wrap: word-wrap;
         }
     }
 }

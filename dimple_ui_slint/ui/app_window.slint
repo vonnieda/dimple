@@ -11,45 +11,14 @@ import "../fonts/Manrope/fonts/ttf/Manrope-Medium.ttf";
 import "../fonts/Manrope/fonts/ttf/Manrope-SemiBold.ttf";
 import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
 import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
-
-import "../fonts/Noto_Sans/NotoSans-Thin.ttf";
-import "../fonts/Noto_Sans/NotoSans-ExtraLight.ttf";
-import "../fonts/Noto_Sans/NotoSans-Light.ttf";
-import "../fonts/Noto_Sans/NotoSans-Regular.ttf";
-import "../fonts/Noto_Sans/NotoSans-Medium.ttf";
-import "../fonts/Noto_Sans/NotoSans-SemiBold.ttf";
-import "../fonts/Noto_Sans/NotoSans-Bold.ttf";
-import "../fonts/Noto_Sans/NotoSans-ExtraBold.ttf";
-import "../fonts/Noto_Sans/NotoSans-Black.ttf";
-
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Thin.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraLight.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Light.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Regular.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Medium.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-SemiBold.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Bold.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraBold.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Black.ttf";
-
-import "../fonts/Roboto/Roboto-Thin.ttf";
-import "../fonts/Roboto/Roboto-Light.ttf";
-import "../fonts/Roboto/Roboto-Regular.ttf";
-import "../fonts/Roboto/Roboto-Medium.ttf";
-import "../fonts/Roboto/Roboto-Bold.ttf";
-import "../fonts/Roboto/Roboto-Black.ttf";
-
-export { Card }
+import { ArtistDetails } from "artist_details.slint";
 
 export component AppWindow inherits Window {
     preferred-width: 1440px;
     preferred-height: 1024px;
     default-font-size: 15px;
     default-font-weight: 400;
-    // default-font-family: "Roboto";
-    // default-font-family: "Commissioner";
     default-font-family: "Manrope";
-    // default-font-family: "NotoSans";
     title: "Dimple";
 
     callback nav-home <=> nav_bar.nav-home;
@@ -61,8 +30,14 @@ export component AppWindow inherits Window {
     in property <[CardModel]> cards <=> card_grid.cards;
 
     callback card-image-clicked <=> card_grid.card-image-clicked;
+    callback card-title-clicked <=> card_grid.card-title-clicked;
+    callback card-sub-title-clicked <=> card_grid.card-sub-title-clicked;
 
-    background: @linear-gradient(0deg, #43addb 0%, #edd0a0 50%, #b15bb3 100%);    
+    // background: @linear-gradient(0deg, #43addb 0%, #edd0a0 50%, #b15bb3 100%);    
+    background: @linear-gradient(0deg, #b9efff 0%, #ffffff 50%, #ffaee8 100%);    
+    // background: @linear-gradient(0deg, #ff9cea 0%, #ffc7b3 50%, #ff96e8 100%);    
+
+    property <int> page: 0;
     
     VerticalLayout {
         padding: 20px;
@@ -71,8 +46,14 @@ export component AppWindow inherits Window {
         nav_bar := NavBar {  
 
         }
+        // if page == 0: 
         card_grid := CardGrid {
-
+        }   
+        // if page == 1: 
+        artist_details := ArtistDetails {  
+        }
+        Rectangle {
+            vertical-stretch: 1;
         }
         player_bar := PlayerBar { 
 

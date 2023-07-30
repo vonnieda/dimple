@@ -1,9 +1,6 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Card, CardModel } from "card.slint";
 
-// TODO the way Music does it's card image sizing is very smoove. It maintains
-// a constant margin on the left and right and then keeps the images between
-// about 170 and 235
 export component CardGrid inherits ScrollView {
     min-width: 500px;
     min-height: 500px;
@@ -32,7 +29,9 @@ export component CardGrid inherits ScrollView {
         },
     ];
 
-    callback card-image-clicked(string);
+    callback card-image-clicked(CardModel);
+    callback card-title-clicked(CardModel);
+    callback card-sub-title-clicked(CardModel);
 
     VerticalLayout {
         spacing: 20px;
@@ -41,7 +40,9 @@ export component CardGrid inherits ScrollView {
             spacing: 20px;
             for col in cols: Card {
                  model: cards[row * cols + col];
-                 image-clicked => { root.card-image-clicked(self.model.url) }
+                 image-clicked => { root.card-image-clicked(self.model) }
+                 title-clicked => { root.card-title-clicked(self.model) }
+                 sub-title-clicked => { root.card-sub-title-clicked(self.model) }
             }
         }
     }

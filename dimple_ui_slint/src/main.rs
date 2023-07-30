@@ -66,9 +66,9 @@ fn main() -> Result<(), slint::PlatformError> {
     });
 
     let player_1 = player.clone();
-    ui.on_card_image_clicked(move |url: SharedString| {
+    ui.on_card_image_clicked(move |model: CardModel| {
         // player_1.read().unwrap().queue_release(release)
-        println!("{}", url);
+        println!("{}", model.url);
     });
 
     ui.invoke_nav_home();

@@ -1,0 +1,27 @@
+import { HorizontalBox } from "std-widgets.slint";
+export struct ArtistDetailsModel {
+
+}
+
+export component ArtistDetails inherits VerticalLayout {
+    alignment: start;
+    HorizontalLayout {
+        spacing: 10px;
+        alignment: start;
+        Image {
+            width: 200px;
+            height: 200px;
+            source: @image-url("../images/light.png");
+        }
+        VerticalLayout {
+            alignment: start;
+            Text {
+                text: "Artist Name";
+                font-size: 32px;
+            }
+            Text {
+                text: "in Atomospheric Black Metal, Black Metal, Drone, Hard Rock & Metal, Metal, Rock";
+            }
+        }
+    }
+}
