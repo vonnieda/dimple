@@ -3,6 +3,9 @@ import { CardGrid } from "card_grid.slint";
 import { Card, CardModel } from "card.slint";
 import { PlayerBar } from "player_bar.slint";
 import { NavBar } from "nav_bar.slint";
+import { ArtistDetails } from "artist_details.slint";
+import { ReleaseDetails } from "release_details.slint";
+import { Palette, Navigator } from "common.slint";
 
 import "../fonts/Manrope/fonts/ttf/Manrope-ExtraLight.ttf";
 import "../fonts/Manrope/fonts/ttf/Manrope-Light.ttf";
@@ -11,15 +14,11 @@ import "../fonts/Manrope/fonts/ttf/Manrope-Medium.ttf";
 import "../fonts/Manrope/fonts/ttf/Manrope-SemiBold.ttf";
 import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
 import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
-import { ArtistDetails } from "artist_details.slint";
-import { AlbumDetails } from "album_details.slint";
 
-import { Palette } from "common.slint";
+export { Navigator }
 
 export component AppWindow inherits Window {
-    callback navigate(string);
-
-    in-out property <int> page: 1;
+    in-out property <int> page: 0;
 
     preferred-width: 1440px;
     preferred-height: 1024px;
@@ -37,16 +36,16 @@ export component AppWindow inherits Window {
         spacing: 20px;
 
         nav_bar := NavBar {  
-            navigate(url) => { root.navigate(url); }
+            navigate(url) => { Navigator.navigate(url); }
         }
-        if page == 0: card_grid := CardGrid {
+        if page == 0: CardGrid {
+            navigate(url) => { Navigator.navigate(url); }
             vertical-stretch: 1;
-            navigate(url) => { root.navigate(url); }
         }   
-        if page == 1: artist_details := ArtistDetails {  
+        if page == 1: ArtistDetails {  
             vertical-stretch: 1;
         }
-        if page == 2: album_details := AlbumDetails {  
+        if page == 2: ReleaseDetails {  
             vertical-stretch: 1;
         }
         player_bar := PlayerBar { 

@@ -39,14 +39,17 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let library_1 = library.clone();
     let ui_1 = ui.as_weak();
-    ui.on_navigate(move |url| {
+    ui.global::<Navigator>().on_navigate(move |url| {
+        println!("{}", url);
         ui_1.upgrade_in_event_loop(move |ui| {
-            println!("{}", url);
-            if url.starts_with("dimple://home") {
-                ui.set_page(0);
+            if url.starts_with("dimple://artists") {
+                ui.set_page(1);
+            }
+            else if url.starts_with("dimple://releases") {
+                ui.set_page(2);
             }
             else {
-                ui.set_page(1);
+                ui.set_page(0);
             }
         }).unwrap();
     });
