@@ -1,9 +1,37 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Card, CardModel } from "card.slint";
 
+export struct CardGridModel {
+    cards: [CardModel],
+}
+
 export component CardGrid inherits ScrollView {
-    min-width: 500px;
-    min-height: 500px;
+    callback navigate(string);
+
+    in-out property <CardGridModel> model: {
+        cards: [
+            {
+                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+            },
+            {
+                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+            },
+            {
+                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+            },
+            {
+                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+            },
+        ]
+    };
 
     // TODO this is causing a lot of problems; seems to be a race condition
     // where as the cols changes when resizing it causing a brief lockup.
@@ -11,38 +39,17 @@ export component CardGrid inherits ScrollView {
     // window action. So maybe events overloading.
     property <int> cols: Math.floor(self.width / 1px / 270);
 
-    in-out property <[CardModel]> cards: [
-        {
-            title: "Forbidden Triangle",
-            sub-title: "The Final Transformation Into A Happy, Appreciative Robot",
-            image: @image-url("../images/light.png"),
-        },
-        {
-            title: "Triforce Zenith",
-            sub-title: "Trap House",
-            image: @image-url("../images/dark.png"),
-        },
-        {
-            title: "Moist Owlette",
-            sub-title: "Suffering",
-            image: @image-url("../images/light.png"),
-        },
-    ];
-
-    callback card-image-clicked(CardModel);
-    callback card-title-clicked(CardModel);
-    callback card-sub-title-clicked(CardModel);
+    min-width: 500px;
+    min-height: 500px;
 
     VerticalLayout {
         spacing: 20px;
-        for row in Math.ceil(cards.length / cols): HorizontalLayout {
+        for row in Math.ceil(model.cards.length / cols): HorizontalLayout {
             alignment: center;
             spacing: 20px;
             for col in cols: Card {
-                 model: cards[row * cols + col];
-                 image-clicked => { root.card-image-clicked(self.model) }
-                 title-clicked => { root.card-title-clicked(self.model) }
-                 sub-title-clicked => { root.card-sub-title-clicked(self.model) }
+                 model: model.cards[row * cols + col];
+                 navigate(url) => { root.navigate(url); }
             }
         }
     }

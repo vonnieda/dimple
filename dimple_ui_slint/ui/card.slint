@@ -1,35 +1,31 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
+import { ImageLink, Link } from "./common.slint";
 
 export struct CardModel {
-    image: image,
-    title: string,
-    // TODO eventually subtitles as they will all be links to artists.
-    sub-title: string,
-    url: string,
+    image: ImageLink,
+    title: Link,
+    // TODO eventually an array
+    sub-title: Link,
 }
 
 export component Card inherits VerticalLayout {
-    width: 250px;
-    spacing: 2px;
+    callback navigate(string);
 
     in property <CardModel> model: {
-        image: @image-url("../images/dark.png"),
-        title: "A Reign of Fish",
-        sub-title: "Fresh Pliers",
-        url: "internal://1231792128374089732402",
+        image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+        title: {name: "A Reign of Fish",url: "internal://release/1234"},
+        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
     };
 
-    callback image-clicked(CardModel);
-    callback title-clicked(CardModel);
-    callback sub-title-clicked(CardModel);
-
+    width: 250px;
+    spacing: 2px;
     alignment: start;
 
     image-area := TouchArea {
         width: root.width;
         height: 250px;
         mouse-cursor: pointer;
-        clicked => { root.image-clicked(model); }
+        clicked => { root.navigate(model.image.url); }
         Rectangle {
             width: 100%;
             height: 100%;
@@ -38,27 +34,29 @@ export component Card inherits VerticalLayout {
             Image {
                 width: 100%;
                 height: 100%;
-                source: model.image;
+                source: model.image.image;
+                accessible-role: button;
+                accessible-description: model.image.name;
             }    
         }
     }
     Rectangle {}
     title-area := TouchArea {
         mouse-cursor: pointer;
-        clicked => { root.title-clicked(model); }
+        clicked => { root.navigate(model.title.url); }
         title := Text {
             width: root.width;
             font-weight: 600;
-            text: model.title;
+            text: model.title.name;
             wrap: word-wrap;
         }
     }
     sub-title-area := TouchArea {
         mouse-cursor: pointer;
-        clicked => { root.sub-title-clicked(model); }
+        clicked => { root.navigate(model.sub-title.url); }
         Text {
             width: root.width;
-            text: model.sub-title;
+            text: model.sub-title.name;
             wrap: word-wrap;
         }
     }

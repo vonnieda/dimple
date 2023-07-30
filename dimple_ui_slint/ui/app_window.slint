@@ -14,6 +14,10 @@ import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
 import { ArtistDetails } from "artist_details.slint";
 
 export component AppWindow inherits Window {
+    callback navigate(string);
+
+    in-out property <int> page: 0;
+
     preferred-width: 1440px;
     preferred-height: 1024px;
     default-font-size: 15px;
@@ -21,36 +25,21 @@ export component AppWindow inherits Window {
     default-font-family: "Manrope";
     title: "Dimple";
 
-    callback nav-home <=> nav_bar.nav-home;
-    callback nav-albums <=> nav_bar.nav-albums;
-    callback nav-artists <=> nav_bar.nav-artists;
-    callback nav-genres <=> nav_bar.nav-genres;
-    callback nav-search <=> nav_bar.nav-search;
-
-    in property <[CardModel]> cards <=> card_grid.cards;
-
-    callback card-image-clicked <=> card_grid.card-image-clicked;
-    callback card-title-clicked <=> card_grid.card-title-clicked;
-    callback card-sub-title-clicked <=> card_grid.card-sub-title-clicked;
-
     // background: @linear-gradient(0deg, #43addb 0%, #edd0a0 50%, #b15bb3 100%);    
     background: @linear-gradient(0deg, #b9efff 0%, #ffffff 50%, #ffaee8 100%);    
     // background: @linear-gradient(0deg, #ff9cea 0%, #ffc7b3 50%, #ff96e8 100%);    
-
-    property <int> page: 0;
     
     VerticalLayout {
         padding: 20px;
         spacing: 20px;
 
         nav_bar := NavBar {  
-
+            navigate(url) => { root.navigate(url); }
         }
-        // if page == 0: 
-        card_grid := CardGrid {
+        if page == 0: card_grid := CardGrid {
+            navigate(url) => { root.navigate(url); }
         }   
-        // if page == 1: 
-        artist_details := ArtistDetails {  
+        if page == 1: artist_details := ArtistDetails {  
         }
         Rectangle {
             vertical-stretch: 1;
