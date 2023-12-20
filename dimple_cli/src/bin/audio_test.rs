@@ -30,17 +30,17 @@ fn main() {
     let supported_config = supported_configs_range.next()
         .expect("no supported config?!")
         .with_max_sample_rate();
-    let err_fn = |err| eprintln!("an error occurred on the output audio stream: {}", err);
-    let sample_format = supported_config.sample_format();
-    let config = supported_config.into();
-    let source = SineWave::new(440.0);
-    let stream = match sample_format {
-        SampleFormat::F32 => device.build_output_stream(&config, source.write, err_fn, None),
-        // SampleFormat::I16 => device.build_output_stream(&config, write_silence::<i16>, err_fn, None),
-        // SampleFormat::U16 => device.build_output_stream(&config, write_silence::<u16>, err_fn, None),
-        sample_format => panic!("Unsupported sample format '{sample_format}'")
-    }.unwrap();
-    stream.play().unwrap();    
+    // let err_fn = |err| eprintln!("an error occurred on the output audio stream: {}", err);
+    // let sample_format = supported_config.sample_format();
+    // let config = supported_config.into();
+    // let source = SineWave::new(440.0);
+    // let stream = match sample_format {
+    //     SampleFormat::F32 => device.build_output_stream(&config, source.write, err_fn, None),
+    //     // SampleFormat::I16 => device.build_output_stream(&config, write_silence::<i16>, err_fn, None),
+    //     // SampleFormat::U16 => device.build_output_stream(&config, write_silence::<u16>, err_fn, None),
+    //     sample_format => panic!("Unsupported sample format '{sample_format}'")
+    // }.unwrap();
+    // stream.play().unwrap();    
     std::thread::sleep(Duration::from_secs(2));
 }
 

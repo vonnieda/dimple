@@ -6,3 +6,20 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+env_logger = "0.10.0"
+fuzzy-matcher = "*"
+image = { version = "0.24.5", features = ["jpeg", "png"] }
+log = "0.4.17"
+url = "2.3.1"
+ulid = "1.0.0"
+serde_yaml = "0.9.19"
+config = "0.13.3"
+serde = { version = "1.0.158", features = ["derive"] }
+dimple_core = { path = "../dimple_core" }
+dimple_player = { path = "../dimple_player" }
+dimple_sled_library = { path = "../dimple_sled_library" }
+dimple_navidrome_library = { path = "../dimple_navidrome_library" }
+threadpool = "1.8.1"
+cpal = "0.15.2"
+rust-s3 = { version = "0.33.0", features = ["sync-native-tls"], default-features = false }
+

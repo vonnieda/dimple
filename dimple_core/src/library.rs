@@ -30,7 +30,7 @@ pub trait Library: Send + Sync {
         todo!();
     }
 
-    // These shorcuts can probably be moved to a Queries sub-type or something.
+    // These shortcuts can probably be moved to a Queries sub-type or something.
     fn releases_by_artist(&self, artist: &Artist) -> Vec<Release> {
         let mut releases = self.releases()
             .iter()
