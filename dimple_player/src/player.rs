@@ -183,6 +183,9 @@ pub struct QueueItem {
     pub track: Track,
 }
 
+// TODO I think it would have been better to put the locks in the objects,
+// rather than complicating every function signature by having to pass
+// around these handles.
 pub type PlayerHandle = Arc<RwLock<Player>>;
 
 #[derive(Clone)]
