@@ -1,0 +1,13 @@
+[package]
+name = "dimple_s3cs_library"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dimple_core = { path = "../dimple_core" }
+# dimple_player = { path = "../dimple_player" }
+# dimple_sled_library = { path = "../dimple_sled_library" }
+rust-s3 = { version = "0.33.0", features = ["sync-native-tls"], default-features = false }
+

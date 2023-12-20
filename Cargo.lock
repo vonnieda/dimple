@@ -1666,6 +1666,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "dimple_s3cs_library"
+version = "0.1.0"
+dependencies = [
+ "dimple_core",
+ "rust-s3",
+]
+
+[[package]]
 name = "dimple_sled_library"
 version = "0.1.0"
 dependencies = [
@@ -1708,10 +1716,6 @@ name = "dimple_ui_slint"
 version = "0.1.0"
 dependencies = [
  "config",
- "dimple_core",
- "dimple_navidrome_library",
- "dimple_player",
- "dimple_sled_library",
  "env_logger",
  "image",
  "log",

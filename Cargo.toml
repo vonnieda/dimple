@@ -3,6 +3,7 @@ members = [
     "dimple_core",
     "dimple_sled_library",
     "dimple_navidrome_library",
+    "dimple_s3cs_library",
     # "dimple_folder_library",
     "dimple_player",
     "dimple_cli",
