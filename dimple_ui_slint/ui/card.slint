@@ -1,6 +1,7 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { ImageLink, Link } from "./common.slint";
 import { Palette, Navigator } from "common.slint";
+import {StyleMetrics} from "std-widgets.slint";
 
 export struct CardModel {
     image: ImageLink,
@@ -28,7 +29,9 @@ export component Card inherits VerticalLayout {
         Rectangle {
             width: 100%;
             height: 100%;
-            // border-radius: Palette.image-border-radius;
+            border-radius: Palette.image-border-radius;
+            border-width: Palette.image-border-width;
+            border-color: Palette.image-border-color;
             clip: true;
             Image {
                 width: 100%;
@@ -44,9 +47,6 @@ export component Card inherits VerticalLayout {
         mouse-cursor: pointer;
         clicked => { Navigator.navigate(model.title.url); }
         title := Text {
-            // font-size: Palette.font-size-medium;
-            // font-weight: Palette.font-weight-title;
-            // color: Palette.text-color-title;
             width: root.width;
             text: model.title.name;
             wrap: word-wrap;
@@ -56,9 +56,6 @@ export component Card inherits VerticalLayout {
         mouse-cursor: pointer;
         clicked => { Navigator.navigate(model.sub-title.url); }
         Text {
-            // font-size: Palette.font-size-medium;
-            // font-weight: Palette.font-weight-sub-title;
-            // color: Palette.text-color-sub-title;
             width: root.width;
             text: model.sub-title.name;
             wrap: word-wrap;

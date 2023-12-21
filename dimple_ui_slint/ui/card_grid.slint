@@ -1,6 +1,7 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Card, CardModel } from "card.slint";
 import { Palette, Navigator } from "common.slint";
+import {StyleMetrics} from "std-widgets.slint";
 
 export struct CardGridModel {
     cards: [CardModel],
@@ -101,15 +102,17 @@ export component CardGrid inherits ScrollView {
     // where as the cols changes when resizing it causing a brief lockup.
     // Oh, looks like it only happens when resizing with mouse, not with a
     // window action. So maybe events overloading.
+    // TODO magic 270?
     property <int> cols: Math.floor(self.width / 1px / 270);
 
     property <bool> last_row;
     VerticalLayout {
-        spacing: 20px;
+        spacing: StyleMetrics.layout-spacing * 2;
+        padding-right: StyleMetrics.layout-padding * 2;
         alignment: start;
         for row in Math.ceil(model.cards.length / cols): HorizontalLayout {
             alignment: space-between;
-            spacing: 20px;
+            spacing: StyleMetrics.layout-spacing * 2;
             for col in Math.min(cols, model.cards.length - Math.floor(model.cards.length / cols)): Card {
                  model: model.cards[row * cols + col];
             }

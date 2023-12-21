@@ -3,7 +3,7 @@ import { Navigator } from "common.slint";
 
 export component NavBar inherits HorizontalBox {
     padding: 0px;
-    
+
     Button {
         text: "Home";
         clicked => { Navigator.navigate("dimple://home"); }
@@ -23,7 +23,7 @@ export component NavBar inherits HorizontalBox {
     }
     LineEdit {
         horizontal-stretch: 1;
-        placeholder-text: "What sounds good?";
+        placeholder-text: "Search for artists, albums, songs, genres, lyrics, etc.";
         edited(query) => { Navigator.navigate("dimple://search/" + query); }
     }
 }

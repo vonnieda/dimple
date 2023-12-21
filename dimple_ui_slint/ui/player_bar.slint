@@ -1,5 +1,6 @@
 import { Slider , GroupBox, HorizontalBox} from "std-widgets.slint";
 import { Palette } from "common.slint";
+import {StyleMetrics} from "std-widgets.slint";
 
 export component PlayerBar {
     in property <image> current-image;
@@ -8,10 +9,13 @@ export component PlayerBar {
     in property <string> current-artist;
 
     HorizontalLayout {
-        spacing: 16px;
+        spacing: StyleMetrics.layout-spacing * 2;
         Rectangle {
             width: img.width;
             height: img.height;
+            border-radius: Palette.image-border-radius;
+            border-width: Palette.image-border-width;
+            border-color: Palette.image-border-color;
             clip: true;
             img := Image {
                 source: @image-url("../images/dark.png");
@@ -87,6 +91,9 @@ export component PlayerBar {
                 r := Rectangle {
                     width: img2.width;
                     height: img2.height;
+                    border-radius: Palette.image-border-radius;
+                    border-width: Palette.image-border-width;
+                    border-color: Palette.image-border-color;
                     clip: true;
                     img2 := Image {
                         source: @image-url("../images/light.png");
