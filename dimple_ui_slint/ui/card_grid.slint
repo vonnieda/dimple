@@ -98,12 +98,7 @@ export component CardGrid inherits ScrollView {
         ]
     };
 
-    // TODO this is causing a lot of problems; seems to be a race condition
-    // where as the cols changes when resizing it causing a brief lockup.
-    // Oh, looks like it only happens when resizing with mouse, not with a
-    // window action. So maybe events overloading.
-    // TODO magic 270?
-    property <int> cols: Math.floor(self.width / 1px / 270);
+    property <int> cols: Math.floor(self.width / (Palette.image-width-large + StyleMetrics.layout-spacing * 2 + StyleMetrics.layout-padding * 2));
 
     property <bool> last_row;
     VerticalLayout {
