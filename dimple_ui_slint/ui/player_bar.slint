@@ -29,42 +29,46 @@ export component PlayerBar {
             VerticalLayout {
                 spacing: 2px;
                 HorizontalLayout {
-                    spacing: 2px;
+                    spacing: 4px;
                     Image {
                         source: @image-url("../icons/phosphor/SVGs/bold/music-notes-bold.svg");
-                        height: 20px;
-                        width: 20px;
+                        height: 1.5rem;
+                        width: 1.5rem;
                         colorize: StyleMetrics.default-text-color;
                     }
                     Text {
                         text: "Trap Party in the Trap House";
-                        vertical-alignment: bottom;
+                        vertical-alignment: center;
+                        font-size: 1.5rem;
+                        font-weight: 700;
                     }
                 }
                 HorizontalLayout {
-                    spacing: 2px;
+                    spacing: 4px;
                     Image {
                         source: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
-                        height: 20px;
-                        width: 20px;
+                        height: 1.5rem;
+                        width: 1.5rem;
                         colorize: StyleMetrics.default-text-color;
                     }
                     Text {
                         text: "Trappin' in Kawaii 2023";
-                        vertical-alignment: bottom;
+                        vertical-alignment: center;
+                        font-size: 1.5rem;
                     }
                 }
                 HorizontalLayout {
-                    spacing: 2px;
+                    spacing: 4px;
                     Image {
                         source: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
-                        height: 20px;
-                        width: 20px;
+                        height: 1.5rem;
+                        width: 1.5rem;
                         colorize: StyleMetrics.default-text-color;
                     }
                     Text {
                         text: "Grid of Benjamins";
-                        vertical-alignment: bottom;
+                        vertical-alignment: center;
+                        font-size: 1.5rem;
                     }
                 }
                 Rectangle {
