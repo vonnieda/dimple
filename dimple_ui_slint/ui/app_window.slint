@@ -1,4 +1,4 @@
-import { Button, VerticalBox , ScrollView, TextEdit, LineEdit} from "std-widgets.slint";
+import { Button, VerticalBox , ScrollView, TextEdit, LineEdit, GroupBox} from "std-widgets.slint";
 import { CardGrid, CardGridModel } from "card_grid.slint";
 import { Card, CardModel } from "card.slint";
 import { PlayerBar } from "player_bar.slint";
@@ -39,23 +39,31 @@ export component AppWindow inherits Window {
     title: "Dimple";
 
     VerticalLayout {
-        padding: 8px;
-        spacing: 8px;
-
-        nav_bar := NavBar {  
+        padding: 16px;
+        padding-top: 0px;
+        GroupBox {
+            vertical-stretch: 0;
+            NavBar {  
+                spacing: 8px;
+            }
         }
-        if page == 0: CardGrid {
-            vertical-stretch: 1;
-            model: root.card-grid-model;
-        }   
-        if page == 1: ArtistDetails {  
-            vertical-stretch: 1;
+        if page == 0: GroupBox { 
+            CardGrid {
+                // model: root.card-grid-model;
+            }
         }
-        if page == 2: ReleaseDetails {  
-            vertical-stretch: 1;
+        if page == 1: GroupBox {
+            ArtistDetails {  
+            }            
         }
-        player_bar := PlayerBar { 
-
+        if page == 2: GroupBox {
+            ReleaseDetails {  
+            }
+        }
+        GroupBox {
+            vertical-stretch: 0;
+            PlayerBar { 
+            }
         }
     }
 }

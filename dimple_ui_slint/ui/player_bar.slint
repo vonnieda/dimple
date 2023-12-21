@@ -1,23 +1,17 @@
-import { Slider } from "std-widgets.slint";
+import { Slider , GroupBox, HorizontalBox} from "std-widgets.slint";
 import { Palette } from "common.slint";
 
-export component PlayerBar inherits Rectangle {
+export component PlayerBar {
     in property <image> current-image;
     in property <string> current-title;
     in property <string> current-release;
     in property <string> current-artist;
 
-    background: #ffffff69;
-    border-radius: 10px;
-    clip: true;
     HorizontalLayout {
-        spacing: 10px;
-        padding: 10px;
-
+        spacing: 16px;
         Rectangle {
             width: img.width;
             height: img.height;
-            // border-radius: Palette.image-border-radius;
             clip: true;
             img := Image {
                 source: @image-url("../images/dark.png");
@@ -36,12 +30,8 @@ export component PlayerBar inherits Rectangle {
                         source: @image-url("../icons/phosphor/SVGs/bold/music-notes-bold.svg");
                         height: 20px;
                         width: 20px;
-                        
                     }
                     Text {
-                        // font-size: Palette.font-size-medium;
-                        // font-weight: Palette.font-weight-title;
-                        // color: Palette.text-color-title;
                         text: "Trap Party in the Trap House";
                         vertical-alignment: bottom;
                     }
@@ -54,9 +44,6 @@ export component PlayerBar inherits Rectangle {
                         width: 20px;
                     }
                     Text {
-                        // font-size: Palette.font-size-medium;
-                        // font-weight: Palette.font-weight-sub-title;
-                        // color: Palette.text-color-sub-title;
                         text: "Trappin' in Kawaii 2023";
                         vertical-alignment: bottom;
                     }
@@ -69,9 +56,6 @@ export component PlayerBar inherits Rectangle {
                         width: 20px;
                     }
                     Text {
-                        // font-size: Palette.font-size-medium;
-                        // font-weight: Palette.font-weight-sub-title;
-                        // color: Palette.text-color-sub-title;
                         text: "Grid of Benjamins";
                         vertical-alignment: bottom;
                     }
@@ -81,16 +65,15 @@ export component PlayerBar inherits Rectangle {
                 }
                 Slider { 
                     value: 42;
+                    vertical-stretch: 0;
                 }
                 HorizontalLayout {
                     Text {
                         text: "09:30";
-                        // font-size: Palette.font-size-small;
                     }
                     Text {
                         horizontal-alignment: right;
                         text: "09:30";
-                        // font-size: Palette.font-size-small;
                     }
                 }
             }
@@ -104,7 +87,6 @@ export component PlayerBar inherits Rectangle {
                 r := Rectangle {
                     width: img2.width;
                     height: img2.height;
-                    // border-radius: Palette.image-border-radius;
                     clip: true;
                     img2 := Image {
                         source: @image-url("../images/light.png");
@@ -114,17 +96,11 @@ export component PlayerBar inherits Rectangle {
                 }
             }
             Text {
-                // font-size: Palette.font-size-small;
-                // font-weight: Palette.font-weight-title;
-                // color: Palette.text-color-title;
                 horizontal-alignment: center;
                 text: "Finality Season";
                 wrap: word-wrap;
             }
             Text {
-                // font-size: Palette.font-size-small;
-                // font-weight: Palette.font-weight-sub-title;
-                // color: Palette.text-color-sub-title;
                 horizontal-alignment: center;
                 text: "The Frigid Depths of the Heart of the Kit-Kat CEO";
                 wrap: word-wrap;

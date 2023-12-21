@@ -1,8 +1,9 @@
-import { Button , LineEdit} from "std-widgets.slint";
+import { Button , LineEdit, HorizontalBox, GroupBox} from "std-widgets.slint";
 import { Navigator } from "common.slint";
 
-export component NavBar inherits HorizontalLayout {
-    spacing: 10px;
+export component NavBar inherits HorizontalBox {
+    padding: 0px;
+    
     Button {
         text: "Home";
         clicked => { Navigator.navigate("dimple://home"); }
