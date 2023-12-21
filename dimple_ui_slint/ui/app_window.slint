@@ -7,13 +7,26 @@ import { ArtistDetails } from "artist_details.slint";
 import { ReleaseDetails } from "release_details.slint";
 import { Palette, Navigator, Link, ImageLink } from "common.slint";
 
-import "../fonts/Manrope/fonts/ttf/Manrope-ExtraLight.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-Light.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-Regular.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-Medium.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-SemiBold.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-ExtraLight.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-Light.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-Regular.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-Medium.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-SemiBold.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
+
+import "../fonts/Roboto/Roboto-Black.ttf";
+import "../fonts/Roboto/Roboto-BlackItalic.ttf";
+import "../fonts/Roboto/Roboto-Bold.ttf";
+import "../fonts/Roboto/Roboto-BoldItalic.ttf";
+import "../fonts/Roboto/Roboto-Italic.ttf";
+import "../fonts/Roboto/Roboto-Light.ttf";
+import "../fonts/Roboto/Roboto-LightItalic.ttf";
+import "../fonts/Roboto/Roboto-Medium.ttf";
+import "../fonts/Roboto/Roboto-MediumItalic.ttf";
+import "../fonts/Roboto/Roboto-Regular.ttf";
+import "../fonts/Roboto/Roboto-Thin.ttf";
+import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 
 export { Navigator, Link, ImageLink, CardModel, CardGridModel }
 
@@ -23,15 +36,11 @@ export component AppWindow inherits Window {
 
     preferred-width: 1440px;
     preferred-height: 1024px;
-    default-font-size: Palette.font-size-default;
-    default-font-weight: Palette.font-weight-default;
-    default-font-family: Palette.font-family-default;
     title: "Dimple";
-    background: Palette.background;
 
     VerticalLayout {
-        padding: 20px;
-        spacing: 20px;
+        padding: 8px;
+        spacing: 8px;
 
         nav_bar := NavBar {  
         }
