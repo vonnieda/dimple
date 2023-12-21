@@ -98,7 +98,7 @@ export component CardGrid inherits ScrollView {
         ]
     };
 
-    property <int> cols: Math.floor(self.width / (Palette.image-width-large + StyleMetrics.layout-spacing * 2 + StyleMetrics.layout-padding * 2));
+    property <int> cols: Math.floor(self.width / (Palette.thumbnail-width-large + StyleMetrics.layout-spacing * 2 + StyleMetrics.layout-padding * 2));
 
     property <bool> last_row;
     VerticalLayout {

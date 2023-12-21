@@ -17,21 +17,21 @@ export component Card inherits VerticalLayout {
         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
     };
 
-    width: Palette.image-width-large;
+    width: Palette.thumbnail-width-large;
     spacing: 2px;
     alignment: start;
 
     image-area := TouchArea {
         width: root.width;
-        height: Palette.image-width-large;
+        height: Palette.thumbnail-width-large;
         mouse-cursor: pointer;
         clicked => { Navigator.navigate(model.image.url); }
         Rectangle {
             width: 100%;
             height: 100%;
-            border-radius: Palette.image-border-radius;
-            border-width: Palette.image-border-width;
-            border-color: Palette.image-border-color;
+            border-radius: Palette.thumbnail-border-radius;
+            border-width: Palette.thumbnail-border-width;
+            border-color: Palette.thumbnail-border-color;
             clip: true;
             Image {
                 width: 100%;
@@ -50,8 +50,8 @@ export component Card inherits VerticalLayout {
             width: root.width;
             text: model.title.name;
             wrap: word-wrap;
+            font-weight: Palette.font-weight-bold;
             font-size: 1.2rem;
-            font-weight: 700;
         }
     }
     sub-title-area := TouchArea {
@@ -61,6 +61,7 @@ export component Card inherits VerticalLayout {
             width: root.width;
             text: model.sub-title.name;
             wrap: word-wrap;
+            font-size: 1.2rem;
         }
     }
 }
