@@ -19,7 +19,7 @@ impl Default for Librarian {
 }
 
 impl Librarian {
-    pub fn add_library(&mut self, library: LibraryHandle) {
+    pub fn add_library(&self, library: LibraryHandle) {
         self.libraries.write().unwrap().push(library.clone());
     }
 
