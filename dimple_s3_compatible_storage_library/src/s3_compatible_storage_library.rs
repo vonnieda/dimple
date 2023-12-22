@@ -1,8 +1,11 @@
+use std::io::Read;
+use std::io::SeekFrom;
 use std::path::Path;
 
 use dimple_core::library::Library;
 use dimple_core::model::Release;
 use image::DynamicImage;
+use s3::serde_types::HeadObjectResult;
 use s3::serde_types::Object;
 use serde::Deserialize;
 use serde::Serialize;
@@ -63,7 +66,6 @@ impl Library for S3CompatibleStorageLibrary {
     fn releases(&self) -> std::sync::mpsc::Receiver<dimple_core::model::Release> {
         let codec_registry = CodecRegistry::default();
 
-
         let bucket = self.bucket();
         let results = bucket.list_page(self.config.prefix.clone(), 
             None,
@@ -72,14 +74,14 @@ impl Library for S3CompatibleStorageLibrary {
             Some(100)).unwrap();
         for obj in results.0.contents {
             let key = obj.key;
+            if !key.ends_with(".mp3") {
+                continue;
+            }
             let mut hint = Hint::new();
             if let Some(extension) = key.split('.').last() {
                 hint.with_extension(extension);
             }
-            let media_source = ObjectMediaSource {
-                bucket: bucket.clone(),
-                key: key.clone(),
-            };
+            let media_source = ObjectMediaSource::new(&bucket, &key);
             let media_source_stream = MediaSourceStream::new(Box::new(media_source), 
                 Default::default());
             
@@ -136,26 +138,49 @@ impl Library for S3CompatibleStorageLibrary {
 struct ObjectMediaSource {
     bucket: Bucket,
     key: String,
+    head: HeadObjectResult,
+    pos: u64,
+}
+
+// TODO all the error checking.
+impl ObjectMediaSource {
+    pub fn new(bucket: &Bucket, key: &str) -> Self {
+        let head = bucket.head_object(key).unwrap().0;
+        log::info!("{} {} {}", key, 
+            head.content_type.as_ref().unwrap(), 
+            head.content_length.as_ref().unwrap());
+        Self {
+            bucket: bucket.clone(),
+            key: key.to_string(),
+            head,
+            pos: 0,
+        }
+    }
 }
 
 impl MediaSource for ObjectMediaSource {
     fn is_seekable(&self) -> bool {
-        true
+        false
     }
 
     fn byte_len(&self) -> Option<u64> {
-        match self.bucket.head_object(&self.key) {
-            Ok((result, _)) => {
-                Some(result.content_length.unwrap().unsigned_abs())
-            },
-            Err(_) => todo!(),
-        }
+        todo!()
+        // self.head.content_length.map(|len| len as u64)
     }
 }
 
 impl std::io::Read for ObjectMediaSource {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        todo!()
+        // log::info!("read {} {}", self.pos, buf.len());
+        let result = self.bucket.get_object_range(self.key.clone(), 
+            self.pos, 
+            Some(self.pos + buf.len() as u64 - 1)).unwrap();
+        let bytes = result.bytes();
+        for (index, byte) in bytes.iter().enumerate() {
+            buf[index] = *byte;
+        }
+        self.pos += bytes.len() as u64;
+        Ok(bytes.len())
     }
 }
 
