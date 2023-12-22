@@ -1,24 +1,18 @@
-use std::io::Read;
-use std::io::SeekFrom;
-use std::path::Path;
-
 use dimple_core::library::Library;
 use dimple_core::model::Release;
 use image::DynamicImage;
 use s3::serde_types::HeadObjectResult;
-use s3::serde_types::Object;
+use s3::{creds::Credentials, Bucket, Region};
 use serde::Deserialize;
 use serde::Serialize;
-use s3::{Bucket, creds::Credentials, Region};
-use symphonia::core::codecs::CODEC_TYPE_NULL;
 use symphonia::core::codecs::CodecRegistry;
 use symphonia::core::codecs::DecoderOptions;
+use symphonia::core::codecs::CODEC_TYPE_NULL;
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSource;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
-use symphonia::default::get_codecs;
 
 pub struct S3CompatibleStorageLibrary {
     config: S3CompatibleStorageLibraryConfig,
@@ -44,17 +38,19 @@ impl S3CompatibleStorageLibrary {
     }
 
     fn bucket(&self) -> Bucket {
-        let credentials = Credentials::new(Some(&self.config.access_key), 
-            Some(&self.config.secret_key), None, None, None).unwrap();
-        let region = Region::Custom { 
-            region: self.config.region_name.to_string(), 
+        let credentials = Credentials::new(
+            Some(&self.config.access_key),
+            Some(&self.config.secret_key),
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+        let region = Region::Custom {
+            region: self.config.region_name.to_string(),
             endpoint: self.config.endpoint.to_string(),
         };
-        Bucket::new(
-            &self.config.bucket_name,
-            region,
-            credentials,
-        ).unwrap()
+        Bucket::new(&self.config.bucket_name, region, credentials).unwrap()
     }
 }
 
@@ -67,11 +63,9 @@ impl Library for S3CompatibleStorageLibrary {
         let codec_registry = CodecRegistry::default();
 
         let bucket = self.bucket();
-        let results = bucket.list_page(self.config.prefix.clone(), 
-            None,
-            None,
-            None,
-            Some(100)).unwrap();
+        let results = bucket
+            .list_page(self.config.prefix.clone(), None, None, None, Some(100))
+            .unwrap();
         for obj in results.0.contents {
             let key = obj.key;
             if !key.ends_with(".mp3") {
@@ -82,9 +76,9 @@ impl Library for S3CompatibleStorageLibrary {
                 hint.with_extension(extension);
             }
             let media_source = ObjectMediaSource::new(&bucket, &key);
-            let media_source_stream = MediaSourceStream::new(Box::new(media_source), 
-                Default::default());
-            
+            let media_source_stream =
+                MediaSourceStream::new(Box::new(media_source), Default::default());
+
             // Use the default options for metadata and format readers.
             let meta_opts: MetadataOptions = Default::default();
             let fmt_opts: FormatOptions = Default::default();
@@ -120,6 +114,8 @@ impl Library for S3CompatibleStorageLibrary {
 
             // Store the track identifier, it will be used to filter packets.
             let track_id = track.id;
+
+            dbg!(track_id);
         }
 
         let (_sender, receiver) = std::sync::mpsc::channel::<Release>();
@@ -146,9 +142,12 @@ struct ObjectMediaSource {
 impl ObjectMediaSource {
     pub fn new(bucket: &Bucket, key: &str) -> Self {
         let head = bucket.head_object(key).unwrap().0;
-        log::info!("{} {} {}", key, 
-            head.content_type.as_ref().unwrap(), 
-            head.content_length.as_ref().unwrap());
+        log::info!(
+            "{} {} {}",
+            key,
+            head.content_type.as_ref().unwrap(),
+            head.content_length.as_ref().unwrap()
+        );
         Self {
             bucket: bucket.clone(),
             key: key.to_string(),
@@ -172,9 +171,14 @@ impl MediaSource for ObjectMediaSource {
 impl std::io::Read for ObjectMediaSource {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         // log::info!("read {} {}", self.pos, buf.len());
-        let result = self.bucket.get_object_range(self.key.clone(), 
-            self.pos, 
-            Some(self.pos + buf.len() as u64 - 1)).unwrap();
+        let result = self
+            .bucket
+            .get_object_range(
+                self.key.clone(),
+                self.pos,
+                Some(self.pos + buf.len() as u64 - 1),
+            )
+            .unwrap();
         let bytes = result.bytes();
         for (index, byte) in bytes.iter().enumerate() {
             buf[index] = *byte;
