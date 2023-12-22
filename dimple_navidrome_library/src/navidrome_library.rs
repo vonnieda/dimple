@@ -2,9 +2,8 @@
 
 use data_encoding::BASE64;
 use dimple_core::{image_cache::ImageCache, library::Library, model::{Release, Image, Track, Artist, Genre}};
-use image::DynamicImage;
 
-use serde::{Deserialize, Serialize};
+use image::DynamicImage;
 use sha2::{Digest, Sha256};
 use sunk::{Client, Album, Media, song::Song, Streamable};
 use threadpool::ThreadPool;
@@ -13,6 +12,9 @@ use url::Url;
 use std::{iter::Iterator, sync::{mpsc::Receiver, Arc}};
 
 use std::thread;
+
+use serde::Deserialize;
+use serde::Serialize;
 
 pub struct NavidromeLibrary {
     pub ulid: String,

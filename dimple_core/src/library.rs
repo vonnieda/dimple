@@ -8,7 +8,6 @@ pub type LibraryHandle = Arc<dyn Library>;
 
 pub type LibrariesHandle = Arc<RwLock<Vec<LibraryHandle>>>;
 
-
 /// Library is a generic interface to a source of music and/or music metadata.
 /// Well known services that would qualify as a Library are Spotify, Apple Music,
 /// Deezer, Last.fm, Bandcamp, etc. By implementing at least some of the methods

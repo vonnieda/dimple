@@ -4,11 +4,11 @@ use dimple_core::library::{LibraryHandle, Library};
 use dimple_navidrome_library::navidrome_library::NavidromeLibrary;
 use dimple_player::player::{Player, PlayerHandle};
 use dimple_sled_library::sled_library::SledLibrary;
+use dimple_librarian::librarian::Librarian;
 use eframe::CreationContext;
 
 use eframe::egui::{self, Id};
 
-use crate::librarian::Librarian;
 use crate::settings::{Settings, LibraryConfig};
 use crate::ui::main_screen::MainScreen;
 

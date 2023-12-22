@@ -11,10 +11,12 @@ build = "build.rs"
 log = "0.4.19"
 slint = "1.1.1"
 env_logger = "0.10.0"
-# dimple_core = { path = "../dimple_core" }
-# dimple_player = { path = "../dimple_player" }
-# dimple_sled_library = { path = "../dimple_sled_library" }
-# dimple_navidrome_library = { path = "../dimple_navidrome_library" }
+dimple_core = { path = "../dimple_core" }
+dimple_player = { path = "../dimple_player" }
+dimple_sled_library = { path = "../dimple_sled_library" }
+dimple_navidrome_library = { path = "../dimple_navidrome_library" }
+dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
+dimple_librarian = { path = "../dimple_librarian" }
 serde = "1.0.175"
 config = "0.13.3"
 image = "0.24.6"

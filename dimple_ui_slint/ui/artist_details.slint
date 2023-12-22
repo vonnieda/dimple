@@ -1,19 +1,20 @@
-import { HorizontalBox } from "std-widgets.slint";
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { Palette } from "common.slint";
 
 export struct ArtistDetailsModel {
 
 }
 
-export component ArtistDetails inherits VerticalLayout {
+export component ArtistDetails inherits VerticalBox {
     alignment: start;
-    HorizontalLayout {
-        spacing: 10px;
+    HorizontalBox {
         alignment: start;
         Rectangle {
             width: Palette.thumbnail-width-extra-large;
             height: Palette.thumbnail-width-extra-large;
             border-radius: Palette.thumbnail-border-radius;
+            border-color: Palette.thumbnail-border-color;
+            border-width: Palette.thumbnail-border-width;
             clip: true;
             Image {
                 width: Palette.thumbnail-width-extra-large;
@@ -24,13 +25,13 @@ export component ArtistDetails inherits VerticalLayout {
         VerticalLayout {
             alignment: start;
             Text {
-                // font-size: Palette.font-size-large;
-                // font-weight: Palette.font-weight-title;
-                // color: Palette.text-color-title;
                 text: "Artist Name";
+                font-weight: Palette.font-weight-bold;
+                font-size: 3rem;
             }
             Text {
                 text: "in Atmospheric Black Metal, Black Metal, Drone, Hard Rock & Metal, Metal, Rock";
+                font-size: 1.2rem;
             }
         }
     }

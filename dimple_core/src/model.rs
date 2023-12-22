@@ -59,6 +59,7 @@ pub struct Image {
     pub url: String,
 }
 
+// TODO Maybe just Artwork, or Art.
 pub trait HasArtwork {
     fn art(&self) -> Vec<Image>;
 }

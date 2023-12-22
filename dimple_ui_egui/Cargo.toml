@@ -27,5 +27,6 @@ dimple_core = { path = "../dimple_core" }
 dimple_player = { path = "../dimple_player" }
 dimple_sled_library = { path = "../dimple_sled_library" }
 dimple_navidrome_library = { path = "../dimple_navidrome_library" }
+dimple_librarian = { path = "../dimple_librarian" }
 threadpool = "1.8.1"
 
