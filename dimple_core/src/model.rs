@@ -13,7 +13,10 @@ pub struct Release {
 
 impl Release {
     pub fn artist(&self) -> String {
-        self.artists.first().unwrap().name.to_string()
+        if let Some(artist) = self.artists.first() {
+            return artist.name.clone();
+        }
+        "".to_string()
     }
 }
 
@@ -31,6 +34,16 @@ pub struct Artist {
 // vectors of IDs. And I can add getters that take the request.
 // Actually maybe no, because a track might appear in more than one release?
 // So I just need to index at a higher level.
+// https://musicbrainz.org/doc/MusicBrainz_Database/Schema
+// https://wiki.musicbrainz.org/images/a/a7/entity_network_overview.svg makes
+// it very clear and more and more this is becoming a MusicBrainz player but
+// that's actually really interesting. The entire database isn't that big.
+// Maybe that's something else that goes on S3. You download your own copy
+// of the database and use it locally plus upload it to S3 so it's yours.
+// OKURRR so then I should be focusing on making this an offline MBDB browser?
+// And media is just something that gets linked in?
+// https://musicbrainz.org/doc/Track
+
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
 pub struct Track {
     pub url: String,
