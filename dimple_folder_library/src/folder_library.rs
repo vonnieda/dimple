@@ -7,8 +7,21 @@
 
 // use rayon::prelude::*;
 
-use dimple_core::{library::Library};
+use std::{path::Path, fs::File};
+
+use dimple_core::{library::Library, model::{Release, Track}};
 use image::DynamicImage;
+use symphonia::core::{io::{MediaSourceStream, MediaSource}, probe::{Hint, ProbeResult}, meta::{MetadataOptions, Visual, Tag, ColorMode, Value}, formats::FormatOptions, codecs::CodecRegistry};
+use walkdir::WalkDir;
+
+// TODO remember the idea of "you own this percent of your library" meaning
+// you can have songs in your library that you maybe can't listen to, but
+// want to keep track of. Maybe you can sample them, or listen on another site,
+// but you don't have a file for them. This is how we can import scrobbles and
+// playlists.
+// So, the goal with any new piece of media should be to try to get it matched
+// to a a standard database. MusicBrainz, or the internal, I suppose. But if
+// it isn't matched, yet, it can still exist. 
 
 pub struct FolderLibrary {
     path: String,
@@ -20,15 +33,67 @@ impl FolderLibrary {
             path: path.to_string(),
         }
     }
+
+    fn read_track(path: &Path) -> Track {
+        log::info!("Reading {}", path.to_str().unwrap());
+        let file = File::open(path).unwrap();     
+
+        let mut hint = Hint::default();
+        if let Some(extension) = path.to_str().unwrap().split('.').last() {
+            hint.with_extension(extension);
+        }
+
+        // Use the default options for metadata and format readers.
+        let meta_opts: MetadataOptions = Default::default();
+        let fmt_opts: FormatOptions = Default::default();
+
+        let media_source_stream = MediaSourceStream::new(
+            Box::new(file) as Box<dyn MediaSource>, 
+            Default::default());
+
+        // Probe the media source.
+        let probe = symphonia::default::get_probe();
+        if let Ok(mut probe_results) = probe.format(&hint, media_source_stream, &fmt_opts, &meta_opts) {
+            print_format(path.to_str().unwrap(), &mut probe_results);
+        }
+
+        Track { 
+            url: "".to_string(), 
+            title: "".to_string(), 
+            art: vec![], 
+            artists: vec![], 
+            genres: vec![], 
+        }
+    }
 }
 
+// https://github.com/diesel-rs/diesel
 impl Library for FolderLibrary {
     fn name(&self) -> String {
         todo!()
     }
 
     fn releases(&self) -> std::sync::mpsc::Receiver<dimple_core::model::Release> {
-        todo!()
+        // N + 1 Add Caching
+        // 1 Get a list of all the files in the directory recursively
+        // 2 For each one, scan it to see if it is a supported file
+        // 3 Read tags on each supported file, creating Tracks, I think?
+        // 4 Then, I suppose, we try to sort those into releases? Or build them
+        //   into a hash of releases as we go?
+
+        let (sender, receiver) = std::sync::mpsc::channel::<Release>();
+        // let base_url = self.base_url();
+
+        let path = Path::new(&self.path);
+        let walkdir = WalkDir::new(path);
+        let files = walkdir.into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file());
+        for file_entry in files {
+            let track = Self::read_track(file_entry.path());
+        }
+
+        receiver
     }
 
     fn image(&self, _image: &dimple_core::model::Image) -> Result<DynamicImage, String> {
@@ -79,31 +144,31 @@ impl Library for FolderLibrary {
 // }
 
 
-// fn print_format(path: &str, probed: &mut ProbeResult) {
-//     println!("+ {}", path);
-//     // print_tracks(probed.format.tracks());
+fn print_format(path: &str, probed: &mut ProbeResult) {
+    println!("+ {}", path);
+    // print_tracks(probed.format.tracks());
 
-//     // Prefer metadata that's provided in the container format, over other tags found during the
-//     // probe operation.
-//     if let Some(metadata_rev) = probed.format.metadata().current() {
-//         print_tags(metadata_rev.tags());
-//         print_visuals(metadata_rev.visuals());
+    // Prefer metadata that's provided in the container format, over other tags found during the
+    // probe operation.
+    if let Some(metadata_rev) = probed.format.metadata().current() {
+        print_tags(metadata_rev.tags());
+        print_visuals(metadata_rev.visuals());
 
-//         // Warn that certain tags are preferred.
-//         if probed.metadata.get().as_ref().is_some() {
-//             println!("tags that are part of the container format are preferentially printed.");
-//             println!("not printing additional tags that were found while probing.");
-//         }
-//     }
-//     else if let Some(metadata_rev) = probed.metadata.get().as_ref().and_then(|m| m.current()) {
-//         print_tags(metadata_rev.tags());
-//         print_visuals(metadata_rev.visuals());
-//     }
+        // Warn that certain tags are preferred.
+        if probed.metadata.get().as_ref().is_some() {
+            println!("tags that are part of the container format are preferentially printed.");
+            println!("not printing additional tags that were found while probing.");
+        }
+    }
+    else if let Some(metadata_rev) = probed.metadata.get().as_ref().and_then(|m| m.current()) {
+        print_tags(metadata_rev.tags());
+        print_visuals(metadata_rev.visuals());
+    }
 
-//     // print_cues(probed.format.cues());
-//     println!(":");
-//     println!();
-// }
+    // print_cues(probed.format.cues());
+    println!(":");
+    println!();
+}
 
 // fn print_update(rev: &MetadataRevision) {
 //     print_tags(rev.tags());
@@ -235,105 +300,105 @@ impl Library for FolderLibrary {
 //     }
 // }
 
-// fn print_tags(tags: &[Tag]) {
-//     if !tags.is_empty() {
-//         println!("|");
-//         println!("| // Tags //");
+fn print_tags(tags: &[Tag]) {
+    if !tags.is_empty() {
+        println!("|");
+        println!("| // Tags //");
 
-//         let mut idx = 1;
+        let mut idx = 1;
 
-//         // Print tags with a standard tag key first, these are the most common tags.
-//         for tag in tags.iter().filter(|tag| tag.is_known()) {
-//             if let Some(std_key) = tag.std_key {
-//                 println!("{}", print_tag_item(idx, &format!("{:?}", std_key), &tag.value, 4));
-//             }
-//             idx += 1;
-//         }
+        // Print tags with a standard tag key first, these are the most common tags.
+        for tag in tags.iter().filter(|tag| tag.is_known()) {
+            if let Some(std_key) = tag.std_key {
+                println!("{}", print_tag_item(idx, &format!("{:?}", std_key), &tag.value, 4));
+            }
+            idx += 1;
+        }
 
-//         // Print the remaining tags with keys truncated to 26 characters.
-//         for tag in tags.iter().filter(|tag| !tag.is_known()) {
-//             println!("{}", print_tag_item(idx, &tag.key, &tag.value, 4));
-//             idx += 1;
-//         }
-//     }
-// }
+        // Print the remaining tags with keys truncated to 26 characters.
+        for tag in tags.iter().filter(|tag| !tag.is_known()) {
+            println!("{}", print_tag_item(idx, &tag.key, &tag.value, 4));
+            idx += 1;
+        }
+    }
+}
 
-// fn print_visuals(visuals: &[Visual]) {
-//     if !visuals.is_empty() {
-//         println!("|");
-//         println!("| // Visuals //");
+fn print_visuals(visuals: &[Visual]) {
+    if !visuals.is_empty() {
+        println!("|");
+        println!("| // Visuals //");
 
-//         for (idx, visual) in visuals.iter().enumerate() {
-//             if let Some(usage) = visual.usage {
-//                 println!("|     [{:0>2}] Usage:      {:?}", idx + 1, usage);
-//                 println!("|          Media Type: {}", visual.media_type);
-//             }
-//             else {
-//                 println!("|     [{:0>2}] Media Type: {}", idx + 1, visual.media_type);
-//             }
-//             if let Some(dimensions) = visual.dimensions {
-//                 println!(
-//                     "|          Dimensions: {} px x {} px",
-//                     dimensions.width, dimensions.height
-//                 );
-//             }
-//             if let Some(bpp) = visual.bits_per_pixel {
-//                 println!("|          Bits/Pixel: {}", bpp);
-//             }
-//             if let Some(ColorMode::Indexed(colors)) = visual.color_mode {
-//                 println!("|          Palette:    {} colors", colors);
-//             }
-//             println!("|          Size:       {} bytes", visual.data.len());
+        for (idx, visual) in visuals.iter().enumerate() {
+            if let Some(usage) = visual.usage {
+                println!("|     [{:0>2}] Usage:      {:?}", idx + 1, usage);
+                println!("|          Media Type: {}", visual.media_type);
+            }
+            else {
+                println!("|     [{:0>2}] Media Type: {}", idx + 1, visual.media_type);
+            }
+            if let Some(dimensions) = visual.dimensions {
+                println!(
+                    "|          Dimensions: {} px x {} px",
+                    dimensions.width, dimensions.height
+                );
+            }
+            if let Some(bpp) = visual.bits_per_pixel {
+                println!("|          Bits/Pixel: {}", bpp);
+            }
+            if let Some(ColorMode::Indexed(colors)) = visual.color_mode {
+                println!("|          Palette:    {} colors", colors);
+            }
+            println!("|          Size:       {} bytes", visual.data.len());
 
-//             // Print out tags similar to how regular tags are printed.
-//             if !visual.tags.is_empty() {
-//                 println!("|          Tags:");
-//             }
+            // Print out tags similar to how regular tags are printed.
+            if !visual.tags.is_empty() {
+                println!("|          Tags:");
+            }
 
-//             for (tidx, tag) in visual.tags.iter().enumerate() {
-//                 if let Some(std_key) = tag.std_key {
-//                     println!(
-//                         "{}",
-//                         print_tag_item(tidx + 1, &format!("{:?}", std_key), &tag.value, 21)
-//                     );
-//                 }
-//                 else {
-//                     println!("{}", print_tag_item(tidx + 1, &tag.key, &tag.value, 21));
-//                 }
-//             }
-//         }
-//     }
-// }
+            for (tidx, tag) in visual.tags.iter().enumerate() {
+                if let Some(std_key) = tag.std_key {
+                    println!(
+                        "{}",
+                        print_tag_item(tidx + 1, &format!("{:?}", std_key), &tag.value, 21)
+                    );
+                }
+                else {
+                    println!("{}", print_tag_item(tidx + 1, &tag.key, &tag.value, 21));
+                }
+            }
+        }
+    }
+}
 
-// fn print_tag_item(idx: usize, key: &str, value: &Value, indent: usize) -> String {
-//     let key_str = match key.len() {
-//         0..=28 => format!("| {:w$}[{:0>2}] {:<28} : ", "", idx, key, w = indent),
-//         _ => format!("| {:w$}[{:0>2}] {:.<28} : ", "", idx, key.split_at(26).0, w = indent),
-//     };
+fn print_tag_item(idx: usize, key: &str, value: &Value, indent: usize) -> String {
+    let key_str = match key.len() {
+        0..=28 => format!("| {:w$}[{:0>2}] {:<28} : ", "", idx, key, w = indent),
+        _ => format!("| {:w$}[{:0>2}] {:.<28} : ", "", idx, key.split_at(26).0, w = indent),
+    };
 
-//     let line_prefix = format!("\n| {:w$} : ", "", w = indent + 4 + 28 + 1);
-//     let line_wrap_prefix = format!("\n| {:w$}   ", "", w = indent + 4 + 28 + 1);
+    let line_prefix = format!("\n| {:w$} : ", "", w = indent + 4 + 28 + 1);
+    let line_wrap_prefix = format!("\n| {:w$}   ", "", w = indent + 4 + 28 + 1);
 
-//     let mut out = String::new();
+    let mut out = String::new();
 
-//     out.push_str(&key_str);
+    out.push_str(&key_str);
 
-//     for (wrapped, line) in value.to_string().lines().enumerate() {
-//         if wrapped > 0 {
-//             out.push_str(&line_prefix);
-//         }
+    for (wrapped, line) in value.to_string().lines().enumerate() {
+        if wrapped > 0 {
+            out.push_str(&line_prefix);
+        }
 
-//         let mut chars = line.chars();
-//         let split = (0..)
-//             .map(|_| chars.by_ref().take(72).collect::<String>())
-//             .take_while(|s| !s.is_empty())
-//             .collect::<Vec<_>>();
+        let mut chars = line.chars();
+        let split = (0..)
+            .map(|_| chars.by_ref().take(72).collect::<String>())
+            .take_while(|s| !s.is_empty())
+            .collect::<Vec<_>>();
 
-//         out.push_str(&split.join(&line_wrap_prefix));
-//     }
+        out.push_str(&split.join(&line_wrap_prefix));
+    }
 
-//     out
-// }
+    out
+}
 
 // fn fmt_time(ts: u64, tb: TimeBase) -> String {
 //     let time = tb.calc_time(ts);
@@ -400,3 +465,42 @@ impl Library for FolderLibrary {
 // //     // Flush immediately since stdout is buffered.
 // //     output.flush().unwrap();
 // // }
+
+// extern crate symphonia;
+
+// use symphonia::core::io::{MediaSourceStream, MediaSource};
+// use symphonia::core::probe::Hint;
+// use symphonia::core::meta::Metadata;
+// use std::fs::File;
+
+// fn main() {
+//     let file = File::open("path_to_your_mp3_file.mp3").expect("Error opening file");
+//     let mss = MediaSourceStream::new(Box::new(file) as Box<dyn MediaSource>, Default::default());
+//     let hint = Hint::new();
+//     let probed = symphonia::default::get_probe().format(&hint, mss, &Default::default()).expect("Error probing format");
+    
+//     let format = probed.format;
+//     let reader = format.into_reader();
+
+//     // Iterate over metadata
+//     for meta in reader.metadata() {
+//         match meta {
+//             Metadata::Id3v2(tag) => {
+//                 // Print basic tags
+//                 println!("Title: {:?}", tag.title());
+//                 println!("Artist: {:?}", tag.artist());
+//                 println!("Album: {:?}", tag.album());
+
+//                 // Handling artwork
+//                 for picture in tag.pictures() {
+//                     println!("Artwork MIME type: {}", picture.mime_type);
+//                     // You can save the image data or process it further
+//                 }
+//             },
+//             _ => {}
+//         }
+//     }
+// }
+
+
+

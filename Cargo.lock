@@ -1416,8 +1416,10 @@ version = "0.1.0"
 dependencies = [
  "dimple_core",
  "image",
+ "log",
  "serde",
  "sled",
+ "symphonia",
  "walkdir",
 ]
 
@@ -1492,6 +1494,7 @@ version = "0.1.0"
 dependencies = [
  "config",
  "dimple_core",
+ "dimple_folder_library",
  "dimple_librarian",
  "dimple_navidrome_library",
  "dimple_player",

@@ -29,6 +29,8 @@ pub struct Artist {
 // TODO I think this is gonna need a way to get back to the release. Giving
 // more credence to everything just having an ID and the vectors being
 // vectors of IDs. And I can add getters that take the request.
+// Actually maybe no, because a track might appear in more than one release?
+// So I just need to index at a higher level.
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
 pub struct Track {
     pub url: String,
