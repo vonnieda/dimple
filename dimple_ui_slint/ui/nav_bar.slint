@@ -4,18 +4,18 @@ import { Navigator } from "common.slint";
 export component NavBar inherits HorizontalBox {
     padding: 0px;
 
+    // Button {
+    //     text: "Home";
+    //     clicked => { Navigator.navigate("dimple://home"); }
+    //     primary: true;
+    // }
     Button {
-        text: "Home";
-        clicked => { Navigator.navigate("dimple://home"); }
-        primary: true;
+        text: "Artists";
+        clicked => { Navigator.navigate("dimple://artists"); }
     }
     Button {
         text: "Releases";
         clicked => { Navigator.navigate("dimple://releases"); }
-    }
-    Button {
-        text: "Artists";
-        clicked => { Navigator.navigate("dimple://artists"); }
     }
     Button {
         text: "Genres";

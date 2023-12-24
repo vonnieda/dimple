@@ -7,7 +7,7 @@
 
 // use rayon::prelude::*;
 
-use std::{path::Path, fs::File, collections::{hash_map, HashMap}};
+use std::{path::Path, fs::File, collections::{hash_map, HashMap}, time::Duration, io::Error};
 
 use dimple_core::{library::Library, model::{Release, Track, Artist}};
 use image::DynamicImage;
@@ -22,6 +22,10 @@ use walkdir::WalkDir;
 // So, the goal with any new piece of media should be to try to get it matched
 // to a a standard database. MusicBrainz, or the internal, I suppose. But if
 // it isn't matched, yet, it can still exist. 
+// I think we have a many to many between types of IDs. We're gonna have metadata
+// sources and stores and whatever, and each will have their own IDs but might
+// also have their own additional IDs we can match against to try to create
+// links or merges.
 
 pub struct FolderLibrary {
     path: String,
@@ -34,13 +38,19 @@ impl FolderLibrary {
         }
     }
 
-    fn read_track(path: &Path) -> TrackInfo {
-        log::info!("{}", path.to_str().unwrap());
-        let file = File::open(path).unwrap();     
+    pub fn read_track(path: &Path) -> Result<TrackInfo, std::io::Error> {
+        log::info!("opening {}", path.display());
+
+
+        
+        let file = File::open(path)?;
 
         let mut hint = Hint::default();
-        if let Some(extension) = path.to_str().unwrap().split('.').last() {
-            hint.with_extension(extension);
+        if let Some(extension) = path.extension() {
+            if let Some(extension_str) = extension.to_str() {
+                log::info!("  setting extension hint {}", extension_str);
+                hint.with_extension(extension_str);
+            }
         }
 
         let meta_opts: MetadataOptions = Default::default();
@@ -51,7 +61,7 @@ impl FolderLibrary {
             Default::default());
 
         let track = Track { 
-            url: path.to_str().unwrap().to_string(),
+            url: path.display().to_string(),
             title: "".to_string(), 
             art: vec![], 
             artists: vec![], 
@@ -64,38 +74,63 @@ impl FolderLibrary {
         };
 
         let probe = symphonia::default::get_probe();
-        if let Ok(mut probe_results) = probe.format(&hint, media_source_stream, &fmt_opts, &meta_opts) {
-            if let Some(metadata_rev) = probe_results.format.metadata().current() {
-                for tag in metadata_rev.tags() {
-                    if tag.is_known() {
-                        match tag.std_key {
-                            Some(StandardTagKey::TrackTitle) => track_info.track.title = tag.value.to_string(),
-                            Some(StandardTagKey::Artist) => {
-                                let artist = Artist {
-                                    url: format!("//artists/{}", tag.value),
-                                    name: tag.value.to_string(),
-                                    art: vec![],
-                                    genres: vec![],
-                                };
-                                track_info.track.artists.push(artist);
-                            },
-                            Some(StandardTagKey::Album) => track_info.album = tag.value.to_string(),
-                            Some(StandardTagKey::AlbumArtist) => track_info.album_artist = tag.value.to_string(),
-                            _ => {}
-                        }
-                    }
+        let probe_results = probe.format(&hint, media_source_stream, 
+            &fmt_opts, &meta_opts).map_err(Error::other)?;
+        let mut format = probe_results.format;
+        let metadata = format.metadata();
+        let metadata_rev = metadata.current().unwrap();
+        for tag in metadata_rev.tags() {
+            if tag.is_known() {
+                match tag.std_key {
+                    Some(StandardTagKey::TrackTitle) => track_info.track.title = tag.value.to_string(),
+                    Some(StandardTagKey::Artist) => {
+                        let artist = Artist {
+                            url: format!("//artists/{}", tag.value),
+                            name: tag.value.to_string(),
+                            art: vec![],
+                            genres: vec![],
+                        };
+                        track_info.track.artists.push(artist);
+                    },
+                    Some(StandardTagKey::Album) => track_info.album = tag.value.to_string(),
+                    Some(StandardTagKey::AlbumArtist) => track_info.album_artist = tag.value.to_string(),
+                    _ => {}
                 }
             }
         }
 
-        track_info
+        // if let Ok(mut probe_results) = probe.format(&hint, media_source_stream, &fmt_opts, &meta_opts) {
+        //     if let Some(metadata_rev) = probe_results.format.metadata().current() {
+        //         for tag in metadata_rev.tags() {
+        //             if tag.is_known() {
+        //                 match tag.std_key {
+        //                     Some(StandardTagKey::TrackTitle) => track_info.track.title = tag.value.to_string(),
+        //                     Some(StandardTagKey::Artist) => {
+        //                         let artist = Artist {
+        //                             url: format!("//artists/{}", tag.value),
+        //                             name: tag.value.to_string(),
+        //                             art: vec![],
+        //                             genres: vec![],
+        //                         };
+        //                         track_info.track.artists.push(artist);
+        //                     },
+        //                     Some(StandardTagKey::Album) => track_info.album = tag.value.to_string(),
+        //                     Some(StandardTagKey::AlbumArtist) => track_info.album_artist = tag.value.to_string(),
+        //                     _ => {}
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+
+        Ok(track_info)
     }
 }
 
-struct TrackInfo {
-    track: Track,
-    album: String,
-    album_artist: String,
+pub struct TrackInfo {
+    pub track: Track,
+    pub album: String,
+    pub album_artist: String,
 }
 
 // https://github.com/diesel-rs/diesel
@@ -112,34 +147,48 @@ impl Library for FolderLibrary {
         // 4 Then, I suppose, we try to sort those into releases? Or build them
         //   into a hash of releases as we go?
 
+        // TODO Ay yo wouldn't just like a shared Vec with a RwLock be way
+        // easier? And just like work for the front end?
         let (sender, receiver) = std::sync::mpsc::channel::<Release>();
         // let base_url = self.base_url();
+
+
+        let path = Path::new("/Users/jason/Music/My Music");
+        let files: Vec<walkdir::DirEntry> = WalkDir::new(path)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+            .filter(|e| e.path().extension().is_some())
+            .collect();
+    
+
+
         
-        let s = self.path.clone();
-        std::thread::spawn(move || {
-            let path = Path::new(&s);
-            let walkdir = WalkDir::new(path);
-            walkdir.into_iter()
-                .filter_map(|e| e.ok())
-                .filter(|e| e.file_type().is_file())
-                .map(|e| Self::read_track(e.path()))
-                .fold(HashMap::new(), |mut acc, e| {
-                    let release_url = format!("//{}/{}", e.album_artist, e.album);
-                    let release = acc.entry(release_url.clone()).or_insert(Release {
-                        url: release_url,
-                        title: e.album,
-                        ..Default::default()    
-                    });
-                    release.artists.extend_from_slice(&e.track.artists);
-                    release.tracks.push(e.track);
-                    acc
-                })
-                .values()
-                .cloned()
-                .for_each(|release| {
-                    sender.send(release).unwrap();
-                });
-        });
+        // let s = self.path.clone();
+        // std::thread::spawn(move || {
+        //     let path = Path::new(&s);
+        //     let walkdir = WalkDir::new(path);
+        //     walkdir.into_iter()
+        //         .filter_map(|e| e.ok())
+        //         .filter(|e| e.file_type().is_file())
+        //         .map(|e| Self::read_track(e.path()))
+        //         .fold(HashMap::new(), |mut acc, e| {
+        //             let release_url = format!("//{}/{}", e.album_artist, e.album);
+        //             let release = acc.entry(release_url.clone()).or_insert(Release {
+        //                 url: release_url,
+        //                 title: e.album,
+        //                 ..Default::default()    
+        //             });
+        //             release.artists.extend_from_slice(&e.track.artists);
+        //             release.tracks.push(e.track);
+        //             acc
+        //         })
+        //         .values()
+        //         .cloned()
+        //         .for_each(|release| {
+        //             sender.send(release).unwrap();
+        //         });
+        // });
 
         receiver
     }

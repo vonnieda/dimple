@@ -26,9 +26,7 @@ impl AppWindowController {
             dbg!(&url);
             let ui = ui.unwrap();
             if url.starts_with("dimple://home") {
-                let results: Vec<Artist> = library.artists();
-                Self::set_card_grid_model(results, ui.as_weak());
-                ui.set_page(0);
+                todo!()
             } 
             else if url.starts_with("dimple://artists") {
                 let results: Vec<Artist> = library.artists();
@@ -50,18 +48,21 @@ impl AppWindowController {
             }
         });
 
-        // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
-        let librarian = self.librarian.clone();
-        std::thread::spawn(move || {
-            librarian.refresh_all_libraries();
-        });
+        self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
+        // let librarian = self.librarian.clone();
+        // TODO gonna change this so the librarian is threaded and just manages its
+        // own state.
+        // std::thread::spawn(move || {
+        //     librarian.refresh_all_libraries();
+        // });
+
+        self.ui.global::<Navigator>().invoke_navigate("dimple://artists".into());
 
         self.ui.run()
     }
 
     fn set_card_grid_model<U>(vec: Vec<U>, ui: Weak<AppWindow>) 
-    where
-        U: Into<CardModel> + Send + 'static,
+        where U: Into<CardModel> + Send + 'static,
     {
         ui.upgrade_in_event_loop(move |ui| { 
             let mut card_models: Vec<CardModel> = vec![];

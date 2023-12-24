@@ -49,8 +49,14 @@ export component AppWindow inherits Window {
             }
         }
         if page == 0: GroupBox { 
-            CardGrid {
-                model: root.card-grid-model;
+            VerticalLayout {
+                card_grid := CardGrid {
+                    model: root.card-grid-model;
+                }
+                Text {
+                    horizontal-alignment: right;
+                    text: card-grid-model.cards.length + " items, 137GB, 280 days";
+                }
             }
         }
         if page == 1: GroupBox {

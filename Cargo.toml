@@ -7,7 +7,7 @@ members = [
     "dimple_folder_library",
     "dimple_librarian",
     "dimple_player",
-    # "dimple_cli",
+    "dimple_cli",
     # "dimple_ui_egui",
     "dimple_ui_slint",
 ]
