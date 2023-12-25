@@ -1461,13 +1461,12 @@ dependencies = [
 name = "dimple_folder_library"
 version = "0.1.0"
 dependencies = [
+ "audiotags",
  "dimple_core",
- "id3",
  "image",
  "log",
  "serde",
  "sled",
- "symphonia",
  "walkdir",
 ]
 

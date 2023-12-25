@@ -49,12 +49,12 @@ impl AppWindowController {
         });
 
         self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
-        // let librarian = self.librarian.clone();
+        let librarian = self.librarian.clone();
         // TODO gonna change this so the librarian is threaded and just manages its
         // own state.
-        // std::thread::spawn(move || {
-        //     librarian.refresh_all_libraries();
-        // });
+        std::thread::spawn(move || {
+            librarian.refresh_all_libraries();
+        });
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://artists".into());
 

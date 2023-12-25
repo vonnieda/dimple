@@ -18,6 +18,8 @@ pub trait Library: Send + Sync {
     fn name(&self) -> String;
 
     /// Get the list of releases
+    // TODO Ay yo wouldn't just like a shared Vec with a RwLock be way
+    // easier? And just like work for the front end?
     fn releases(&self) -> Receiver<Release>;
 
     fn image(&self, _image: &Image) -> Result<DynamicImage, String>;

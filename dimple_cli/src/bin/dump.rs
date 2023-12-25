@@ -1,18 +1,7 @@
-// use dimple_ui_egui::{dimple::Settings, librarian::Librarian, music_library::Library};
+use dimple_core::library::Library;
+use dimple_folder_library::folder_library::FolderLibrary;
 
-// fn main() {
-//     let mut builder = env_logger::Builder::new();
-//     builder.filter_level(log::LevelFilter::Info);
-//     builder.format_timestamp_millis();
-//     builder.init();
-
-//     let settings = Settings::default();
-//     let librarian = Librarian::from(settings.libraries);
-
-//     for release in librarian.releases().iter() {
-//         log::info!("{} {} {}", 
-//             release.artists.first().unwrap().name,
-//             release.title,
-//             release.url);
-//     }
-// }
+fn main() {
+    let library = FolderLibrary::new("/Users/jason/Music/My Music");
+    library.releases();
+}
