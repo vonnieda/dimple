@@ -82,13 +82,15 @@ impl FolderLibrary {
 
     fn genres(&self, tag: &dyn AudioTag) -> Vec<Genre> {
         if let Some(genre) = tag.genre() {
-            return vec![
-                Genre {
-                    url: self.url("genres", genre),
-                    name: genre.to_string(),
-                    art: vec![],
-                }
-            ];
+            return genre.split(';')
+                .map(|genre| {
+                    Genre {
+                        url: self.url("genres", genre),
+                        name: genre.to_string(),
+                        art: vec![],
+                    }
+                })
+                .collect();
         }
         vec![]
     }

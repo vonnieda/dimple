@@ -75,8 +75,7 @@ impl Library for SledLibrary {
     }
 
     fn image(&self, image: &Image) -> Result<DynamicImage, String> {
-        self.images.get_original(&image.url)
-            .map_or(Err("".to_string()), Ok)
+        self.images.get_original(&image.url).ok_or("".to_string())
     }
 
     fn stream(&self, _track: &Track) -> Result<Vec<u8>, String> {

@@ -52,13 +52,13 @@ impl AppWindowController {
             }
         });
 
-        // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
-        // let librarian = self.librarian.clone();
-        // // TODO gonna change this so the librarian is threaded and just manages its
-        // // own state.
-        // std::thread::spawn(move || {
-        //     librarian.refresh_all_libraries();
-        // });
+        self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music/The Mars Volta")));
+        let librarian = self.librarian.clone();
+        // TODO gonna change this so the librarian is threaded and just manages its
+        // own state.
+        std::thread::spawn(move || {
+            librarian.refresh_all_libraries();
+        });
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://artists".into());
 
@@ -85,7 +85,8 @@ impl AppWindowController {
         let slint_image = release.art.first()
             .and_then(|image| library.image(image).ok())
             .or_else(|| Some(DynamicImage::default()))
-            .and_then(|dynamic_image| Some(dynamic_image_to_slint_image(&dynamic_image)))
+            .map(|dynamic_image| dynamic_image.resize(500, 500, image::imageops::FilterType::Nearest))
+            .map(|dynamic_image| dynamic_image_to_slint_image(&dynamic_image))
             .unwrap();
 
         let artist_url = match release.artists.first() {
