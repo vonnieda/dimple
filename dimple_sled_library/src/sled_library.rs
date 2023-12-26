@@ -90,7 +90,7 @@ impl Library for SledLibrary {
         for image in &release.art {
             if let Ok(dynamic_image) = library.image(image) {
                 let url = &image.url;
-                log::info!("Storing image for {} at {}", release.title, url);
+                log::debug!("Storing image for {} at {}", release.title, url);
                 self.images.insert(url, &dynamic_image);
             }
         }

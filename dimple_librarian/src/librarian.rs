@@ -34,10 +34,12 @@ impl Librarian {
     }
 
     pub fn refresh_all_libraries(&self) {
+        log::info!("refresh_all_libraries() start)");
         let libraries = self.libraries.read().unwrap(); 
         for library in libraries.iter() {
             self.refresh_library(library);
         }
+        log::info!("refresh_all_libraries() done");
     }
 }
 
@@ -76,7 +78,6 @@ impl Library for Librarian {
 
     fn merge_release(&self, library: &dyn Library, release: &Release) 
         -> Result<(), String> {
-
         self.local_library.merge_release(library, release)
     }
 

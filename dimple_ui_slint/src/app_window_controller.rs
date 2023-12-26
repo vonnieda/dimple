@@ -29,12 +29,16 @@ impl AppWindowController {
                 todo!()
             } 
             else if url.starts_with("dimple://artists") {
-                let results: Vec<Artist> = library.artists();
+                let mut results: Vec<Artist> = library.artists();
+                results.sort_by_key(|artist| artist.name.clone());
                 Self::set_card_grid_model(results, ui.as_weak());
                 ui.set_page(0);
             } 
             else if url.starts_with("dimple://releases") {
-                let results: Vec<Release> = library.releases().iter().collect();
+                let mut results: Vec<Release> = library.releases().iter().collect();
+                results.sort_by_key(|release| release.title.clone());
+                // TODO wow.
+                let results: Vec<(LibraryHandle, Release)> = results.into_iter().map(|release| (library.clone(), release)).collect();
                 Self::set_card_grid_model(results, ui.as_weak());
                 ui.set_page(0);
             } 
@@ -48,13 +52,13 @@ impl AppWindowController {
             }
         });
 
-        self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
-        let librarian = self.librarian.clone();
-        // TODO gonna change this so the librarian is threaded and just manages its
-        // own state.
-        std::thread::spawn(move || {
-            librarian.refresh_all_libraries();
-        });
+        // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
+        // let librarian = self.librarian.clone();
+        // // TODO gonna change this so the librarian is threaded and just manages its
+        // // own state.
+        // std::thread::spawn(move || {
+        //     librarian.refresh_all_libraries();
+        // });
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://artists".into());
 
@@ -76,6 +80,28 @@ impl AppWindowController {
         .unwrap();
 
     }
+
+    pub fn release_to_card(library: LibraryHandle, release: &Release) -> CardModel {
+        let slint_image = release.art.first()
+            .and_then(|image| library.image(image).ok())
+            .or_else(|| Some(DynamicImage::default()))
+            .and_then(|dynamic_image| Some(dynamic_image_to_slint_image(&dynamic_image)))
+            .unwrap();
+
+        let artist_url = match release.artists.first() {
+            Some(artist) => {
+                artist.url.to_string()
+            },
+            None =>  {
+                "".to_string()
+            }
+        };
+        CardModel {
+            title: Link { name: release.title.clone().into(), url: release.url.clone().into() },
+            sub_title: Link { name: release.artist().into(), url: artist_url.into() },
+            image: ImageLink { image: slint_image, name: release.title.clone().into(), url: release.url.clone().into() },
+        }
+    }
 }
 
 impl Default for AppWindowController {
@@ -91,26 +117,9 @@ impl Default for AppWindowController {
     }
 }
 
-impl From<Release> for CardModel {
-    fn from(release: Release) -> Self {
-        // let images = release.art();
-        // let image = images.first().unwrap();
-        // let dynamic_image = library.image(image).unwrap();
-        let dynamic_image = DynamicImage::default();
-        let slint_image = dynamic_image_to_slint_image(&dynamic_image);
-        let artist_url = match release.artists.first() {
-            Some(artist) => {
-                artist.url.to_string()
-            },
-            None =>  {
-                "".to_string()
-            }
-        };
-        CardModel {
-            title: Link { name: release.title.clone().into(), url: release.url.clone().into() },
-            sub_title: Link { name: release.artist().into(), url: artist_url.into() },
-            image: ImageLink { image: slint_image, name: release.title.clone().into(), url: release.url.clone().into() },
-        }
+impl From<(LibraryHandle, Release)> for CardModel {
+    fn from((library, release): (LibraryHandle, Release)) -> Self {
+        AppWindowController::release_to_card(library, &release)
     }
 }
 

@@ -7,12 +7,13 @@
 
 // use rayon::prelude::*;
 
-use std::{path::Path, fs::File, collections::{hash_map, HashMap}, time::Duration, io::Error, sync::mpsc::{channel, Receiver}};
+use std::{path::Path, fs::File, collections::{hash_map, HashMap}, time::Duration, io::Error, sync::{mpsc::{channel, Receiver}, RwLock}};
 
-use audiotags::{Tag, AudioTag};
-use dimple_core::{library::Library, model::{Release, Track, Artist}};
+use audiotags::{Tag, AudioTag, AudioTagEdit};
+use dimple_core::{library::Library, model::{Release, Track, Artist, Genre}};
 use image::DynamicImage;
 use walkdir::{WalkDir, DirEntry};
+use dimple_core::model::Image;
 
 // TODO remember the idea of "you own this percent of your library" meaning
 // you can have songs in your library that you maybe can't listen to, but
@@ -29,17 +30,87 @@ use walkdir::{WalkDir, DirEntry};
 
 pub struct FolderLibrary {
     path: String,
+    images_by_url: RwLock<HashMap<String, DynamicImage>>,
 }
 
 impl FolderLibrary {
     pub fn new(path: &str) -> Self {
         Self {
             path: path.to_string(),
+            images_by_url: RwLock::new(HashMap::new()),
         }
     }
 
-    fn base_url(&self) -> String {
-        format!("folder:///{}", self.path)
+    fn url(&self, typ: &str, path: &str) -> String {
+        format!("folder://{}/{}/{}", self.path, typ, path)
+    }
+
+    fn release(&self, tag: &dyn AudioTag) -> Release {
+        // tag.album_artist().unwrap_or_default(),
+        // tag.album_title().unwrap_or_default(),
+        // tag.title().unwrap_or_default());
+
+        Release {
+            url: self.url("releases", tag.album_title().unwrap_or_default()),
+            title: tag.album_title().unwrap_or_default().to_string(),
+            artists: self.artists(tag),
+            genres: self.genres(tag),
+            art: self.art(tag),
+            tracks: vec![self.track(tag)],
+        }
+    }
+
+    fn track(&self, tag: &dyn AudioTag) -> Track {
+        Track {
+            // TODO better url
+            url: self.url("tracks", tag.title().unwrap_or("")),
+            artists: self.artists(tag),
+            title: tag.title().unwrap_or("").to_string(),
+            genres: self.genres(tag),
+            art: vec![],
+        }
+    }
+
+    fn artists(&self, tag: &dyn AudioTag) -> Vec<Artist> {
+        vec![Artist {
+            url: self.url("artists", tag.album_artist().unwrap_or("")),
+            name: tag.album_artist().unwrap_or("").to_string(),
+            art: vec![],
+            genres: self.genres(tag),
+        }]
+    }
+
+    fn genres(&self, tag: &dyn AudioTag) -> Vec<Genre> {
+        if let Some(genre) = tag.genre() {
+            return vec![
+                Genre {
+                    url: self.url("genres", genre),
+                    name: genre.to_string(),
+                    art: vec![],
+                }
+            ];
+        }
+        vec![]
+    }
+
+    fn art(&self, tag: &dyn AudioTag) -> Vec<Image> {
+        let path = format!("{}{}{}",
+            tag.album_artist().unwrap_or_default(),
+            tag.album_title().unwrap_or_default(),
+            tag.title().unwrap_or_default());
+        let url = self.url("images", &path);
+        let image = tag.album_cover()
+            .and_then(|album_cover| 
+                image::load_from_memory(album_cover.data).ok());
+        if let Some(image) = image {
+            self.images_by_url.write().unwrap().insert(url.clone(), image.clone());
+            log::debug!("Stored {}x{} image for {}", image.width(), 
+                image.height(), url);
+            return vec![Image {
+                url,
+            }];
+        }
+        vec![]        
     }
 }
 
@@ -58,62 +129,29 @@ impl Library for FolderLibrary {
             .filter(|e| e.path().extension().is_some())
             .map(|e| (e.clone(), Tag::new().read_from_path(e.path())))
             .filter(|(_e, tag)| tag.is_ok())
-            // Convert (DirEntry, Result<AudioTag>) to Release
             .map(|(e, tag)| {
                 let tag = tag.unwrap();
-                Release {
-                    url: format!("{}/releases/{}", 
-                        self.base_url(), 
-                        tag.album_title().unwrap_or("")),
-                    title: tag.album_title().unwrap_or("").to_string(),
-                    tracks: vec![
-                        Track {
-                            url: format!("{}/tracks/{}",                         
-                                self.base_url(), 
-                                tag.title().unwrap_or("")),
-                            title: tag.title().unwrap_or("").to_string(),
-                            art: vec![],
-                            artists: tag.artists()
-                                .unwrap_or_default()
-                                .iter()
-                                .map(|artist_name| {
-                                    Artist {
-                                        url: format!("{}/artists/{}", self.base_url(), artist_name),
-                                        name: artist_name.to_string(),
-                                        art: vec![],
-                                        genres: vec![],
-                                    }
-                                })
-                                .collect(),
-                            genres: vec![],
-                        }
-                    ],
-                    art: vec![],
-                    artists: tag.artists()
-                        .unwrap_or_default()
-                        .iter()
-                        .map(|artist_name| {
-                            Artist {
-                                url: format!("{}/artists/{}", self.base_url(), artist_name),
-                                name: artist_name.to_string(),
-                                art: vec![],
-                                genres: vec![],
-                            }
-                        })
-                        .collect(),
-                    genres: vec![],
-                }
+                self.release(&*tag)
             })
+            // TODO improve, probably just going to return tracks or hand
+            // them off to a matching service.
+            // Naively merge releases by album_artist+album_title.
             .for_each(|release| {
-                log::info!("Sending {:?}", &release);
+                log::debug!("Sending {:?}", &release);
                 sender.send(release).unwrap();
             });
 
         receiver
     }
-    fn image(&self, _image: &dimple_core::model::Image) -> Result<DynamicImage, String> {
-        
-        Result::Err("not yet implemented".to_string())
+
+
+    fn image(&self, image: &dimple_core::model::Image) -> Result<DynamicImage, String> {
+        if let Some(cached_image) = self.images_by_url.read().unwrap().get(&image.url) {
+            log::debug!("Loaded {}x{} image for {}", cached_image.width(), 
+            cached_image.height(), image.url);
+            return Ok(cached_image.clone());
+        }
+        Err("not found".to_string())
     }
 
     fn stream(&self, _track: &dimple_core::model::Track) -> Result<Vec<u8>, String> {
@@ -121,7 +159,22 @@ impl Library for FolderLibrary {
     }
 }
 
+// impl From<AudioTag> for Artist {
+//     fn from(value: AudioTag) -> Self {
+//         Artist {
+//             // url: format!("{}/artists/{}", self.base_url(), artist_name),
+//             name: artist_name.to_string(),
+//             art: vec![],
+//             genres: vec![],
+//         }
+//     }
+// }
 
+// impl From<dyn AudioTag> for dimple_core::model::Image {
+//     fn from(value: dyn AudioTag) -> Self {
+//         value.
+//     }
+// }
 
             // // Merge similar releases together by URL
             // .fold(HashMap::new(), |mut acc, rel_a| {
