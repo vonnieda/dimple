@@ -7,9 +7,9 @@
 
 // use rayon::prelude::*;
 
-use std::{path::Path, fs::File, collections::{hash_map, HashMap}, time::Duration, io::Error, sync::{mpsc::{channel, Receiver}, RwLock}};
+use std::{path::Path, fs::File, collections::{hash_map, HashMap, HashSet}, time::Duration, io::Error, sync::{mpsc::{channel, Receiver}, RwLock}};
 
-use audiotags::{Tag, AudioTag, AudioTagEdit};
+use audiotags::{Tag, AudioTag, AudioTagEdit, AudioTagConfig};
 use dimple_core::{library::Library, model::{Release, Track, Artist, Genre}};
 use image::DynamicImage;
 use walkdir::{WalkDir, DirEntry};
@@ -27,6 +27,8 @@ use dimple_core::model::Image;
 // sources and stores and whatever, and each will have their own IDs but might
 // also have their own additional IDs we can match against to try to create
 // links or merges.
+
+// This is all poop.
 
 pub struct FolderLibrary {
     path: String,
@@ -114,6 +116,46 @@ impl FolderLibrary {
         }
         vec![]        
     }
+
+    fn merge_release(a: &Release, b: &Release) -> Release {
+        let mut dest = b.clone();
+        let src = a.clone();
+        if dest.url.is_empty() {
+            dest.url = src.url.clone();
+        }
+        if dest.title.is_empty() {
+            dest.title = src.title.clone();
+        }
+        dest.artists = dest.artists.iter()
+            .chain(src.artists.iter())
+            .cloned()
+            .collect::<HashSet<Artist>>()
+            .iter()
+            .cloned()
+            .collect::<Vec<Artist>>();
+        dest.genres = dest.genres.iter()
+            .chain(src.genres.iter())
+            .cloned()
+            .collect::<HashSet<Genre>>()
+            .iter()
+            .cloned()
+            .collect::<Vec<Genre>>();
+        dest.art = dest.art.iter()
+            .chain(src.art.iter())
+            .cloned()
+            .collect::<HashSet<Image>>()
+            .iter()
+            .cloned()
+            .collect::<Vec<Image>>();
+        dest.tracks = dest.tracks.iter()
+            .chain(src.tracks.iter())
+            .cloned()
+            .collect::<HashSet<Track>>()
+            .iter()
+            .cloned()
+            .collect::<Vec<Track>>();
+        dest
+    }
 }
 
 // https://github.com/diesel-rs/diesel
@@ -137,7 +179,18 @@ impl Library for FolderLibrary {
             })
             // TODO improve, probably just going to return tracks or hand
             // them off to a matching service.
-            // Naively merge releases by album_artist+album_title.
+            .fold(HashMap::new(), |mut acc, release| {
+                if let Some(stored_release) = acc.get(&release.url) {
+                    let release = Self::merge_release(&release, stored_release);
+                    acc.insert(release.url.clone(), release);
+                }
+                else {
+                    acc.insert(release.url.clone(), release);
+                }
+                acc
+            })
+            .values()
+            .cloned()
             .for_each(|release| {
                 log::debug!("Sending {:?}", &release);
                 sender.send(release).unwrap();
@@ -145,7 +198,6 @@ impl Library for FolderLibrary {
 
         receiver
     }
-
 
     fn image(&self, image: &dimple_core::model::Image) -> Result<DynamicImage, String> {
         if let Some(cached_image) = self.images_by_url.read().unwrap().get(&image.url) {
@@ -178,16 +230,16 @@ impl Library for FolderLibrary {
 //     }
 // }
 
-            // // Merge similar releases together by URL
-            // .fold(HashMap::new(), |mut acc, rel_a| {
-            //     if let rel_b = acc.get(&rel_a.url) {
-            //         // merge em
-            //     }
-            //     let rel_b = acc.entry(release_url.clone()).or_insert(release);
-            //     // release.artists.extend_from_slice(&e.track.artists);
-            //     // release.tracks.push(e.track);
-            //     // release.art.extend_from_slice(reease)
-            //     acc
-            // })
-            // .values()
-            // .cloned()
+// // Merge similar releases together by URL
+// .fold(HashMap::new(), |mut acc, rel_a| {
+//     if let rel_b = acc.get(&rel_a.url) {
+//         // merge em
+//     }
+//     let rel_b = acc.entry(release_url.clone()).or_insert(release);
+//     // release.artists.extend_from_slice(&e.track.artists);
+//     // release.tracks.push(e.track);
+//     // release.art.extend_from_slice(reease)
+//     acc
+// })
+// .values()
+// .cloned()

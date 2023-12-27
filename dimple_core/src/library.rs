@@ -13,6 +13,12 @@ pub type LibrariesHandle = Arc<RwLock<Vec<LibraryHandle>>>;
 /// Deezer, Last.fm, Bandcamp, etc. By implementing at least some of the methods
 /// of Library for one of these services we can integrate that Library's data
 /// into Dimple.
+/// 
+/// TODO Need to think through how I handle very large libraries, like Spotify
+/// or MusicBrainz. I can't just return a list of releases.
+/// probably need a few search functions, get rid of releases() and add things
+/// like artist(name or id?)
+/// 
 pub trait Library: Send + Sync {
     /// Get a user friendly display name for the Library.
     fn name(&self) -> String;

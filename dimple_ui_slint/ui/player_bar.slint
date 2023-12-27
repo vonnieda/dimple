@@ -24,10 +24,10 @@ component InfoAreaLabel inherits HorizontalLayout {
 }
 
 export component PlayerBar {
-    in property <image> current-image;
-    in property <string> current-title;
-    in property <string> current-release;
-    in property <string> current-artist;
+    in-out property <image> current-image;
+    in-out property <string> current-title;
+    in-out property <string> current-release;
+    in-out property <string> current-artist;
 
     HorizontalLayout {
         spacing: StyleMetrics.layout-spacing * 2;

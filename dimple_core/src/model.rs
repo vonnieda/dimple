@@ -20,13 +20,27 @@ impl Release {
     }
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct Artist {
     pub url: String,
     pub name: String,
     pub art: Vec<Image>,
     #[serde(default)]
     pub genres: Vec<Genre>,
+}
+
+impl Eq for Artist {}
+
+impl PartialEq for Artist {
+    fn eq(&self, other: &Self) -> bool {
+        self.url == other.url
+    }
+}
+
+impl std::hash::Hash for Artist {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.url.hash(state);
+    }
 }
 
 // TODO I think this is gonna need a way to get back to the release. Giving
