@@ -212,34 +212,3 @@ impl Library for FolderLibrary {
         todo!()
     }
 }
-
-// impl From<AudioTag> for Artist {
-//     fn from(value: AudioTag) -> Self {
-//         Artist {
-//             // url: format!("{}/artists/{}", self.base_url(), artist_name),
-//             name: artist_name.to_string(),
-//             art: vec![],
-//             genres: vec![],
-//         }
-//     }
-// }
-
-// impl From<dyn AudioTag> for dimple_core::model::Image {
-//     fn from(value: dyn AudioTag) -> Self {
-//         value.
-//     }
-// }
-
-// // Merge similar releases together by URL
-// .fold(HashMap::new(), |mut acc, rel_a| {
-//     if let rel_b = acc.get(&rel_a.url) {
-//         // merge em
-//     }
-//     let rel_b = acc.entry(release_url.clone()).or_insert(release);
-//     // release.artists.extend_from_slice(&e.track.artists);
-//     // release.tracks.push(e.track);
-//     // release.art.extend_from_slice(reease)
-//     acc
-// })
-// .values()
-// .cloned()

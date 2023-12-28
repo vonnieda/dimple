@@ -6,6 +6,7 @@ use dimple_player::player::{Player, PlayerHandle};
 use image::DynamicImage;
 use slint::{ModelRc, Weak, SharedPixelBuffer, Rgba8Pixel};
 use dimple_folder_library::folder_library::FolderLibrary;
+use musicbrainz_rs::entity::artist::Artist;
 
 slint::include_modules!();
 
@@ -37,13 +38,6 @@ impl AppWindowController {
                     .unwrap();
                     
                 ui.as_weak().upgrade_in_event_loop(move |ui| { 
-                    // let mut card_models: Vec<CardModel> = vec![];
-                    // for item in vec {
-                    //     card_models.push(item.into());
-                    // }
-                    // ui.set_card_grid_model(CardGridModel { 
-                    //     cards: ModelRc::from(card_models.as_slice()) 
-                    // }); 
                     ui.set_artist_details_model(ArtistDetailsModel {
                         card: artist.clone().into(),
                         genres: ModelRc::from(artist.genres
@@ -84,9 +78,7 @@ impl AppWindowController {
             }
         });
 
-        self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music/Opeth")));
-        self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music/The Mars Volta")));
-        self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music/Metallica")));
+        self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
         let librarian = self.librarian.clone();
         // TODO gonna change this so the librarian is threaded and just manages its
         // own state.

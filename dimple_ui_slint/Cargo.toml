@@ -23,6 +23,7 @@ config = "0.13.3"
 image = "0.24.6"
 num-complex = "0.4.3"
 rand = "0.8.5"
+musicbrainz_rs = { version = "0.5.0", features = ["blocking"] }
 
 [build-dependencies]
 slint-build = "1.1"

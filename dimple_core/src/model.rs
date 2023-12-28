@@ -1,6 +1,10 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+// Notes as I think about the data model
+// How would I search for eminem, get artist, album, and track results, 
+// merge those into the local, and push the changes up to the UI.
+
 #[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct Release {
     pub url: String,
@@ -20,6 +24,9 @@ impl Release {
     }
 }
 
+/// Loosely modeled on the MusicBrainz Artist entity
+/// https://musicbrainz.org/doc/Artist
+/// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct Artist {
     pub url: String,
@@ -27,7 +34,7 @@ pub struct Artist {
     pub art: Vec<Image>,
     #[serde(default)]
     pub genres: Vec<Genre>,
-}
+} 
 
 impl Eq for Artist {}
 
@@ -43,21 +50,9 @@ impl std::hash::Hash for Artist {
     }
 }
 
-// TODO I think this is gonna need a way to get back to the release. Giving
-// more credence to everything just having an ID and the vectors being
-// vectors of IDs. And I can add getters that take the request.
-// Actually maybe no, because a track might appear in more than one release?
-// So I just need to index at a higher level.
-// https://musicbrainz.org/doc/MusicBrainz_Database/Schema
-// https://wiki.musicbrainz.org/images/a/a7/entity_network_overview.svg makes
-// it very clear and more and more this is becoming a MusicBrainz player but
-// that's actually really interesting. The entire database isn't that big.
-// Maybe that's something else that goes on S3. You download your own copy
-// of the database and use it locally plus upload it to S3 so it's yours.
-// OKURRR so then I should be focusing on making this an offline MBDB browser?
-// And media is just something that gets linked in?
-// https://musicbrainz.org/doc/Track
-
+// The Deezer version of a Track https://developers.deezer.com/api/track
+// includes a detailed Artist object, but just one, and a detail album
+// Object.
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
 pub struct Track {
     pub url: String,
