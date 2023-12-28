@@ -1,20 +1,19 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
-import { ImageLink, Link } from "./common.slint";
+import { ImageLink, Link, Links } from "./common.slint";
 import { Palette, Navigator } from "common.slint";
 import {StyleMetrics} from "std-widgets.slint";
 
 export struct CardModel {
     image: ImageLink,
     title: Link,
-    // TODO eventually an array
-    sub-title: Link,
+    sub-title: [Link],
 }
 
 export component Card inherits VerticalLayout {
     in property <CardModel> model: {
         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
         title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+        sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
     };
 
     width: Palette.thumbnail-width-large;
@@ -54,14 +53,5 @@ export component Card inherits VerticalLayout {
             font-size: 1.2rem;
         }
     }
-    sub-title-area := TouchArea {
-        mouse-cursor: pointer;
-        clicked => { Navigator.navigate(model.sub-title.url); }
-        Text {
-            width: root.width;
-            text: model.sub-title.name;
-            wrap: word-wrap;
-            font-size: 1.2rem;
-        }
-    }
+    sub-title-area := Links { links: model.sub-title; }
 }

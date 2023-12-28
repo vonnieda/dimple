@@ -1,14 +1,22 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette } from "common.slint";
+import { Palette, Link, Navigator, Links } from "common.slint";
+import { CardModel } from "card.slint";
+import { StyleMetrics } from "std-widgets.slint";
+import { CardGrid, CardGridModel } from "card_grid.slint";
 
 export struct ArtistDetailsModel {
-
+    card: CardModel,
+    bio: string,
+    genres: [Link],
+    releases: CardGridModel,
 }
 
 export component ArtistDetails inherits VerticalBox {
     alignment: start;
-    HorizontalBox {
+    // Header
+    HorizontalLayout {
         alignment: start;
+        spacing: StyleMetrics.layout-spacing;
         Rectangle {
             width: Palette.thumbnail-width-extra-large;
             height: Palette.thumbnail-width-extra-large;
@@ -19,20 +27,99 @@ export component ArtistDetails inherits VerticalBox {
             Image {
                 width: Palette.thumbnail-width-extra-large;
                 height: Palette.thumbnail-width-extra-large;
-                source: @image-url("../images/light.png");
+                source: model.card.image.image;
             }
         }
         VerticalLayout {
             alignment: start;
+            spacing: StyleMetrics.layout-spacing;
             Text {
-                text: "Artist Name";
+                text: model.card.title.name;
                 font-weight: Palette.font-weight-bold;
-                font-size: 3rem;
+                font-size: 4rem;
+            }
+            HorizontalLayout {
+                alignment: start;
+                Text {
+                    text: "In ";
+                    font-size: 1.3rem;
+                }    
+                Links {
+                    links: model.genres;
+                }
             }
             Text {
-                text: "in Atmospheric Black Metal, Black Metal, Drone, Hard Rock & Metal, Metal, Rock";
+                text: model.bio;
+                // max-width: 800px;
+                wrap: word-wrap;
                 font-size: 1.2rem;
             }
         }
     }
+    // Releases
+    Text {
+        text: "Releases";
+        font-weight: Palette.font-weight-bold;
+        font-size: 3rem;
+    }
+    CardGrid {
+        min-height: 400px;
+        model: model.releases;
+    }
+
+
+
+
+    in property <ArtistDetailsModel> model: {
+        card: {
+            image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+            title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+            sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+        },
+        genres: [
+            { name: "Fish Jazz", url: "dimple://artists/13412341234" },
+            { name: "Euro-rot", url: "dimple://artists/134123412341234" },
+            { name: "Snake Punk", url: "dimple://artists/1341234213412431234" },
+        ],
+
+        releases: {
+            cards: [
+                {
+                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+            ],
+        }
+    };
 }

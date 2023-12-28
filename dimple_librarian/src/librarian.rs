@@ -34,12 +34,12 @@ impl Librarian {
     }
 
     pub fn refresh_all_libraries(&self) {
-        log::info!("refresh_all_libraries() start)");
+        log::debug!("refresh_all_libraries() start");
         let libraries = self.libraries.read().unwrap(); 
         for library in libraries.iter() {
             self.refresh_library(library);
         }
-        log::info!("refresh_all_libraries() done");
+        log::debug!("refresh_all_libraries() done");
     }
 }
 

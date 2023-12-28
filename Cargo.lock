@@ -1422,33 +1422,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dimple_cli"
-version = "0.1.0"
-dependencies = [
- "audiotags",
- "config",
- "cpal",
- "dimple_core",
- "dimple_folder_library",
- "dimple_navidrome_library",
- "dimple_player",
- "dimple_s3_compatible_storage_library",
- "dimple_sled_library",
- "env_logger",
- "fuzzy-matcher",
- "id3",
- "image",
- "log",
- "rust-s3",
- "serde",
- "serde_yaml",
- "threadpool",
- "ulid",
- "url 2.5.0",
- "walkdir",
-]
-
-[[package]]
 name = "dimple_core"
 version = "0.1.0"
 dependencies = [
@@ -2118,15 +2091,6 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
-]
-
-[[package]]
-name = "fuzzy-matcher"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54614a3312934d066701a80f20f15fa3b56d67ac7722b39eea5b4c9dd1d66c94"
-dependencies = [
- "thread_local",
 ]
 
 [[package]]
@@ -5062,19 +5026,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_yaml"
-version = "0.9.29"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a15e0ef66bf939a7c890a0bf6d5a733c70202225f9888a89ed5c62298b019129"
-dependencies = [
- "indexmap 2.1.0",
- "itoa 1.0.10",
- "ryu",
- "serde",
- "unsafe-libyaml",
-]
-
-[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6175,15 +6126,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ulid"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e37c4b6cbcc59a8dcd09a6429fbc7890286bcbb79215cea7b38a3c4c0921d93"
-dependencies = [
- "rand 0.8.5",
-]
-
-[[package]]
 name = "unicase"
 version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6260,12 +6202,6 @@ name = "unicode-xid"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
-
-[[package]]
-name = "unsafe-libyaml"
-version = "0.2.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab4c90930b95a82d00dc9e9ac071b4991924390d46cbd0dfe566148667605e4b"
 
 [[package]]
 name = "untrusted"

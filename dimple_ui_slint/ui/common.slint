@@ -28,3 +28,33 @@ export struct ImageLink {
     url: string,
 }
 
+export component Links inherits HorizontalLayout {
+    in property <[Link]> links;
+    alignment: start;
+    // TODO I think the kerning ends up incorrect when doing it this way. It
+    // looks weird. But I don't know another way to get individual links with
+    // fancy commas.
+    for link[i] in links: HorizontalLayout {
+        TouchArea {
+            mouse-cursor: pointer;
+            clicked => { Navigator.navigate(link.url); }
+            Text {
+                text: link.name;
+                font-size: 1.3rem;
+            }    
+        }
+        // TODO edge cases
+        if i < links.length - 2:
+            Text {
+                text: ", ";
+                font-size: 1.3rem;
+            }    
+        if i == links.length - 2:
+            Text {
+                text: ", and ";
+                font-size: 1.3rem;
+            }    
+    }
+}
+
+
