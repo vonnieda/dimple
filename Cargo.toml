@@ -2,17 +2,17 @@
 members = [
     "dimple_core",
     "dimple_sled_library",
-    "dimple_navidrome_library",
+    # "dimple_navidrome_library",
     "dimple_s3_compatible_storage_library",
     "dimple_folder_library",
     "dimple_librarian",
     "dimple_player",
-    # "dimple_cli",
+    "dimple_cli",
     # "dimple_ui_egui",
     "dimple_ui_slint",
 ]
 resolver="2"
 
-[toolchain]
-channel = "nightly"
+#[toolchain]
+#channel = "nightly"
 

@@ -1,12 +1,13 @@
+use musicbrainz_rs::{prelude::*, entity::artist::ArtistSearchQuery};
+
 use std::{sync::Arc, time::Duration};
 
 use dimple_core::{library::{LibraryHandle}, model::{Artist, Release, Genre}};
 use dimple_librarian::librarian::Librarian;
 use dimple_player::player::{Player, PlayerHandle};
 use image::DynamicImage;
-use slint::{ModelRc, Weak, SharedPixelBuffer, Rgba8Pixel};
+use slint::{ModelRc, Weak, SharedPixelBuffer, Rgba8Pixel, ComponentHandle};
 use dimple_folder_library::folder_library::FolderLibrary;
-use musicbrainz_rs::entity::artist::Artist;
 
 slint::include_modules!();
 
@@ -30,6 +31,7 @@ impl AppWindowController {
                 todo!()
             } 
             else if url.starts_with("dimple://artists/") {
+                // TODO yikes.
                 let artist_url = url.split_at(17).1;
 
                 let artist = library.artists()
@@ -74,7 +76,25 @@ impl AppWindowController {
                 ui.set_page(0);
             } 
             else if url.starts_with("dimple://search") {
-                ui.set_page(4);
+                let url = url.to_string();
+                let ui = ui.as_weak();
+                std::thread::spawn(move || {
+                    let query_str = url.split_at("dimple://search".len()).1;
+                    let query = ArtistSearchQuery::query_builder()
+                            .artist(query_str)
+                            // .and()
+                            // .country("US")
+                            .build(); 
+                    let mut artists = musicbrainz_rs::entity::artist::Artist::search(query)
+                        .execute()
+                        .unwrap()
+                        .entities;
+                    artists.sort_by_key(|a| a.name.clone());
+                    Self::set_card_grid_model(artists, ui.clone());
+                    ui.upgrade_in_event_loop(|ui| {
+                        ui.set_page(0)
+                    }).unwrap();
+                });
             }
         });
 
@@ -124,6 +144,16 @@ impl Default for AppWindowController {
             ui,
             librarian,
             player,
+        }
+    }
+}
+
+impl From<musicbrainz_rs::entity::artist::Artist> for CardModel {
+    fn from(value: musicbrainz_rs::entity::artist::Artist) -> Self {
+        CardModel { 
+            image: Default::default(), 
+            sub_title: [Link { name: value.disambiguation.into(), url: "".into() }].into(), 
+            title: Link { name: value.name.into(), url: "".into() },
         }
     }
 }
