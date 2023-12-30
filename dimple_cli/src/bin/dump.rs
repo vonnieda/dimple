@@ -1,7 +1,10 @@
+use dimple_musicbrainz_library::musicbrainz_library::MusicBrainzLibrary;
 use dimple_core::library::Library;
-use dimple_folder_library::folder_library::FolderLibrary;
 
 fn main() {
-    let library = FolderLibrary::new("/Users/jason/Music/My Music");
-    library.releases();
+    let library = MusicBrainzLibrary::new();
+
+    for result in library.search("Metallica") {
+        dbg!(result);
+    }
 }

@@ -12,11 +12,11 @@ log = "0.4.19"
 slint = "1.3.0"
 env_logger = "0.10.0"
 dimple_core = { path = "../dimple_core" }
-dimple_player = { path = "../dimple_player" }
-dimple_sled_library = { path = "../dimple_sled_library" }
-dimple_folder_library = { path = "../dimple_folder_library" }
-dimple_navidrome_library = { path = "../dimple_navidrome_library" }
-dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
+# dimple_player = { path = "../dimple_player" }
+# dimple_sled_library = { path = "../dimple_sled_library" }
+# dimple_folder_library = { path = "../dimple_folder_library" }
+# dimple_navidrome_library = { path = "../dimple_navidrome_library" }
+# dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
 dimple_musicbrainz_library = { path = "../dimple_musicbrainz_library" }
 dimple_librarian = { path = "../dimple_librarian" }
 serde = "1.0.175"

@@ -15,8 +15,9 @@ ulid = "1.0.0"
 serde_yaml = "0.9.19"
 serde = { version = "1.0.158", features = ["derive"] }
 dimple_core = { path = "../dimple_core" }
-dimple_player = { path = "../dimple_player" }
-dimple_sled_library = { path = "../dimple_sled_library" }
-dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
-dimple_navidrome_library = { path = "../dimple_navidrome_library" }
-dimple_folder_library = { path = "../dimple_folder_library" }
+# dimple_player = { path = "../dimple_player" }
+# dimple_sled_library = { path = "../dimple_sled_library" }
+# dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
+# dimple_navidrome_library = { path = "../dimple_navidrome_library" }
+# dimple_folder_library = { path = "../dimple_folder_library" }
+dimple_musicbrainz_library = { path = "../dimple_musicbrainz_library" }

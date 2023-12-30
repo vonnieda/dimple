@@ -1,10 +1,6 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-// Notes as I think about the data model
-// How would I search for eminem, get artist, album, and track results, 
-// merge those into the local, and push the changes up to the UI.
-
 #[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct Release {
     pub url: String,
@@ -27,9 +23,13 @@ impl Release {
 /// Loosely modeled on the MusicBrainz Artist entity
 /// https://musicbrainz.org/doc/Artist
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
+/// May just replace this and the rest with MusicBrainz wrappers
+/// eventually.
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct Artist {
-    pub url: String,
+    pub dimple_id: String,
+    pub musicbrainz_id: String,
+
     pub name: String,
     pub art: Vec<Image>,
     #[serde(default)]
@@ -40,13 +40,14 @@ impl Eq for Artist {}
 
 impl PartialEq for Artist {
     fn eq(&self, other: &Self) -> bool {
-        self.url == other.url
+        (self.dimple_id == other.dimple_id) && (self.musicbrainz_id == other.musicbrainz_id)
     }
 }
 
 impl std::hash::Hash for Artist {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.url.hash(state);
+        self.dimple_id.hash(state);
+        self.musicbrainz_id.hash(state);
     }
 }
 

@@ -1,7 +1,9 @@
-use std::sync::mpsc::Receiver;
+use std::{sync::mpsc::{Receiver, channel}, thread};
 
-use dimple_core::{model::{Release, Track, Image}, library::Library};
+use dimple_core::{model::{Release, Track, Image}, library::{Library, SearchResult}};
 use image::DynamicImage;
+use musicbrainz_rs::entity::{artist::{Artist, ArtistSearchQuery}, artist_credit::ArtistCredit};
+use musicbrainz_rs::prelude::*;
 
 #[derive(Debug, Default)]
 pub struct MusicBrainzLibrary {
@@ -19,8 +21,34 @@ impl Library for MusicBrainzLibrary {
     fn name(&self) -> String {
         todo!()
     }
-    
-    fn releases(&self) -> Receiver<Release> {
+
+    fn search(&self, query: &str) -> impl Iterator<Item = SearchResult> {
+        let (sender, receiver) = channel::<SearchResult>();
+        let query = query.to_string();
+        thread::spawn(move || {
+            let search_query = ArtistSearchQuery::query_builder()
+                    .artist(&query)
+                    .build();
+            Artist::search(search_query)
+                .execute().unwrap() // TODO error handling
+                .entities
+                .iter()
+                .map(|src| {
+                    dimple_core::model::Artist {
+                        name: src.name.clone(),
+                        musicbrainz_id: src.id.clone(),
+                        ..Default::default()
+                    }
+                })
+                .for_each(|artist| {
+                    sender.send(SearchResult::Artist(artist)).unwrap();
+                });
+        });
+        receiver.into_iter()
+    }
+}
+
+    // fn releases(&self) -> Receiver<Release> {
     //     let query = ReleaseGroupSearchQuery::query_builder()
     //     // .artist(query_str)
     //     .release_group(query_str)
@@ -48,18 +76,6 @@ impl Library for MusicBrainzLibrary {
     //     }
     // });
 
-        todo!()
-    }
+    //     todo!()
+    // }
 
-    fn image(&self, image: &Image) -> Result<DynamicImage, String> {
-        todo!()
-    }
-
-    fn stream(&self, _track: &Track) -> Result<Vec<u8>, String> {
-        todo!()
-    }
-
-    fn merge_release(&self, library: &dyn Library, release: &Release) -> Result<(), String> {
-        todo!()
-    }
-}

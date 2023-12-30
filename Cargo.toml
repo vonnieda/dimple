@@ -5,10 +5,10 @@ members = [
     # "dimple_navidrome_library",
     # "dimple_s3_compatible_storage_library",
     # "dimple_folder_library",
-    # "dimple_musicbrainz_library",
+    "dimple_musicbrainz_library",
     # "dimple_librarian",
     # "dimple_player",
-    # "dimple_cli",
+    "dimple_cli",
     # "dimple_ui_egui",
     "dimple_ui_slint",
 ]

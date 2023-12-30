@@ -5,7 +5,7 @@ use std::{sync::Arc, time::Duration};
 
 use dimple_core::{library::{LibraryHandle}, model::{Artist, Release, Genre}};
 use dimple_librarian::librarian::Librarian;
-use dimple_player::player::{Player, PlayerHandle};
+// use dimple_player::player::{Player, PlayerHandle};
 use image::DynamicImage;
 use slint::{ModelRc, Weak, SharedPixelBuffer, Rgba8Pixel, ComponentHandle};
 use dimple_folder_library::folder_library::FolderLibrary;
@@ -17,7 +17,7 @@ pub type LibrarianHandle = Arc<Librarian>;
 pub struct AppWindowController {
     ui: AppWindow,
     librarian: LibrarianHandle,
-    player: PlayerHandle,
+    // player: PlayerHandle,
 }
 
 impl AppWindowController {
@@ -131,11 +131,11 @@ impl Default for AppWindowController {
     fn default() -> Self {
         let ui = AppWindow::new().unwrap();
         let librarian = Arc::new(Librarian::default());
-        let player = Player::new(librarian.clone());
+        // let player = Player::new(librarian.clone());
         Self {
             ui,
             librarian,
-            player,
+            // player,
         }
     }
 }
