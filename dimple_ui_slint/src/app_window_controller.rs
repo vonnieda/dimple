@@ -1,4 +1,5 @@
-use musicbrainz_rs::{prelude::*, entity::artist::ArtistSearchQuery};
+use dimple_musicbrainz_library::musicbrainz_library::MusicBrainzLibrary;
+use musicbrainz_rs::{prelude::*, entity::{artist::ArtistSearchQuery, release_group::{ReleaseGroupSearchQuery, ReleaseGroup}, artist_credit::ArtistCredit, CoverartResponse, url::Url}};
 
 use std::{sync::Arc, time::Duration};
 
@@ -78,27 +79,18 @@ impl AppWindowController {
             else if url.starts_with("dimple://search") {
                 let url = url.to_string();
                 let ui = ui.as_weak();
-                std::thread::spawn(move || {
-                    let query_str = url.split_at("dimple://search".len()).1;
-                    let query = ArtistSearchQuery::query_builder()
-                            .artist(query_str)
-                            // .and()
-                            // .country("US")
-                            .build(); 
-                    let mut artists = musicbrainz_rs::entity::artist::Artist::search(query)
-                        .execute()
-                        .unwrap()
-                        .entities;
-                    artists.sort_by_key(|a| a.name.clone());
-                    Self::set_card_grid_model(artists, ui.clone());
-                    ui.upgrade_in_event_loop(|ui| {
-                        ui.set_page(0)
-                    }).unwrap();
-                });
+                // std::thread::spawn(move || {
+                //     let query_str = url.split_at("dimple://search".len()).1;
+                //     Self::set_card_grid_model(results, ui.clone());
+                //     ui.upgrade_in_event_loop(|ui| {
+                //         ui.set_page(0)
+                //     }).unwrap();
+                // });
             }
         });
 
-        self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
+        // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
+        self.librarian.add_library(Arc::new(MusicBrainzLibrary::default()));
         let librarian = self.librarian.clone();
         // TODO gonna change this so the librarian is threaded and just manages its
         // own state.
@@ -154,6 +146,17 @@ impl From<musicbrainz_rs::entity::artist::Artist> for CardModel {
             image: Default::default(), 
             sub_title: [Link { name: value.disambiguation.into(), url: "".into() }].into(), 
             title: Link { name: value.name.into(), url: "".into() },
+        }
+    }
+}
+
+impl From<musicbrainz_rs::entity::release_group::ReleaseGroup> for CardModel {
+    fn from(value: musicbrainz_rs::entity::release_group::ReleaseGroup) -> Self {
+        // let coverart = value.get_coverart().front().res_500().execute().unwrap();
+        CardModel { 
+            image: Default::default(), 
+            sub_title: [].into(), 
+            title: Link { name: value.title.into(), url: "".into() },
         }
     }
 }

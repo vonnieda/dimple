@@ -13,7 +13,6 @@ log = "0.4.17"
 url = "2.3.1"
 ulid = "1.0.0"
 serde_yaml = "0.9.19"
-config = "0.13.3"
 serde = { version = "1.0.158", features = ["derive"] }
 dimple_core = { path = "../dimple_core" }
 dimple_player = { path = "../dimple_player" }
@@ -21,11 +20,3 @@ dimple_sled_library = { path = "../dimple_sled_library" }
 dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
 dimple_navidrome_library = { path = "../dimple_navidrome_library" }
 dimple_folder_library = { path = "../dimple_folder_library" }
-threadpool = "1.8.1"
-cpal = "0.15.2"
-rust-s3 = { version = "0.33.0", features = ["sync-native-tls"], default-features = false }
-walkdir = "2.3.3"
-id3 = "1.10.0"
-audiotags = "0.4.1"
-musicbrainz_rs = { version = "0.5.0", default-features = false, features = ["blocking"] }
-

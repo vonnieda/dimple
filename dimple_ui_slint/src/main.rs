@@ -7,7 +7,7 @@ fn main() -> Result<(), slint::PlatformError> {
     builder.parse_default_env();
     builder.filter(Some("symphonia_core::probe"), log::LevelFilter::Off);
     builder.init();
-    
+
     let ui = AppWindowController::default();
     ui.run()
 }
