@@ -2,13 +2,13 @@ import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { Palette, Link, Navigator, Links } from "common.slint";
 import { CardModel } from "card.slint";
 import { StyleMetrics } from "std-widgets.slint";
-import { CardGrid, CardGridModel } from "card_grid.slint";
+import { CardGrid } from "card_grid.slint";
 
 export struct ArtistDetailsModel {
     card: CardModel,
     bio: string,
     genres: [Link],
-    releases: CardGridModel,
+    // releases: CardGridModel,
 }
 
 export component ArtistDetails inherits VerticalBox {
@@ -62,10 +62,10 @@ export component ArtistDetails inherits VerticalBox {
         font-weight: Palette.font-weight-bold;
         font-size: 3rem;
     }
-    CardGrid {
-        min-height: 400px;
-        model: model.releases;
-    }
+    // CardGrid {
+    //     min-height: 400px;
+    //     cards: model.releases;
+    // }
 
 
 
@@ -82,44 +82,44 @@ export component ArtistDetails inherits VerticalBox {
             { name: "Snake Punk", url: "dimple://artists/1341234213412431234" },
         ],
 
-        releases: {
-            cards: [
-                {
-                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-                },
-                {
-                    image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-                },
-                {
-                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-                },
-                {
-                    image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-                },
-                {
-                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-                },
-                {
-                    image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-                },
-                {
-                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-                },
-            ],
-        }
+        // releases: {
+        //     cards: [
+        //         {
+        //             image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+        //         },
+        //         {
+        //             image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+        //         },
+        //         {
+        //             image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+        //         },
+        //         {
+        //             image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+        //         },
+        //         {
+        //             image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+        //         },
+        //         {
+        //             image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+        //         },
+        //         {
+        //             image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+        //         },
+        //     ],
+        // }
     };
 }

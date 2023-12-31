@@ -3,104 +3,19 @@ import { Card, CardModel } from "card.slint";
 import { Palette, Navigator } from "common.slint";
 import {StyleMetrics} from "std-widgets.slint";
 
-// TODO May need to revisit the list view and see if it now handles this case
-// TODO Can remove this now that I know how to use RcModel. The cards array
-// can just be instantiated directly in the code and assigned to cards[]
-// on the CardGrid.
-export struct CardGridModel {
-    cards: [CardModel],
-}
-
 export component CardGrid inherits ScrollView {
-    in-out property <CardGridModel> model: {
-        cards: [
-            {
-                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-            {
-                image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-                title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-                sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-            },
-        ]
-    };
+    in-out property <[CardModel]> cards: [
+        {
+            image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+            title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+            sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+        },
+        {
+            image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+            title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+            sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+        },
+    ];
 
     property <int> cols: Math.floor((self.width - StyleMetrics.layout-padding) / (Palette.thumbnail-width-large + StyleMetrics.layout-spacing));
 
@@ -109,11 +24,11 @@ export component CardGrid inherits ScrollView {
         spacing: StyleMetrics.layout-spacing;
         padding-right: StyleMetrics.layout-padding;
         alignment: start;
-        for row in Math.ceil(model.cards.length / cols): HorizontalLayout {
+        for row in Math.ceil(cards.length / cols): HorizontalLayout {
             alignment: space-between;
             spacing: StyleMetrics.layout-spacing;
-            for col in Math.min(cols, model.cards.length - Math.floor(model.cards.length / cols)): Card {
-                 model: model.cards[row * cols + col];
+            for col in Math.min(cols, cards.length - Math.floor(cards.length / cols)): Card {
+                 model: cards[row * cols + col];
             }
         }
     }

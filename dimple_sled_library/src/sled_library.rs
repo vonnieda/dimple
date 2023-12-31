@@ -1,12 +1,8 @@
-use std::sync::mpsc::Receiver;
-
-use dimple_core::{model::{Release, Track, Image}, library::{Library, SearchResult}, image_cache::ImageCache};
-use image::DynamicImage;
+use dimple_core::{library::{Library, SearchResult}, image_cache::ImageCache};
 
 use serde::{Deserialize, Serialize};
 
 use sled::Tree;
-use threadpool::ThreadPool;
 
 #[derive(Debug)]
 
@@ -17,8 +13,8 @@ use threadpool::ThreadPool;
 pub struct SledLibrary {
     _ulid: String,
     name: String,
-    releases: Tree,
-    images: ImageCache,
+    _releases: Tree,
+    _images: ImageCache,
     _audio: Tree,
 }
 
@@ -38,8 +34,8 @@ impl SledLibrary {
         Self { 
             _ulid: String::from(ulid),
             name: String::from(name),
-            releases,
-            images: ImageCache::new(images),
+            _releases: releases,
+            _images: ImageCache::new(images),
             _audio: audio,
         }
     }
@@ -56,9 +52,9 @@ impl Library for SledLibrary {
         self.name.to_string()
     }
 
-    fn search(&self, query: &str) -> impl Iterator<Item = dimple_core::library::SearchResult> {
+    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = dimple_core::library::SearchResult>> {
         let v: Vec<SearchResult> = vec![];
-        v.into_iter()
+        Box::new(v.into_iter())
     }
     
     // fn releases(&self) -> Receiver<Release> {

@@ -1,5 +1,5 @@
 import { Button, VerticalBox , ScrollView, TextEdit, LineEdit, GroupBox} from "std-widgets.slint";
-import { CardGrid, CardGridModel } from "card_grid.slint";
+import { CardGrid } from "card_grid.slint";
 import { Card, CardModel } from "card.slint";
 import { PlayerBar } from "player_bar.slint";
 import { NavBar } from "nav_bar.slint";
@@ -29,12 +29,14 @@ import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 
-export { Navigator, Link, ImageLink, CardModel, CardGridModel }
+export { Navigator, Link, ImageLink, CardModel }
 
 export component AppWindow inherits Window {
     in-out property <int> page: 1;
-    in-out property <CardGridModel> card-grid-model;
-    in-out property <ArtistDetailsModel> artist-details-model;
+    // TODO Note to self: Currently you can't expose properties on
+    // sub-components, so this is needed.
+    in-out property <[CardModel]> card-grid-cards;
+    in-out property <ArtistDetailsModel> artist-details;
     
     title: "Dimple";
     preferred-width: 1440px;
@@ -52,11 +54,11 @@ export component AppWindow inherits Window {
         if page == 0: GroupBox { 
             VerticalLayout {
                 card_grid := CardGrid {
-                    model: root.card-grid-model;
+                    cards: root.card-grid-cards;
                 }
                 Text {
                     horizontal-alignment: right;
-                    text: card-grid-model.cards.length + " items";
+                    text: card-grid-cards.length + " items";
                 }
             }
         }
@@ -64,7 +66,7 @@ export component AppWindow inherits Window {
             // vertical-stretch: 1;
             ArtistDetails {  
                 vertical-stretch: 1;
-                model: root.artist-details-model;
+                model: root.artist-details;
             }                
         }
         if page == 2: GroupBox {

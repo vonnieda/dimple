@@ -1,8 +1,5 @@
-use std::{sync::mpsc::{Receiver, channel}, thread};
-
-use dimple_core::{model::{Release, Track, Image}, library::{Library, SearchResult}};
-use image::DynamicImage;
-use musicbrainz_rs::entity::{artist::{Artist, ArtistSearchQuery}, artist_credit::ArtistCredit};
+use dimple_core::library::{Library, SearchResult};
+use musicbrainz_rs::entity::artist::{Artist, ArtistSearchQuery};
 use musicbrainz_rs::prelude::*;
 
 #[derive(Debug, Default)]
@@ -22,29 +19,26 @@ impl Library for MusicBrainzLibrary {
         todo!()
     }
 
-    fn search(&self, query: &str) -> impl Iterator<Item = SearchResult> {
-        let (sender, receiver) = channel::<SearchResult>();
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = SearchResult>> {
         let query = query.to_string();
-        thread::spawn(move || {
-            let search_query = ArtistSearchQuery::query_builder()
-                    .artist(&query)
-                    .build();
-            Artist::search(search_query)
-                .execute().unwrap() // TODO error handling
-                .entities
-                .iter()
-                .map(|src| {
-                    dimple_core::model::Artist {
-                        name: src.name.clone(),
-                        musicbrainz_id: src.id.clone(),
-                        ..Default::default()
-                    }
-                })
-                .for_each(|artist| {
-                    sender.send(SearchResult::Artist(artist)).unwrap();
-                });
-        });
-        receiver.into_iter()
+        // And releases, tracks, etc.
+        let search_query = ArtistSearchQuery::query_builder()
+                .artist(&query)
+                .build();
+        let results: Vec<SearchResult> = Artist::search(search_query)
+            .execute().unwrap() // TODO error handling
+            .entities
+            .iter()
+            .map(|src| {
+                dimple_core::model::Artist {
+                    name: src.name.clone(),
+                    musicbrainz_id: src.id.clone(),
+                    ..Default::default()
+                }
+            })
+            .map(SearchResult::Artist)
+            .collect();
+        Box::new(results.into_iter())
     }
 }
 

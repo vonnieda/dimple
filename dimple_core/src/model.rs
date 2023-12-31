@@ -11,15 +11,6 @@ pub struct Release {
     pub tracks: Vec<Track>,
 }
 
-impl Release {
-    pub fn artist(&self) -> String {
-        if let Some(artist) = self.artists.first() {
-            return artist.name.clone();
-        }
-        "".to_string()
-    }
-}
-
 /// Loosely modeled on the MusicBrainz Artist entity
 /// https://musicbrainz.org/doc/Artist
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
