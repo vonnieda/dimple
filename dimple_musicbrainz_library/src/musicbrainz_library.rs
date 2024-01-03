@@ -1,4 +1,4 @@
-use dimple_core::library::{Library, SearchResult};
+use dimple_core::library::{Library, LibraryEntity};
 use musicbrainz_rs::entity::artist::{Artist, ArtistSearchQuery};
 use musicbrainz_rs::prelude::*;
 
@@ -19,24 +19,24 @@ impl Library for MusicBrainzLibrary {
         todo!()
     }
 
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = SearchResult>> {
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
         let query = query.to_string();
         // And releases, tracks, etc.
         let search_query = ArtistSearchQuery::query_builder()
                 .artist(&query)
                 .build();
-        let results: Vec<SearchResult> = Artist::search(search_query)
+        let results: Vec<LibraryEntity> = Artist::search(search_query)
             .execute().unwrap() // TODO error handling
             .entities
             .iter()
             .map(|src| {
                 dimple_core::model::Artist {
                     name: src.name.clone(),
-                    musicbrainz_id: src.id.clone(),
+                    mbid: Some(src.id.clone()),
                     ..Default::default()
                 }
             })
-            .map(SearchResult::Artist)
+            .map(LibraryEntity::Artist)
             .collect();
         Box::new(results.into_iter())
     }

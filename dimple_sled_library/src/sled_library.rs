@@ -1,5 +1,6 @@
-use dimple_core::{library::{Library, SearchResult}, image_cache::ImageCache};
+use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::Artist};
 
+use image::codecs::qoi;
 use serde::{Deserialize, Serialize};
 
 use sled::Tree;
@@ -13,6 +14,7 @@ use sled::Tree;
 pub struct SledLibrary {
     _ulid: String,
     name: String,
+    artists: Tree,
     _releases: Tree,
     _images: ImageCache,
     _audio: Tree,
@@ -31,14 +33,55 @@ impl SledLibrary {
         let releases = db.open_tree("releases").unwrap();
         let images = db.open_tree("images").unwrap();
         let audio = db.open_tree("audio").unwrap();
+        let artists = db.open_tree("artists").unwrap();
         Self { 
             _ulid: String::from(ulid),
             name: String::from(name),
             _releases: releases,
+            artists,
             _images: ImageCache::new(images),
             _audio: audio,
         }
     }
+
+    pub fn get_artist(&self, id: &str) -> Option<Artist> {
+        if id.is_empty() {
+            return None
+        }
+        self.artists
+            .get(id)
+            .ok() // TODO log the error?
+            .and_then(|v| serde_json::from_slice(&v.unwrap()).ok())
+    }
+
+    pub fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
+        let artists: Vec<Artist> = self.artists.iter()
+            .map(|t| {
+                let (k, v) = t.unwrap();
+                serde_json::from_slice(&v).unwrap()
+            })
+            .collect();
+
+        Box::new(artists.into_iter())
+    }
+
+    pub fn get_artist_by_mbid(&self, mbid: Option<String>) -> Option<Artist> {
+        mbid.as_ref()?;
+        self.artists()
+            .find(|a| a.mbid == mbid)
+    }
+
+    pub fn set_artist(&self, a: &Artist) {
+        assert!(!a.id.is_empty());
+        serde_json::to_vec(a)
+            .ok()
+            .and_then(|json| self.artists.insert(a.id.clone(), json).ok());
+    }
+
+    // /// Ah, maybe merge is a trait of Artist, etc.?
+    // fn merge_artists(a: &Artist, b: &Artist) -> Artist {
+
+    // }
 }
 
 impl From<SledLibraryConfig> for SledLibrary {
@@ -52,8 +95,8 @@ impl Library for SledLibrary {
         self.name.to_string()
     }
 
-    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = dimple_core::library::SearchResult>> {
-        let v: Vec<SearchResult> = vec![];
+    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
+        let v: Vec<LibraryEntity> = vec![];
         Box::new(v.into_iter())
     }
     

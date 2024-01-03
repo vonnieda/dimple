@@ -1138,6 +1138,7 @@ name = "dimple_core"
 version = "0.1.0"
 dependencies = [
  "image",
+ "musicbrainz_rs",
  "serde",
  "sled",
 ]
@@ -1150,10 +1151,12 @@ dependencies = [
  "dimple_sled_library",
  "image",
  "log",
+ "musicbrainz_rs",
  "serde",
  "serde_json",
  "sled",
  "threadpool",
+ "ulid",
 ]
 
 [[package]]
@@ -4555,6 +4558,15 @@ dependencies = [
  "memoffset 0.9.0",
  "tempfile",
  "winapi",
+]
+
+[[package]]
+name = "ulid"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e37c4b6cbcc59a8dcd09a6429fbc7890286bcbb79215cea7b38a3c4c0921d93"
+dependencies = [
+ "rand",
 ]
 
 [[package]]

@@ -2,7 +2,7 @@ use dimple_musicbrainz_library::musicbrainz_library::MusicBrainzLibrary;
 
 use std::sync::Arc;
 
-use dimple_core::{model::{Artist, Genre, Track, Release}, library::{Library, SearchResult}};
+use dimple_core::{model::{Artist, Genre, Track, Release}, library::{Library, LibraryEntity}};
 use dimple_librarian::librarian::Librarian;
 // use dimple_player::player::{Player, PlayerHandle};
 use image::DynamicImage;
@@ -33,7 +33,7 @@ impl AppWindowController {
                 let ui = ui.clone();
                 std::thread::spawn(move || {
                     let query_str = url.split_at("dimple://search".len()).1;
-                    let search_results: Vec<SearchResult> = librarian.search(query_str).collect();
+                    let search_results: Vec<LibraryEntity> = librarian.search(query_str).collect();
                     ui.upgrade_in_event_loop(move |ui| {
                         let cards: Vec<CardModel> = search_results.into_iter()
                             .map(Into::into)
@@ -67,13 +67,13 @@ impl Default for AppWindowController {
     }
 }
 
-impl From<SearchResult> for CardModel {
-    fn from(value: SearchResult) -> Self {
+impl From<LibraryEntity> for CardModel {
+    fn from(value: LibraryEntity) -> Self {
         match value {
-            SearchResult::Artist(artist) => artist.into(),
-            SearchResult::Genre(genre) => genre.into(),
-            SearchResult::Track(track) => track.into(),
-            SearchResult::Release(release) => release.into(),
+            LibraryEntity::Artist(artist) => artist.into(),
+            LibraryEntity::Genre(genre) => genre.into(),
+            LibraryEntity::Track(track) => track.into(),
+            LibraryEntity::Release(release) => release.into(),
         }
     }
 }
@@ -89,21 +89,15 @@ impl From<Artist> for CardModel {
         CardModel {
             title: Link { 
                 name: artist.name.clone().into(), 
-                url: format!("dimple://artists/{}", artist.musicbrainz_id).into() 
+                url: format!("dimple://artists/{}", artist.id).into() 
             },
             sub_title: [Link { name: "".into(), url: "".into() }].into(),
             image: ImageLink { 
                 image: slint_image, 
                 name: artist.name.clone().into(), 
-                url: format!("dimple://artists/{}", artist.musicbrainz_id).into() 
+                url: format!("dimple://artists/{}", artist.id).into() 
             },
         }
-    }
-}
-
-impl From<Genre> for CardModel {
-    fn from(_genre: Genre) -> Self {
-        CardModel::default()
     }
 }
 
@@ -119,22 +113,20 @@ impl From<Release> for CardModel {
     }
 }
 
-
-
-// impl From<Genre> for CardModel {
-//     fn from(genre: Genre) -> Self {
-//         // let images = release.art();
-//         // let image = images.first().unwrap();
-//         // let dynamic_image = library.image(image).unwrap();
-//         let dynamic_image = DynamicImage::default();
-//         let slint_image = dynamic_image_to_slint_image(&dynamic_image);
-//         CardModel {
-//             title: Link { name: genre.name.clone().into(), url: genre.url.clone().into() },
-//             sub_title: [Link { name: "".into(), url: "".into() }].into(),
-//             image: ImageLink { image: slint_image, name: genre.name.clone().into(), url: genre.url.clone().into() },
-//         }
-//     }
-// }
+impl From<Genre> for CardModel {
+    fn from(genre: Genre) -> Self {
+        // let images = release.art();
+        // let image = images.first().unwrap();
+        // let dynamic_image = library.image(image).unwrap();
+        let dynamic_image = DynamicImage::default();
+        let slint_image = dynamic_image_to_slint_image(&dynamic_image);
+        CardModel {
+            title: Link { name: genre.name.clone().into(), url: genre.url.clone().into() },
+            sub_title: [Link { name: "".into(), url: "".into() }].into(),
+            image: ImageLink { image: slint_image, name: genre.name.clone().into(), url: genre.url.clone().into() },
+        }
+    }
+}
 
 fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
     let rgba8_image = dynamic_image.clone().into_rgba8();

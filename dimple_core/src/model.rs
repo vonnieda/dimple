@@ -1,9 +1,14 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+/// References
+/// https://musicbrainz.org/doc/Artist
+/// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
+
 #[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct Release {
-    pub url: String,
+    pub id: String,
+    pub mbid: String,
     pub title: String,
     pub artists: Vec<Artist>,
     pub art: Vec<Image>,
@@ -11,19 +16,13 @@ pub struct Release {
     pub tracks: Vec<Track>,
 }
 
-/// Loosely modeled on the MusicBrainz Artist entity
-/// https://musicbrainz.org/doc/Artist
-/// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
-/// May just replace this and the rest with MusicBrainz wrappers
-/// eventually.
 #[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct Artist {
-    pub dimple_id: String,
-    pub musicbrainz_id: String,
+    pub id: String,    
+    pub mbid: Option<String>,
 
     pub name: String,
     pub art: Vec<Image>,
-    #[serde(default)]
     pub genres: Vec<Genre>,
 } 
 
@@ -31,14 +30,13 @@ impl Eq for Artist {}
 
 impl PartialEq for Artist {
     fn eq(&self, other: &Self) -> bool {
-        (self.dimple_id == other.dimple_id) && (self.musicbrainz_id == other.musicbrainz_id)
+        self.id == other.id
     }
 }
 
 impl std::hash::Hash for Artist {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.dimple_id.hash(state);
-        self.musicbrainz_id.hash(state);
+        self.id.hash(state);
     }
 }
 

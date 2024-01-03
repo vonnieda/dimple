@@ -1,25 +1,81 @@
 use std::sync::RwLock;
 
-use dimple_core::{library::{Library, SearchResult}, model::Artist};
+use dimple_core::{library::{Library, LibraryEntity}, model::Artist};
 use dimple_sled_library::sled_library::SledLibrary;
+use ulid::Ulid;
 
 pub struct Librarian {
-    _local_library: SledLibrary,
+    local_library: SledLibrary,
     libraries: RwLock<Vec<Box<dyn Library>>>,
 }
 
 impl Default for Librarian {
     fn default() -> Self {
         Self { 
-            _local_library: SledLibrary::new("local_library", "local_library"),
+            local_library: SledLibrary::new("local_library", "local_library"),
             libraries: Default::default(), 
         }
-    }
+    }    
 }
 
 impl Librarian {
     pub fn add_library(&self, library: Box<dyn Library>) {
         self.libraries.write().unwrap().push(library);
+    }
+
+    pub fn create_id(&self) -> String {
+        Ulid::new().to_string()
+    }
+
+    // Update or create the entity in the local library, returning the local
+    // entity.
+    fn resolve(&self, e: &LibraryEntity) -> LibraryEntity {
+        log::info!("resolve {:?}", e);
+        match e {
+            LibraryEntity::Artist(a_in) => {
+                self.local_library
+                    // Get the existing entity by id
+                    .get_artist(&a_in.id)
+                    .inspect(|a| log::info!("  get_artist {:?}", a))
+
+                    // Or by mbid
+                    .or_else(|| self.local_library.get_artist_by_mbid(a_in.mbid.clone()))
+                    .inspect(|a| log::info!("  get_artist_by_mbid {:?}", a))
+
+                    // Or create a new one with a new id
+                    .or_else(|| Some(Artist {
+                        id: Ulid::new().to_string(),
+                        ..Default::default()
+                    }))
+                    .inspect(|a| log::info!("  create new {:?}", a))
+
+                    // Update it with any missing properties
+                    .map(|mut a| {
+                        if a.mbid.is_none() {
+                            a.mbid = a_in.mbid.clone();
+                        }
+                        if a.name.is_empty() {
+                            a.name = a_in.name.clone();
+                        }
+                        a
+                    })
+                    .inspect(|a| log::info!("  updated {:?}", a))
+
+                    // Save it to the library
+                    .map(|a| {
+                        self.local_library.set_artist(&a);
+                        log::info!("  saved {:?}", a);
+                        LibraryEntity::Artist(a)
+                    })
+                    .inspect(|a| log::info!("  resolved {:?}", a))
+
+                    // And return the result
+                    .unwrap()
+            }
+            LibraryEntity::Genre(_) => todo!(),
+            LibraryEntity::Release(_) => todo!(),
+            LibraryEntity::Track(_) => todo!(),
+        }
     }
 }
 
@@ -28,26 +84,10 @@ impl Library for Librarian {
         "Librarian".to_string()
     }
 
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::SearchResult>> {
-        // TODO actually merge
-        let merged: Vec<SearchResult> = self.libraries.read().unwrap().iter()
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
+        let merged: Vec<LibraryEntity> = self.libraries.read().unwrap().iter()
             .flat_map(|lib| lib.search(query))
-            .map(|result| {
-                match result {
-                    SearchResult::Artist(artist) => {
-                        SearchResult::Artist(Artist {
-                            musicbrainz_id: artist.musicbrainz_id,
-                            name: artist.name,
-                            ..Default::default()
-                        })
-                    }
-                    SearchResult::Genre(_) => todo!(),
-                    SearchResult::Release(_) => todo!(),
-                    SearchResult::Track(_) => todo!(),
-                }
-            })
-            // TODO figure out how to return the iterator directly instead of
-            // first collecting it so they can start displaying asap.
+            .map(|e| self.resolve(&e))
             .collect();
         Box::new(merged.into_iter())
     }    
