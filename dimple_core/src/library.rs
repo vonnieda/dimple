@@ -17,4 +17,6 @@ pub trait Library: Send + Sync {
     /// general it should return, at least, matching Artists, Releases,
     /// Genres, and Tracks.
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = LibraryEntity>>;
+
+    fn artists(&self) -> Box<dyn Iterator<Item = Artist>>;
 }

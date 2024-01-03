@@ -54,19 +54,9 @@ impl SledLibrary {
             .and_then(|v| serde_json::from_slice(&v.unwrap()).ok())
     }
 
-    pub fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
-        let artists: Vec<Artist> = self.artists.iter()
-            .map(|t| {
-                let (k, v) = t.unwrap();
-                serde_json::from_slice(&v).unwrap()
-            })
-            .collect();
-
-        Box::new(artists.into_iter())
-    }
-
     pub fn get_artist_by_mbid(&self, mbid: Option<String>) -> Option<Artist> {
         mbid.as_ref()?;
+        // TODO slow
         self.artists()
             .find(|a| a.mbid == mbid)
     }
@@ -98,49 +88,16 @@ impl Library for SledLibrary {
     fn search(&self, _query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
         let v: Vec<LibraryEntity> = vec![];
         Box::new(v.into_iter())
+    }    
+
+    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
+        let artists: Vec<Artist> = self.artists.iter()
+            .map(|t| {
+                let (k, v) = t.unwrap();
+                serde_json::from_slice(&v).unwrap()
+            })
+            .collect();
+
+        Box::new(artists.into_iter())
     }
-    
-    // fn releases(&self) -> Receiver<Release> {
-    //     let (sender, receiver) = std::sync::mpsc::channel::<Release>();
-    //     let releases = self.releases.iter();
-    //     std::thread::spawn(move || {
-    //         let pool = ThreadPool::default();
-    //         for kv in releases {
-    //             let sender = sender.clone();
-    //             pool.execute(move || {
-    //                 let (_key, value) = kv.unwrap();
-    //                 let release = serde_json::from_slice(&value).unwrap();
-    //                 sender.send(release).unwrap();
-    //             });
-    //         }
-    //     });
-
-    //     receiver
-    // }
-
-    // fn image(&self, image: &Image) -> Result<DynamicImage, String> {
-    //     self.images.get_original(&image.url).ok_or("".to_string())
-    // }
-
-    // fn stream(&self, _track: &Track) -> Result<Vec<u8>, String> {
-    //     Err("todo!".to_string())
-    // }
-
-    // fn merge_release(&self, library: &dyn Library, release: &Release) -> Result<(), String> {
-    //     // Store Release art
-    //     // TODO check if we already have the image, and decide if we're
-    //     //      still going to merge, if so.
-    //     for image in &release.art {
-    //         if let Ok(dynamic_image) = library.image(image) {
-    //             let url = &image.url;
-    //             log::debug!("Storing image for {} at {}", release.title, url);
-    //             self.images.insert(url, &dynamic_image);
-    //         }
-    //     }
-
-    //     // Store Release
-    //     let json = serde_json::to_vec(release).unwrap();
-    //     self.releases.insert(&release.url, json).unwrap();
-    //     Ok(())
-    // }
 }

@@ -40,6 +40,10 @@ impl Library for MusicBrainzLibrary {
             .collect();
         Box::new(results.into_iter())
     }
+
+    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
+        Box::new(vec![].into_iter())
+    }
 }
 
     // fn releases(&self) -> Receiver<Release> {

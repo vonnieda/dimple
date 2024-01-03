@@ -43,6 +43,22 @@ impl AppWindowController {
                     }).unwrap();
                 });
             }
+            else if url.starts_with("dimple://artists/") {
+                todo!()
+            }
+            else if url.starts_with("dimple://artists") {
+                let ui = ui.clone();
+                std::thread::spawn(move || {
+                    let artists: Vec<Artist> = librarian.artists().collect();
+                    ui.upgrade_in_event_loop(move |ui| {
+                        let cards: Vec<CardModel> = artists.into_iter()
+                            .map(Into::into)
+                            .collect();
+                        ui.set_card_grid_cards(ModelRc::from(cards.as_slice()));
+                        ui.set_page(0)
+                    }).unwrap();
+                });
+            }
         });
 
         // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));

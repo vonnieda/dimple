@@ -36,18 +36,19 @@ impl Librarian {
                 self.local_library
                     // Get the existing entity by id
                     .get_artist(&a_in.id)
-                    .inspect(|a| log::info!("  get_artist {:?}", a))
 
                     // Or by mbid
                     .or_else(|| self.local_library.get_artist_by_mbid(a_in.mbid.clone()))
-                    .inspect(|a| log::info!("  get_artist_by_mbid {:?}", a))
 
                     // Or create a new one with a new id
-                    .or_else(|| Some(Artist {
-                        id: Ulid::new().to_string(),
-                        ..Default::default()
-                    }))
-                    .inspect(|a| log::info!("  create new {:?}", a))
+                    .or_else(|| {
+                        let a = Artist {
+                            id: Ulid::new().to_string(),
+                            ..Default::default()
+                        };
+                        // log::info!("Created new artist {}", a.id);
+                        Some(a)
+                    })
 
                     // Update it with any missing properties
                     .map(|mut a| {
@@ -59,15 +60,12 @@ impl Librarian {
                         }
                         a
                     })
-                    .inspect(|a| log::info!("  updated {:?}", a))
 
                     // Save it to the library
                     .map(|a| {
                         self.local_library.set_artist(&a);
-                        log::info!("  saved {:?}", a);
                         LibraryEntity::Artist(a)
                     })
-                    .inspect(|a| log::info!("  resolved {:?}", a))
 
                     // And return the result
                     .unwrap()
@@ -91,6 +89,10 @@ impl Library for Librarian {
             .collect();
         Box::new(merged.into_iter())
     }    
+
+    fn artists(&self) -> Box<dyn Iterator<Item = Artist>> {
+        self.local_library.artists()
+    }
 }
 
 
