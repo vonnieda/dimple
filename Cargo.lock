@@ -1141,6 +1141,7 @@ dependencies = [
  "musicbrainz_rs",
  "serde",
  "sled",
+ "ulid",
 ]
 
 [[package]]

@@ -8,6 +8,10 @@ pub enum LibraryEntity {
     Track(Track),
 }
 
+pub trait LibraryEnt {
+
+}
+
 pub trait Library: Send + Sync {
     /// Get a user friendly display name for the Library.
     fn name(&self) -> String;
@@ -18,5 +22,8 @@ pub trait Library: Send + Sync {
     /// Genres, and Tracks.
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = LibraryEntity>>;
 
+    // TODO Explore fn list(LibraryEntity....type?) or maybe fn list<T>
     fn artists(&self) -> Box<dyn Iterator<Item = Artist>>;
+
+    // fn list<T: LibraryEnt + 'static>(&self) -> Box<dyn Iterator<Item = T>>;
 }

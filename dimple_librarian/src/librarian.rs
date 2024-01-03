@@ -27,6 +27,17 @@ impl Librarian {
         Ulid::new().to_string()
     }
 
+    pub fn merge_artist(src: &Artist, dest: &Artist) -> Artist {
+        let mut dest = dest.clone();
+        if dest.mbid.is_none() {
+            dest.mbid = src.mbid.clone();
+        }
+        if dest.name.is_empty() {
+            dest.name = src.name.clone();
+        }
+        dest
+    }
+
     // Update or create the entity in the local library, returning the local
     // entity.
     fn resolve(&self, e: &LibraryEntity) -> LibraryEntity {
@@ -34,40 +45,14 @@ impl Librarian {
         match e {
             LibraryEntity::Artist(a_in) => {
                 self.local_library
-                    // Get the existing entity by id
                     .get_artist(&a_in.id)
-
-                    // Or by mbid
                     .or_else(|| self.local_library.get_artist_by_mbid(a_in.mbid.clone()))
-
-                    // Or create a new one with a new id
-                    .or_else(|| {
-                        let a = Artist {
-                            id: Ulid::new().to_string(),
-                            ..Default::default()
-                        };
-                        // log::info!("Created new artist {}", a.id);
-                        Some(a)
-                    })
-
-                    // Update it with any missing properties
-                    .map(|mut a| {
-                        if a.mbid.is_none() {
-                            a.mbid = a_in.mbid.clone();
-                        }
-                        if a.name.is_empty() {
-                            a.name = a_in.name.clone();
-                        }
-                        a
-                    })
-
-                    // Save it to the library
+                    .or_else(|| Some(Artist::default()))
+                    .map(|a| Self::merge_artist(a_in, &a))
                     .map(|a| {
                         self.local_library.set_artist(&a);
                         LibraryEntity::Artist(a)
                     })
-
-                    // And return the result
                     .unwrap()
             }
             LibraryEntity::Genre(_) => todo!(),
@@ -93,6 +78,10 @@ impl Library for Librarian {
     fn artists(&self) -> Box<dyn Iterator<Item = Artist>> {
         self.local_library.artists()
     }
+
+    // fn list<T: dimple_core::library::LibraryEnt + 'static>(&self) -> Box<dyn Iterator<Item = T>> {
+    //     Box::new(std::iter::empty())
+    // }
 }
 
 

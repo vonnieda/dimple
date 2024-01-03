@@ -44,6 +44,10 @@ impl Library for MusicBrainzLibrary {
     fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
         Box::new(vec![].into_iter())
     }
+
+    // fn list<T: dimple_core::library::LibraryEnt + 'static>(&self) -> Box<dyn Iterator<Item = T>> {
+    //     Box::new(std::iter::empty())
+    // }
 }
 
     // fn releases(&self) -> Receiver<Release> {

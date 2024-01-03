@@ -1,5 +1,8 @@
 use serde::Deserialize;
 use serde::Serialize;
+use ulid::Ulid;
+
+use crate::library::LibraryEnt;
 
 /// References
 /// https://musicbrainz.org/doc/Artist
@@ -16,7 +19,7 @@ pub struct Release {
     pub tracks: Vec<Track>,
 }
 
-#[derive(Default, Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Artist {
     pub id: String,    
     pub mbid: Option<String>,
@@ -24,7 +27,20 @@ pub struct Artist {
     pub name: String,
     pub art: Vec<Image>,
     pub genres: Vec<Genre>,
-} 
+}
+
+impl Default for Artist {
+    fn default() -> Self {
+        Artist {
+            id: Ulid::new().to_string(),
+            mbid: None,
+
+            name: "".to_string(),
+            art: vec![],
+            genres: vec![],
+        }
+    }
+}
 
 impl Eq for Artist {}
 
@@ -70,7 +86,7 @@ pub struct Playlist {
 
 #[derive(Default, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Image {
-    pub url: String,
+    pub id: String,
 }
 
 // TODO Maybe just Artwork, or Art.
@@ -106,5 +122,21 @@ impl HasArtwork for Track {
     fn art(&self) -> Vec<Image> {
         self.art.clone()
     }
+}
+
+impl LibraryEnt for Artist {
+
+}
+
+impl LibraryEnt for Release {
+
+}
+
+impl LibraryEnt for Genre {
+
+}
+
+impl LibraryEnt for Image {
+
 }
 

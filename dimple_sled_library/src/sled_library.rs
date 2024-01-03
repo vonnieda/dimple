@@ -100,4 +100,8 @@ impl Library for SledLibrary {
 
         Box::new(artists.into_iter())
     }
+
+    // fn list<T: dimple_core::library::LibraryEnt + 'static>(&self) -> Box<dyn Iterator<Item = T>> {
+    //     Box::new(std::iter::empty())
+    // }
 }
