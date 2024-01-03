@@ -34,7 +34,7 @@ export { Navigator, Link, ImageLink, CardModel }
 export component AppWindow inherits Window {
     in-out property <int> page: 1;
     // TODO Note to self: Currently you can't expose properties on
-    // sub-components, so this is needed.
+    // sub-components, so all this is needed.
     in-out property <[CardModel]> card-grid-cards;
     in-out property <ArtistDetailsModel> artist-details;
     

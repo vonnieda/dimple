@@ -1,6 +1,5 @@
 use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::Artist};
 
-use image::codecs::qoi;
 use serde::{Deserialize, Serialize};
 
 use sled::Tree;
@@ -93,7 +92,7 @@ impl Library for SledLibrary {
     fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
         let artists: Vec<Artist> = self.artists.iter()
             .map(|t| {
-                let (k, v) = t.unwrap();
+                let (_k, v) = t.unwrap();
                 serde_json::from_slice(&v).unwrap()
             })
             .collect();

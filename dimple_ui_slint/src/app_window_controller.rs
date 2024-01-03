@@ -29,7 +29,6 @@ impl AppWindowController {
                 todo!()
             } 
             else if url.starts_with("dimple://search") {
-                let url = url.to_string();
                 let ui = ui.clone();
                 std::thread::spawn(move || {
                     let query_str = url.split_at("dimple://search".len()).1;
@@ -44,7 +43,21 @@ impl AppWindowController {
                 });
             }
             else if url.starts_with("dimple://artists/") {
-                todo!()
+                let ui = ui.clone();
+                std::thread::spawn(move || {
+                    let id = url.split_at("dimple://artists/".len()).1;
+                    if let Some(artist) = librarian.artists().find(|a| a.id == id) {
+                        ui.upgrade_in_event_loop(move |ui| {
+                            let card: CardModel = artist.into();
+                            ui.set_artist_details(ArtistDetailsModel { 
+                                bio: "Born in Massachusettessses...".into(), 
+                                card, 
+                                genres: ModelRc::from(vec![].as_slice()) 
+                            });
+                            ui.set_page(0)
+                        }).unwrap();
+                    }
+                });
             }
             else if url.starts_with("dimple://artists") {
                 let ui = ui.clone();
@@ -55,7 +68,7 @@ impl AppWindowController {
                             .map(Into::into)
                             .collect();
                         ui.set_card_grid_cards(ModelRc::from(cards.as_slice()));
-                        ui.set_page(0)
+                        ui.set_page(1)
                     }).unwrap();
                 });
             }
