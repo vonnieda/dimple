@@ -1,7 +1,6 @@
-use std::sync::mpsc::Receiver;
-
-use dimple_core::{model::{Release, Track, Image}, library::Library};
-use image::DynamicImage;
+use dimple_core::library::{Library, LibraryEntity};
+use musicbrainz_rs::entity::artist::{Artist, ArtistSearchQuery};
+use musicbrainz_rs::prelude::*;
 
 #[derive(Debug, Default)]
 pub struct MusicBrainzLibrary {
@@ -19,8 +18,35 @@ impl Library for MusicBrainzLibrary {
     fn name(&self) -> String {
         todo!()
     }
-    
-    fn releases(&self) -> Receiver<Release> {
+
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
+        let query = query.to_string();
+        // And releases, tracks, etc.
+        let search_query = ArtistSearchQuery::query_builder()
+                .artist(&query)
+                .build();
+        let results: Vec<LibraryEntity> = Artist::search(search_query)
+            .execute().unwrap() // TODO error handling
+            .entities
+            .iter()
+            .map(|src| {
+                dimple_core::model::Artist {
+                    name: src.name.clone(),
+                    mbid: Some(src.id.clone()),
+                    ..Default::default()
+                }
+            })
+            .map(LibraryEntity::Artist)
+            .collect();
+        Box::new(results.into_iter())
+    }
+
+    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
+        Box::new(vec![].into_iter())
+    }
+}
+
+    // fn releases(&self) -> Receiver<Release> {
     //     let query = ReleaseGroupSearchQuery::query_builder()
     //     // .artist(query_str)
     //     .release_group(query_str)
@@ -48,18 +74,6 @@ impl Library for MusicBrainzLibrary {
     //     }
     // });
 
-        todo!()
-    }
+    //     todo!()
+    // }
 
-    fn image(&self, image: &Image) -> Result<DynamicImage, String> {
-        todo!()
-    }
-
-    fn stream(&self, _track: &Track) -> Result<Vec<u8>, String> {
-        todo!()
-    }
-
-    fn merge_release(&self, library: &dyn Library, release: &Release) -> Result<(), String> {
-        todo!()
-    }
-}
