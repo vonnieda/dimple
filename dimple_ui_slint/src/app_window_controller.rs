@@ -1,4 +1,4 @@
-use dimple_musicbrainz_library::musicbrainz_library::MusicBrainzLibrary;
+use dimple_musicbrainz_library::MusicBrainzLibrary;
 
 use std::sync::Arc;
 

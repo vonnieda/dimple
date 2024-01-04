@@ -2,7 +2,6 @@ use std::sync::RwLock;
 
 use dimple_core::{library::{Library, LibraryEntity}, model::Artist};
 use dimple_sled_library::sled_library::SledLibrary;
-use image::DynamicImage;
 
 pub struct Librarian {
     local_library: SledLibrary,
@@ -77,19 +76,19 @@ impl Library for Librarian {
 
     fn image(&self, image: &dimple_core::model::Image) -> Option<image::DynamicImage> {
         if let Some(dyn_image) = self.local_library.image(image) {
+            log::info!("found image {} locally", image.id);
             return Some(dyn_image);
         }
         for lib in self.libraries.read().unwrap().iter() {
             if let Some(dyn_image) = lib.image(image) {
+                log::info!("found image {} at {}", image.id, lib.name());
+                self.local_library.set_image(image, &dyn_image);
+                log::info!("saved image {} locally", image.id);
                 return Some(dyn_image);
             }
         }
         None
     }
-
-    // fn list<T: dimple_core::library::LibraryEnt + 'static>(&self) -> Box<dyn Iterator<Item = T>> {
-    //     Box::new(std::iter::empty())
-    // }
 }
 
 
