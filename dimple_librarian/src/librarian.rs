@@ -2,6 +2,7 @@ use std::sync::RwLock;
 
 use dimple_core::{library::{Library, LibraryEntity}, model::Artist};
 use dimple_sled_library::sled_library::SledLibrary;
+use image::DynamicImage;
 
 pub struct Librarian {
     local_library: SledLibrary,
@@ -40,7 +41,7 @@ impl Librarian {
         match e {
             LibraryEntity::Artist(a_in) => {
                 self.local_library
-                    .get_artist(&a_in.id)
+                    .get_artist_by_id(&a_in.id)
                     .or_else(|| self.local_library.get_artist_by_mbid(a_in.mbid.clone()))
                     .or_else(|| Some(Artist::default()))
                     .map(|a| Self::merge_artist(a_in, &a))
@@ -72,6 +73,18 @@ impl Library for Librarian {
 
     fn artists(&self) -> Box<dyn Iterator<Item = Artist>> {
         self.local_library.artists()
+    }
+
+    fn image(&self, image: &dimple_core::model::Image) -> Option<image::DynamicImage> {
+        if let Some(dyn_image) = self.local_library.image(image) {
+            return Some(dyn_image);
+        }
+        for lib in self.libraries.read().unwrap().iter() {
+            if let Some(dyn_image) = lib.image(image) {
+                return Some(dyn_image);
+            }
+        }
+        None
     }
 
     // fn list<T: dimple_core::library::LibraryEnt + 'static>(&self) -> Box<dyn Iterator<Item = T>> {

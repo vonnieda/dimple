@@ -1,5 +1,6 @@
-use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::Artist};
+use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::Artist, model::Image};
 
+use image::DynamicImage;
 use serde::{Deserialize, Serialize};
 
 use sled::Tree;
@@ -43,7 +44,7 @@ impl SledLibrary {
         }
     }
 
-    pub fn get_artist(&self, id: &str) -> Option<Artist> {
+    pub fn get_artist_by_id(&self, id: &str) -> Option<Artist> {
         if id.is_empty() {
             return None
         }
@@ -71,10 +72,9 @@ impl SledLibrary {
             .and_then(|json| self.artists.insert(a.id.clone(), json).ok());
     }
 
-    // /// Ah, maybe merge is a trait of Artist, etc.?
-    // fn merge_artists(a: &Artist, b: &Artist) -> Artist {
-
-    // }
+    pub fn set_image(&self, image: &Image, dyn_image: &DynamicImage) {
+        self._images.insert(&image.id, dyn_image);
+    }
 }
 
 impl From<SledLibraryConfig> for SledLibrary {
@@ -104,7 +104,7 @@ impl Library for SledLibrary {
         Box::new(artists.into_iter())
     }
 
-    // fn list<T: dimple_core::library::LibraryEnt + 'static>(&self) -> Box<dyn Iterator<Item = T>> {
-    //     Box::new(std::iter::empty())
-    // }
+    fn image(&self, image: &dimple_core::model::Image) -> Option<image::DynamicImage> {
+        self._images.get_original(&image.id)
+    }
 }

@@ -64,9 +64,10 @@ impl AppWindowController {
                 std::thread::spawn(move || {
                     let artists: Vec<Artist> = librarian.artists().collect();
                     ui.upgrade_in_event_loop(move |ui| {
-                        let cards: Vec<CardModel> = artists.into_iter()
+                        let mut cards: Vec<CardModel> = artists.into_iter()
                             .map(Into::into)
                             .collect();
+                        cards.sort_by_key(|card| card.title.name.to_lowercase());
                         ui.set_card_grid_cards(ModelRc::from(cards.as_slice()));
                         ui.set_page(0)
                     }).unwrap();

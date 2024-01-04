@@ -45,6 +45,10 @@ impl Library for MusicBrainzLibrary {
         Box::new(vec![].into_iter())
     }
 
+    fn image(&self, image: &dimple_core::model::Image) -> Option<image::DynamicImage> {
+        None
+    }
+
     // fn list<T: dimple_core::library::LibraryEnt + 'static>(&self) -> Box<dyn Iterator<Item = T>> {
     //     Box::new(std::iter::empty())
     // }
