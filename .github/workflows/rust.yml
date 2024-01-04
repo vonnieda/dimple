@@ -16,8 +16,14 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-13-xlarge]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
-    - name: Build
-      run: cargo build
-    - name: Run tests
-      run: cargo test
+      - uses: actions/checkout@v3
+      - name: Build
+        run: cargo build --release
+      - name: Run tests
+        run: cargo test
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with: 
+          name: ${{ matrix.os }}
+          path: |
+            target/release/dimple_ui_slint
