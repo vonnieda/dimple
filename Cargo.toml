@@ -1,17 +1,17 @@
 [workspace]
 members = [
     "dimple_core",
-    "dimple_sled_library",
-    # "dimple_navidrome_library",
-    # "dimple_s3_compatible_storage_library",
-    # "dimple_folder_library",
-    "dimple_musicbrainz_library",
-    # "dimple_sqlite3_library",
     "dimple_librarian",
     # "dimple_player",
+    "dimple_sled_library",
+    "dimple_musicbrainz_library",
+    "dimple_ui_slint",
+    # "dimple_s3_compatible_storage_library",
+    # "dimple_sqlite3_library",
+    # "dimple_navidrome_library",
+    # "dimple_folder_library",
     # "dimple_cli",
     # "dimple_ui_egui",
-    "dimple_ui_slint",
 ]
 resolver="2"
 

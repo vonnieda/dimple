@@ -87,6 +87,7 @@ impl Library for Librarian {
                 return Some(dyn_image);
             }
         }
+        log::warn!("no image found for {}", image.id);
         None
     }
 }
