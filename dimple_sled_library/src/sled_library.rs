@@ -50,7 +50,11 @@ impl SledLibrary {
         self.artists
             .get(id)
             .ok() // TODO log the error?
-            .and_then(|v| serde_json::from_slice(&v.unwrap()).ok())
+            .and_then(|v| {
+                v.and_then(|ivec| {
+                    serde_json::from_slice(&ivec).ok()
+                })
+            })
     }
 
     pub fn get_artist_by_mbid(&self, mbid: Option<String>) -> Option<Artist> {

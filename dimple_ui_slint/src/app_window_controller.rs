@@ -54,7 +54,7 @@ impl AppWindowController {
                                 card, 
                                 genres: ModelRc::from(vec![].as_slice()) 
                             });
-                            ui.set_page(0)
+                            ui.set_page(1)
                         }).unwrap();
                     }
                 });
@@ -68,7 +68,7 @@ impl AppWindowController {
                             .map(Into::into)
                             .collect();
                         ui.set_card_grid_cards(ModelRc::from(cards.as_slice()));
-                        ui.set_page(1)
+                        ui.set_page(0)
                     }).unwrap();
                 });
             }

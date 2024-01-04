@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use serde::Serialize;
-use crate::library::LibraryEnt;
 pub use crate::artist::Artist;
 
 /// References
@@ -90,20 +89,3 @@ impl HasArtwork for Track {
         self.art.clone()
     }
 }
-
-impl LibraryEnt for Artist {
-
-}
-
-impl LibraryEnt for Release {
-
-}
-
-impl LibraryEnt for Genre {
-
-}
-
-impl LibraryEnt for Image {
-
-}
-

@@ -23,7 +23,7 @@ export component NavBar inherits HorizontalBox {
     }
     LineEdit {
         horizontal-stretch: 1;
-        placeholder-text: "Search for artists, albums, songs, genres, lyrics, bios, years, instruments, etc.";
+        placeholder-text: "Search for artists, albums, songs, genres, lyrics, bios, years, instruments, labels, etc.";
         // TODO change back to edited when better handling in the search function
         accepted(query) => { Navigator.navigate("dimple://search/" + query); }
     }

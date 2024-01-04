@@ -8,10 +8,6 @@ pub enum LibraryEntity {
     Track(Track),
 }
 
-pub trait LibraryEnt {
-
-}
-
 pub trait Library: Send + Sync {
     /// Get a user friendly display name for the Library.
     fn name(&self) -> String;

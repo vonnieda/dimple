@@ -2,7 +2,6 @@ use std::sync::RwLock;
 
 use dimple_core::{library::{Library, LibraryEntity}, model::Artist};
 use dimple_sled_library::sled_library::SledLibrary;
-use ulid::Ulid;
 
 pub struct Librarian {
     local_library: SledLibrary,
@@ -21,10 +20,6 @@ impl Default for Librarian {
 impl Librarian {
     pub fn add_library(&self, library: Box<dyn Library>) {
         self.libraries.write().unwrap().push(library);
-    }
-
-    pub fn create_id(&self) -> String {
-        Ulid::new().to_string()
     }
 
     pub fn merge_artist(src: &Artist, dest: &Artist) -> Artist {
