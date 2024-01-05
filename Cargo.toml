@@ -5,6 +5,8 @@ members = [
     # "dimple_player",
     "dimple_sled_library",
     "dimple_musicbrainz_library",
+    "dimple_fanart_tv_library",
+    "dimple_lastfm_library",
     "dimple_ui_slint",
     # "dimple_s3_compatible_storage_library",
     # "dimple_sqlite3_library",
