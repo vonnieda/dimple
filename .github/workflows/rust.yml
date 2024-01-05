@@ -27,3 +27,4 @@ jobs:
           name: ${{ matrix.os }}
           path: |
             target/release/dimple_ui_slint
+            target/release/dimple_ui_slint.exe

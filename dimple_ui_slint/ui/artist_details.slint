@@ -60,7 +60,7 @@ export component ArtistDetails inherits VerticalBox {
     Text {
         text: "Releases";
         font-weight: Palette.font-weight-bold;
-        font-size: 3rem;
+        font-size: 2rem;
     }
     // CardGrid {
     //     min-height: 400px;
@@ -68,9 +68,8 @@ export component ArtistDetails inherits VerticalBox {
     // }
 
 
-
-
     in property <ArtistDetailsModel> model: {
+        bio: "When the land fell and the sky rose it was time for the Reign of Fish to begin.",
         card: {
             image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},

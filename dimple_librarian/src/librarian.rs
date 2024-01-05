@@ -35,6 +35,9 @@ impl Librarian {
 
     // Update or create the entity in the local library, returning the local
     // entity.
+    // Part of resolution should be populating additional metadata up to a
+    // minimum. Name, bio, image, genres. That might get kicked off in another
+    // thread?
     fn resolve(&self, e: &LibraryEntity) -> LibraryEntity {
         log::info!("resolve {:?}", e);
         match e {
@@ -74,6 +77,9 @@ impl Library for Librarian {
         self.local_library.artists()
     }
 
+    // Need to think through how we're going to update a card when it's image
+    // is rendered. Or maybe just ping the list and refresh it when an image
+    // finishes downloading?
     fn image(&self, image: &dimple_core::model::Image) -> Option<image::DynamicImage> {
         if let Some(dyn_image) = self.local_library.image(image) {
             log::info!("found image {} locally", image.id);
