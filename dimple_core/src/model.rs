@@ -14,8 +14,6 @@ pub struct Release {
     #[serde(default)]
     pub artists: Vec<Artist>,
     #[serde(default)]
-    pub art: Vec<Image>,
-    #[serde(default)]
     pub genres: Vec<Genre>,
     #[serde(default)]
     pub tracks: Vec<Track>,
@@ -29,8 +27,6 @@ pub struct Track {
     pub url: String,
     pub title: String,
     #[serde(default)]
-    pub art: Vec<Image>,
-    #[serde(default)]
     pub artists: Vec<Artist>,
     #[serde(default)]
     pub genres: Vec<Genre>,
@@ -40,52 +36,11 @@ pub struct Track {
 pub struct Genre {
     pub url: String,
     pub name: String,
-    pub art: Vec<Image>,
 }
 
 #[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Playlist {
     pub url: String,
     pub name: String,
-    pub art: Vec<Image>,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub struct Image {
-    pub id: String,
-}
-
-// TODO Maybe just Artwork, or Art.
-pub trait HasArtwork {
-    fn art(&self) -> Vec<Image>;
-}
-
-impl HasArtwork for Release {
-    fn art(&self) -> Vec<Image> {
-        self.art.clone()
-    }
-}
-
-impl HasArtwork for Artist {
-    fn art(&self) -> Vec<Image> {
-        self.art.clone()
-    }
-}
-
-impl HasArtwork for Genre {
-    fn art(&self) -> Vec<Image> {
-        self.art.clone()
-    }
-}
-
-impl HasArtwork for Playlist {
-    fn art(&self) -> Vec<Image> {
-        self.art.clone()
-    }
-}
-
-impl HasArtwork for Track {
-    fn art(&self) -> Vec<Image> {
-        self.art.clone()
-    }
-}

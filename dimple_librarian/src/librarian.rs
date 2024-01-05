@@ -2,6 +2,7 @@ use std::sync::RwLock;
 
 use dimple_core::{library::{Library, LibraryEntity}, model::Artist};
 use dimple_sled_library::sled_library::SledLibrary;
+use image::DynamicImage;
 
 pub struct Librarian {
     local_library: SledLibrary,
@@ -22,7 +23,7 @@ impl Librarian {
         self.libraries.write().unwrap().push(library);
     }
 
-    pub fn merge_artist(src: &Artist, dest: &Artist) -> Artist {
+    fn merge_artist(src: &Artist, dest: &Artist) -> Artist {
         let mut dest = dest.clone();
         if dest.mbid.is_none() {
             dest.mbid = src.mbid.clone();
@@ -33,25 +34,25 @@ impl Librarian {
         dest
     }
 
-    // Update or create the entity in the local library, returning the local
-    // entity.
-    // Part of resolution should be populating additional metadata up to a
-    // minimum. Name, bio, image, genres. That might get kicked off in another
-    // thread?
+    /**
+     * Think I'm gonna just switch to making the Library entities thin wrappers
+     * around the musicbrainz_rs objects. They are already complete and clean,
+     * and it seems silly to just duplicate it all.
+     */
     fn resolve(&self, e: &LibraryEntity) -> LibraryEntity {
         log::info!("resolve {:?}", e);
         match e {
             LibraryEntity::Artist(a_in) => {
-                self.local_library
-                    .get_artist_by_id(&a_in.id)
+                let artist = self.local_library.get_artist_by_id(&a_in.id)
                     .or_else(|| self.local_library.get_artist_by_mbid(a_in.mbid.clone()))
                     .or_else(|| Some(Artist::default()))
                     .map(|a| Self::merge_artist(a_in, &a))
                     .map(|a| {
                         self.local_library.set_artist(&a);
-                        LibraryEntity::Artist(a)
+                        a
                     })
-                    .unwrap()
+                    .unwrap();
+                LibraryEntity::Artist(artist)
             }
             LibraryEntity::Genre(_) => todo!(),
             LibraryEntity::Release(_) => todo!(),
@@ -77,23 +78,20 @@ impl Library for Librarian {
         self.local_library.artists()
     }
 
-    // Need to think through how we're going to update a card when it's image
-    // is rendered. Or maybe just ping the list and refresh it when an image
-    // finishes downloading?
-    fn image(&self, image: &dimple_core::model::Image) -> Option<image::DynamicImage> {
-        if let Some(dyn_image) = self.local_library.image(image) {
-            log::info!("found image {} locally", image.id);
+    fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
+        if let Some(dyn_image) = self.local_library.image(entity) {
+            log::info!("found image for {:?} locally", entity);
             return Some(dyn_image);
         }
         for lib in self.libraries.read().unwrap().iter() {
-            if let Some(dyn_image) = lib.image(image) {
-                log::info!("found image {} at {}", image.id, lib.name());
-                self.local_library.set_image(image, &dyn_image);
-                log::info!("saved image {} locally", image.id);
+            if let Some(dyn_image) = lib.image(entity) {
+                log::info!("found image for {:?} at {}", entity, lib.name());
+                self.local_library.set_image(entity, &dyn_image);
+                log::info!("saved image for {:?} locally", entity);
                 return Some(dyn_image);
             }
         }
-        log::warn!("no image found for {}", image.id);
+        log::warn!("no image found for {:?}", entity);
         None
     }
 }

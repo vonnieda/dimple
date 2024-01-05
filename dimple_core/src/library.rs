@@ -1,4 +1,4 @@
-use crate::model::{Release, Track, Artist, Genre, Image};
+use crate::model::{Release, Track, Artist, Genre, Playlist};
 
 #[derive(Clone, Debug)]
 pub enum LibraryEntity {
@@ -21,7 +21,8 @@ pub trait Library: Send + Sync {
     // TODO Explore fn list(LibraryEntity....type?) or maybe fn list<T>
     fn artists(&self) -> Box<dyn Iterator<Item = Artist>>;
 
-    fn image(&self, image: &Image) -> Option<image::DynamicImage>;
+    // TODO Eventually this will allow access to more image types.
+    fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage>;
 
     // fn list<T: LibraryEnt + 'static>(&self) -> Box<dyn Iterator<Item = T>>;
 }

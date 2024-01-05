@@ -3,16 +3,13 @@ use serde::Serialize;
 use ulid::Ulid;
 
 use crate::model::Genre;
-use crate::model::Image;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq)]
 pub struct Artist {
     pub id: String,    
     pub mbid: Option<String>,
 
     pub name: String,
-    #[serde(default)]
-    pub art: Vec<Image>,
     #[serde(default)]
     pub genres: Vec<Genre>,
 }
@@ -24,13 +21,10 @@ impl Default for Artist {
             mbid: None,
 
             name: "".to_string(),
-            art: vec![],
             genres: vec![],
         }
     }
 }
-
-impl Eq for Artist {}
 
 impl PartialEq for Artist {
     fn eq(&self, other: &Self) -> bool {

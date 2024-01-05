@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::Artist, model::Image};
+use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::Artist};
 
 use image::DynamicImage;
 use serde::{Deserialize, Serialize};
@@ -72,8 +72,15 @@ impl SledLibrary {
             .and_then(|json| self.artists.insert(a.id.clone(), json).ok());
     }
 
-    pub fn set_image(&self, image: &Image, dyn_image: &DynamicImage) {
-        self._images.insert(&image.id, dyn_image);
+    pub fn set_image(&self, entity: &LibraryEntity, dyn_image: &DynamicImage) {
+        match entity {
+            LibraryEntity::Artist(a) => {
+                self._images.insert(&a.id, dyn_image);
+            },
+            LibraryEntity::Genre(_) => todo!(),
+            LibraryEntity::Release(_) => todo!(),
+            LibraryEntity::Track(_) => todo!(),
+        }
     }
 }
 
@@ -104,7 +111,14 @@ impl Library for SledLibrary {
         Box::new(artists.into_iter())
     }
 
-    fn image(&self, image: &dimple_core::model::Image) -> Option<image::DynamicImage> {
-        self._images.get_original(&image.id)
+    fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
+        match entity {
+            LibraryEntity::Artist(a) => {
+                self._images.get_original(&a.id)
+            },
+            LibraryEntity::Genre(_) => todo!(),
+            LibraryEntity::Release(_) => todo!(),
+            LibraryEntity::Track(_) => todo!(),
+        }
     }
 }

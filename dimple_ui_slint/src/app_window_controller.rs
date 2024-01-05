@@ -35,6 +35,7 @@ impl AppWindowController {
                     let search_results: Vec<LibraryEntity> = librarian.search(query_str).collect();
                     ui.upgrade_in_event_loop(move |ui| {
                         let cards: Vec<CardModel> = search_results.into_iter()
+                            .map(|a| (librarian.as_ref(), a))
                             .map(Into::into)
                             .collect();
                         ui.set_card_grid_cards(ModelRc::from(cards.as_slice()));
@@ -48,6 +49,7 @@ impl AppWindowController {
                     let artists: Vec<Artist> = librarian.artists().collect();
                     ui.upgrade_in_event_loop(move |ui| {
                         let mut cards: Vec<CardModel> = artists.into_iter()
+                            .map(|a| (librarian.as_ref(), a))
                             .map(Into::into)
                             .collect();
                         cards.sort_by_key(|card| card.title.name.to_lowercase());
@@ -60,9 +62,10 @@ impl AppWindowController {
                 let ui = ui.clone();
                 std::thread::spawn(move || {
                     let id = url.split_at("dimple://artists/".len()).1;
+                    // TODO ew
                     if let Some(artist) = librarian.artists().find(|a| a.id == id) {
                         ui.upgrade_in_event_loop(move |ui| {
-                            let card: CardModel = artist.into();
+                            let card: CardModel = (librarian.as_ref(), artist).into();
                             ui.set_artist_details(ArtistDetailsModel { 
                                 bio: "Born in Massachusettessses...".into(), 
                                 card, 
@@ -97,10 +100,10 @@ impl Default for AppWindowController {
     }
 }
 
-impl From<LibraryEntity> for CardModel {
-    fn from(value: LibraryEntity) -> Self {
+impl From<(&Librarian, LibraryEntity)> for CardModel {
+    fn from((librarian, value): (&Librarian, LibraryEntity)) -> Self {
         match value {
-            LibraryEntity::Artist(artist) => artist.into(),
+            LibraryEntity::Artist(artist) => (librarian, artist).into(),
             LibraryEntity::Genre(genre) => genre.into(),
             LibraryEntity::Track(track) => track.into(),
             LibraryEntity::Release(release) => release.into(),
@@ -108,14 +111,12 @@ impl From<LibraryEntity> for CardModel {
     }
 }
 
-
-impl From<Artist> for CardModel {
-    fn from(artist: Artist) -> Self {
-        // let images = release.art();
-        // let image = images.first().unwrap();
-        // let dynamic_image = library.image(image).unwrap();
-        let dynamic_image = DynamicImage::default();
-        let slint_image = dynamic_image_to_slint_image(&dynamic_image);
+impl From<(&Librarian, Artist)> for CardModel {
+    fn from((library, artist): (&Librarian, Artist)) -> Self {
+        let slint_image = library.image(&LibraryEntity::Artist(artist.clone()))
+            .or_else(|| Some(DynamicImage::default()))
+            .map(|dyn_image| dynamic_image_to_slint_image(&dyn_image))
+            .unwrap();
         CardModel {
             title: Link { 
                 name: artist.name.clone().into(), 
