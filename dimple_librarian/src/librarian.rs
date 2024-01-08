@@ -40,7 +40,6 @@ impl Librarian {
      * and it seems silly to just duplicate it all.
      */
     fn resolve(&self, e: &LibraryEntity) -> LibraryEntity {
-        log::info!("resolve {:?}", e);
         match e {
             LibraryEntity::Artist(a_in) => {
                 let artist = self.local_library.get_artist_by_id(&a_in.id)
@@ -80,21 +79,19 @@ impl Library for Librarian {
 
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
         if let Some(dyn_image) = self.local_library.image(entity) {
-            log::info!("found image for {:?} locally", entity);
             return Some(dyn_image);
         }
         for lib in self.libraries.read().unwrap().iter() {
+            log::debug!("Searching {} for  {:?}", lib.name(), entity);
             if let Some(dyn_image) = lib.image(entity) {
-                log::info!("found image for {:?} at {}", entity, lib.name());
                 self.local_library.set_image(entity, &dyn_image);
-                log::info!("saved image for {:?} locally", entity);
                 return Some(dyn_image);
             }
         }
-        log::warn!("no image found for {:?}", entity);
-        None
+        log::warn!("no image found for {:?}, setting default", entity);
+        let dyn_image = DynamicImage::new_rgba8(500, 500);
+        self.local_library.set_image(entity, &dyn_image);
+        Some(dyn_image)
     }
 }
-
-
 

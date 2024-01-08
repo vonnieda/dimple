@@ -16,7 +16,7 @@ impl MusicBrainzLibrary {
 
 impl Library for MusicBrainzLibrary {
     fn name(&self) -> String {
-        todo!()
+        "MusicBrainz".to_string()
     }
 
     // https://musicbrainz.org/doc/MusicBrainz_API/Search
@@ -69,6 +69,20 @@ impl Library for MusicBrainzLibrary {
     }
 
     fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
-        None
+        match entity {
+            LibraryEntity::Artist(a) => {
+                // let mbid = a.mbid.clone()?;
+                // let mb_artist = Artist::fetch()
+                //     .id(&mbid)
+                //     .with_url_relations()
+                //     .with_genres()
+                //     .execute()
+                //     .ok()?;
+                None
+            }
+            LibraryEntity::Genre(_) => None,
+            LibraryEntity::Release(_) => None,
+            LibraryEntity::Track(_) => None,
+        }
     }
 }

@@ -1,4 +1,4 @@
-use crate::model::{Release, Track, Artist, Genre, Playlist};
+use crate::model::{Release, Track, Artist, Genre};
 
 #[derive(Clone, Debug)]
 pub enum LibraryEntity {
@@ -6,6 +6,30 @@ pub enum LibraryEntity {
     Genre(Genre),
     Release(Release),
     Track(Track),
+}
+
+impl LibraryEntity {
+    pub fn id(&self) -> String {
+        match self {
+            LibraryEntity::Artist(a) => {
+                a.id.clone()
+            },
+            LibraryEntity::Genre(_) => todo!(),
+            LibraryEntity::Release(_) => todo!(),
+            LibraryEntity::Track(_) => todo!(),
+        }
+    }
+
+    pub fn mbid(&self) -> Option<String> {
+        match self {
+            LibraryEntity::Artist(a) => {
+                a.mbid.clone()
+            },
+            LibraryEntity::Genre(_) => todo!(),
+            LibraryEntity::Release(_) => todo!(),
+            LibraryEntity::Track(_) => todo!(),
+        }
+    }
 }
 
 pub trait Library: Send + Sync {
