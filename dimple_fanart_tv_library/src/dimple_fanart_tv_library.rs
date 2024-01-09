@@ -58,7 +58,7 @@ impl Library for FanartTvLibrary {
                 let response = client.get(url).send().ok()?;
                 let artist_resp = response.json::<ArtistResponse>().ok()?;
                 let thumb = artist_resp.artistthumb.first()?;
-                log::info!("Downloading {}", &thumb.url);
+                log::debug!("Downloading {}", &thumb.url);
                 let thumb_resp = client.get(&thumb.url).send().ok()?;
                 let bytes = thumb_resp.bytes().ok()?;
                 image::load_from_memory(&bytes).ok()

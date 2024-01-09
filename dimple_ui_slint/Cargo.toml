@@ -19,6 +19,7 @@ dimple_core = { path = "../dimple_core" }
 # dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
 dimple_musicbrainz_library = { path = "../dimple_musicbrainz_library" }
 dimple_lastfm_library = { path = "../dimple_lastfm_library" }
+dimple_deezer_library = { path = "../dimple_deezer_library" }
 dimple_fanart_tv_library = { path = "../dimple_fanart_tv_library" }
 dimple_librarian = { path = "../dimple_librarian" }
 serde = "1.0.175"

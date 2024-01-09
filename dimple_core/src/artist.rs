@@ -8,6 +8,7 @@ use crate::model::Genre;
 pub struct Artist {
     pub id: String,    
     pub mbid: Option<String>,
+    pub deezer_id: Option<String>,
 
     pub name: String,
     #[serde(default)]
@@ -19,6 +20,7 @@ impl Default for Artist {
         Artist {
             id: Ulid::new().to_string(),
             mbid: None,
+            deezer_id: None,
 
             name: "".to_string(),
             genres: vec![],

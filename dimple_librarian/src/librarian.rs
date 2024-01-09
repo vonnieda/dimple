@@ -34,11 +34,6 @@ impl Librarian {
         dest
     }
 
-    /**
-     * Think I'm gonna just switch to making the Library entities thin wrappers
-     * around the musicbrainz_rs objects. They are already complete and clean,
-     * and it seems silly to just duplicate it all.
-     */
     fn resolve(&self, e: &LibraryEntity) -> LibraryEntity {
         match e {
             LibraryEntity::Artist(a_in) => {

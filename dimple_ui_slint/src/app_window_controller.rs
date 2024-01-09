@@ -1,6 +1,7 @@
 use dimple_musicbrainz_library::MusicBrainzLibrary;
 use dimple_lastfm_library::LastFmLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
+use dimple_deezer_library::DeezerLibrary;
 
 use std::sync::Arc;
 
@@ -83,6 +84,7 @@ impl AppWindowController {
         // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
         self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
         self.librarian.add_library(Box::<LastFmLibrary>::default());
+        self.librarian.add_library(Box::<DeezerLibrary>::default());
         self.librarian.add_library(Box::<FanartTvLibrary>::default());
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://artists".into());
