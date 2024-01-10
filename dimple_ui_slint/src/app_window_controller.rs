@@ -29,7 +29,11 @@ impl AppWindowController {
             let librarian = librarian.clone();
             dbg!(&url);
             if url.starts_with("dimple://home") {
-                todo!()
+                let ui = ui.clone();
+                ui.upgrade_in_event_loop(move |ui| {
+                    ui.set_card_grid_cards(ModelRc::from(vec![].as_slice()));
+                    ui.set_page(0)
+                }).unwrap();
             } 
             else if url.starts_with("dimple://search") {
                 let ui = ui.clone();
@@ -55,6 +59,7 @@ impl AppWindowController {
                             .map(|a| (librarian.as_ref(), a))
                             .map(Into::into)
                             .collect();
+                        // TODO move this outside the function
                         cards.sort_by_key(|card| card.title.name.to_lowercase());
                         ui.set_card_grid_cards(ModelRc::from(cards.as_slice()));
                         ui.set_page(0)
@@ -64,13 +69,17 @@ impl AppWindowController {
             else if url.starts_with("dimple://artists/") {
                 let ui = ui.clone();
                 std::thread::spawn(move || {
-                    let id = url.split_at("dimple://artists/".len()).1;
                     // TODO ew
-                    if let Some(artist) = librarian.artists().find(|a| a.id() == id) {
+                    let id = url.split_at("dimple://artists/".len()).1;
+                    // TODO add shortcut new with id
+                    let mut query = dimple_core::model::Artist::default();
+                    query.mb.id = id.to_string();
+                    if let Some(artist) = librarian.fetch(&LibraryEntity::Artist(query)) {
+                        // dbg!("found", &artist);
                         ui.upgrade_in_event_loop(move |ui| {
                             let card: CardModel = (librarian.as_ref(), artist.clone()).into();
                             ui.set_artist_details(ArtistDetailsModel { 
-                                bio: artist.mb.disambiguation.into(), 
+                                bio: "".into(), 
                                 card, 
                                 genres: ModelRc::from(vec![].as_slice()) 
                             });
@@ -85,9 +94,9 @@ impl AppWindowController {
         self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
         // self.librarian.add_library(Box::<FanartTvLibrary>::default());
         // self.librarian.add_library(Box::<LastFmLibrary>::default());
-        self.librarian.add_library(Box::<DeezerLibrary>::default());
+        // self.librarian.add_library(Box::<DeezerLibrary>::default());
 
-        self.ui.global::<Navigator>().invoke_navigate("dimple://artists".into());
+        self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
         self.ui.run()
     }

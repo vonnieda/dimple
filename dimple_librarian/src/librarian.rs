@@ -22,38 +22,6 @@ impl Librarian {
     pub fn add_library(&self, library: Box<dyn Library>) {
         self.libraries.write().unwrap().push(library);
     }
-
-    fn merge_artist(src: &Artist, dest: &Artist) -> Artist {
-        // let mut dest = dest.clone();
-        // if dest.mbid.is_none() {
-        //     dest.mbid = src.mbid.clone();
-        // }
-        // if dest.name.is_empty() {
-        //     dest.name = src.name.clone();
-        // }
-        // dest
-        src.clone()
-    }
-
-    fn resolve(&self, e: &LibraryEntity) -> LibraryEntity {
-        match e {
-            LibraryEntity::Artist(a_in) => {
-                let artist = self.local_library.get_artist_by_id(&a_in.id())
-                    .or_else(|| self.local_library.get_artist_by_mbid(a_in.mbid()))
-                    .or_else(|| Some(Artist::default()))
-                    .map(|a| Self::merge_artist(a_in, &a))
-                    .map(|a| {
-                        self.local_library.set_artist(&a);
-                        a
-                    })
-                    .unwrap();
-                LibraryEntity::Artist(artist)
-            }
-            LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Release(_) => todo!(),
-            LibraryEntity::Track(_) => todo!(),
-        }
-    }
 }
 
 impl Library for Librarian {
@@ -61,12 +29,12 @@ impl Library for Librarian {
         "Librarian".to_string()
     }
 
+    /// Searches all of the registered libraries for the query string and returns
+    /// the union of the results with duplicates removed.
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
         let merged: Vec<LibraryEntity> = self.libraries.read().unwrap().iter()
             .flat_map(|lib| lib.search(query))
-            .map(|e| self.resolve(&e))
-            // TODO no
-            .map(|e| self.fetch(&e).unwrap())
+            // TODO remove dupes
             .collect();
         Box::new(merged.into_iter())
     }    
@@ -75,22 +43,16 @@ impl Library for Librarian {
         self.local_library.artists()
     }
 
-    fn fetch(&self, _entity: &LibraryEntity) -> Option<LibraryEntity> {
-        for lib in self.libraries.read().ok()?.iter() {
-            if let Some(a) = lib.fetch(_entity) {
-                dbg!(&a);
-                return Some(a)
-            }
-        }
-        None
+    fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
+        self.libraries.read().ok()?.iter()
+            .find_map(|lib| lib.fetch(entity))
     }
-
+    
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
         if let Some(dyn_image) = self.local_library.image(entity) {
             return Some(dyn_image);
         }
         for lib in self.libraries.read().unwrap().iter() {
-            log::debug!("Searching {} for  {:?}", lib.name(), entity);
             if let Some(dyn_image) = lib.image(entity) {
                 self.local_library.set_image(entity, &dyn_image);
                 return Some(dyn_image);
