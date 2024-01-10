@@ -44,23 +44,28 @@ impl SledLibrary {
         }
     }
 
-    fn get_artist_by_id(&self, id: &str) -> Option<Artist> {
-        assert!(!id.is_empty());
-        self.artists.get(id).ok()?
+    fn get_artist(&self, mbid: &str) -> Option<Artist> {
+        assert!(!mbid.is_empty());
+        self.artists.get(mbid).ok()?
             .and_then(|v| {
                 let bytes = v.as_bytes();
                 let json: String = String::from_utf8(bytes.into()).unwrap();
-                serde_json::from_str(&json).ok()
+                serde_json::from_str(&json).unwrap()
+            })
+            .and_then(|a: Option<Artist>| {
+                log::info!("fetched {:?}", a.clone().unwrap().mb.release_groups.map(|r| r.len()));
+                a
             })
     }
 
     pub fn set_artist(&self, a: &Artist) {
         assert!(!a.mbid().is_empty());
+        log::info!("storing {:?}", a.clone().mb.release_groups.map(|r| r.len()));
         serde_json::to_string_pretty(a)
-            .ok()
-            .and_then(|json| {
+            .map(|json| {
                 self.artists.insert(a.mbid(), &*json).unwrap()
-            });
+            })
+            .unwrap();
     }
 
     pub fn set_image(&self, entity: &LibraryEntity, dyn_image: &DynamicImage) {
@@ -107,7 +112,7 @@ impl Library for SledLibrary {
     fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
         match entity {
             LibraryEntity::Artist(a) => {
-                let a = self.get_artist_by_id(&a.mbid())?;
+                let a = self.get_artist(&a.mbid())?;
                 Some(LibraryEntity::Artist(a))
             },
             LibraryEntity::Genre(_) => todo!(),

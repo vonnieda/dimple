@@ -2,6 +2,7 @@ use dimple_musicbrainz_library::MusicBrainzLibrary;
 use dimple_lastfm_library::LastFmLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
 use dimple_deezer_library::DeezerLibrary;
+use musicbrainz_rs::entity::release_group::ReleaseGroup;
 
 use std::sync::Arc;
 
@@ -71,11 +72,10 @@ impl AppWindowController {
                 std::thread::spawn(move || {
                     // TODO ew
                     let mbid = url.split_at("dimple://artists/".len()).1;
-                    let mut query = dimple_core::model::Artist::with_mbid(mbid);
-                    query.mb.id = mbid.to_string();
+                    let query = dimple_core::model::Artist::with_mbid(mbid);
                     if let Some(LibraryEntity::Artist(artist)) = librarian.fetch(&LibraryEntity::Artist(query)) {
                         ui.upgrade_in_event_loop(move |ui| {
-                            ui.set_artist_details(artist.into());
+                            ui.set_artist_details((librarian.as_ref(), artist).into());
                             ui.set_page(1)
                         }).unwrap();
                     }
@@ -95,8 +95,8 @@ impl AppWindowController {
     }
 }
 
-impl From<Artist> for ArtistDetailsModel {
-    fn from(value: Artist) -> Self {
+impl From<(&Librarian, Artist)> for ArtistDetailsModel {
+    fn from((lib, value): (&Librarian, Artist)) -> Self {
         let genres: Vec<Link> = value.mb.genres
             .iter()
             .flatten()
@@ -105,53 +105,44 @@ impl From<Artist> for ArtistDetailsModel {
                 ..Default::default()
             })
             .collect();
+        // TODO this should be release groups, but they aren't serializing for
+        // some reason.
+        let releases: Vec<CardModel> = value.mb.releases
+            .iter()
+            .flatten()
+            .map(|rel| rel.clone().into())
+            .collect();
         ArtistDetailsModel {
             disambiguation: value.mb.disambiguation.clone().into(),
-            bio: "droga".clone().into(), 
-            card: value.into(), 
+            bio: "".to_string().into(), 
+            card: (lib, value).into(), 
             genres: ModelRc::from(genres.as_slice()),
-            releases: ModelRc::from(vec![].as_slice()),
+            releases: ModelRc::from(releases.as_slice()),
         }
     }
 }
 
-impl From<&Artist> for ArtistDetailsModel {
-    fn from(value: &Artist) -> Self {
-        value.clone().into()
-    }
-}
-
-impl From<Artist> for CardModel {
-    fn from(artist: Artist) -> Self {
-        // TODO gonna need to get the image somewhere.
-        // let slint_image = library.image(&LibraryEntity::Artist(artist.clone()))
-        //     .or_else(|| Some(DynamicImage::default()))
-        //     .map(|dyn_image| dynamic_image_to_slint_image(&dyn_image))
-        //     .unwrap();
+impl From<ReleaseGroup> for CardModel {
+    fn from(value: ReleaseGroup) -> Self {
         CardModel {
-            title: Link { 
-                name: artist.name().into(), 
-                url: format!("dimple://artists/{}", artist.mbid()).into() 
-            },
-            sub_title: [
-                Link { 
-                    name: artist.mb.disambiguation.clone().into(), 
-                    url: "".into() 
-                }
-            ].into(),
-            image: ImageLink { 
-                // image: slint_image, 
-                name: artist.name().into(), 
-                url: format!("dimple://artists/{}", artist.mbid()).into(),
+            title: Link {
+                name: value.title.into(),
                 ..Default::default()
             },
+            ..Default::default()
         }
-    }    
+    }
 }
 
-impl From<&Artist> for CardModel {
-    fn from(artist: &Artist) -> Self {
-        artist.clone().into()
+impl From<musicbrainz_rs::entity::release::Release> for CardModel {
+    fn from(value: musicbrainz_rs::entity::release::Release) -> Self {
+        CardModel {
+            title: Link {
+                name: value.title.into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
     }
 }
 
@@ -219,9 +210,6 @@ impl From<Release> for CardModel {
 
 impl From<Genre> for CardModel {
     fn from(genre: Genre) -> Self {
-        // let images = release.art();
-        // let image = images.first().unwrap();
-        // let dynamic_image = library.image(image).unwrap();
         let dynamic_image = DynamicImage::default();
         let slint_image = dynamic_image_to_slint_image(&dynamic_image);
         CardModel {

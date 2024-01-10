@@ -53,8 +53,10 @@ export component AppWindow inherits Window {
         }
         if page == 0: GroupBox { 
             VerticalLayout {
-                card_grid := CardGrid {
-                    cards: root.card-grid-cards;
+                ScrollView {
+                    card-grid := CardGrid {
+                        cards: root.card-grid-cards;
+                    }
                 }
                 Text {
                     horizontal-alignment: right;
@@ -63,7 +65,7 @@ export component AppWindow inherits Window {
             }
         }
         if page == 1: GroupBox {
-            // vertical-stretch: 1;
+            vertical-stretch: 1;
             ArtistDetails {  
                 vertical-stretch: 1;
                 model: root.artist-details;

@@ -3,33 +3,24 @@ import { Card, CardModel } from "card.slint";
 import { Palette, Navigator } from "common.slint";
 import {StyleMetrics} from "std-widgets.slint";
 
-export component CardGrid inherits ScrollView {
-    in-out property <[CardModel]> cards: [
-        {
-            image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-            title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-            sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-        },
-        {
-            image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-            title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-            sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-        },
-    ];
+export component CardGrid inherits VerticalLayout {
+    in-out property <[CardModel]> cards;
 
-    property <int> cols: Math.floor((self.width - StyleMetrics.layout-padding) / (Palette.thumbnail-width-large + StyleMetrics.layout-spacing));
+    // property <int> cols: Math.floor((self.width - StyleMetrics.layout-padding) 
+    //     / (Palette.thumbnail-width-large + StyleMetrics.layout-spacing));
+
+    property <int> cols: 6;
 
     property <bool> last_row;
-    VerticalLayout {
-        spacing: StyleMetrics.layout-spacing;
-        padding-right: StyleMetrics.layout-padding;
+
+    spacing: StyleMetrics.layout-spacing;
+    padding-right: StyleMetrics.layout-padding;
+    alignment: start;
+    for row in Math.ceil(cards.length / cols): HorizontalLayout {
         alignment: start;
-        for row in Math.ceil(cards.length / cols): HorizontalLayout {
-            alignment: space-between;
-            spacing: StyleMetrics.layout-spacing;
-            for col in Math.min(cols, cards.length - Math.floor(cards.length / cols)): Card {
-                 model: cards[row * cols + col];
-            }
+        spacing: StyleMetrics.layout-spacing;
+        for col in Math.min(cols, cards.length - Math.floor(cards.length / cols)): Card {
+            model: cards[row * cols + col];
         }
     }
 }

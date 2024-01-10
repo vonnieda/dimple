@@ -50,6 +50,7 @@ impl Library for MusicBrainzLibrary {
                     .with_rating()
                     .with_tags()
                     .with_releases()
+                    .with_release_groups()
                     .with_url_relations()
                     .execute()
                     .ok()
