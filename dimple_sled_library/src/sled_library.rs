@@ -1,6 +1,6 @@
 use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::Artist};
 
-use image::DynamicImage;
+use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
 
 use sled::Tree;
@@ -44,37 +44,29 @@ impl SledLibrary {
         }
     }
 
-    pub fn get_artist_by_id(&self, id: &str) -> Option<Artist> {
-        if id.is_empty() {
-            return None
-        }
-        self.artists
-            .get(id)
-            .ok() // TODO log the error?
+    fn get_artist_by_id(&self, id: &str) -> Option<Artist> {
+        assert!(!id.is_empty());
+        self.artists.get(id).ok()?
             .and_then(|v| {
-                v.and_then(|ivec| {
-                    serde_json::from_slice(&ivec).ok()
-                })
+                let bytes = v.as_bytes();
+                let json: String = String::from_utf8(bytes.into()).unwrap();
+                serde_json::from_str(&json).ok()
             })
     }
 
-    pub fn get_artist_by_mbid(&self, mbid: String) -> Option<Artist> {
-        // TODO slow
-        self.artists()
-            .find(|a| a.mbid() == mbid)
-    }
-
     pub fn set_artist(&self, a: &Artist) {
-        assert!(!a.id().is_empty());
-        serde_json::to_vec(a)
+        assert!(!a.mbid().is_empty());
+        serde_json::to_string_pretty(a)
             .ok()
-            .and_then(|json| self.artists.insert(a.id(), json).ok());
+            .and_then(|json| {
+                self.artists.insert(a.mbid(), &*json).unwrap()
+            });
     }
 
     pub fn set_image(&self, entity: &LibraryEntity, dyn_image: &DynamicImage) {
         match entity {
             LibraryEntity::Artist(a) => {
-                self._images.insert(&a.id(), dyn_image);
+                self._images.insert(&a.mbid(), dyn_image);
             },
             LibraryEntity::Genre(_) => todo!(),
             LibraryEntity::Release(_) => todo!(),
@@ -103,17 +95,31 @@ impl Library for SledLibrary {
         let artists: Vec<Artist> = self.artists.iter()
             .map(|t| {
                 let (_k, v) = t.unwrap();
-                serde_json::from_slice(&v).unwrap()
+                let bytes = v.as_bytes();
+                let json: String = String::from_utf8(bytes.into()).unwrap();
+                serde_json::from_str(&json).unwrap()
             })
             .collect();
 
         Box::new(artists.into_iter())
     }
 
+    fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
+        match entity {
+            LibraryEntity::Artist(a) => {
+                let a = self.get_artist_by_id(&a.mbid())?;
+                Some(LibraryEntity::Artist(a))
+            },
+            LibraryEntity::Genre(_) => todo!(),
+            LibraryEntity::Release(_) => todo!(),
+            LibraryEntity::Track(_) => todo!(),
+        }        
+    }
+
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
         match entity {
             LibraryEntity::Artist(a) => {
-                self._images.get_original(&a.id())
+                self._images.get_original(&a.mbid())
             },
             LibraryEntity::Genre(_) => todo!(),
             LibraryEntity::Release(_) => todo!(),

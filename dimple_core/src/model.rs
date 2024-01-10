@@ -10,11 +10,11 @@ pub struct Artist {
     pub mb: musicbrainz_rs::entity::artist::Artist,
 }
 
-/// I think mbid might be optional, and id might return it unless it's null
-/// in which case we need to return something new / temporary?
 impl Artist {
-    pub fn id(&self) -> String {
-        self.mb.id.clone()
+    pub fn with_mbid(mbid: &str) -> Self {
+        let mut a = Self::default();
+        a.mb.id = mbid.to_string();
+        a
     }
 
     pub fn mbid(&self) -> String {

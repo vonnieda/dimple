@@ -74,12 +74,11 @@ impl AppWindowController {
                     // TODO add shortcut new with id
                     let mut query = dimple_core::model::Artist::default();
                     query.mb.id = id.to_string();
-                    if let Some(artist) = librarian.fetch(&LibraryEntity::Artist(query)) {
-                        // dbg!("found", &artist);
+                    if let Some(LibraryEntity::Artist(artist)) = librarian.fetch(&LibraryEntity::Artist(query)) {
                         ui.upgrade_in_event_loop(move |ui| {
                             let card: CardModel = (librarian.as_ref(), artist.clone()).into();
                             ui.set_artist_details(ArtistDetailsModel { 
-                                bio: "".into(), 
+                                bio: artist.mb.disambiguation.into(), 
                                 card, 
                                 genres: ModelRc::from(vec![].as_slice()) 
                             });
@@ -92,7 +91,7 @@ impl AppWindowController {
 
         // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
         self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
-        // self.librarian.add_library(Box::<FanartTvLibrary>::default());
+        self.librarian.add_library(Box::<FanartTvLibrary>::default());
         // self.librarian.add_library(Box::<LastFmLibrary>::default());
         // self.librarian.add_library(Box::<DeezerLibrary>::default());
 
@@ -135,13 +134,18 @@ impl From<(&Librarian, Artist)> for CardModel {
         CardModel {
             title: Link { 
                 name: artist.name().into(), 
-                url: format!("dimple://artists/{}", artist.id()).into() 
+                url: format!("dimple://artists/{}", artist.mbid()).into() 
             },
-            sub_title: [Link { name: "".into(), url: "".into() }].into(),
+            sub_title: [
+                Link { 
+                    name: artist.mb.disambiguation.clone().into(), 
+                    url: "".into() 
+                }
+            ].into(),
             image: ImageLink { 
                 image: slint_image, 
                 name: artist.name().into(), 
-                url: format!("dimple://artists/{}", artist.id()).into() 
+                url: format!("dimple://artists/{}", artist.mbid()).into() 
             },
         }
     }

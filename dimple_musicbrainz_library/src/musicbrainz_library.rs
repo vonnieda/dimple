@@ -45,6 +45,7 @@ impl Library for MusicBrainzLibrary {
     }
 
     fn fetch(&self, _entity: &LibraryEntity) -> Option<LibraryEntity> {
+        log::info!("fetch");
         match _entity {
             LibraryEntity::Artist(a) => {
                 Artist::fetch()
@@ -53,8 +54,8 @@ impl Library for MusicBrainzLibrary {
                     .with_annotations()
                     .with_genres()
                     .with_rating()
-                    .with_releases()
                     .with_tags()
+                    .with_releases()
                     .with_url_relations()
                     .execute()
                     .ok()
@@ -70,8 +71,6 @@ impl Library for MusicBrainzLibrary {
             LibraryEntity::Track(_) => todo!(),
         }        
     }
-
-
 
     fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
         match entity {

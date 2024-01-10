@@ -29,8 +29,6 @@ impl Library for Librarian {
         "Librarian".to_string()
     }
 
-    /// Searches all of the registered libraries for the query string and returns
-    /// the union of the results with duplicates removed.
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
         let merged: Vec<LibraryEntity> = self.libraries.read().unwrap().iter()
             .flat_map(|lib| lib.search(query))
@@ -44,8 +42,20 @@ impl Library for Librarian {
     }
 
     fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
-        self.libraries.read().ok()?.iter()
-            .find_map(|lib| lib.fetch(entity))
+        log::info!("fetch");
+        self.local_library.fetch(entity).or_else(|| {
+            self.libraries.read().ok()?.iter()            
+                .find_map(|lib| lib.fetch(entity))
+                .map(|e| {
+                    match e.clone() {
+                        LibraryEntity::Artist(a) => self.local_library.set_artist(&a),
+                        LibraryEntity::Genre(_) => todo!(),
+                        LibraryEntity::Release(_) => todo!(),
+                        LibraryEntity::Track(_) => todo!(),
+                    };
+                    e
+                })
+        })
     }
     
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
@@ -58,11 +68,10 @@ impl Library for Librarian {
                 return Some(dyn_image);
             }
         }
-        // log::debug!("no image found for {:?}, setting default", entity);
-        // let dyn_image = DynamicImage::new_rgba8(500, 500);
-        // self.local_library.set_image(entity, &dyn_image);
-        // Some(dyn_image)
-        None
+        log::warn!("no image found for {} ({}), setting default", entity.name(), entity.mbid());
+        let dyn_image = DynamicImage::new_rgba8(500, 500);
+        self.local_library.set_image(entity, &dyn_image);
+        Some(dyn_image)
     }
 }
 
