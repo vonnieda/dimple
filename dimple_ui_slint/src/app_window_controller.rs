@@ -110,7 +110,10 @@ impl From<(&Librarian, Artist)> for ArtistDetailsModel {
         let releases: Vec<CardModel> = value.mb.releases
             .iter()
             .flatten()
-            .map(|rel| rel.clone().into())
+            .map(|rel| Release {
+                mb: rel.clone(),
+            })
+            .map(|rel| (lib, rel.clone()).into())
             .collect();
         ArtistDetailsModel {
             disambiguation: value.mb.disambiguation.clone().into(),
@@ -134,14 +137,28 @@ impl From<ReleaseGroup> for CardModel {
     }
 }
 
-impl From<musicbrainz_rs::entity::release::Release> for CardModel {
-    fn from(value: musicbrainz_rs::entity::release::Release) -> Self {
+impl From<(&Librarian, Release)> for CardModel {
+    fn from((lib, release): (&Librarian, Release)) -> Self {
+        let slint_image = lib.image(&LibraryEntity::Release(release.clone()))
+            .or_else(|| Some(DynamicImage::default()))
+            .map(|dyn_image| dynamic_image_to_slint_image(&dyn_image))
+            .unwrap();
         CardModel {
-            title: Link {
-                name: value.title.into(),
-                ..Default::default()
+            title: Link { 
+                name: release.mb.title.clone().into(), 
+                url: format!("dimple://releases/{}", release.mbid()).into() 
             },
-            ..Default::default()
+            sub_title: [
+                Link { 
+                    name: "".into(), 
+                    url: "".into() 
+                }
+            ].into(),
+            image: ImageLink { 
+                image: slint_image, 
+                name: release.title().into(), 
+                url: format!("dimple://releases/{}", release.mbid()).into() 
+            },
         }
     }
 }
@@ -172,6 +189,7 @@ impl From<(&Librarian, LibraryEntity)> for CardModel {
 
 impl From<(&Librarian, Artist)> for CardModel {
     fn from((library, artist): (&Librarian, Artist)) -> Self {
+        // TODO this needs cached locally
         let slint_image = library.image(&LibraryEntity::Artist(artist.clone()))
             .or_else(|| Some(DynamicImage::default()))
             .map(|dyn_image| dynamic_image_to_slint_image(&dyn_image))

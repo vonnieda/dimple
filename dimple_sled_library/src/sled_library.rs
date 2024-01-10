@@ -69,14 +69,7 @@ impl SledLibrary {
     }
 
     pub fn set_image(&self, entity: &LibraryEntity, dyn_image: &DynamicImage) {
-        match entity {
-            LibraryEntity::Artist(a) => {
-                self._images.insert(&a.mbid(), dyn_image);
-            },
-            LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Release(_) => todo!(),
-            LibraryEntity::Track(_) => todo!(),
-        }
+        self._images.insert(&entity.mbid(), dyn_image);
     }
 }
 
@@ -122,13 +115,6 @@ impl Library for SledLibrary {
     }
 
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
-        match entity {
-            LibraryEntity::Artist(a) => {
-                self._images.get_original(&a.mbid())
-            },
-            LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Release(_) => todo!(),
-            LibraryEntity::Track(_) => todo!(),
-        }
+        self._images.get_original(&entity.mbid())
     }
 }

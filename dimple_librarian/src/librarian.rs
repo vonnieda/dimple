@@ -68,7 +68,7 @@ impl Library for Librarian {
                 return Some(dyn_image);
             }
         }
-        log::warn!("no image found for {} ({}), setting default", entity.name(), entity.mbid());
+        log::debug!("no image found for {} ({}), setting default", entity.name(), entity.mbid());
         let dyn_image = DynamicImage::new_rgba8(500, 500);
         self.local_library.set_image(entity, &dyn_image);
         Some(dyn_image)

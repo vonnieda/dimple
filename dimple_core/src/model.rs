@@ -26,17 +26,19 @@ impl Artist {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Release {
-    // pub id: String,
-    // pub mbid: String,
-    // pub title: String,
-    // #[serde(default)]
-    // pub artists: Vec<Artist>,
-    // #[serde(default)]
-    // pub genres: Vec<Genre>,
-    // #[serde(default)]
-    // pub tracks: Vec<Track>,
+    pub mb: musicbrainz_rs::entity::release::Release,
+}
+
+impl Release {
+    pub fn mbid(&self) -> String {
+        self.mb.id.clone()
+    }
+
+    pub fn title(&self) -> String {
+        self.mb.title.clone()
+    }
 }
 
 // The Deezer version of a Track https://developers.deezer.com/api/track

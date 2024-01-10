@@ -1,7 +1,8 @@
-use dimple_core::library::{Library, LibraryEntity};
+use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
+// https://wiki.fanart.tv/General/personal%20api/
 #[derive(Debug, Default)]
 pub struct FanartTvLibrary {
 }
@@ -42,18 +43,20 @@ impl Library for FanartTvLibrary {
                 let api_key = "55b9ef19f6822b9f835c97426d435d72";
                 let mbid = a.mbid();
                 let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", mbid, api_key);
+                LibrarySupport::log_request(self, &url);
                 let response = client.get(url).send().ok()?;
                 let artist_resp = response.json::<ArtistResponse>().ok()?;
                 let thumb = artist_resp.artistthumb.first()
                     .or_else(|| artist_resp.artistbackground.first())
                     .or_else(|| artist_resp.hdmusiclogo.first())
                     .or_else(|| artist_resp.musiclogo.first())?;
-                log::debug!("Downloading {}", &thumb.url);
+                LibrarySupport::log_request(self, &thumb.url);
                 let thumb_resp = client.get(&thumb.url).send().ok()?;
                 let bytes = thumb_resp.bytes().ok()?;
                 image::load_from_memory(&bytes).ok()
             }
             LibraryEntity::Genre(_) => None,
+            // TODO seems like it only supports artists by mbid
             LibraryEntity::Release(_) => None,
             LibraryEntity::Track(_) => None,
         }

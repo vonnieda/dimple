@@ -1,25 +1,92 @@
 # Dimple
 
-A cross-platform music player that celebrates music and privacy.
+Dimple is an open source and cross-platform music player that celebrates music
+and privacy. 
 
+It runs on all the common desktops and mobiles, and gives you all the power of
+a streaming service in a single app. 
+
+Dimple is $2.99 on any app store, or you can download it for free right here. 
+The only difference between the two is that app store sales pay for Dimple's
+development. Dimple is my full time job and I'm working hard to make it the
+best music player I can.
 
 # Features
 
-- [ ] Smart stations for anything: artists, albums, genres, moods, decades,
-      etc. Anything can be the source for a new mix.
-- [ ] Offline support: stores metadata for all tracks locally, and track audio
-      for all tracks marked offine.
-- Multiple music library support. Consolidates all locally.
-  - [ ] Navidrome (SubSonic)
-  - [ ] Bandcamp
-  - [ ] Last.fm
-  - [ ] Spotify
-  - [ ] Tidal
-  - [ ] Deezer
-  - [ ] Apple Music
-- UI
-  - [ ] Waveform visualizations to help you "see" the track
-  - [ ] Everything is clickable so you can find out more
-  - [ ] Lyrics display
-- [ ] Learns from every interaction. Previous, next, skip, repeat, scrub, like,
-      like AGAIN. Like scrobbling on steroids.
+- Open Source
+  - Github: https://github.com/vonnieda/Dimple
+
+- Cross Platform
+  - macOS
+  - Linux
+  - Windows
+  - iOS
+  - Android
+  - CarPlay
+  - Android Auto
+  - Apple tvOS
+
+- Private
+  - No ads, no accounts, no data collection, no tracking, no DRM, no telemetry,
+    no bullshit.
+  - Everything is stored locally by default.
+  - Synchronized data is end-to-end encrypted.
+  - Works offline with your downloaded music.
+
+- Extensive Synchronization
+  - Stream and download your music on any supported device, with any S3
+    compatible storage service. Dimple offers a cheap and built in option that
+    helps pay for development, or use any S3 compatible storage you like.
+  - Keep your likes, listens, and playlists synchronized between your devices
+    and popular music services like Tidal, Deezer, Apple Music, Spotify,
+    Last.fm, and more.
+
+- Rich Metadata
+  - Metadata from MusicBrainz, Wikipedia, ListenBrainz, and more.
+  - Artwork from Cover Art Archive, fanart.tv, Wiki Commons, and more.
+  - Lyrics from ??Genius??, ??Musixmatch??, ??Lyrics Archive??, and more.
+  - Scrobble to Last.fm, Listenbrainz, Maloja, and more.
+
+- Brainy
+  - "Deep Scrobbling" keeps track of your volume adjustments, repeats, skips,
+    scrubs, likes, dislikes, and dozens of other interactive data points. This
+    powers features like Current Obsessions, Mood Radio, AI DJ, ??ReplayGain??,
+    Instant Mixes, and more.
+  - Instant Mixes are infinite playlists based on Artists, Albums, Tracks,
+    Genres, Playlists, and more. Everything is clickable and everything can
+    start an Instant Mix.
+  - AI DJ uses text to speech and a small, fine-tuned AI brain to give you your
+    own personal DJ. It announces songs and mixes, and adjusts to your
+    reactions.
+  - Current Obsessions lets you jump right back into your recent favorites.
+  - Mood Radio instantly matches your mood with an infinite playlist of whatever
+    you're feeling right now.
+  - ReplayGain automatically adjusts audio volume based on community feedback
+    and your own adjustments.
+
+- Modern Design
+  - Based on Google's Material Design by default.
+  - Artwork forward with abstract generated defaults when none is available.
+  - Responsive on any screen size.
+  - Light and Dark Mode, optionally follows your OS choice.
+  - Interactive waveform visualizations help you "see" the music.
+    - Moodbar: https://en.wikipedia.org/wiki/Moodbar
+    - Sparkline: https://simonrepp.com/faircamp/#release
+    - Spectrogram: https://en.wikipedia.org/wiki/Spectrogram
+    - Wave
+
+- Fast
+  - Written in Rust using Slint.
+  - Async network and file I/O.
+  - Extensive local caching for fast browsing, even offline.
+
+- Dimple Cloud (Optional)
+  - One click S3 compatible storage.
+  - Privately and securely synchronize all your devices.
+  - End-to-end encryption means your library is private and safe.
+  - Fast, reliable, and worldwide. Based on Backblaze B2 Cloud Storage.
+  - $0.99 for 100GB per month, or a year for $8.99. Pay only for what you use.
+    100GB stores roughly 30,000 songs.
+  - All features also available for free using your preferred S3 compatible
+    storage provider.
+

@@ -13,7 +13,7 @@ impl LibraryEntity {
         match self {
             LibraryEntity::Artist(a) => a.mbid(),
             LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Release(_) => todo!(),
+            LibraryEntity::Release(r) => r.mbid(),
             LibraryEntity::Track(_) => todo!(),
         }
     }
@@ -22,7 +22,7 @@ impl LibraryEntity {
         match self {
             LibraryEntity::Artist(a) => a.name(),
             LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Release(_) => todo!(),
+            LibraryEntity::Release(r) => r.title(),
             LibraryEntity::Track(_) => todo!(),
         }
     }
@@ -60,4 +60,13 @@ pub trait Library: Send + Sync {
     }
 
     // fn list<T: LibraryEnt + 'static>(&self) -> Box<dyn Iterator<Item = T>>;
+}
+
+pub struct LibrarySupport {
+}
+
+impl LibrarySupport {
+    pub fn log_request(library: &dyn Library, url: &str) {
+        log::info!("{} {}", library.name(), url);
+    }
 }

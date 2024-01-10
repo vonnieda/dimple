@@ -1138,6 +1138,7 @@ name = "dimple_core"
 version = "0.1.0"
 dependencies = [
  "image",
+ "log",
  "musicbrainz_rs",
  "serde",
  "sled",
@@ -1201,6 +1202,7 @@ dependencies = [
  "image",
  "log",
  "musicbrainz_rs",
+ "reqwest",
  "serde",
  "serde_json",
  "threadpool",
