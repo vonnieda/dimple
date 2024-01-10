@@ -32,9 +32,7 @@ impl Library for MusicBrainzLibrary {
             .iter()
             .map(|src| {
                 dimple_core::model::Artist {
-                    name: src.name.clone(),
-                    mbid: Some(src.id.clone()),
-                    ..Default::default()
+                    mb: src.clone()
                 }
             })
             .map(LibraryEntity::Artist)
@@ -45,6 +43,35 @@ impl Library for MusicBrainzLibrary {
     fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
         Box::new(vec![].into_iter())
     }
+
+    fn fetch(&self, _entity: &LibraryEntity) -> Option<LibraryEntity> {
+        match _entity {
+            LibraryEntity::Artist(a) => {
+                Artist::fetch()
+                    .id(&a.mbid())
+                    .with_aliases()
+                    .with_annotations()
+                    .with_genres()
+                    .with_rating()
+                    .with_releases()
+                    .with_tags()
+                    .with_url_relations()
+                    .execute()
+                    .ok()
+                    .map(|src| {
+                        dimple_core::model::Artist {
+                            mb: src.clone()
+                        }
+                    })
+                    .map(LibraryEntity::Artist)
+                },
+            LibraryEntity::Genre(_) => todo!(),
+            LibraryEntity::Release(_) => todo!(),
+            LibraryEntity::Track(_) => todo!(),
+        }        
+    }
+
+
 
     fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
         match entity {

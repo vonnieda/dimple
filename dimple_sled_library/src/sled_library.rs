@@ -58,24 +58,23 @@ impl SledLibrary {
             })
     }
 
-    pub fn get_artist_by_mbid(&self, mbid: Option<String>) -> Option<Artist> {
-        mbid.as_ref()?;
+    pub fn get_artist_by_mbid(&self, mbid: String) -> Option<Artist> {
         // TODO slow
         self.artists()
-            .find(|a| a.mbid == mbid)
+            .find(|a| a.mbid() == mbid)
     }
 
     pub fn set_artist(&self, a: &Artist) {
-        assert!(!a.id.is_empty());
+        assert!(!a.id().is_empty());
         serde_json::to_vec(a)
             .ok()
-            .and_then(|json| self.artists.insert(a.id.clone(), json).ok());
+            .and_then(|json| self.artists.insert(a.id(), json).ok());
     }
 
     pub fn set_image(&self, entity: &LibraryEntity, dyn_image: &DynamicImage) {
         match entity {
             LibraryEntity::Artist(a) => {
-                self._images.insert(&a.id, dyn_image);
+                self._images.insert(&a.id(), dyn_image);
             },
             LibraryEntity::Genre(_) => todo!(),
             LibraryEntity::Release(_) => todo!(),
@@ -114,7 +113,7 @@ impl Library for SledLibrary {
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
         match entity {
             LibraryEntity::Artist(a) => {
-                self._images.get_original(&a.id)
+                self._images.get_original(&a.id())
             },
             LibraryEntity::Genre(_) => todo!(),
             LibraryEntity::Release(_) => todo!(),

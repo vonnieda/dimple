@@ -24,21 +24,22 @@ impl Librarian {
     }
 
     fn merge_artist(src: &Artist, dest: &Artist) -> Artist {
-        let mut dest = dest.clone();
-        if dest.mbid.is_none() {
-            dest.mbid = src.mbid.clone();
-        }
-        if dest.name.is_empty() {
-            dest.name = src.name.clone();
-        }
-        dest
+        // let mut dest = dest.clone();
+        // if dest.mbid.is_none() {
+        //     dest.mbid = src.mbid.clone();
+        // }
+        // if dest.name.is_empty() {
+        //     dest.name = src.name.clone();
+        // }
+        // dest
+        src.clone()
     }
 
     fn resolve(&self, e: &LibraryEntity) -> LibraryEntity {
         match e {
             LibraryEntity::Artist(a_in) => {
-                let artist = self.local_library.get_artist_by_id(&a_in.id)
-                    .or_else(|| self.local_library.get_artist_by_mbid(a_in.mbid.clone()))
+                let artist = self.local_library.get_artist_by_id(&a_in.id())
+                    .or_else(|| self.local_library.get_artist_by_mbid(a_in.mbid()))
                     .or_else(|| Some(Artist::default()))
                     .map(|a| Self::merge_artist(a_in, &a))
                     .map(|a| {
@@ -64,12 +65,24 @@ impl Library for Librarian {
         let merged: Vec<LibraryEntity> = self.libraries.read().unwrap().iter()
             .flat_map(|lib| lib.search(query))
             .map(|e| self.resolve(&e))
+            // TODO no
+            .map(|e| self.fetch(&e).unwrap())
             .collect();
         Box::new(merged.into_iter())
     }    
 
     fn artists(&self) -> Box<dyn Iterator<Item = Artist>> {
         self.local_library.artists()
+    }
+
+    fn fetch(&self, _entity: &LibraryEntity) -> Option<LibraryEntity> {
+        for lib in self.libraries.read().ok()?.iter() {
+            if let Some(a) = lib.fetch(_entity) {
+                dbg!(&a);
+                return Some(a)
+            }
+        }
+        None
     }
 
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
@@ -83,10 +96,11 @@ impl Library for Librarian {
                 return Some(dyn_image);
             }
         }
-        log::warn!("no image found for {:?}, setting default", entity);
-        let dyn_image = DynamicImage::new_rgba8(500, 500);
-        self.local_library.set_image(entity, &dyn_image);
-        Some(dyn_image)
+        // log::debug!("no image found for {:?}, setting default", entity);
+        // let dyn_image = DynamicImage::new_rgba8(500, 500);
+        // self.local_library.set_image(entity, &dyn_image);
+        // Some(dyn_image)
+        None
     }
 }
 

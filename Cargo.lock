@@ -1151,6 +1151,7 @@ dependencies = [
  "dimple_core",
  "image",
  "log",
+ "musicbrainz_rs",
  "reqwest",
  "serde",
 ]

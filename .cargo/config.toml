@@ -1,3 +1,0 @@
-# [target.aarch64-apple-darwin]
-# linker = "clang"
-# rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/ld64.sold"]

@@ -1,7 +1,9 @@
 use dimple_core::{library::{Library, LibraryEntity}};
+use musicbrainz_rs::entity::relations::RelationContent;
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
+/// https://developers.deezer.com/api
 #[derive(Debug, Default)]
 pub struct DeezerLibrary {
 }
@@ -14,16 +16,17 @@ impl DeezerLibrary {
 }
 
 #[derive(Deserialize, Debug)]
-struct ArtistResponse {
+struct DeezerResponse {
     #[serde(default)]
-    data:  Vec<ArtistObj>,
+    data:  Vec<DeezerArtist>,
 
     #[serde(default)]
     total: u32,
 }
 
+/// https://developers.deezer.com/api/artist
 #[derive(Deserialize, Debug)]
-struct ArtistObj {
+struct DeezerArtist {
     #[serde(default)]
     id: u32,
 
@@ -43,14 +46,14 @@ impl Library for DeezerLibrary {
     }
 
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
-        let client = Client::builder()
-            .https_only(true)
-            .user_agent(dimple_core::USER_AGENT)
-            .build().unwrap();
-        let url = format!("https://api.deezer.com/search/artist?q={}", query);
-        let response = client.get(url).send().unwrap();
-        let artist_resp = response.json::<ArtistResponse>().unwrap();
-        log::info!("Deezer found {} artists", artist_resp.total);
+        // let client = Client::builder()
+        //     .https_only(true)
+        //     .user_agent(dimple_core::USER_AGENT)
+        //     .build().unwrap();
+        // let url = format!("https://api.deezer.com/search/artist?q={}", query);
+        // let response = client.get(url).send().unwrap();
+        // let artist_resp = response.json::<DeezerResponse>().unwrap();
+        // log::info!("Deezer found {} artists", artist_resp.total);
         // // let thumb = artist_resp.artistthumb.first()?;
         // // log::debug!("Downloading {}", &thumb.url);
         // // let thumb_resp = client.get(&thumb.url).send().ok()?;
@@ -63,7 +66,23 @@ impl Library for DeezerLibrary {
         Box::new(vec![].into_iter())
     }
 
-    fn image(&self, _entity: &LibraryEntity) -> Option<image::DynamicImage> {
+    fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
+        match entity {
+            LibraryEntity::Artist(a) => {
+                let a = a.clone();
+                log::info!("Searching for Deezer ID");
+                a.mb.relations?.clone().iter()
+                    .for_each(|rel| {
+                        if let RelationContent::Url(con) = &rel.content {
+                            dbg!(&con.resource);
+                        }
+                    });
+                return None
+            },
+            LibraryEntity::Genre(_) => todo!(),
+            LibraryEntity::Release(_) => todo!(),
+            LibraryEntity::Track(_) => todo!(),           
+        }
         None
     }
 }

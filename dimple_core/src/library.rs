@@ -8,30 +8,6 @@ pub enum LibraryEntity {
     Track(Track),
 }
 
-impl LibraryEntity {
-    pub fn id(&self) -> String {
-        match self {
-            LibraryEntity::Artist(a) => {
-                a.id.clone()
-            },
-            LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Release(_) => todo!(),
-            LibraryEntity::Track(_) => todo!(),
-        }
-    }
-
-    pub fn mbid(&self) -> Option<String> {
-        match self {
-            LibraryEntity::Artist(a) => {
-                a.mbid.clone()
-            },
-            LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Release(_) => todo!(),
-            LibraryEntity::Track(_) => todo!(),
-        }
-    }
-}
-
 pub trait Library: Send + Sync {
     /// Get a user friendly display name for the Library.
     fn name(&self) -> String;
@@ -41,6 +17,13 @@ pub trait Library: Send + Sync {
     /// general it should return, at least, matching Artists, Releases,
     /// Genres, and Tracks.
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = LibraryEntity>>;
+
+    /// Fetch a complete record for the given entity. The Library implementation
+    /// can choose to use any appropriate fields in the entity as the selection
+    /// criteria. Typically mbid or another id will be used.
+    fn fetch(&self, _entity: &LibraryEntity) -> Option<LibraryEntity> {
+        todo!()
+    }
 
     // TODO Explore fn list(LibraryEntity....type?) or maybe fn list<T>
     fn artists(&self) -> Box<dyn Iterator<Item = Artist>>;

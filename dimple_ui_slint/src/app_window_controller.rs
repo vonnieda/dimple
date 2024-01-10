@@ -66,11 +66,11 @@ impl AppWindowController {
                 std::thread::spawn(move || {
                     let id = url.split_at("dimple://artists/".len()).1;
                     // TODO ew
-                    if let Some(artist) = librarian.artists().find(|a| a.id == id) {
+                    if let Some(artist) = librarian.artists().find(|a| a.id() == id) {
                         ui.upgrade_in_event_loop(move |ui| {
-                            let card: CardModel = (librarian.as_ref(), artist).into();
+                            let card: CardModel = (librarian.as_ref(), artist.clone()).into();
                             ui.set_artist_details(ArtistDetailsModel { 
-                                bio: "Born in Massachusettessses...".into(), 
+                                bio: artist.mb.disambiguation.into(), 
                                 card, 
                                 genres: ModelRc::from(vec![].as_slice()) 
                             });
@@ -83,9 +83,9 @@ impl AppWindowController {
 
         // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
         self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
-        self.librarian.add_library(Box::<LastFmLibrary>::default());
+        // self.librarian.add_library(Box::<FanartTvLibrary>::default());
+        // self.librarian.add_library(Box::<LastFmLibrary>::default());
         self.librarian.add_library(Box::<DeezerLibrary>::default());
-        self.librarian.add_library(Box::<FanartTvLibrary>::default());
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://artists".into());
 
@@ -125,14 +125,14 @@ impl From<(&Librarian, Artist)> for CardModel {
             .unwrap();
         CardModel {
             title: Link { 
-                name: artist.name.clone().into(), 
-                url: format!("dimple://artists/{}", artist.id).into() 
+                name: artist.name().into(), 
+                url: format!("dimple://artists/{}", artist.id()).into() 
             },
             sub_title: [Link { name: "".into(), url: "".into() }].into(),
             image: ImageLink { 
                 image: slint_image, 
-                name: artist.name.clone().into(), 
-                url: format!("dimple://artists/{}", artist.id).into() 
+                name: artist.name().into(), 
+                url: format!("dimple://artists/{}", artist.id()).into() 
             },
         }
     }
