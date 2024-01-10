@@ -30,6 +30,7 @@ impl Library for Librarian {
     }
 
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
+        // TODO include local
         let merged: Vec<LibraryEntity> = self.libraries.read().unwrap().iter()
             .flat_map(|lib| lib.search(query))
             // TODO remove dupes
@@ -42,7 +43,6 @@ impl Library for Librarian {
     }
 
     fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
-        log::info!("fetch");
         self.local_library.fetch(entity).or_else(|| {
             self.libraries.read().ok()?.iter()            
                 .find_map(|lib| lib.fetch(entity))

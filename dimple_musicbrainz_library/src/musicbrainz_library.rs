@@ -40,10 +40,6 @@ impl Library for MusicBrainzLibrary {
         Box::new(results.into_iter())
     }
 
-    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
-        Box::new(vec![].into_iter())
-    }
-
     fn fetch(&self, _entity: &LibraryEntity) -> Option<LibraryEntity> {
         log::info!("fetch");
         match _entity {
@@ -72,21 +68,21 @@ impl Library for MusicBrainzLibrary {
         }        
     }
 
-    fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
-        match entity {
-            LibraryEntity::Artist(a) => {
-                // let mbid = a.mbid.clone()?;
-                // let mb_artist = Artist::fetch()
-                //     .id(&mbid)
-                //     .with_url_relations()
-                //     .with_genres()
-                //     .execute()
-                //     .ok()?;
-                None
-            }
-            LibraryEntity::Genre(_) => None,
-            LibraryEntity::Release(_) => None,
-            LibraryEntity::Track(_) => None,
-        }
-    }
+    // fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
+    //     match entity {
+    //         LibraryEntity::Artist(a) => {
+    //             // let mbid = a.mbid.clone()?;
+    //             // let mb_artist = Artist::fetch()
+    //             //     .id(&mbid)
+    //             //     .with_url_relations()
+    //             //     .with_genres()
+    //             //     .execute()
+    //             //     .ok()?;
+    //             None
+    //         }
+    //         LibraryEntity::Genre(_) => None,
+    //         LibraryEntity::Release(_) => None,
+    //         LibraryEntity::Track(_) => None,
+    //     }
+    // }
 }
