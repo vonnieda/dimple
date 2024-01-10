@@ -8,8 +8,8 @@ a streaming service in a single app.
 
 Dimple is $2.99 on any app store, or you can download it for free right here. 
 The only difference between the two is that app store sales pay for Dimple's
-development. Dimple is my full time job and I'm working hard to make it the
-best music player I can.
+development. **Dimple is my full time job and I'm working hard to make it the
+best music player I can.**
 
 # Features
 
