@@ -19,10 +19,9 @@ impl Library for MusicBrainzLibrary {
         "MusicBrainz".to_string()
     }
 
-    // https://musicbrainz.org/doc/MusicBrainz_API/Search
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
         let query = query.to_string();
-        // And releases, tracks, etc.
+        // TODO And releases, tracks, etc.
         let search_query = ArtistSearchQuery::query_builder()
                 .artist(&query)
                 .build();
@@ -41,7 +40,6 @@ impl Library for MusicBrainzLibrary {
     }
 
     fn fetch(&self, _entity: &LibraryEntity) -> Option<LibraryEntity> {
-        log::info!("fetch");
         match _entity {
             LibraryEntity::Artist(a) => {
                 Artist::fetch()
@@ -67,22 +65,4 @@ impl Library for MusicBrainzLibrary {
             LibraryEntity::Track(_) => todo!(),
         }        
     }
-
-    // fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
-    //     match entity {
-    //         LibraryEntity::Artist(a) => {
-    //             // let mbid = a.mbid.clone()?;
-    //             // let mb_artist = Artist::fetch()
-    //             //     .id(&mbid)
-    //             //     .with_url_relations()
-    //             //     .with_genres()
-    //             //     .execute()
-    //             //     .ok()?;
-    //             None
-    //         }
-    //         LibraryEntity::Genre(_) => None,
-    //         LibraryEntity::Release(_) => None,
-    //         LibraryEntity::Track(_) => None,
-    //     }
-    // }
 }

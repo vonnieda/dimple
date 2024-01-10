@@ -1,73 +1,73 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { Palette, Link, Navigator, Links } from "common.slint";
 import { CardModel } from "card.slint";
-import { StyleMetrics } from "std-widgets.slint";
+import { StyleMetrics , ScrollView} from "std-widgets.slint";
 import { CardGrid } from "card_grid.slint";
 
 export struct ArtistDetailsModel {
     card: CardModel,
     bio: string,
+    disambiguation: string,
     genres: [Link],
-    // releases: CardGridModel,
+    releases: [CardModel],
 }
 
-export component ArtistDetails inherits VerticalBox {
-    alignment: start;
-    // Header
-    HorizontalLayout {
+export component ArtistDetails inherits ScrollView {
+    VerticalBox {
         alignment: start;
-        spacing: StyleMetrics.layout-spacing;
-        Rectangle {
-            width: Palette.thumbnail-width-extra-large;
-            height: Palette.thumbnail-width-extra-large;
-            border-radius: Palette.thumbnail-border-radius;
-            border-color: Palette.thumbnail-border-color;
-            border-width: Palette.thumbnail-border-width;
-            clip: true;
-            Image {
-                width: Palette.thumbnail-width-extra-large;
-                height: Palette.thumbnail-width-extra-large;
-                source: model.card.image.image;
-            }
-        }
-        VerticalLayout {
+        // Header
+        HorizontalLayout {
             alignment: start;
             spacing: StyleMetrics.layout-spacing;
-            Text {
-                text: model.card.title.name;
-                font-weight: Palette.font-weight-bold;
-                font-size: 4rem;
-            }
-            // TODO add disambig
-            HorizontalLayout {
-                alignment: start;
-                Text {
-                    text: "In ";
-                    font-size: 1.3rem;
-                }    
-                Links {
-                    links: model.genres;
+            Rectangle {
+                width: Palette.thumbnail-width-extra-large;
+                height: Palette.thumbnail-width-extra-large;
+                border-radius: Palette.thumbnail-border-radius;
+                border-color: Palette.thumbnail-border-color;
+                border-width: Palette.thumbnail-border-width;
+                clip: true;
+                Image {
+                    width: Palette.thumbnail-width-extra-large;
+                    height: Palette.thumbnail-width-extra-large;
+                    source: model.card.image.image;
                 }
             }
-            Text {
-                text: model.bio;
-                // max-width: 800px;
-                wrap: word-wrap;
-                font-size: 1.2rem;
+            VerticalLayout {
+                alignment: start;
+                spacing: StyleMetrics.layout-spacing;
+                Text {
+                    text: model.card.title.name;
+                    font-weight: Palette.font-weight-bold;
+                    font-size: 4rem;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    Text {
+                        text: "In ";
+                        font-size: 1.3rem;
+                    }    
+                    Links {
+                        links: model.genres;
+                    }
+                }
+                Text {
+                    text: model.bio;
+                    wrap: word-wrap;
+                    font-size: 1.2rem;
+                }
             }
         }
+        // Releases
+        Text {
+            text: "Releases";
+            font-weight: Palette.font-weight-bold;
+            font-size: 2rem;
+        }
+        CardGrid {
+            // min-height: 400px;
+            cards: model.releases;
+        }
     }
-    // Releases
-    Text {
-        text: "Releases";
-        font-weight: Palette.font-weight-bold;
-        font-size: 2rem;
-    }
-    // CardGrid {
-    //     min-height: 400px;
-    //     cards: model.releases;
-    // }
-
 
     in property <ArtistDetailsModel> model: {
         bio: "When the land fell and the sky rose it was time for the Reign of Fish to begin.",
@@ -82,44 +82,42 @@ export component ArtistDetails inherits VerticalBox {
             { name: "Snake Punk", url: "dimple://artists/1341234213412431234" },
         ],
 
-        // releases: {
-        //     cards: [
-        //         {
-        //             image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-        //         },
-        //         {
-        //             image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-        //         },
-        //         {
-        //             image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-        //         },
-        //         {
-        //             image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-        //         },
-        //         {
-        //             image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-        //         },
-        //         {
-        //             image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-        //         },
-        //         {
-        //             image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
-        //             sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
-        //         },
-        //     ],
-        // }
+        releases: [
+                {
+                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+                {
+                    image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    title: {name: "A Reign of Fish",url: "dimple://releases/1234"},
+                    sub-title: [{name: "Fresh Pliers",url: "dimple://artists/9876"}],
+                },
+        ],
     };
 }

@@ -70,18 +70,12 @@ impl AppWindowController {
                 let ui = ui.clone();
                 std::thread::spawn(move || {
                     // TODO ew
-                    let id = url.split_at("dimple://artists/".len()).1;
-                    // TODO add shortcut new with id
-                    let mut query = dimple_core::model::Artist::default();
-                    query.mb.id = id.to_string();
+                    let mbid = url.split_at("dimple://artists/".len()).1;
+                    let mut query = dimple_core::model::Artist::with_mbid(mbid);
+                    query.mb.id = mbid.to_string();
                     if let Some(LibraryEntity::Artist(artist)) = librarian.fetch(&LibraryEntity::Artist(query)) {
                         ui.upgrade_in_event_loop(move |ui| {
-                            let card: CardModel = (librarian.as_ref(), artist.clone()).into();
-                            ui.set_artist_details(ArtistDetailsModel { 
-                                bio: artist.mb.disambiguation.into(), 
-                                card, 
-                                genres: ModelRc::from(vec![].as_slice()) 
-                            });
+                            ui.set_artist_details(artist.into());
                             ui.set_page(1)
                         }).unwrap();
                     }
@@ -98,6 +92,66 @@ impl AppWindowController {
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
         self.ui.run()
+    }
+}
+
+impl From<Artist> for ArtistDetailsModel {
+    fn from(value: Artist) -> Self {
+        let genres: Vec<Link> = value.mb.genres
+            .iter()
+            .flatten()
+            .map(|genre| Link {
+                name: genre.name.clone().into(),
+                ..Default::default()
+            })
+            .collect();
+        ArtistDetailsModel {
+            disambiguation: value.mb.disambiguation.clone().into(),
+            bio: "droga".clone().into(), 
+            card: value.into(), 
+            genres: ModelRc::from(genres.as_slice()),
+            releases: ModelRc::from(vec![].as_slice()),
+        }
+    }
+}
+
+impl From<&Artist> for ArtistDetailsModel {
+    fn from(value: &Artist) -> Self {
+        value.clone().into()
+    }
+}
+
+impl From<Artist> for CardModel {
+    fn from(artist: Artist) -> Self {
+        // TODO gonna need to get the image somewhere.
+        // let slint_image = library.image(&LibraryEntity::Artist(artist.clone()))
+        //     .or_else(|| Some(DynamicImage::default()))
+        //     .map(|dyn_image| dynamic_image_to_slint_image(&dyn_image))
+        //     .unwrap();
+        CardModel {
+            title: Link { 
+                name: artist.name().into(), 
+                url: format!("dimple://artists/{}", artist.mbid()).into() 
+            },
+            sub_title: [
+                Link { 
+                    name: artist.mb.disambiguation.clone().into(), 
+                    url: "".into() 
+                }
+            ].into(),
+            image: ImageLink { 
+                // image: slint_image, 
+                name: artist.name().into(), 
+                url: format!("dimple://artists/{}", artist.mbid()).into(),
+                ..Default::default()
+            },
+        }
+    }    
+}
+
+impl From<&Artist> for CardModel {
+    fn from(artist: &Artist) -> Self {
+        artist.clone().into()
     }
 }
 
