@@ -70,19 +70,17 @@ impl Library for DeezerLibrary {
         match entity {
             LibraryEntity::Artist(a) => {
                 let a = a.clone();
-                log::info!("Searching for Deezer ID");
                 a.mb.relations?.clone().iter()
                     .for_each(|rel| {
                         if let RelationContent::Url(con) = &rel.content {
                             dbg!(&con.resource);
                         }
                     });
-                return None
+                None
             },
-            LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Release(_) => todo!(),
-            LibraryEntity::Track(_) => todo!(),           
+            LibraryEntity::Genre(_) => None,
+            LibraryEntity::Release(_) => None,
+            LibraryEntity::Track(_) => None,           
         }
-        None
     }
 }
