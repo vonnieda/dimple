@@ -32,9 +32,13 @@ impl Library for Librarian {
 
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
         // TODO include local
+        // TODO remove dupes
+        log::info!("{}: {}", "Search".cyan(), query.blue());
         let merged: Vec<LibraryEntity> = self.libraries.read().unwrap().iter()
-            .flat_map(|lib| lib.search(query))
-            // TODO remove dupes
+            .flat_map(|lib| {
+                log::info!("  {} {}", "✔".bright_green(), lib.name().green());
+                lib.search(query)
+            })
             .collect();
         Box::new(merged.into_iter())
     }    
@@ -44,43 +48,79 @@ impl Library for Librarian {
     }
 
     fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
-        self.local_library.fetch(entity).or_else(|| {
-            self.libraries.read().ok()?.iter()            
-                .find_map(|lib| lib.fetch(entity))
-                .map(|e| {
-                    match e.clone() {
-                        LibraryEntity::Artist(a) => self.local_library.set_artist(&a),
-                        LibraryEntity::Genre(_) => todo!(),
-                        LibraryEntity::Release(_) => todo!(),
-                        LibraryEntity::Track(_) => todo!(),
-                    };
-                    e
+        let fetch_and_log = |lib: &dyn Library, entity: &LibraryEntity| {
+            lib.fetch(entity)
+                .map(|ent| { 
+                    log::info!("  {} {}", "✔".bright_green(), lib.name().bright_green());
+                    ent
                 })
-        })
+                .or_else(|| {
+                    log::info!("  {} {}", "✗".bright_red(), lib.name().bright_red());
+                    None
+                })
+        };
+
+        let store_and_log = |entity: LibraryEntity| {
+            match &entity {
+                LibraryEntity::Artist(artist) => self.local_library.set_artist(artist),
+                LibraryEntity::Genre(_) => todo!(),
+                LibraryEntity::Release(_) => todo!(),
+                LibraryEntity::Track(_) => todo!(),
+            };
+            entity
+        };
+
+        log::info!("{} {} ({})", "Fetch".green(), entity.name().blue(), entity.mbid().yellow());
+        fetch_and_log(&self.local_library, entity)
+            .or_else(|| {
+                self.libraries.read().ok()?.iter()
+                    .find_map(|lib| fetch_and_log(lib.as_ref(), entity))
+                    .map(store_and_log)
+            }
+        )
     }
     
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
-        log::info!("{} {}", "Find images for".blue(), entity.name().blue());
-        if let Some(dyn_image) = self.local_library.image(entity) {
-            log::info!("  {} {}", "✔".green(), self.local_library.name().green());
-            return Some(dyn_image);
-        }
-        log::info!("  {} {}", "✗".red(), self.local_library.name().red());
-        for lib in self.libraries.read().unwrap().iter() {
-            if let Some(dyn_image) = lib.image(entity) {
-                log::info!("  {} {}", "✔".green(), lib.name().green());
-                self.local_library.set_image(entity, &dyn_image);
-                return Some(dyn_image);
+        let fetch_and_log = |lib: &dyn Library, entity: &LibraryEntity| {
+            let result = lib.image(entity);
+            if result.is_some() {
+                log::info!("  {} {}", "✔".bright_green(), lib.name().green());
             }
             else {
-                log::info!("  {} {}", "✗".red(), lib.name().red());
+                log::info!("  {} {}", "✗".bright_red(), lib.name().bright_red());
             }
-        }
-        None
-        // log::debug!("no image found for {} ({}), setting default", entity.name(), entity.mbid());
-        // let dyn_image = DynamicImage::new_rgba8(500, 500);
-        // self.local_library.set_image(entity, &dyn_image);
-        // Some(dyn_image)
+            result
+        };
+
+        log::info!("{} {} ({})", "Image".magenta(), entity.name().blue(), entity.mbid().yellow());
+        fetch_and_log(&self.local_library, entity)
+            .or_else(|| {
+                self.libraries.read().ok()?.iter()
+                    .find_map(|lib| fetch_and_log(lib.as_ref(), entity))
+                    .map(|dyn_image| {
+                        self.local_library.set_image(entity, &dyn_image);
+                        dyn_image
+                    })
+            }
+        )
     }
 }
 
+// std::iter::once(&self.local_library as &dyn Library)
+// .chain(self.libraries.read().ok()?.iter().map(|l| &**l as &dyn Library))
+// .find_map(|lib| {
+//     let result = lib.fetch(entity);
+//     if result.is_some() {
+//         log::info!("  {} {}", "✔".bright_green(), lib.name().green());
+//     }
+//     result
+// })
+// .map(|ent| {
+//     match ent.clone() {
+//         LibraryEntity::Artist(artist) => self.local_library.set_artist(&artist),
+//         LibraryEntity::Genre(_) => todo!(),
+//         LibraryEntity::Release(_) => todo!(),
+//         LibraryEntity::Track(_) => todo!(),
+//     };
+//     ent
+// })

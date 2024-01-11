@@ -7,7 +7,7 @@ use musicbrainz_rs::entity::release_group::ReleaseGroup;
 use std::sync::Arc;
 
 use dimple_core::{model::{Artist, Genre, Track, Release}, library::{Library, LibraryEntity}};
-use dimple_librarian::librarian::Librarian;
+use dimple_librarian::librarian::{Librarian, self};
 // use dimple_player::player::{Player, PlayerHandle};
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle};
@@ -23,65 +23,67 @@ pub struct AppWindowController {
 }
 
 impl AppWindowController {
+    fn navigate(url: slint::SharedString, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+        dbg!(&url);
+        if url.starts_with("dimple://home") {
+            let ui = ui.clone();
+            ui.upgrade_in_event_loop(move |ui| {
+                ui.set_card_grid_cards(ModelRc::from(vec![].as_slice()));
+                ui.set_page(0)
+            }).unwrap();
+        } 
+        else if url.starts_with("dimple://search") {
+            let ui = ui.clone();
+            std::thread::spawn(move || {
+                let query_str = url.split_at("dimple://search".len()).1;
+                let search_results: Vec<LibraryEntity> = librarian.search(query_str).collect();
+                ui.upgrade_in_event_loop(move |ui| {
+                    let cards: Vec<CardModel> = search_results.into_iter()
+                        .map(|a| (librarian.as_ref(), a))
+                        .map(Into::into)
+                        .collect();
+                    ui.set_card_grid_cards(ModelRc::from(cards.as_slice()));
+                    ui.set_page(0)
+                }).unwrap();
+            });
+        }
+        else if url == "dimple://artists" {
+            let ui = ui.clone();
+            std::thread::spawn(move || {
+                let mut artists: Vec<Artist> = librarian.artists().collect();
+                artists.sort_by_key(|a| a.name().to_lowercase());
+                ui.upgrade_in_event_loop(move |ui| {
+                    let cards: Vec<CardModel> = artists.into_iter()
+                        .map(|a| (librarian.as_ref(), a))
+                        .map(Into::into)
+                        .collect();
+                    ui.set_card_grid_cards(ModelRc::from(cards.as_slice()));
+                    ui.set_page(0)
+                }).unwrap();
+            });
+        }
+        else if url.starts_with("dimple://artists/") {
+            let ui = ui.clone();
+            std::thread::spawn(move || {
+                // TODO ew
+                let mbid = url.split_at("dimple://artists/".len()).1;
+                let query = dimple_core::model::Artist::with_mbid(mbid);
+                if let Some(LibraryEntity::Artist(artist)) = librarian.fetch(&LibraryEntity::Artist(query)) {
+                    ui.upgrade_in_event_loop(move |ui| {
+                        ui.set_artist_details((librarian.as_ref(), artist).into());
+                        ui.set_page(1)
+                    }).unwrap();
+                }
+            });
+        }
+    }
+
     pub fn run(&self) -> Result<(), slint::PlatformError> {
         let ui = self.ui.as_weak();
         let librarian = self.librarian.clone();
-        self.ui.global::<Navigator>().on_navigate(move |url| {
-            let librarian = librarian.clone();
-            dbg!(&url);
-            if url.starts_with("dimple://home") {
-                let ui = ui.clone();
-                ui.upgrade_in_event_loop(move |ui| {
-                    ui.set_card_grid_cards(ModelRc::from(vec![].as_slice()));
-                    ui.set_page(0)
-                }).unwrap();
-            } 
-            else if url.starts_with("dimple://search") {
-                let ui = ui.clone();
-                std::thread::spawn(move || {
-                    let query_str = url.split_at("dimple://search".len()).1;
-                    let search_results: Vec<LibraryEntity> = librarian.search(query_str).collect();
-                    ui.upgrade_in_event_loop(move |ui| {
-                        let cards: Vec<CardModel> = search_results.into_iter()
-                            .map(|a| (librarian.as_ref(), a))
-                            .map(Into::into)
-                            .collect();
-                        ui.set_card_grid_cards(ModelRc::from(cards.as_slice()));
-                        ui.set_page(0)
-                    }).unwrap();
-                });
-            }
-            else if url == "dimple://artists" {
-                let ui = ui.clone();
-                std::thread::spawn(move || {
-                    let artists: Vec<Artist> = librarian.artists().collect();
-                    ui.upgrade_in_event_loop(move |ui| {
-                        let mut cards: Vec<CardModel> = artists.into_iter()
-                            .map(|a| (librarian.as_ref(), a))
-                            .map(Into::into)
-                            .collect();
-                        // TODO move this outside the function
-                        cards.sort_by_key(|card| card.title.name.to_lowercase());
-                        ui.set_card_grid_cards(ModelRc::from(cards.as_slice()));
-                        ui.set_page(0)
-                    }).unwrap();
-                });
-            }
-            else if url.starts_with("dimple://artists/") {
-                let ui = ui.clone();
-                std::thread::spawn(move || {
-                    // TODO ew
-                    let mbid = url.split_at("dimple://artists/".len()).1;
-                    let query = dimple_core::model::Artist::with_mbid(mbid);
-                    if let Some(LibraryEntity::Artist(artist)) = librarian.fetch(&LibraryEntity::Artist(query)) {
-                        ui.upgrade_in_event_loop(move |ui| {
-                            ui.set_artist_details((librarian.as_ref(), artist).into());
-                            ui.set_page(1)
-                        }).unwrap();
-                    }
-                });
-            }
-        });
+        
+        self.ui.global::<Navigator>().on_navigate(move |url| 
+            Self::navigate(url, librarian.clone(), ui.clone()));
 
         // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
         self.librarian.add_library(Box::<MusicBrainzLibrary>::default());

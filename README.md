@@ -95,3 +95,8 @@ best music player I can.**
   100GB stores roughly 30,000 songs.
 - All features also available for free using your preferred S3 compatible
   storage provider.
+
+# Mantras
+- If a song has an outro that runs into the intro of the next song, don't play
+  it without playing the next one!
+- Shuffle should never go from Megadeth to They Might Be Giants.

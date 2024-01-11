@@ -53,14 +53,14 @@ impl SledLibrary {
                 serde_json::from_str(&json).unwrap()
             })
             .and_then(|a: Option<Artist>| {
-                log::info!("fetched {:?}", a.clone().unwrap().mb.release_groups.map(|r| r.len()));
+                log::debug!("fetched {:?}", a.clone().unwrap().mb.release_groups.map(|r| r.len()));
                 a
             })
     }
 
     pub fn set_artist(&self, a: &Artist) {
         assert!(!a.mbid().is_empty());
-        log::info!("storing {:?}", a.clone().mb.release_groups.map(|r| r.len()));
+        log::debug!("storing {:?}", a.clone().mb.release_groups.map(|r| r.len()));
         serde_json::to_string_pretty(a)
             .map(|json| {
                 self.artists.insert(a.mbid(), &*json).unwrap()
