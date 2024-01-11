@@ -1,5 +1,6 @@
 use std::sync::RwLock;
 
+use colored::Colorize;
 use dimple_core::{library::{Library, LibraryEntity}, model::Artist};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
@@ -59,19 +60,27 @@ impl Library for Librarian {
     }
     
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
+        log::info!("{} {}", "Find images for".blue(), entity.name().blue());
         if let Some(dyn_image) = self.local_library.image(entity) {
+            log::info!("  {} {}", "✔".green(), self.local_library.name().green());
             return Some(dyn_image);
         }
+        log::info!("  {} {}", "✗".red(), self.local_library.name().red());
         for lib in self.libraries.read().unwrap().iter() {
             if let Some(dyn_image) = lib.image(entity) {
+                log::info!("  {} {}", "✔".green(), lib.name().green());
                 self.local_library.set_image(entity, &dyn_image);
                 return Some(dyn_image);
             }
+            else {
+                log::info!("  {} {}", "✗".red(), lib.name().red());
+            }
         }
-        log::debug!("no image found for {} ({}), setting default", entity.name(), entity.mbid());
-        let dyn_image = DynamicImage::new_rgba8(500, 500);
-        self.local_library.set_image(entity, &dyn_image);
-        Some(dyn_image)
+        None
+        // log::debug!("no image found for {} ({}), setting default", entity.name(), entity.mbid());
+        // let dyn_image = DynamicImage::new_rgba8(500, 500);
+        // self.local_library.set_image(entity, &dyn_image);
+        // Some(dyn_image)
     }
 }
 

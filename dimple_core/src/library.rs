@@ -67,6 +67,6 @@ pub struct LibrarySupport {
 
 impl LibrarySupport {
     pub fn log_request(library: &dyn Library, url: &str) {
-        log::info!("{} {}", library.name(), url);
+        log::debug!("{} {}", library.name(), url);
     }
 }

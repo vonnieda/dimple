@@ -29,7 +29,8 @@ impl MusicBrainzLibrary {
 }
 
 // TODO all of the log_requests below are semi made up cause I can't get the
-// real URL from the FetchQuery etc.
+// real URL from the FetchQuery etc. I should at least change them to be correct
+// according to the API spec.
 impl Library for MusicBrainzLibrary {
     fn name(&self) -> String {
         "MusicBrainz".to_string()

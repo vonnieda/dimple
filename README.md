@@ -42,15 +42,15 @@ best music player I can.**
   Last.fm, and more.
 
 ## Rich Metadata
-- Metadata from MusicBrainz, Wikipedia, ListenBrainz, and more.
+- Metadata from MusicBrainz, Wikipedia, ListenBrainz, Last.fm, Discogs, and more.
 - Artwork from Cover Art Archive, fanart.tv, Wiki Commons, and more.
-- Lyrics from ??Genius??, ??Musixmatch??, ??Lyrics Archive??, and more.
+- Lyrics from Genius, Musixmatch, Muzikum, and more.
 - Scrobble to Last.fm, Listenbrainz, Maloja, and more.
 
 ## Brainy
 - "Deep Scrobbling" keeps track of your volume adjustments, repeats, skips,
   scrubs, likes, dislikes, and dozens of other interactive data points. This
-  powers features like Current Obsessions, Mood Radio, AI DJ, ??ReplayGain??,
+  powers features like Current Obsessions, Mood Radio, AI DJ, ReplayGain,
   Instant Mixes, and more.
 - Instant Mixes are infinite playlists based on Artists, Albums, Tracks,
   Genres, Playlists, and more. Everything is clickable and everything can
@@ -64,16 +64,22 @@ best music player I can.**
 - ReplayGain automatically adjusts audio volume based on community feedback
   and your own adjustments.
 
-## Modern Design
+## Modern and Beautiful
 - Based on Google's Material Design by default.
 - Artwork forward with abstract generated defaults when none is available.
 - Responsive on any screen size.
 - Light and Dark Mode, optionally follows your OS choice.
-- Interactive waveform visualizations help you "see" the music.
+- Interactive waveform scrubbers let you "see" the music.
   - Moodbar: https://en.wikipedia.org/wiki/Moodbar
   - Sparkline: https://simonrepp.com/faircamp/#release
   - Spectrogram: https://en.wikipedia.org/wiki/Spectrogram
   - Wave
+
+## DRM-Free
+- Dimple does not use or support DRM.
+- Support artists by buying and streaming their music from Bandcamp, Soundcloud,
+  iTunes Music, and more.
+- https://www.defectivebydesign.org/guide/audio
 
 ## Fast
 - Written in Rust using Slint.
