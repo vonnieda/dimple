@@ -4,11 +4,10 @@ use dimple_fanart_tv_library::FanartTvLibrary;
 use dimple_deezer_library::DeezerLibrary;
 use musicbrainz_rs::entity::release_group::ReleaseGroup;
 
-use std::{sync::{Arc, RwLock}, collections::HashMap};
+use std::sync::Arc;
 
 use dimple_core::{model::{Artist, Genre, Track, Release}, library::{Library, LibraryEntity}};
-use dimple_librarian::librarian::{Librarian, self};
-// use dimple_player::player::{Player, PlayerHandle};
+use dimple_librarian::librarian::Librarian;
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle};
 
@@ -23,6 +22,41 @@ pub struct AppWindowController {
 }
 
 impl AppWindowController {
+    pub fn run(&self) -> Result<(), slint::PlatformError> {
+        let ui = self.ui.as_weak();
+        let librarian = self.librarian.clone();
+        
+        self.ui.global::<Navigator>().on_navigate(move |url| 
+            Self::navigate(url, librarian.clone(), ui.clone()));
+
+        // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
+        self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
+        self.librarian.add_library(Box::<LastFmLibrary>::default());
+        self.librarian.add_library(Box::<FanartTvLibrary>::default());
+        self.librarian.add_library(Box::<DeezerLibrary>::default());
+
+        self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
+
+        self.ui.run()
+    }
+
+    fn navigate(url: slint::SharedString, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+        // dbg!(&url);
+        // let url = Url::parse(&url);
+        if url.starts_with("dimple://home") {
+            Self::home(ui);
+        } 
+        else if url.starts_with("dimple://search") {
+            Self::search(&url, librarian, ui);
+        }
+        else if url == "dimple://artists" {
+            Self::artists(librarian, ui);
+        }
+        else if url.starts_with("dimple://artists/") {
+            Self::artist(&url, librarian, ui);
+        }
+    }
+
     fn home(ui: slint::Weak<AppWindow>) {
         ui.upgrade_in_event_loop(move |ui| {
             ui.set_card_grid_cards(ModelRc::from(vec![].as_slice()));
@@ -76,40 +110,6 @@ impl AppWindowController {
                 }).unwrap();
             }
         });
-    }
-
-    fn navigate(url: slint::SharedString, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
-        dbg!(&url);
-        if url.starts_with("dimple://home") {
-            Self::home(ui);
-        } 
-        else if url.starts_with("dimple://search") {
-            Self::search(&url, librarian, ui);
-        }
-        else if url == "dimple://artists" {
-            Self::artists(librarian, ui);
-        }
-        else if url.starts_with("dimple://artists/") {
-            Self::artist(&url, librarian, ui);
-        }
-    }
-
-    pub fn run(&self) -> Result<(), slint::PlatformError> {
-        let ui = self.ui.as_weak();
-        let librarian = self.librarian.clone();
-        
-        self.ui.global::<Navigator>().on_navigate(move |url| 
-            Self::navigate(url, librarian.clone(), ui.clone()));
-
-        // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
-        self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
-        self.librarian.add_library(Box::<LastFmLibrary>::default());
-        self.librarian.add_library(Box::<FanartTvLibrary>::default());
-        self.librarian.add_library(Box::<DeezerLibrary>::default());
-
-        self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
-
-        self.ui.run()
     }
 }
 
@@ -250,7 +250,6 @@ impl From<Genre> for CardModel {
     }
 }
 
-// TODO need to see if these shared pixbufs are threadsafe, maybe cache
 fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
     let rgba8_image = dynamic_image.clone().into_rgba8();
     let shared_pixbuf = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
@@ -264,9 +263,11 @@ fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
 /// Get a thumbnail for the given entity as a Slint image. 
 /// TODO future improvement will cache the Slint  image or the SharedPixBuf,
 /// whichever is thread safe. The goal is to stop copying the images.
+/// Okay, since it seems like this has to ilve in the event loop, we might
+/// be able to return a default and then ping the UI when it's loaded.
 pub fn thumbnail(library: &Librarian, entity: &LibraryEntity, width: u32, 
     height: u32) -> slint::Image {
-    
+
     library.thumbnail(entity, width, height)
         .or_else(|| Some(DynamicImage::default()))
         .map(|dyn_image| dynamic_image_to_slint_image(&dyn_image))

@@ -6,10 +6,10 @@ import {StyleMetrics} from "std-widgets.slint";
 export component CardGrid inherits VerticalLayout {
     in-out property <[CardModel]> cards;
 
-    // property <int> cols: Math.floor((self.width - StyleMetrics.layout-padding) 
-    //     / (Palette.thumbnail-width-large + StyleMetrics.layout-spacing));
+    in property <length> parent_width: 100px;
 
-    property <int> cols: 6;
+    property <int> cols: Math.floor((self.parent_width - StyleMetrics.layout-padding) 
+        / (Palette.thumbnail-width-large + StyleMetrics.layout-spacing));
 
     property <bool> last_row;
 
@@ -18,8 +18,9 @@ export component CardGrid inherits VerticalLayout {
     alignment: start;
     for row in Math.ceil(cards.length / cols): HorizontalLayout {
         alignment: start;
+        // TODO distribute the remaining space
         spacing: StyleMetrics.layout-spacing;
-        for col in Math.min(cols, cards.length - Math.floor(cards.length / cols)): Card {
+        for col in Math.min(cols, cards.length - (row * cols)): Card {
             model: cards[row * cols + col];
         }
     }

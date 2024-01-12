@@ -42,6 +42,7 @@ impl Librarian {
             .or_else(|| {
                 // TODO this is where I would generate or take a default
                 // image. IF I HAD ONE.
+                // https://stackoverflow.com/questions/76741218/in-slint-how-do-i-render-a-self-drawn-image
                 self.local_library.set_image(entity, &DynamicImage::new_rgb8(500, 500));
                 self.local_library.images.get(&entity.mbid(), width, height)
             })

@@ -64,8 +64,8 @@ export component ArtistDetails inherits ScrollView {
             font-size: 2rem;
         }
         CardGrid {
-            // min-height: 400px;
             cards: model.releases;
+            parent-width: root.width;
         }
     }
 
