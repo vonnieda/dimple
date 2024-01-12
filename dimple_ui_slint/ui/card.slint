@@ -51,6 +51,9 @@ export component Card inherits VerticalLayout {
             wrap: word-wrap;
             font-weight: Palette.font-weight-bold;
             font-size: 1.2rem;
+            color: parent.has-hover 
+                ? Palette.link-color
+                : StyleMetrics.default-text-color;
         }
     }
     sub-title-area := Links { links: model.sub-title; }

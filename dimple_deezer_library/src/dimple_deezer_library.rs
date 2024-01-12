@@ -1,5 +1,4 @@
-use dimple_core::{library::{Library, LibraryEntity}};
-use musicbrainz_rs::entity::relations::RelationContent;
+use dimple_core::{library::{Library, LibraryEntity}, model::MusicBrainzRelationContent};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
@@ -72,7 +71,7 @@ impl Library for DeezerLibrary {
                 let a = a.clone();
                 a.mb.relations?.clone().iter()
                     .for_each(|rel| {
-                        if let RelationContent::Url(con) = &rel.content {
+                        if let MusicBrainzRelationContent::Url(con) = &rel.content {
                             dbg!(&con.resource);
                         }
                     });

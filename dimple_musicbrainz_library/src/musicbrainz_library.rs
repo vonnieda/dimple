@@ -2,6 +2,7 @@ use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
 use image::DynamicImage;
 use musicbrainz_rs::entity::CoverartResponse;
 use musicbrainz_rs::entity::artist::{Artist, ArtistSearchQuery};
+use musicbrainz_rs::entity::release_group::ReleaseGroup;
 use musicbrainz_rs::{prelude::*, FetchQuery};
 
 #[derive(Debug, Default)]
@@ -50,11 +51,7 @@ impl Library for MusicBrainzLibrary {
             .execute().unwrap() // TODO error handling
             .entities
             .iter()
-            .map(|src| {
-                dimple_core::model::Artist {
-                    mb: src.clone()
-                }
-            })
+            .map(|src| dimple_core::model::Artist::from(ArtistConverter::from(src.clone())))
             .map(LibraryEntity::Artist)
             .collect();
         Box::new(results.into_iter())
@@ -77,12 +74,8 @@ impl Library for MusicBrainzLibrary {
                     .with_url_relations()
                     .execute()
                     .ok()
-                    .map(|src| {
-                        dimple_core::model::Artist {
-                            mb: src.clone()
-                        }
-                    })
-                    .map(LibraryEntity::Artist)
+                    .map(|src| dimple_core::model::Artist::from(ArtistConverter::from(src.clone())))
+                    .map(LibraryEntity::Artist)        
                 },
             LibraryEntity::Genre(_) => None,
             LibraryEntity::Release(_) => None,
@@ -94,10 +87,13 @@ impl Library for MusicBrainzLibrary {
         match _entity {
             LibraryEntity::Release(r) => {
                 LibrarySupport::log_request(self, 
-                    &format!("http://coverartarchive.org/{}", r.mbid()));
-                r.mb.get_coverart()
+                    &format!("http://coverartarchive.org/{}", r.mbid()));                
+                let mb = ReleaseGroup {
+                    id: r.mbid(),
+                    ..Default::default()
+                };
+                mb.get_coverart()
                     .front()
-                    .res_250()
                     .execute()
                     .ok()
                     .map(|resp| self.get_coverart(resp))?
@@ -109,3 +105,27 @@ impl Library for MusicBrainzLibrary {
         }
     }
 }
+
+pub struct ArtistConverter(musicbrainz_rs::entity::artist::Artist);
+
+impl From<musicbrainz_rs::entity::artist::Artist> for ArtistConverter {
+    fn from(value: musicbrainz_rs::entity::artist::Artist) -> Self {
+        ArtistConverter(value)
+    }
+}
+
+impl From<ArtistConverter> for dimple_core::model::Artist {
+    fn from(my_artist: ArtistConverter) -> Self {
+        dimple_core::model::Artist {
+            mb: dimple_core::model::MusicBrainzArtist {
+                id: my_artist.0.id,
+                name: my_artist.0.name,
+                disambiguation: my_artist.0.disambiguation,
+                genres: None,
+                release_groups: None,
+                relations: None,
+            }
+        }
+    }
+}
+

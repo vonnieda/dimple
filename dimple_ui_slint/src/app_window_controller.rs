@@ -2,11 +2,10 @@ use dimple_musicbrainz_library::MusicBrainzLibrary;
 use dimple_lastfm_library::LastFmLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
 use dimple_deezer_library::DeezerLibrary;
-use musicbrainz_rs::entity::release_group::ReleaseGroup;
 
 use std::sync::Arc;
 
-use dimple_core::{model::{Artist, Genre, Track, Release}, library::{Library, LibraryEntity}};
+use dimple_core::{model::{Artist, Genre, Track, Release, MusicbrainzReleaseGroup}, library::{Library, LibraryEntity}};
 use dimple_librarian::librarian::Librarian;
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle};
@@ -125,7 +124,7 @@ impl From<(&Librarian, Artist)> for ArtistDetailsModel {
             .collect();
         // TODO this should be release groups, but they aren't serializing for
         // some reason.
-        let releases: Vec<CardModel> = value.mb.releases
+        let releases: Vec<CardModel> = value.mb.release_groups
             .iter()
             .flatten()
             .map(|rel| Release {
@@ -144,8 +143,8 @@ impl From<(&Librarian, Artist)> for ArtistDetailsModel {
     }
 }
 
-impl From<ReleaseGroup> for CardModel {
-    fn from(value: ReleaseGroup) -> Self {
+impl From<MusicbrainzReleaseGroup> for CardModel {
+    fn from(value: MusicbrainzReleaseGroup) -> Self {
         CardModel {
             title: Link {
                 name: value.title.into(),

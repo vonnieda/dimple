@@ -4,10 +4,42 @@ use serde::Serialize;
 /// References
 /// https://musicbrainz.org/doc/Artist
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
-
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct Artist {
-    pub mb: musicbrainz_rs::entity::artist::Artist,
+    pub mb: MusicBrainzArtist,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+pub struct MusicBrainzArtist {
+    pub id: String,
+    pub name: String,
+    pub disambiguation: String,
+
+    // TODO do we actually need options here?
+    pub release_groups: Option<Vec<MusicbrainzReleaseGroup>>,
+    pub relations: Option<Vec<MusicBrainzRelation>>,
+    pub genres: Option<Vec<MusicBrainzGenre>>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct MusicBrainzRelation {
+    pub content: MusicBrainzRelationContent,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum MusicBrainzRelationContent {
+    Url(MusicBrainzUrlRelation),
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+pub struct MusicBrainzUrlRelation {
+    pub resource: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+pub struct MusicBrainzGenre {
+    pub id: String,
+    pub name: String,
 }
 
 impl Artist {
@@ -28,7 +60,13 @@ impl Artist {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Release {
-    pub mb: musicbrainz_rs::entity::release::Release,
+    pub mb: MusicbrainzReleaseGroup,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct MusicbrainzReleaseGroup {
+    pub id: String,
+    pub title: String,
 }
 
 impl Release {

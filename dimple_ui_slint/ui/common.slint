@@ -10,6 +10,8 @@ export global Palette  {
     in-out property<length> thumbnail-border-radius: 5px;
     in-out property<length> thumbnail-border-width: 1px;
     in-out property<color> thumbnail-border-color: StyleMetrics.default-text-color;
+
+    in-out property<color> link-color: StyleMetrics.default-text-color.mix(blue, 0.75);
 }
 
 export global Navigator {
@@ -42,6 +44,9 @@ export component Links inherits HorizontalLayout {
                 text: link.name;
                 font-size: 1.3rem;
                 wrap: word-wrap;
+                color: parent.has-hover 
+                    ? Palette.link-color
+                    : StyleMetrics.default-text-color;
             }    
         }
         // TODO edge cases
