@@ -4,7 +4,7 @@ use dimple_fanart_tv_library::FanartTvLibrary;
 use dimple_deezer_library::DeezerLibrary;
 use musicbrainz_rs::entity::release_group::ReleaseGroup;
 
-use std::sync::Arc;
+use std::{sync::{Arc, RwLock}, collections::HashMap};
 
 use dimple_core::{model::{Artist, Genre, Track, Release}, library::{Library, LibraryEntity}};
 use dimple_librarian::librarian::{Librarian, self};
@@ -49,7 +49,7 @@ impl AppWindowController {
 
     fn artists(librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         std::thread::spawn(move || {
-            let mut artists: Vec<Artist> = librarian.artists().collect();;
+            let mut artists: Vec<Artist> = librarian.artists().collect();
             artists.sort_by_key(|a| a.name().to_lowercase());
             ui.upgrade_in_event_loop(move |ui| {
                 let cards: Vec<CardModel> = artists.into_iter()
@@ -136,6 +136,7 @@ impl From<(&Librarian, Artist)> for ArtistDetailsModel {
         ArtistDetailsModel {
             disambiguation: value.mb.disambiguation.clone().into(),
             bio: "".to_string().into(), 
+            // TODO get rid of the card and pass the image(s) in higher res
             card: (lib, value).into(), 
             genres: ModelRc::from(genres.as_slice()),
             releases: ModelRc::from(releases.as_slice()),
@@ -157,10 +158,7 @@ impl From<ReleaseGroup> for CardModel {
 
 impl From<(&Librarian, Release)> for CardModel {
     fn from((lib, release): (&Librarian, Release)) -> Self {
-        let slint_image = lib.image(&LibraryEntity::Release(release.clone()))
-            .or_else(|| Some(DynamicImage::default()))
-            .map(|dyn_image| dynamic_image_to_slint_image(&dyn_image))
-            .unwrap();
+        let ent = LibraryEntity::Release(release.clone());
         CardModel {
             title: Link { 
                 name: release.mb.title.clone().into(), 
@@ -173,7 +171,7 @@ impl From<(&Librarian, Release)> for CardModel {
                 }
             ].into(),
             image: ImageLink { 
-                image: slint_image, 
+                image: thumbnail(lib, &ent, 500, 500), 
                 name: release.title().into(), 
                 url: format!("dimple://releases/{}", release.mbid()).into() 
             },
@@ -207,11 +205,7 @@ impl From<(&Librarian, LibraryEntity)> for CardModel {
 
 impl From<(&Librarian, Artist)> for CardModel {
     fn from((library, artist): (&Librarian, Artist)) -> Self {
-        // TODO this needs cached locally
-        let slint_image = library.image(&LibraryEntity::Artist(artist.clone()))
-            .or_else(|| Some(DynamicImage::default()))
-            .map(|dyn_image| dynamic_image_to_slint_image(&dyn_image))
-            .unwrap();
+        let ent = LibraryEntity::Artist(artist.clone());
         CardModel {
             title: Link { 
                 name: artist.name().into(), 
@@ -224,7 +218,7 @@ impl From<(&Librarian, Artist)> for CardModel {
                 }
             ].into(),
             image: ImageLink { 
-                image: slint_image, 
+                image: thumbnail(library, &ent, 500, 500), 
                 name: artist.name().into(), 
                 url: format!("dimple://artists/{}", artist.mbid()).into() 
             },
@@ -256,6 +250,7 @@ impl From<Genre> for CardModel {
     }
 }
 
+// TODO need to see if these shared pixbufs are threadsafe, maybe cache
 fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
     let rgba8_image = dynamic_image.clone().into_rgba8();
     let shared_pixbuf = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
@@ -266,3 +261,14 @@ fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
     slint::Image::from_rgba8(shared_pixbuf)
 }
 
+/// Get a thumbnail for the given entity as a Slint image. 
+/// TODO future improvement will cache the Slint  image or the SharedPixBuf,
+/// whichever is thread safe. The goal is to stop copying the images.
+pub fn thumbnail(library: &Librarian, entity: &LibraryEntity, width: u32, 
+    height: u32) -> slint::Image {
+    
+    library.thumbnail(entity, width, height)
+        .or_else(|| Some(DynamicImage::default()))
+        .map(|dyn_image| dynamic_image_to_slint_image(&dyn_image))
+        .unwrap()
+}

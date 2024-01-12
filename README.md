@@ -96,7 +96,16 @@ best music player I can.**
 - All features also available for free using your preferred S3 compatible
   storage provider.
 
+
 # Mantras
 - If a song has an outro that runs into the intro of the next song, don't play
   it without playing the next one!
 - Shuffle should never go from Megadeth to They Might Be Giants.
+
+
+# Notes
+- I wrote Dimple as a way to learn Rust. If you see weird things in the code
+  it's probably because I didn't know the better way. Please feel free to
+  open a PR or Issue and let me know! I'm still learning, and I appreciate the
+  help!
+

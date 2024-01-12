@@ -16,7 +16,7 @@ pub struct SledLibrary {
     name: String,
     artists: Tree,
     _releases: Tree,
-    _images: ImageCache,
+    pub images: ImageCache,
     _audio: Tree,
 }
 
@@ -28,7 +28,7 @@ pub struct SledLibraryConfig {
 
 impl SledLibrary {
     pub fn new(ulid: &str, name: &str) -> Self {
-        // TODO magic
+        // TODO magic root path, and remove ulid?
         let db = sled::open(format!("data/{}", ulid)).unwrap();
         let releases = db.open_tree("releases").unwrap();
         let images = db.open_tree("images").unwrap();
@@ -39,7 +39,7 @@ impl SledLibrary {
             name: String::from(name),
             _releases: releases,
             artists,
-            _images: ImageCache::new(images),
+            images: ImageCache::new(images),
             _audio: audio,
         }
     }
@@ -69,7 +69,7 @@ impl SledLibrary {
     }
 
     pub fn set_image(&self, entity: &LibraryEntity, dyn_image: &DynamicImage) {
-        self._images.insert(&entity.mbid(), dyn_image);
+        self.images.insert(&entity.mbid(), dyn_image);
     }
 }
 
@@ -115,6 +115,6 @@ impl Library for SledLibrary {
     }
 
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
-        self._images.get_original(&entity.mbid())
+        self.images.get_original(&entity.mbid())
     }
 }

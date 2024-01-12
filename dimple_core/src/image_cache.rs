@@ -11,6 +11,8 @@ pub struct ImageCache {
     tree: Tree,
 }
 
+// TODO might be fun to hash the images and store by that instead, and just
+// use the id as a map. Would give auto de-dup.
 impl ImageCache {
     pub fn new(tree: Tree) -> Self {
         Self { tree }
