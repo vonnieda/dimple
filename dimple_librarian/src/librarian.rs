@@ -1,7 +1,7 @@
 use std::sync::RwLock;
 
 use colored::Colorize;
-use dimple_core::{library::{Library, LibraryEntity}, model::Artist};
+use dimple_core::{library::{Library, LibraryEntity}, model::DimpleArtist};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
 
@@ -93,7 +93,7 @@ impl Library for Librarian {
         Box::new(merged.into_iter())
     }    
 
-    fn artists(&self) -> Box<dyn Iterator<Item = Artist>> {
+    fn artists(&self) -> Box<dyn Iterator<Item = DimpleArtist>> {
         self.local_library.artists()
     }
 

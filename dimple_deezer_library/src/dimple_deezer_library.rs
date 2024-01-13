@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, LibraryEntity}, model::MusicBrainzRelationContent};
+use dimple_core::{library::{Library, LibraryEntity}, model::DimpleRelationContent};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
@@ -61,7 +61,7 @@ impl Library for DeezerLibrary {
         Box::new(vec![].into_iter())
     }
 
-    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
+    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::DimpleArtist>> {
         Box::new(vec![].into_iter())
     }
 
@@ -69,9 +69,9 @@ impl Library for DeezerLibrary {
         match entity {
             LibraryEntity::Artist(a) => {
                 let a = a.clone();
-                a.mb.relations?.clone().iter()
+                a.relations?.clone().iter()
                     .for_each(|rel| {
-                        if let MusicBrainzRelationContent::Url(con) = &rel.content {
+                        if let DimpleRelationContent::Url(con) = &rel.content {
                             dbg!(&con.resource);
                         }
                     });

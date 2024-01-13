@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::Artist};
+use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::DimpleArtist};
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
@@ -44,7 +44,7 @@ impl SledLibrary {
         }
     }
 
-    fn get_artist(&self, mbid: &str) -> Option<Artist> {
+    fn get_artist(&self, mbid: &str) -> Option<DimpleArtist> {
         assert!(!mbid.is_empty());
         self.artists.get(mbid).ok()?
             .and_then(|v| {
@@ -52,15 +52,10 @@ impl SledLibrary {
                 let json: String = String::from_utf8(bytes.into()).unwrap();
                 serde_json::from_str(&json).unwrap()
             })
-            .and_then(|a: Option<Artist>| {
-                log::info!("fetched {:?}", a.clone().unwrap().mb.release_groups.map(|r| r.len()));
-                a
-            })
     }
 
-    pub fn set_artist(&self, a: &Artist) {
+    pub fn set_artist(&self, a: &DimpleArtist) {
         assert!(!a.mbid().is_empty());
-        log::info!("storing {:?}", a.clone().mb.release_groups.map(|r| r.len()));
         serde_json::to_string_pretty(a)
             .map(|json| {
                 self.artists.insert(a.mbid(), &*json).unwrap()
@@ -89,8 +84,8 @@ impl Library for SledLibrary {
         Box::new(v.into_iter())
     }    
 
-    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
-        let artists: Vec<Artist> = self.artists.iter()
+    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::DimpleArtist>> {
+        let artists: Vec<DimpleArtist> = self.artists.iter()
             .map(|t| {
                 let (_k, v) = t.unwrap();
                 let bytes = v.as_bytes();

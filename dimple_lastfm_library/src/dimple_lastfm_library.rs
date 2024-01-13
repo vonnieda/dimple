@@ -20,7 +20,7 @@ impl Library for LastFmLibrary {
         Box::new(vec![].into_iter())
     }
 
-    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::Artist>> {
+    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::DimpleArtist>> {
         Box::new(vec![].into_iter())
     }
 

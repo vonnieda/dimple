@@ -2,10 +2,11 @@ use dimple_musicbrainz_library::MusicBrainzLibrary;
 use dimple_lastfm_library::LastFmLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
 use dimple_deezer_library::DeezerLibrary;
+use opener::open;
 
 use std::sync::Arc;
 
-use dimple_core::{model::{Artist, Genre, Track, Release, MusicbrainzReleaseGroup}, library::{Library, LibraryEntity}};
+use dimple_core::{model::{DimpleArtist, DimpleGenre, DimpleTrack, DimpleReleaseGroup, DimpleUrl, DimpleRelationContent}, library::{Library, LibraryEntity}};
 use dimple_librarian::librarian::Librarian;
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle};
@@ -42,7 +43,10 @@ impl AppWindowController {
     fn navigate(url: slint::SharedString, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         // dbg!(&url);
         // let url = Url::parse(&url);
-        if url.starts_with("dimple://home") {
+        if url.starts_with("http") {
+            opener::open_browser(url.to_string());
+        }
+        else if url.starts_with("dimple://home") {
             Self::home(ui);
         } 
         else if url.starts_with("dimple://search") {
@@ -82,8 +86,8 @@ impl AppWindowController {
 
     fn artists(librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         std::thread::spawn(move || {
-            let mut artists: Vec<Artist> = librarian.artists().collect();
-            artists.sort_by_key(|a| a.name().to_lowercase());
+            let mut artists: Vec<DimpleArtist> = librarian.artists().collect();
+            artists.sort_by_key(|a| a.name.to_lowercase());
             ui.upgrade_in_event_loop(move |ui| {
                 let cards: Vec<CardModel> = artists.into_iter()
                     .map(|a| (librarian.as_ref(), a))
@@ -101,7 +105,7 @@ impl AppWindowController {
         std::thread::spawn(move || {
             // TODO ew
             let mbid = url.split_at("dimple://artists/".len()).1;
-            let query = dimple_core::model::Artist::with_mbid(mbid);
+            let query = DimpleArtist { id: mbid.to_string(), ..Default::default() };
             if let Some(LibraryEntity::Artist(artist)) = librarian.fetch(&LibraryEntity::Artist(query)) {
                 ui.upgrade_in_event_loop(move |ui| {
                     ui.set_artist_details((librarian.as_ref(), artist).into());
@@ -112,9 +116,9 @@ impl AppWindowController {
     }
 }
 
-impl From<(&Librarian, Artist)> for ArtistDetailsModel {
-    fn from((lib, value): (&Librarian, Artist)) -> Self {
-        let genres: Vec<Link> = value.mb.genres
+impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
+    fn from((lib, value): (&Librarian, DimpleArtist)) -> Self {
+        let genres: Vec<Link> = value.genres
             .iter()
             .flatten()
             .map(|genre| Link {
@@ -122,58 +126,37 @@ impl From<(&Librarian, Artist)> for ArtistDetailsModel {
                 ..Default::default()
             })
             .collect();
-        // TODO this should be release groups, but they aren't serializing for
-        // some reason.
-        let releases: Vec<CardModel> = value.mb.release_groups
+        let releases: Vec<CardModel> = value.release_groups
             .iter()
             .flatten()
-            .map(|rel| Release {
-                mb: rel.clone(),
-            })
+            .map(|rel| rel.to_owned())
             .map(|rel| (lib, rel.clone()).into())
             .collect();
+        let links: Vec<Link> = value.relations
+            .iter()
+            .flatten()
+            .map(|rel| rel.to_owned())
+            .filter_map(|rel| match rel.content {
+                DimpleRelationContent::Url(url) => Some(url),
+                _ => None,
+            })
+            .map(|url| Link {
+                name: url.resource.clone().into(),
+                url: url.resource.clone().into(),
+            })
+            .chain(std::iter::once(Link { 
+                name: format!("https://musicbrainz.org/artist/{}", value.id).into(),
+                url: format!("https://musicbrainz.org/artist/{}", value.id).into(),
+            }))
+            .collect();
         ArtistDetailsModel {
-            disambiguation: value.mb.disambiguation.clone().into(),
+            disambiguation: value.disambiguation.clone().into(),
             bio: "".to_string().into(), 
             // TODO get rid of the card and pass the image(s) in higher res
             card: (lib, value).into(), 
             genres: ModelRc::from(genres.as_slice()),
             releases: ModelRc::from(releases.as_slice()),
-        }
-    }
-}
-
-impl From<MusicbrainzReleaseGroup> for CardModel {
-    fn from(value: MusicbrainzReleaseGroup) -> Self {
-        CardModel {
-            title: Link {
-                name: value.title.into(),
-                ..Default::default()
-            },
-            ..Default::default()
-        }
-    }
-}
-
-impl From<(&Librarian, Release)> for CardModel {
-    fn from((lib, release): (&Librarian, Release)) -> Self {
-        let ent = LibraryEntity::Release(release.clone());
-        CardModel {
-            title: Link { 
-                name: release.mb.title.clone().into(), 
-                url: format!("dimple://releases/{}", release.mbid()).into() 
-            },
-            sub_title: [
-                Link { 
-                    name: "".into(), 
-                    url: "".into() 
-                }
-            ].into(),
-            image: ImageLink { 
-                image: thumbnail(lib, &ent, 500, 500), 
-                name: release.title().into(), 
-                url: format!("dimple://releases/{}", release.mbid()).into() 
-            },
+            links: ModelRc::from(links.as_slice()),
         }
     }
 }
@@ -202,49 +185,78 @@ impl From<(&Librarian, LibraryEntity)> for CardModel {
     }
 }
 
-impl From<(&Librarian, Artist)> for CardModel {
-    fn from((library, artist): (&Librarian, Artist)) -> Self {
+impl From<(&Librarian, DimpleArtist)> for CardModel {
+    fn from((library, artist): (&Librarian, DimpleArtist)) -> Self {
         let ent = LibraryEntity::Artist(artist.clone());
         CardModel {
             title: Link { 
-                name: artist.name().into(), 
-                url: format!("dimple://artists/{}", artist.mbid()).into() 
+                name: artist.name.clone().into(), 
+                url: format!("dimple://artists/{}", &artist.mbid()).into() 
             },
             sub_title: [
                 Link { 
-                    name: artist.mb.disambiguation.clone().into(), 
+                    name: artist.disambiguation.clone().into(), 
                     url: "".into() 
                 }
             ].into(),
             image: ImageLink { 
                 image: thumbnail(library, &ent, 500, 500), 
-                name: artist.name().into(), 
-                url: format!("dimple://artists/{}", artist.mbid()).into() 
+                name: artist.name.clone().into(), 
+                url: format!("dimple://artists/{}", &artist.mbid()).into() 
             },
         }
     }
 }
 
-impl From<Track> for CardModel {
-    fn from(_track: Track) -> Self {
+impl From<DimpleReleaseGroup> for CardModel {
+    fn from(value: DimpleReleaseGroup) -> Self {
+        CardModel {
+            title: Link {
+                name: value.title.into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
+    fn from((lib, release): (&Librarian, DimpleReleaseGroup)) -> Self {
+        let ent = LibraryEntity::Release(release.clone());
+        CardModel {
+            title: Link { 
+                name: release.title.clone().into(), 
+                url: format!("dimple://releases/{}", release.mbid().clone()).into() 
+            },
+            sub_title: [
+                Link { 
+                    name: "".into(), 
+                    url: "".into() 
+                }
+            ].into(),
+            image: ImageLink { 
+                image: thumbnail(lib, &ent, 500, 500), 
+                name: release.title.clone().into(), 
+                url: format!("dimple://releases/{}", release.mbid().clone()).into() 
+            },
+        }
+    }
+}
+
+impl From<DimpleTrack> for CardModel {
+    fn from(_track: DimpleTrack) -> Self {
         CardModel::default()
     }
 }
 
-impl From<Release> for CardModel {
-    fn from(_release: Release) -> Self {
-        CardModel::default()
-    }
-}
-
-impl From<Genre> for CardModel {
-    fn from(genre: Genre) -> Self {
+impl From<DimpleGenre> for CardModel {
+    fn from(genre: DimpleGenre) -> Self {
         let dynamic_image = DynamicImage::default();
         let slint_image = dynamic_image_to_slint_image(&dynamic_image);
         CardModel {
-            title: Link { name: genre.name.clone().into(), url: genre.url.clone().into() },
+            title: Link { name: genre.name.clone().into(), url: genre.name.clone().into() },
             sub_title: [Link { name: "".into(), url: "".into() }].into(),
-            image: ImageLink { image: slint_image, name: genre.name.clone().into(), url: genre.url.clone().into() },
+            image: ImageLink { image: slint_image, name: genre.name.clone().into(), url: genre.name.clone().into() },
         }
     }
 }

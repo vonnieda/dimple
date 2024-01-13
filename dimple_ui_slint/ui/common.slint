@@ -66,3 +66,20 @@ export component Links inherits HorizontalLayout {
 }
 
 
+export component Linnk inherits TouchArea {
+    in property <string> url;
+    in property <string> name;
+
+    mouse-cursor: pointer;
+    clicked => { Navigator.navigate(url); }
+    title := Text {
+        width: root.width;
+        text: name;
+        wrap: word-wrap;
+        font-weight: Palette.font-weight-bold;
+        font-size: 1.2rem;
+        color: parent.has-hover 
+            ? Palette.link-color
+            : StyleMetrics.default-text-color;
+    }
+}

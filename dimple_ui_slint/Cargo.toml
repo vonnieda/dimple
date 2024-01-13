@@ -28,6 +28,7 @@ image = "0.24.6"
 num-complex = "0.4.3"
 rand = "0.8.5"
 url = "2.5.0"
+opener = "0.6.1"
 
 [build-dependencies]
 slint-build = "1.1"

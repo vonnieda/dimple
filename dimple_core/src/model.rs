@@ -5,102 +5,59 @@ use serde::Serialize;
 /// https://musicbrainz.org/doc/Artist
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct Artist {
-    pub mb: MusicBrainzArtist,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct MusicBrainzArtist {
+pub struct DimpleArtist {
     pub id: String,
     pub name: String,
     pub disambiguation: String,
 
     // TODO do we actually need options here?
-    pub release_groups: Option<Vec<MusicbrainzReleaseGroup>>,
-    pub relations: Option<Vec<MusicBrainzRelation>>,
-    pub genres: Option<Vec<MusicBrainzGenre>>,
+    // One benefit is it's easier to serde smaller objects.
+    pub release_groups: Option<Vec<DimpleReleaseGroup>>,
+    pub relations: Option<Vec<DimpleRelation>>,
+    pub genres: Option<Vec<DimpleGenre>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct MusicBrainzRelation {
-    pub content: MusicBrainzRelationContent,
+pub struct DimpleRelation {
+    pub content: DimpleRelationContent,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub enum MusicBrainzRelationContent {
-    Url(MusicBrainzUrlRelation),
+pub enum DimpleRelationContent {
+    Url(DimpleUrl),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct MusicBrainzUrlRelation {
+pub struct DimpleUrl {
+    pub id: String,
     pub resource: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct MusicBrainzGenre {
-    pub id: String,
+pub struct DimpleGenre {
+    // pub id: String,
     pub name: String,
+    pub count: u32,
 }
 
-impl Artist {
-    pub fn with_mbid(mbid: &str) -> Self {
-        let mut a = Self::default();
-        a.mb.id = mbid.to_string();
-        a
-    }
-
-    pub fn mbid(&self) -> String {
-        self.mb.id.clone()
-    }
-
-    pub fn name(&self) -> String {
-        self.mb.name.clone()
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct Release {
-    pub mb: MusicbrainzReleaseGroup,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct MusicbrainzReleaseGroup {
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+pub struct DimpleReleaseGroup {
     pub id: String,
     pub title: String,
 }
 
-impl Release {
-    pub fn mbid(&self) -> String {
-        self.mb.id.clone()
-    }
-
-    pub fn title(&self) -> String {
-        self.mb.title.clone()
-    }
-}
-
-// The Deezer version of a Track https://developers.deezer.com/api/track
-// includes a detailed Artist object, but just one, and a detail album
-// Object.
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
-pub struct Track {
-    // pub url: String,
-    // pub title: String,
-    // #[serde(default)]
-    // pub artists: Vec<Artist>,
-    // #[serde(default)]
-    // pub genres: Vec<Genre>,
+pub struct DimpleTrack {
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
-pub struct Genre {
-    pub url: String,
-    pub name: String,
+impl DimpleArtist {
+    pub fn mbid(&self) -> String {
+        self.id.clone()
+    }
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Playlist {
-    pub url: String,
-    pub name: String,
+impl DimpleReleaseGroup {
+    pub fn mbid(&self) -> String {
+        self.id.clone()
+    }
 }
-

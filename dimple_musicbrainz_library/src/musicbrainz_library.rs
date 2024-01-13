@@ -1,7 +1,9 @@
 use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
+use dimple_core::model::{DimpleGenre, DimpleArtist, DimpleReleaseGroup, DimpleRelation, DimpleRelationContent, DimpleUrl};
 use image::DynamicImage;
 use musicbrainz_rs::entity::CoverartResponse;
 use musicbrainz_rs::entity::artist::{Artist, ArtistSearchQuery};
+use musicbrainz_rs::entity::relations::RelationContent;
 use musicbrainz_rs::entity::release_group::ReleaseGroup;
 use musicbrainz_rs::{prelude::*, FetchQuery};
 
@@ -51,7 +53,7 @@ impl Library for MusicBrainzLibrary {
             .execute().unwrap() // TODO error handling
             .entities
             .iter()
-            .map(|src| dimple_core::model::Artist::from(ArtistConverter::from(src.clone())))
+            .map(|src| dimple_core::model::DimpleArtist::from(ArtistConverter::from(src.clone())))
             .map(LibraryEntity::Artist)
             .collect();
         Box::new(results.into_iter())
@@ -74,7 +76,7 @@ impl Library for MusicBrainzLibrary {
                     .with_url_relations()
                     .execute()
                     .ok()
-                    .map(|src| dimple_core::model::Artist::from(ArtistConverter::from(src.clone())))
+                    .map(|src| DimpleArtist::from(ArtistConverter::from(src.clone())))
                     .map(LibraryEntity::Artist)        
                 },
             LibraryEntity::Genre(_) => None,
@@ -114,18 +116,109 @@ impl From<musicbrainz_rs::entity::artist::Artist> for ArtistConverter {
     }
 }
 
-impl From<ArtistConverter> for dimple_core::model::Artist {
-    fn from(my_artist: ArtistConverter) -> Self {
-        dimple_core::model::Artist {
-            mb: dimple_core::model::MusicBrainzArtist {
-                id: my_artist.0.id,
-                name: my_artist.0.name,
-                disambiguation: my_artist.0.disambiguation,
-                genres: None,
-                release_groups: None,
-                relations: None,
-            }
+impl From<ArtistConverter> for dimple_core::model::DimpleArtist {
+    fn from(value: ArtistConverter) -> Self {
+        dimple_core::model::DimpleArtist {
+            id: value.0.id,
+            name: value.0.name,
+            disambiguation: value.0.disambiguation,
+            // TODO this is always going to be Some even if there are None
+            genres: Some(value.0.genres.iter()
+                .flatten()
+                .map(|f| f.to_owned())
+                .map(|f| DimpleGenre::from(GenreConverter::from(f)))
+                .collect()),
+            release_groups: Some(value.0.release_groups.iter()
+                .flatten()
+                .map(|f| f.to_owned())
+                .map(|f| DimpleReleaseGroup::from(ReleaseGroupConverter::from(f)))
+                .collect()),
+            relations: Some(value.0.relations.iter()
+                .flatten()
+                .map(|f| f.to_owned())
+                .map(|f| DimpleRelation::from(RelationConverter::from(f)))
+                .collect()),
         }
     }
 }
 
+pub struct ReleaseGroupConverter(musicbrainz_rs::entity::release_group::ReleaseGroup);
+
+impl From<musicbrainz_rs::entity::release_group::ReleaseGroup> for ReleaseGroupConverter {
+    fn from(value: musicbrainz_rs::entity::release_group::ReleaseGroup) -> Self {
+        ReleaseGroupConverter(value)
+    }
+}
+
+impl From<ReleaseGroupConverter> for dimple_core::model::DimpleReleaseGroup {
+    fn from(value: ReleaseGroupConverter) -> Self {
+        dimple_core::model::DimpleReleaseGroup {
+            id: value.0.id,
+            title: value.0.title,
+        }
+    }
+}
+
+pub struct GenreConverter(musicbrainz_rs::entity::genre::Genre);
+
+impl From<musicbrainz_rs::entity::genre::Genre> for GenreConverter {
+    fn from(value: musicbrainz_rs::entity::genre::Genre) -> Self {
+        GenreConverter(value)
+    }
+}
+
+impl From<GenreConverter> for dimple_core::model::DimpleGenre {
+    fn from(value: GenreConverter) -> Self {
+        dimple_core::model::DimpleGenre {
+            name: value.0.name,
+            count: value.0.count,
+        }
+    }
+}
+
+pub struct RelationConverter(musicbrainz_rs::entity::relations::Relation);
+
+impl From<musicbrainz_rs::entity::relations::Relation> for RelationConverter {
+    fn from(value: musicbrainz_rs::entity::relations::Relation) -> Self {
+        RelationConverter(value)
+    }
+}
+
+impl From<RelationConverter> for dimple_core::model::DimpleRelation {
+    fn from(value: RelationConverter) -> Self {
+        Self {
+            content: RelationContentConverter::from(value.0.content.clone()).into(),
+        }
+    }
+}
+
+pub struct RelationContentConverter(musicbrainz_rs::entity::relations::RelationContent);
+
+impl From<musicbrainz_rs::entity::relations::RelationContent> for RelationContentConverter {
+    fn from(value: musicbrainz_rs::entity::relations::RelationContent) -> Self {
+        RelationContentConverter(value)
+    }
+}
+
+impl From<RelationContentConverter> for dimple_core::model::DimpleRelationContent {
+    fn from(value: RelationContentConverter) -> Self {
+        match value.0 {
+            RelationContent::Url(u) => {
+                DimpleRelationContent::Url(DimpleUrl {
+                    id: u.id,
+                    resource: u.resource,
+                })
+            },
+            RelationContent::Artist(_) => todo!(),
+            RelationContent::Area(_) => todo!(),
+            RelationContent::Event(_) => todo!(),
+            RelationContent::Label(_) => todo!(),
+            RelationContent::Place(_) => todo!(),
+            RelationContent::Recording(_) => todo!(),
+            RelationContent::Release(_) => todo!(),
+            RelationContent::ReleaseGroup(_) => todo!(),
+            RelationContent::Series(_) => todo!(),
+            RelationContent::Work(_) => todo!(),
+        }
+    }
+}

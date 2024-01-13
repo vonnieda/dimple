@@ -1,28 +1,29 @@
-use crate::model::{Release, Track, Artist, Genre};
+use crate::model::{DimpleReleaseGroup, DimpleTrack, DimpleArtist, DimpleGenre};
 
+// TODO I think this enum's time is up. Replace with Traits.
 #[derive(Clone, Debug)]
 pub enum LibraryEntity {
-    Artist(Artist),
-    Genre(Genre),
-    Release(Release),
-    Track(Track),
+    Artist(DimpleArtist),
+    Genre(DimpleGenre),
+    Release(DimpleReleaseGroup),
+    Track(DimpleTrack),
 }
 
 impl LibraryEntity {
     pub fn mbid(&self) -> String {
         match self {
-            LibraryEntity::Artist(a) => a.mbid(),
+            LibraryEntity::Artist(a) => a.id.clone(),
             LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Release(r) => r.mbid(),
+            LibraryEntity::Release(r) => r.id.clone(),
             LibraryEntity::Track(_) => todo!(),
         }
     }
 
     pub fn name(&self) -> String {
         match self {
-            LibraryEntity::Artist(a) => a.name(),
+            LibraryEntity::Artist(a) => a.name.clone(),
             LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Release(r) => r.title(),
+            LibraryEntity::Release(r) => r.title.clone(),
             LibraryEntity::Track(_) => todo!(),
         }
     }
@@ -50,7 +51,7 @@ pub trait Library: Send + Sync {
     }
 
     // TODO Explore fn list(LibraryEntity....type?) or maybe fn list<T>
-    fn artists(&self) -> Box<dyn Iterator<Item = Artist>> {
+    fn artists(&self) -> Box<dyn Iterator<Item = DimpleArtist>> {
         Box::new(vec![].into_iter())
     }
 

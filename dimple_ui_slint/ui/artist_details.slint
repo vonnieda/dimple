@@ -1,7 +1,7 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette, Link, Navigator, Links } from "common.slint";
+import { Palette, Link, Navigator, Links , Linnk} from "common.slint";
 import { CardModel } from "card.slint";
-import { StyleMetrics , ScrollView} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
 import { CardGrid } from "card_grid.slint";
 
 export struct ArtistDetailsModel {
@@ -10,6 +10,7 @@ export struct ArtistDetailsModel {
     disambiguation: string,
     genres: [Link],
     releases: [CardModel],
+    links: [Link],
 }
 
 export component ArtistDetails inherits ScrollView {
@@ -57,6 +58,7 @@ export component ArtistDetails inherits ScrollView {
                 }
             }
         }
+
         // Releases
         Text {
             text: "Releases";
@@ -66,6 +68,17 @@ export component ArtistDetails inherits ScrollView {
         CardGrid {
             cards: model.releases;
             parent-width: root.width;
+        }
+
+        // Urls
+        Text {
+            text: "Urls";
+            font-weight: Palette.font-weight-bold;
+            font-size: 2rem;
+        }
+        for link in model.links: Linnk {
+            url: link.url;
+            name: link.name;
         }
     }
 
