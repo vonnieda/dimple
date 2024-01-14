@@ -1158,6 +1158,7 @@ dependencies = [
 name = "dimple_core"
 version = "0.1.0"
 dependencies = [
+ "colored",
  "image",
  "log",
  "serde",
@@ -1206,6 +1207,7 @@ dependencies = [
  "dimple_sled_library",
  "image",
  "log",
+ "rayon",
  "serde",
  "serde_json",
  "sled",
@@ -1251,6 +1253,7 @@ dependencies = [
  "dimple_lastfm_library",
  "dimple_librarian",
  "dimple_musicbrainz_library",
+ "dimple_wikidata_library",
  "env_logger",
  "image",
  "log",
@@ -1261,6 +1264,17 @@ dependencies = [
  "slint",
  "slint-build",
  "url",
+]
+
+[[package]]
+name = "dimple_wikidata_library"
+version = "0.1.0"
+dependencies = [
+ "dimple_core",
+ "image",
+ "log",
+ "reqwest",
+ "serde",
 ]
 
 [[package]]

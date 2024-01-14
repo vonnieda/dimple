@@ -2,6 +2,7 @@ use dimple_musicbrainz_library::MusicBrainzLibrary;
 use dimple_lastfm_library::LastFmLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
 use dimple_deezer_library::DeezerLibrary;
+use dimple_wikidata_library::WikidataLibrary;
 use opener::open;
 
 use std::sync::Arc;
@@ -34,6 +35,7 @@ impl AppWindowController {
         self.librarian.add_library(Box::<LastFmLibrary>::default());
         self.librarian.add_library(Box::<FanartTvLibrary>::default());
         self.librarian.add_library(Box::<DeezerLibrary>::default());
+        self.librarian.add_library(Box::<WikidataLibrary>::default());
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
@@ -56,7 +58,7 @@ impl AppWindowController {
             Self::artists(librarian, ui);
         }
         else if url.starts_with("dimple://artists/") {
-            Self::artist(&url, librarian, ui);
+            Self::artis_detail(&url, librarian, ui);
         }
     }
 
@@ -99,7 +101,7 @@ impl AppWindowController {
         });
     }
 
-    fn artist(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+    fn artis_detail(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         let url = url.to_string();
         let ui = ui.clone();
         std::thread::spawn(move || {
@@ -151,7 +153,7 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
             .collect();
         ArtistDetailsModel {
             disambiguation: value.disambiguation.clone().into(),
-            bio: "".to_string().into(), 
+            bio: value.bio.clone().map(|b| b.value).unwrap_or("".to_string()).into(),
             // TODO get rid of the card and pass the image(s) in higher res
             card: (lib, value).into(), 
             genres: ModelRc::from(genres.as_slice()),
@@ -191,7 +193,7 @@ impl From<(&Librarian, DimpleArtist)> for CardModel {
         CardModel {
             title: Link { 
                 name: artist.name.clone().into(), 
-                url: format!("dimple://artists/{}", &artist.mbid()).into() 
+                url: format!("dimple://artists/{}", &artist.id).into() 
             },
             sub_title: [
                 Link { 
@@ -202,7 +204,7 @@ impl From<(&Librarian, DimpleArtist)> for CardModel {
             image: ImageLink { 
                 image: thumbnail(library, &ent, 500, 500), 
                 name: artist.name.clone().into(), 
-                url: format!("dimple://artists/{}", &artist.mbid()).into() 
+                url: format!("dimple://artists/{}", &artist.id).into() 
             },
         }
     }
@@ -226,7 +228,7 @@ impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
         CardModel {
             title: Link { 
                 name: release.title.clone().into(), 
-                url: format!("dimple://releases/{}", release.mbid().clone()).into() 
+                url: format!("dimple://releases/{}", release.id.clone()).into() 
             },
             sub_title: [
                 Link { 
@@ -237,7 +239,7 @@ impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
             image: ImageLink { 
                 image: thumbnail(lib, &ent, 500, 500), 
                 name: release.title.clone().into(), 
-                url: format!("dimple://releases/{}", release.mbid().clone()).into() 
+                url: format!("dimple://releases/{}", release.id.clone()).into() 
             },
         }
     }

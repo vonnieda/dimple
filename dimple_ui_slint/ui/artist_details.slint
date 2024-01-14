@@ -36,10 +36,21 @@ export component ArtistDetails inherits ScrollView {
             VerticalLayout {
                 alignment: start;
                 spacing: StyleMetrics.layout-spacing;
-                Text {
-                    text: model.card.title.name;
-                    font-weight: Palette.font-weight-bold;
-                    font-size: 4rem;
+                HorizontalLayout {
+                    alignment: start;
+                    Image {
+                        // TODO DRY
+                        source: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
+                        height: 4rem;
+                        width: 4rem;
+                        colorize: StyleMetrics.default-text-color;
+                    }
+                
+                    Text {
+                        text: model.card.title.name;
+                        font-weight: Palette.font-weight-bold;
+                        font-size: 4rem;
+                    }
                 }
                 HorizontalLayout {
                     alignment: start;

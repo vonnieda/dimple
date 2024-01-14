@@ -41,7 +41,7 @@ impl Library for FanartTvLibrary {
                     .user_agent(dimple_core::USER_AGENT)
                     .build().ok()?;
                 let api_key = "55b9ef19f6822b9f835c97426d435d72";
-                let mbid = a.mbid();
+                let mbid = a.id.to_string();
                 let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", mbid, api_key);
                 LibrarySupport::log_request(self, &url);
                 let response = client.get(url).send().ok()?;

@@ -4,9 +4,9 @@ Dimple is an open source and cross-platform music player that celebrates music
 and privacy. 
 
 It runs on all the common desktops and mobiles, and gives you all the power of
-a streaming service in a single app. 
+a streaming service in a single app.
 
-Dimple is $2.99 on any app store, or you can download it for free right here. 
+Dimple is $3.99 on any app store, or you can download it for free right here. 
 The only difference between the two is that app store sales pay for Dimple's
 development. **Dimple is my full time job and I'm working hard to make it the
 best music player I can.**
@@ -47,7 +47,7 @@ best music player I can.**
 - Lyrics from Genius, Musixmatch, Muzikum, and more.
 - Scrobble to Last.fm, Listenbrainz, Maloja, and more.
 
-## Brainy
+## Smart
 - "Deep Scrobbling" keeps track of your volume adjustments, repeats, skips,
   scrubs, likes, dislikes, and dozens of other interactive data points. This
   powers features like Current Obsessions, Mood Radio, AI DJ, ReplayGain,
@@ -63,6 +63,8 @@ best music player I can.**
   you're feeling right now.
 - ReplayGain automatically adjusts audio volume based on community feedback
   and your own adjustments.
+- Sing Along shows and syncs the lyrics of whatever music is playing around
+  you. Share your screen with your friends and sing along!
 
 ## Modern and Beautiful
 - Based on Google's Material Design by default.
@@ -76,10 +78,17 @@ best music player I can.**
   - Wave
 
 ## DRM-Free
-- Dimple does not use or support DRM.
+- Dimple does not use or support DRM. See https://www.defectivebydesign.org/guide/audio
 - Support artists by buying and streaming their music from Bandcamp, Soundcloud,
-  iTunes Music, and more.
-- https://www.defectivebydesign.org/guide/audio
+  iTunes Music, and more, all within Dimple.
+
+## Ethical
+- Uses only public and authorized sources of data and music.
+- Attribution is captured and displayed with all relevant data.
+- Supports artists by givers users access to artist preferred streaming and
+  purchasing options.
+- Respects caching and rate limits where required or requested. 
+- TBD% of revenue goes to MetaBrainz, Wikimedia, and other public resources.
 
 ## Fast
 - Written in Rust using Slint.
@@ -96,15 +105,13 @@ best music player I can.**
 - All features also available for free using your preferred S3 compatible
   storage provider.
 
-
 # Mantras
 - If a song has an outro that runs into the intro of the next song, don't play
   it without playing the next one!
 - Shuffle should never go from Megadeth to They Might Be Giants.
 
-
 # Notes
-- I wrote Dimple as a way to learn Rust. If you see weird things in the code
+- I'm writing Dimple as a way to learn Rust. If you see weird things in the code
   it's probably because I didn't know the better way. Please feel free to
   open a PR or Issue and let me know! I'm still learning, and I appreciate the
   help!

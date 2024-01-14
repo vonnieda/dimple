@@ -27,4 +27,10 @@ export component NavBar inherits HorizontalBox {
         // TODO change back to edited when better handling in the search function
         accepted(query) => { Navigator.navigate("dimple://search/" + query); }
     }
+    // TODO this will be removed and refresh will be handled by the librarian,
+    // but for now it's here for testing.
+    Button {
+        text: "Refresh";
+        clicked => { Navigator.refresh(); }
+    }
 }

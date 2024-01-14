@@ -1,3 +1,5 @@
+use colored::Colorize;
+
 use crate::model::{DimpleReleaseGroup, DimpleTrack, DimpleArtist, DimpleGenre};
 
 // TODO I think this enum's time is up. Replace with Traits.
@@ -45,12 +47,14 @@ pub trait Library: Send + Sync {
 
     /// Fetch a complete record for the given entity. The Library implementation
     /// can choose to use any appropriate fields in the entity as the selection
-    /// criteria. Typically mbid or another id will be used.
+    /// criteria. Typically mbid or another id will be used. The Library should
+    /// return only those fields that are fetched, it should not return fields
+    /// that come from the source entity.
     fn fetch(&self, _entity: &LibraryEntity) -> Option<LibraryEntity> {
         None
     }
 
-    // TODO Explore fn list(LibraryEntity....type?) or maybe fn list<T>
+    // TODO Explore fn list<LibraryEntity>() or e.g. list<Artist>(page)
     fn artists(&self) -> Box<dyn Iterator<Item = DimpleArtist>> {
         Box::new(vec![].into_iter())
     }
@@ -68,6 +72,6 @@ pub struct LibrarySupport {
 
 impl LibrarySupport {
     pub fn log_request(library: &dyn Library, url: &str) {
-        log::debug!("{} {}", library.name(), url);
+        log::info!("{} {}", library.name().blue(), url.yellow());
     }
 }

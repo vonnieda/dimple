@@ -16,3 +16,4 @@ dimple_core = { path = "../dimple_core" }
 dimple_sled_library = { path = "../dimple_sled_library" }
 ulid = "1.1.0"
 colored = "2.1.0"
+rayon = "1.8.0"

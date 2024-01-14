@@ -4,6 +4,10 @@ use colored::Colorize;
 use dimple_core::{library::{Library, LibraryEntity}, model::DimpleArtist};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
+use rayon::prelude::*;
+
+// TODO need a favicon service
+
 
 pub struct Librarian {
     /// TODO It feels like it's about time to retire SledLibrary, and move the
@@ -31,6 +35,19 @@ impl Librarian {
         self.libraries.write().unwrap().push(library);
     }
 
+    /// Generate some kind of cool artwork for the entity to be used as a
+    /// default. Being part of Librarian, it can use data from the library
+    /// to create the image.
+    pub fn generate_masterpiece(&self, entity: &LibraryEntity, width: u32, 
+        height: u32) -> DynamicImage {
+
+
+        // https://stackoverflow.com/questions/76741218/in-slint-how-do-i-render-a-self-drawn-image
+
+
+        DynamicImage::new_rgb8(width, height)
+    }
+
     pub fn thumbnail(&self, entity: &LibraryEntity, width: u32, height: u32) -> Option<DynamicImage> {
         self.local_library.images.get(&entity.mbid(), width, height)
             .or_else(|| {
@@ -40,10 +57,11 @@ impl Librarian {
                 })
             })
             .or_else(|| {
-                // TODO this is where I would generate or take a default
-                // image. IF I HAD ONE.
-                // https://stackoverflow.com/questions/76741218/in-slint-how-do-i-render-a-self-drawn-image
-                self.local_library.set_image(entity, &DynamicImage::new_rgb8(500, 500));
+                // TODO magic, used 1000x1000 cause that's what fanart.tv uses
+                // for artist thumbs. Could probably go higher res for an
+                // "original" quality image.
+                self.local_library.set_image(entity, 
+                    &self.generate_masterpiece(entity, 1000, 1000));
                 self.local_library.images.get(&entity.mbid(), width, height)
             })
     }
@@ -72,7 +90,6 @@ impl Librarian {
             }
         )
     }
-
 }
 
 impl Library for Librarian {
@@ -97,7 +114,23 @@ impl Library for Librarian {
         self.local_library.artists()
     }
 
+
+    /// Librarian extends the contract of fetch by combining the results of
+    /// fetching from each registered library into one result. This result is
+    /// cached in the local library and updated whenever fetch_force is called.
+    /// 
+    /// The local library is queried first, and if a value is found it is used
+    /// as the input for the other queries. The ensures that libraries that
+    /// depend on content from Musicbrainz for their query can access it, if we
+    /// have it.
+    /// 
+    /// TODO to that point, once again need to decide if the musicbrainz library
+    /// is special. If it is, we really need to check local or else check
+    /// musicbrainz before calling all the others which might depend on musicbrainz
+    /// 
+    /// Or fuck it, maybe run every fetch twice when the first result is None.
     fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
+        // TODO include timing
         let fetch_and_log = |lib: &dyn Library, entity: &LibraryEntity| {
             lib.fetch(entity)
                 .map(|ent| { 
@@ -110,7 +143,7 @@ impl Library for Librarian {
                 })
         };
 
-        let store_and_log = |entity: LibraryEntity| {
+        let store_and_log = |entity: LibraryEntity| -> LibraryEntity {
             match &entity {
                 LibraryEntity::Artist(artist) => self.local_library.set_artist(artist),
                 LibraryEntity::Genre(_) => todo!(),
@@ -120,14 +153,20 @@ impl Library for Librarian {
             entity
         };
 
-        log::info!("{} {} ({})", "Fetch".green(), entity.name().blue(), entity.mbid().yellow());
-        fetch_and_log(&self.local_library, entity)
-            .or_else(|| {
-                self.libraries.read().ok()?.iter()
-                    .find_map(|lib| fetch_and_log(lib.as_ref(), entity))
-                    .map(store_and_log)
-            }
-        )
+        // TODO
+        let merge = |a: Option<LibraryEntity>, b: LibraryEntity| -> Option<LibraryEntity> {
+            Some(b)
+        };
+
+        log::info!("{} {} ({})", "Fetch".green(), entity.name().blue(), entity.mbid().yellow());        
+        let local_result: Option<LibraryEntity> = fetch_and_log(&self.local_library, entity);
+        let query_result: &LibraryEntity = local_result.as_ref().unwrap_or(entity);
+        let remote_results: Vec<LibraryEntity> = self.libraries.read().ok()?.par_iter()
+            .filter_map(|lib| fetch_and_log(lib.as_ref(), query_result))
+            .collect();
+        remote_results.into_iter()
+            .fold(local_result, merge)
+            .map(store_and_log)
     }
 
     /// If there is an image stored in the local library for the entity return

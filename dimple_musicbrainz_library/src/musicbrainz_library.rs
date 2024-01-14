@@ -63,9 +63,9 @@ impl Library for MusicBrainzLibrary {
         match _entity {
             LibraryEntity::Artist(a) => {
                 LibrarySupport::log_request(self, 
-                    &format!("http://musicbrainz.org/fetch/artist/{}", a.mbid()));
+                    &format!("http://musicbrainz.org/fetch/artist/{}", a.id));
                 Artist::fetch()
-                    .id(&a.mbid())
+                    .id(&a.id)
                     .with_aliases()
                     .with_annotations()
                     .with_genres()
@@ -89,9 +89,9 @@ impl Library for MusicBrainzLibrary {
         match _entity {
             LibraryEntity::Release(r) => {
                 LibrarySupport::log_request(self, 
-                    &format!("http://coverartarchive.org/{}", r.mbid()));                
+                    &format!("http://coverartarchive.org/{}", r.id));                
                 let mb = ReleaseGroup {
-                    id: r.mbid(),
+                    id: r.id.to_string(),
                     ..Default::default()
                 };
                 mb.get_coverart()
@@ -122,6 +122,7 @@ impl From<ArtistConverter> for dimple_core::model::DimpleArtist {
             id: value.0.id,
             name: value.0.name,
             disambiguation: value.0.disambiguation,
+            bio: None,
             // TODO this is always going to be Some even if there are None
             genres: Some(value.0.genres.iter()
                 .flatten()
@@ -172,6 +173,7 @@ impl From<GenreConverter> for dimple_core::model::DimpleGenre {
         dimple_core::model::DimpleGenre {
             name: value.0.name,
             count: value.0.count,
+            description: None,
         }
     }
 }

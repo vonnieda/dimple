@@ -55,10 +55,10 @@ impl SledLibrary {
     }
 
     pub fn set_artist(&self, a: &DimpleArtist) {
-        assert!(!a.mbid().is_empty());
+        assert!(!a.id.is_empty());
         serde_json::to_string_pretty(a)
             .map(|json| {
-                self.artists.insert(a.mbid(), &*json).unwrap()
+                self.artists.insert(a.id.to_string(), &*json).unwrap()
             })
             .unwrap();
     }
@@ -100,7 +100,7 @@ impl Library for SledLibrary {
     fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
         match entity {
             LibraryEntity::Artist(a) => {
-                let a = self.get_artist(&a.mbid())?;
+                let a = self.get_artist(&a.id)?;
                 Some(LibraryEntity::Artist(a))
             },
             LibraryEntity::Genre(_) => todo!(),
