@@ -9,6 +9,7 @@ pub struct DimpleArtist {
     pub id: String,
     pub name: String,
     pub disambiguation: String,
+    // TODO feels more like attributed things are their own objects.
     pub bio: Option<Attributed<String>>,
 
     // TODO do we actually need options here?
@@ -46,9 +47,12 @@ pub struct DimpleGenre {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[serde(default)]
 pub struct DimpleReleaseGroup {
     pub id: String,
     pub title: String,
+    pub primary_type: String,
+    pub first_release_date: String,
 }
 
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]

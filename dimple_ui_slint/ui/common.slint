@@ -11,7 +11,8 @@ export global Palette  {
     in-out property<length> thumbnail-border-width: 1px;
     in-out property<color> thumbnail-border-color: StyleMetrics.default-text-color;
 
-    in-out property<color> link-color: StyleMetrics.default-text-color.mix(blue, 0.75);
+    in-out property<color> link-color: StyleMetrics.default-text-color;
+    in-out property<color> link-color-hover: StyleMetrics.default-text-color.mix(blue, 0.75);
 }
 
 export global Navigator {
@@ -38,6 +39,7 @@ export component Links inherits HorizontalLayout {
     // looks weird. But I don't know another way to get individual links with
     // fancy commas.
     for link[i] in links: HorizontalLayout {
+        alignment: start;
         TouchArea {
             mouse-cursor: pointer;
             clicked => { Navigator.navigate(link.url); }
@@ -46,8 +48,8 @@ export component Links inherits HorizontalLayout {
                 font-size: 1.3rem;
                 wrap: word-wrap;
                 color: parent.has-hover 
-                    ? Palette.link-color
-                    : StyleMetrics.default-text-color;
+                    ? Palette.link-color-hover
+                    : Palette.link-color;
             }    
         }
         // TODO edge cases
@@ -80,7 +82,7 @@ export component Linnk inherits TouchArea {
         font-weight: Palette.font-weight-bold;
         font-size: 1.2rem;
         color: parent.has-hover 
-            ? Palette.link-color
+            ? Palette.link-color-hover
             : StyleMetrics.default-text-color;
     }
 }

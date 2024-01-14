@@ -3,16 +3,17 @@ use dimple_lastfm_library::LastFmLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
 use dimple_deezer_library::DeezerLibrary;
 use dimple_wikidata_library::WikidataLibrary;
-use opener::open;
 
 use std::sync::Arc;
 
-use dimple_core::{model::{DimpleArtist, DimpleGenre, DimpleTrack, DimpleReleaseGroup, DimpleUrl, DimpleRelationContent}, library::{Library, LibraryEntity}};
+use dimple_core::{model::{DimpleArtist, DimpleGenre, DimpleTrack, DimpleReleaseGroup, DimpleRelationContent}, library::{Library, LibraryEntity}};
 use dimple_librarian::librarian::Librarian;
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle};
 
 slint::include_modules!();
+
+use rayon::prelude::*;
 
 pub type LibrarianHandle = Arc<Librarian>;
 
@@ -58,7 +59,7 @@ impl AppWindowController {
             Self::artists(librarian, ui);
         }
         else if url.starts_with("dimple://artists/") {
-            Self::artis_detail(&url, librarian, ui);
+            Self::artis_details(&url, librarian, ui);
         }
     }
 
@@ -101,7 +102,7 @@ impl AppWindowController {
         });
     }
 
-    fn artis_detail(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+    fn artis_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         let url = url.to_string();
         let ui = ui.clone();
         std::thread::spawn(move || {
@@ -128,12 +129,32 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
                 ..Default::default()
             })
             .collect();
-        let releases: Vec<CardModel> = value.release_groups
+
+        let mut albums: Vec<CardModel> = value.release_groups
             .iter()
             .flatten()
             .map(|rel| rel.to_owned())
+            .filter(|rel| rel.primary_type == "Album")
             .map(|rel| (lib, rel.clone()).into())
             .collect();
+
+        let singles_and_eps: Vec<CardModel> = value.release_groups
+            .iter()
+            .flatten()
+            .map(|rel| rel.to_owned())
+            .filter(|rel| rel.primary_type == "Single" || rel.primary_type == "EP")
+            .map(|rel| (lib, rel.clone()).into())
+            .collect();
+
+        let other_releases: Vec<CardModel> = value.release_groups
+            .iter()
+            .flatten()
+            .map(|rel| rel.to_owned())
+            .filter(|rel| rel.primary_type != "Album" && rel.primary_type != "Single" && rel.primary_type == "EP")
+            .map(|rel| (lib, rel.clone()).into())
+            .collect();
+
+        // TODO raw links are temporary
         let links: Vec<Link> = value.relations
             .iter()
             .flatten()
@@ -157,7 +178,9 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
             // TODO get rid of the card and pass the image(s) in higher res
             card: (lib, value).into(), 
             genres: ModelRc::from(genres.as_slice()),
-            releases: ModelRc::from(releases.as_slice()),
+            albums: ModelRc::from(albums.as_slice()),
+            singles_and_eps: ModelRc::from(singles_and_eps.as_slice()),
+            other_releases: ModelRc::from(other_releases.as_slice()),
             links: ModelRc::from(links.as_slice()),
         }
     }
@@ -182,7 +205,7 @@ impl From<(&Librarian, LibraryEntity)> for CardModel {
             LibraryEntity::Artist(artist) => (librarian, artist).into(),
             LibraryEntity::Genre(genre) => genre.into(),
             LibraryEntity::Track(track) => track.into(),
-            LibraryEntity::Release(release) => release.into(),
+            LibraryEntity::Release(release) => (librarian, release).into(),
         }
     }
 }
@@ -210,18 +233,6 @@ impl From<(&Librarian, DimpleArtist)> for CardModel {
     }
 }
 
-impl From<DimpleReleaseGroup> for CardModel {
-    fn from(value: DimpleReleaseGroup) -> Self {
-        CardModel {
-            title: Link {
-                name: value.title.into(),
-                ..Default::default()
-            },
-            ..Default::default()
-        }
-    }
-}
-
 impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
     fn from((lib, release): (&Librarian, DimpleReleaseGroup)) -> Self {
         let ent = LibraryEntity::Release(release.clone());
@@ -232,7 +243,7 @@ impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
             },
             sub_title: [
                 Link { 
-                    name: "".into(), 
+                    name: release.first_release_date.into(),
                     url: "".into() 
                 }
             ].into(),

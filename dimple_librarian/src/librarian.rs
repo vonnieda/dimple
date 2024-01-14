@@ -65,31 +65,6 @@ impl Librarian {
                 self.local_library.images.get(&entity.mbid(), width, height)
             })
     }
-
-    fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
-        let fetch_and_log = |lib: &dyn Library, entity: &LibraryEntity| {
-            let result = lib.image(entity);
-            if result.is_some() {
-                log::info!("  {} {}", "✔".bright_green(), lib.name().green());
-            }
-            else {
-                log::info!("  {} {}", "✗".bright_red(), lib.name().bright_red());
-            }
-            result
-        };
-
-        log::info!("{} {} ({})", "Image".magenta(), entity.name().blue(), entity.mbid().yellow());
-        fetch_and_log(&self.local_library, entity)
-            .or_else(|| {
-                self.libraries.read().ok()?.iter()
-                    .find_map(|lib| fetch_and_log(lib.as_ref(), entity))
-                    .map(|dyn_image| {
-                        self.local_library.set_image(entity, &dyn_image);
-                        dyn_image
-                    })
-            }
-        )
-    }
 }
 
 impl Library for Librarian {
@@ -100,10 +75,10 @@ impl Library for Librarian {
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
         // TODO include local
         // TODO remove dupes
-        log::info!("{}: {}", "Search".cyan(), query.blue());
+        log::debug!("{}: {}", "Search".cyan(), query.blue());
         let merged: Vec<LibraryEntity> = self.libraries.read().unwrap().iter()
             .flat_map(|lib| {
-                log::info!("  {} {}", "✔".bright_green(), lib.name().green());
+                log::debug!("  {} {}", "✔".bright_green(), lib.name().green());
                 lib.search(query)
             })
             .collect();
@@ -128,17 +103,19 @@ impl Library for Librarian {
     /// is special. If it is, we really need to check local or else check
     /// musicbrainz before calling all the others which might depend on musicbrainz
     /// 
-    /// Or fuck it, maybe run every fetch twice when the first result is None.
+    /// I think I also need to store a token to indicate when an object has been
+    /// fetched successfully from MB so that I just don't do that again for any
+    /// reason unless forced.
     fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
         // TODO include timing
         let fetch_and_log = |lib: &dyn Library, entity: &LibraryEntity| {
             lib.fetch(entity)
                 .map(|ent| { 
-                    log::info!("  {} {}", "✔".bright_green(), lib.name().bright_green());
+                    log::debug!("  {} {}", "✔".bright_green(), lib.name().bright_green());
                     ent
                 })
                 .or_else(|| {
-                    log::info!("  {} {}", "✗".bright_red(), lib.name().bright_red());
+                    log::debug!("  {} {}", "✗".bright_red(), lib.name().bright_red());
                     None
                 })
         };
@@ -153,12 +130,25 @@ impl Library for Librarian {
             entity
         };
 
-        // TODO
+        // TODO this sucks, it needs to be genericd so the two variants have
+        // to be of the same type.
         let merge = |a: Option<LibraryEntity>, b: LibraryEntity| -> Option<LibraryEntity> {
-            Some(b)
+            let base = a.unwrap_or(b.clone());
+            match base {
+                LibraryEntity::Artist(mut base) => {
+                    if let LibraryEntity::Artist(b) = b {
+                        base.bio = base.bio.or(b.bio.clone());
+                        // TODO merge de-dup etc.
+                        base.release_groups = base.release_groups.or(b.release_groups.clone());
+                        base.relations = base.relations.or(b.relations.clone());
+                    }
+                    Some(LibraryEntity::Artist(base))
+                },
+                _ => todo!(),
+            }
         };
 
-        log::info!("{} {} ({})", "Fetch".green(), entity.name().blue(), entity.mbid().yellow());        
+        log::debug!("{} {} ({})", "Fetch".green(), entity.name().blue(), entity.mbid().yellow());        
         let local_result: Option<LibraryEntity> = fetch_and_log(&self.local_library, entity);
         let query_result: &LibraryEntity = local_result.as_ref().unwrap_or(entity);
         let remote_results: Vec<LibraryEntity> = self.libraries.read().ok()?.par_iter()
@@ -172,24 +162,24 @@ impl Library for Librarian {
     /// If there is an image stored in the local library for the entity return
     /// it, otherwise search the attached libraries for one. If one is found,
     /// cache it in the local library and return it. Furture requests will be
-    /// cached.
+    /// served from the cache.
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
         let fetch_and_log = |lib: &dyn Library, entity: &LibraryEntity| {
             let result = lib.image(entity);
             if result.is_some() {
-                log::info!("  {} {}", "✔".bright_green(), lib.name().green());
+                log::debug!("  {} {}", "✔".bright_green(), lib.name().green());
             }
             else {
-                log::info!("  {} {}", "✗".bright_red(), lib.name().bright_red());
+                log::debug!("  {} {}", "✗".bright_red(), lib.name().bright_red());
             }
             result
         };
 
-        log::info!("{} {} ({})", "Image".magenta(), entity.name().blue(), entity.mbid().yellow());
+        log::debug!("{} {} ({})", "Image".magenta(), entity.name().blue(), entity.mbid().yellow());
         fetch_and_log(&self.local_library, entity)
             .or_else(|| {
-                self.libraries.read().ok()?.iter()
-                    .find_map(|lib| fetch_and_log(lib.as_ref(), entity))
+                self.libraries.read().ok()?.par_iter()
+                    .find_map_first(|lib| fetch_and_log(lib.as_ref(), entity))
                     .map(|dyn_image| {
                         self.local_library.set_image(entity, &dyn_image);
                         dyn_image

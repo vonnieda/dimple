@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
 use dimple_core::model::{DimpleGenre, DimpleArtist, DimpleReleaseGroup, DimpleRelation, DimpleRelationContent, DimpleUrl};
 use image::DynamicImage;
@@ -11,6 +13,7 @@ use musicbrainz_rs::{prelude::*, FetchQuery};
 pub struct MusicBrainzLibrary {
 }
 
+// TODO implement high level rate limiting and paralleling
 impl MusicBrainzLibrary {
     pub fn new() -> Self {
         musicbrainz_rs::config::set_user_agent(dimple_core::USER_AGENT);
@@ -63,7 +66,7 @@ impl Library for MusicBrainzLibrary {
         match _entity {
             LibraryEntity::Artist(a) => {
                 LibrarySupport::log_request(self, 
-                    &format!("http://musicbrainz.org/fetch/artist/{}", a.id));
+                    &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", a.id));
                 Artist::fetch()
                     .id(&a.id)
                     .with_aliases()
@@ -76,6 +79,7 @@ impl Library for MusicBrainzLibrary {
                     .with_url_relations()
                     .execute()
                     .ok()
+                    .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| DimpleArtist::from(ArtistConverter::from(src.clone())))
                     .map(LibraryEntity::Artist)        
                 },
@@ -85,6 +89,7 @@ impl Library for MusicBrainzLibrary {
         }        
     }
 
+    // TODO split caa into it's own library, has no rate limits.
     fn image(&self, _entity: &LibraryEntity) -> Option<image::DynamicImage> {
         match _entity {
             LibraryEntity::Release(r) => {
@@ -156,6 +161,8 @@ impl From<ReleaseGroupConverter> for dimple_core::model::DimpleReleaseGroup {
         dimple_core::model::DimpleReleaseGroup {
             id: value.0.id,
             title: value.0.title,
+            primary_type: value.0.primary_type.map(|f| format!("{:?}", f)).unwrap_or("".to_string()),
+            first_release_date: value.0.first_release_date.map(|f| f.to_string()).unwrap_or("".to_string())
         }
     }
 }

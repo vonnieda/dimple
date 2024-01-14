@@ -1260,6 +1260,7 @@ dependencies = [
  "num-complex",
  "opener",
  "rand",
+ "rayon",
  "serde",
  "slint",
  "slint-build",

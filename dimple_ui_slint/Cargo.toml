@@ -30,6 +30,7 @@ num-complex = "0.4.3"
 rand = "0.8.5"
 url = "2.5.0"
 opener = "0.6.1"
+rayon = "1.8.0"
 
 [build-dependencies]
 slint-build = "1.1"
