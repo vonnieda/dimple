@@ -7,7 +7,7 @@ use dimple_wikidata_library::WikidataLibrary;
 use std::sync::Arc;
 
 use dimple_core::{model::{DimpleArtist, DimpleGenre, DimpleTrack, DimpleReleaseGroup, DimpleRelationContent}, library::{Library, LibraryEntity}};
-use dimple_librarian::librarian::Librarian;
+use dimple_librarian::librarian::{Librarian, self};
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle};
 
@@ -75,6 +75,15 @@ impl AppWindowController {
         std::thread::spawn(move || {
             let query_str = url.split_at("dimple://search".len()).1;
             let mut search_results: Vec<LibraryEntity> = librarian.search(query_str).collect();
+            
+            // Preload images
+            // TODO is trash
+            search_results
+                .par_iter()
+                .for_each(|f| {
+                    librarian.image(f);
+                });
+
             search_results.sort_by_key(|e| e.name().to_lowercase());
             ui.upgrade_in_event_loop(move |ui| {
                 let cards: Vec<CardModel> = search_results.into_iter()
@@ -130,7 +139,16 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
             })
             .collect();
 
-        let mut albums: Vec<CardModel> = value.release_groups
+        // Preload images
+        // TODO is trash
+        value.release_groups
+            .par_iter()
+            .flatten()
+            .for_each(|f| {
+                lib.image(&LibraryEntity::Release(f.clone()));
+            });
+
+        let albums: Vec<CardModel> = value.release_groups
             .iter()
             .flatten()
             .map(|rel| rel.to_owned())
