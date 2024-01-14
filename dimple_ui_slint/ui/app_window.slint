@@ -4,7 +4,7 @@ import { Card, CardModel } from "card.slint";
 import { PlayerBar } from "player_bar.slint";
 import { NavBar } from "nav_bar.slint";
 import { ArtistDetails, ArtistDetailsModel } from "artist_details.slint";
-import { ReleaseDetails } from "release_details.slint";
+import { ReleaseGroupDetails, ReleaseGroupDetailsModel } from "release_group_details.slint";
 import { Palette, Navigator, Link, ImageLink } from "common.slint";
 import { StyleMetrics } from "std-widgets.slint";
 
@@ -28,6 +28,7 @@ import "../fonts/Roboto/Roboto-MediumItalic.ttf";
 import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
+import { ReleaseGroupDetails } from "release_group_details.slint";
 
 export { Navigator, Link, ImageLink, CardModel }
 
@@ -37,6 +38,7 @@ export component AppWindow inherits Window {
     // sub-components, so all this is needed.
     in-out property <[CardModel]> card-grid-cards;
     in-out property <ArtistDetailsModel> artist-details;
+    in-out property <ReleaseGroupDetailsModel> release-group-details;
     
     title: "Dimple";
     preferred-width: 1440px;
@@ -73,8 +75,11 @@ export component AppWindow inherits Window {
             }                
         }
         if page == 2: GroupBox {
-            ReleaseDetails {  
-            }
+            vertical-stretch: 1;
+            ReleaseGroupDetails {  
+                vertical-stretch: 1;
+                model: root.release-group-details;
+            }                
         }
         GroupBox {
             vertical-stretch: 0;

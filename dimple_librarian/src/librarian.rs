@@ -123,35 +123,63 @@ impl Library for Librarian {
         let store_and_log = |entity: LibraryEntity| -> LibraryEntity {
             match &entity {
                 LibraryEntity::Artist(artist) => self.local_library.set_artist(artist),
-                LibraryEntity::Genre(_) => todo!(),
+                LibraryEntity::ReleaseGroup(r) => self.local_library.set_release_group(r),
                 LibraryEntity::Release(_) => todo!(),
+                LibraryEntity::Genre(_) => todo!(),
                 LibraryEntity::Track(_) => todo!(),
             };
             entity
         };
 
+        fn longer(a: String, b: String) -> String {
+            if a.len() > b.len() {
+                a
+            }
+            else {
+                b
+            }
+        }
+
         // TODO this sucks, it needs to be genericd so the two variants have
         // to be of the same type.
+        // TODO merge de-dup etc.
         let merge = |a: Option<LibraryEntity>, b: LibraryEntity| -> Option<LibraryEntity> {
             let base = a.unwrap_or(b.clone());
             match base {
                 LibraryEntity::Artist(mut base) => {
                     if let LibraryEntity::Artist(b) = b {
-                        base.bio = base.bio.or(b.bio.clone());
-                        // TODO merge de-dup etc.
-                        base.release_groups = base.release_groups.or(b.release_groups.clone());
+                        base.disambiguation = longer(base.disambiguation, b.disambiguation);
+                        base.name = longer(base.name, b.name);
+                        base.genres = base.genres.or(b.genres.clone());
+                        base.summary = base.summary.or(b.summary.clone());
                         base.relations = base.relations.or(b.relations.clone());
+                        base.release_groups = base.release_groups.or(b.release_groups.clone());
                     }
                     Some(LibraryEntity::Artist(base))
+                },
+                LibraryEntity::ReleaseGroup(mut base) => {
+                    if let LibraryEntity::ReleaseGroup(b) = b {
+                        base.disambiguation = longer(base.disambiguation, b.disambiguation);
+                        base.title = longer(base.title, b.title);
+                        base.genres = base.genres.or(b.genres.clone());
+                        base.summary = base.summary.or(b.summary.clone());
+                        base.relations = base.relations.or(b.relations.clone());
+                        base.first_release_date = longer(base.first_release_date, b.first_release_date);
+                        base.primary_type = longer(base.primary_type, b.primary_type);
+                    }
+                    Some(LibraryEntity::ReleaseGroup(base))
                 },
                 _ => todo!(),
             }
         };
 
+        // TODO making it parallel broke priority meaning musicbrainz might not
+        // have loaded yet for the other ones. Again, pointing to MB being
+        // special. Turned off for now.
         log::debug!("{} {} ({})", "Fetch".green(), entity.name().blue(), entity.mbid().yellow());        
         let local_result: Option<LibraryEntity> = fetch_and_log(&self.local_library, entity);
         let query_result: &LibraryEntity = local_result.as_ref().unwrap_or(entity);
-        let remote_results: Vec<LibraryEntity> = self.libraries.read().ok()?.par_iter()
+        let remote_results: Vec<LibraryEntity> = self.libraries.read().ok()?.iter()
             .filter_map(|lib| fetch_and_log(lib.as_ref(), query_result))
             .collect();
         remote_results.into_iter()

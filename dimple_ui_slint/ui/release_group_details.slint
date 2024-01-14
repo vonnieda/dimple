@@ -4,18 +4,16 @@ import { CardModel } from "card.slint";
 import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
 import { CardGrid } from "card_grid.slint";
 
-export struct ArtistDetailsModel {
+export struct ReleaseGroupDetailsModel {
     card: CardModel,
-    summary: string,
     disambiguation: string,
+    summary: string,
     genres: [Link],
-    albums: [CardModel],
-    singles_and_eps: [CardModel],
-    other_releases: [CardModel],
+    releases: [CardModel],
     links: [Link],
 }
 
-export component ArtistDetails inherits ScrollView {
+export component ReleaseGroupDetails inherits ScrollView {
     VerticalBox {
         alignment: start;
         spacing: StyleMetrics.layout-spacing * 2;
@@ -44,7 +42,7 @@ export component ArtistDetails inherits ScrollView {
                     spacing: StyleMetrics.layout-spacing;
                     Image {
                         // TODO DRY
-                        source: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
+                        source: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
                         height: 4rem;
                         width: 4rem;
                         colorize: StyleMetrics.default-text-color;
@@ -73,41 +71,15 @@ export component ArtistDetails inherits ScrollView {
             }
         }
 
-        // Albums
-        if model.albums.length > 0: VerticalLayout {
+        // Releases
+        if model.releases.length > 0: VerticalLayout {
             Text {
-                text: "Albums";
+                text: "Releases";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
-                cards: model.albums;
-                parent-width: root.width;
-            }
-        }
-
-        // Singles & EPs
-        if model.singles-and-eps.length > 0: VerticalLayout {
-            Text {
-                text: "Singles & EPs";
-                font-weight: Palette.font-weight-bold;
-                font-size: 2rem;
-            }
-            CardGrid {
-                cards: model.singles-and-eps;
-                parent-width: root.width;
-            }
-        }
-
-        // Other Releases
-        if model.other-releases.length > 0: VerticalLayout {
-            Text {
-                text: "Other Releases";
-                font-weight: Palette.font-weight-bold;
-                font-size: 2rem;
-            }
-            CardGrid {
-                cards: model.other-releases;
+                cards: model.releases;
                 parent-width: root.width;
             }
         }
@@ -126,5 +98,5 @@ export component ArtistDetails inherits ScrollView {
         }
     }
 
-    in property <ArtistDetailsModel> model;
+    in property <ReleaseGroupDetailsModel> model;
 }

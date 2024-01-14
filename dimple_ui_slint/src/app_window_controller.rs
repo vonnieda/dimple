@@ -6,7 +6,7 @@ use dimple_wikidata_library::WikidataLibrary;
 
 use std::sync::Arc;
 
-use dimple_core::{model::{DimpleArtist, DimpleGenre, DimpleTrack, DimpleReleaseGroup, DimpleRelationContent}, library::{Library, LibraryEntity}};
+use dimple_core::{model::{DimpleArtist, DimpleGenre, DimpleTrack, DimpleReleaseGroup, DimpleRelationContent, DimpleRelease}, library::{Library, LibraryEntity}};
 use dimple_librarian::librarian::{Librarian, self};
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle};
@@ -21,6 +21,19 @@ pub struct AppWindowController {
     ui: AppWindow,
     librarian: LibrarianHandle,
     // player: PlayerHandle,
+}
+
+impl Default for AppWindowController {
+    fn default() -> Self {
+        let ui = AppWindow::new().unwrap();
+        let librarian = Arc::new(Librarian::default());
+        // let player = Player::new(librarian.clone());
+        Self {
+            ui,
+            librarian,
+            // player,
+        }
+    }
 }
 
 impl AppWindowController {
@@ -44,7 +57,7 @@ impl AppWindowController {
     }
 
     fn navigate(url: slint::SharedString, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
-        // dbg!(&url);
+        dbg!(&url);
         // let url = Url::parse(&url);
         if url.starts_with("http") {
             opener::open_browser(url.to_string());
@@ -59,7 +72,10 @@ impl AppWindowController {
             Self::artists(librarian, ui);
         }
         else if url.starts_with("dimple://artists/") {
-            Self::artis_details(&url, librarian, ui);
+            Self::artist_details(&url, librarian, ui);
+        }
+        else if url.starts_with("dimple://release_groups/") {
+            Self::release_group_details(&url, librarian, ui);
         }
     }
 
@@ -75,7 +91,7 @@ impl AppWindowController {
         std::thread::spawn(move || {
             let query_str = url.split_at("dimple://search".len()).1;
             let mut search_results: Vec<LibraryEntity> = librarian.search(query_str).collect();
-            
+
             // Preload images
             // TODO is trash
             search_results
@@ -111,7 +127,7 @@ impl AppWindowController {
         });
     }
 
-    fn artis_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+    fn artist_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         let url = url.to_string();
         let ui = ui.clone();
         std::thread::spawn(move || {
@@ -122,6 +138,25 @@ impl AppWindowController {
                 ui.upgrade_in_event_loop(move |ui| {
                     ui.set_artist_details((librarian.as_ref(), artist).into());
                     ui.set_page(1)
+                }).unwrap();
+            }
+        });
+    }
+
+    fn release_group_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+        let url = url.to_string();
+        let ui = ui.clone();
+        std::thread::spawn(move || {
+            // TODO starting with this one, figure out the pattern for these functions
+            // I need to split this URL better, which means I should probably pass
+            // a parsed URL, and I need to get image loading and any significant
+            // processing into this thread and not the UI one.
+            let mbid = url.split_at("dimple://release_groups/".len()).1;
+            let query = DimpleReleaseGroup { id: mbid.to_string(), ..Default::default() };
+            if let Some(LibraryEntity::ReleaseGroup(rel)) = librarian.fetch(&LibraryEntity::ReleaseGroup(query)) {
+                ui.upgrade_in_event_loop(move |ui| {
+                    ui.set_release_group_details((librarian.as_ref(), rel).into());
+                    ui.set_page(2)
                 }).unwrap();
             }
         });
@@ -145,9 +180,10 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
             .par_iter()
             .flatten()
             .for_each(|f| {
-                lib.image(&LibraryEntity::Release(f.clone()));
+                lib.image(&LibraryEntity::ReleaseGroup(f.clone()));
             });
 
+        // TODO sort
         let albums: Vec<CardModel> = value.release_groups
             .iter()
             .flatten()
@@ -192,7 +228,7 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
             .collect();
         ArtistDetailsModel {
             disambiguation: value.disambiguation.clone().into(),
-            bio: value.bio.clone().map(|b| b.value).unwrap_or("".to_string()).into(),
+            summary: value.summary.clone().map(|b| b.value).unwrap_or("".to_string()).into(),
             // TODO get rid of the card and pass the image(s) in higher res
             card: (lib, value).into(), 
             genres: ModelRc::from(genres.as_slice()),
@@ -204,15 +240,62 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
     }
 }
 
-impl Default for AppWindowController {
-    fn default() -> Self {
-        let ui = AppWindow::new().unwrap();
-        let librarian = Arc::new(Librarian::default());
-        // let player = Player::new(librarian.clone());
-        Self {
-            ui,
-            librarian,
-            // player,
+impl From<(&Librarian, DimpleReleaseGroup)> for ReleaseGroupDetailsModel {
+    fn from((lib, value): (&Librarian, DimpleReleaseGroup)) -> Self {
+        let genres: Vec<Link> = value.genres
+            .iter()
+            .flatten()
+            .map(|genre| Link {
+                name: genre.name.clone().into(),
+                ..Default::default()
+            })
+            .collect();
+
+        // Preload images
+        // TODO is trash
+        // value.releases
+        //     .par_iter()
+        //     .flatten()
+        //     .for_each(|f| {
+        //         lib.image(&LibraryEntity::ReleaseGroup(f.clone()));
+        //     });
+
+        // TODO sort
+        let releases: Vec<CardModel> = value.releases
+            .iter()
+            .flatten()
+            .map(|rel| rel.to_owned())
+            // .filter(|rel| rel.primary_type == "Album")
+            .map(|rel| (lib, rel.clone()).into())
+            .collect();
+
+
+        // TODO raw links are temporary
+        let links: Vec<Link> = value.relations
+            .iter()
+            .flatten()
+            .map(|rel| rel.to_owned())
+            .filter_map(|rel| match rel.content {
+                DimpleRelationContent::Url(url) => Some(url),
+                _ => None,
+            })
+            .map(|url| Link {
+                name: url.resource.clone().into(),
+                url: url.resource.clone().into(),
+            })
+            .chain(std::iter::once(Link { 
+                name: format!("https://musicbrainz.org/release-group/{}", value.id).into(),
+                url: format!("https://musicbrainz.org/release-group/{}", value.id).into(),
+            }))
+            .collect();
+        ReleaseGroupDetailsModel {
+            disambiguation: value.disambiguation.clone().into(),
+            summary: value.summary.clone().map(|b| b.value).unwrap_or("".to_string()).into(),
+            // TODO get rid of the card and pass the image(s) in higher res
+            card: (lib, value).into(), 
+            genres: ModelRc::from(genres.as_slice()),
+            releases: ModelRc::from(releases.as_slice()),
+            links: ModelRc::from(links.as_slice()),
         }
     }
 }
@@ -221,9 +304,10 @@ impl From<(&Librarian, LibraryEntity)> for CardModel {
     fn from((librarian, value): (&Librarian, LibraryEntity)) -> Self {
         match value {
             LibraryEntity::Artist(artist) => (librarian, artist).into(),
+            LibraryEntity::ReleaseGroup(release_group) => (librarian, release_group).into(),
+            LibraryEntity::Release(release) => (librarian, release).into(),
             LibraryEntity::Genre(genre) => genre.into(),
             LibraryEntity::Track(track) => track.into(),
-            LibraryEntity::Release(release) => (librarian, release).into(),
         }
     }
 }
@@ -252,12 +336,35 @@ impl From<(&Librarian, DimpleArtist)> for CardModel {
 }
 
 impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
-    fn from((lib, release): (&Librarian, DimpleReleaseGroup)) -> Self {
+    fn from((lib, release_group): (&Librarian, DimpleReleaseGroup)) -> Self {
+        let ent = LibraryEntity::ReleaseGroup(release_group.clone());
+        CardModel {
+            title: Link { 
+                name: release_group.title.clone().into(), 
+                url: format!("dimple://release_groups/{}", release_group.id.clone()).into() 
+            },
+            sub_title: [
+                Link { 
+                    name: release_group.first_release_date.into(),
+                    url: "".into() 
+                }
+            ].into(),
+            image: ImageLink { 
+                image: thumbnail(lib, &ent, 200, 200), 
+                name: release_group.title.clone().into(), 
+                url: format!("dimple://release_groups/{}", release_group.id.clone()).into() 
+            },
+        }
+    }
+}
+
+impl From<(&Librarian, DimpleRelease)> for CardModel {
+    fn from((lib, release): (&Librarian, DimpleRelease)) -> Self {
         let ent = LibraryEntity::Release(release.clone());
         CardModel {
             title: Link { 
                 name: release.title.clone().into(), 
-                url: format!("dimple://releases/{}", release.id.clone()).into() 
+                url: format!("dimple://release/{}", release.id.clone()).into() 
             },
             sub_title: [
                 Link { 
@@ -266,9 +373,9 @@ impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
                 }
             ].into(),
             image: ImageLink { 
-                image: thumbnail(lib, &ent, 500, 500), 
+                image: thumbnail(lib, &ent, 200, 200), 
                 name: release.title.clone().into(), 
-                url: format!("dimple://releases/{}", release.id.clone()).into() 
+                url: format!("dimple://release/{}", release.id.clone()).into() 
             },
         }
     }

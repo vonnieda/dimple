@@ -55,8 +55,9 @@ impl Library for FanartTvLibrary {
                 let bytes = thumb_resp.bytes().ok()?;
                 image::load_from_memory(&bytes).ok()
             }
+            // Seems like it only supports artists by mbid
             LibraryEntity::Genre(_) => None,
-            // TODO seems like it only supports artists by mbid
+            LibraryEntity::ReleaseGroup(_) => None,
             LibraryEntity::Release(_) => None,
             LibraryEntity::Track(_) => None,
         }

@@ -13,9 +13,10 @@ export component NavBar inherits HorizontalBox {
         text: "Artists";
         clicked => { Navigator.navigate("dimple://artists"); }
     }
+    // TODO Albums, filtered, I think.
     Button {
         text: "Releases";
-        clicked => { Navigator.navigate("dimple://releases"); }
+        clicked => { Navigator.navigate("dimple://release_groups"); }
     }
     Button {
         text: "Genres";

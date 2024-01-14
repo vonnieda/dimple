@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+// TODO feels more like attributed things are their own objects.
+
 /// References
 /// https://musicbrainz.org/doc/Artist
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
@@ -9,17 +11,51 @@ pub struct DimpleArtist {
     pub id: String,
     pub name: String,
     pub disambiguation: String,
-    // TODO feels more like attributed things are their own objects.
-    pub bio: Option<Attributed<String>>,
-
-    // TODO do we actually need options here?
-    // One benefit is it's easier to serde smaller objects.
-    // But an empty vec is nothing
-    // And also, I think I'd generally treat and empty vec and a
-    // None the same, so why add the additional bs?
+    pub summary: Option<Attributed<String>>,
     pub release_groups: Option<Vec<DimpleReleaseGroup>>,
+    pub releases: Option<Vec<DimpleRelease>>,
     pub relations: Option<Vec<DimpleRelation>>,
     pub genres: Option<Vec<DimpleGenre>>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[serde(default)]
+pub struct DimpleReleaseGroup {
+    pub id: String,
+    pub title: String,
+    pub disambiguation: String,
+    pub summary: Option<Attributed<String>>,
+    pub primary_type: String,
+    pub first_release_date: String,
+    pub relations: Option<Vec<DimpleRelation>>,
+    pub genres: Option<Vec<DimpleGenre>>,
+    pub releases: Option<Vec<DimpleRelease>>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[serde(default)]
+pub struct DimpleRelease {
+    pub id: String,
+    pub title: String,
+    pub disambiguation: String,
+    pub summary: Option<Attributed<String>>,
+    pub primary_type: String,
+    pub first_release_date: String,
+    pub relations: Option<Vec<DimpleRelation>>,
+    pub genres: Option<Vec<DimpleGenre>>,
+    // pub releases: Option<Vec<DimpleReleaseGroup>>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+pub struct DimpleGenre {
+    // pub id: String,
+    pub name: String,
+    pub count: u32,
+    pub description: Option<Attributed<String>>,
+}
+
+#[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
+pub struct DimpleTrack {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -38,27 +74,6 @@ pub struct DimpleUrl {
     pub resource: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleGenre {
-    // pub id: String,
-    pub name: String,
-    pub count: u32,
-    pub description: Option<Attributed<String>>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-#[serde(default)]
-pub struct DimpleReleaseGroup {
-    pub id: String,
-    pub title: String,
-    pub primary_type: String,
-    pub first_release_date: String,
-}
-
-#[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
-pub struct DimpleTrack {
-}
-
 /// An attribution for a piece of data. Indicates where the data was sourced,
 /// who owns it, and under what license it is being used.
 /// DimpleAttribution {
@@ -67,16 +82,13 @@ pub struct DimpleTrack {
 ///     license: "CC-BY-SA"
 ///     copyright_holder: "WikiCommons"
 /// }
+/// TODO just move all this into the Attributed
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleAttribution {
+pub struct Attributed<T> {
+    pub value: T,
+
     pub text: String,
     pub url: String,
     pub license: String,
     pub copyright_holder: String,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct Attributed<T> {
-    pub value: T,
-    pub attribution: DimpleAttribution,
 }

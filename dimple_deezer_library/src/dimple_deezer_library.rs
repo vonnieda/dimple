@@ -78,6 +78,7 @@ impl Library for DeezerLibrary {
                 None
             },
             LibraryEntity::Genre(_) => None,
+            LibraryEntity::ReleaseGroup(_) => None,
             LibraryEntity::Release(_) => None,
             LibraryEntity::Track(_) => None,           
         }

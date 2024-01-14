@@ -1,13 +1,14 @@
 use colored::Colorize;
 
-use crate::model::{DimpleReleaseGroup, DimpleTrack, DimpleArtist, DimpleGenre};
+use crate::model::{DimpleReleaseGroup, DimpleTrack, DimpleArtist, DimpleGenre, DimpleRelease};
 
 // TODO I think this enum's time is up. Replace with Traits.
 #[derive(Clone, Debug)]
 pub enum LibraryEntity {
     Artist(DimpleArtist),
     Genre(DimpleGenre),
-    Release(DimpleReleaseGroup),
+    ReleaseGroup(DimpleReleaseGroup),
+    Release(DimpleRelease),
     Track(DimpleTrack),
 }
 
@@ -15,8 +16,9 @@ impl LibraryEntity {
     pub fn mbid(&self) -> String {
         match self {
             LibraryEntity::Artist(a) => a.id.clone(),
-            LibraryEntity::Genre(_) => todo!(),
+            LibraryEntity::ReleaseGroup(r) => r.id.clone(),
             LibraryEntity::Release(r) => r.id.clone(),
+            LibraryEntity::Genre(_) => todo!(),
             LibraryEntity::Track(_) => todo!(),
         }
     }
@@ -24,8 +26,9 @@ impl LibraryEntity {
     pub fn name(&self) -> String {
         match self {
             LibraryEntity::Artist(a) => a.name.clone(),
-            LibraryEntity::Genre(_) => todo!(),
+            LibraryEntity::ReleaseGroup(r) => r.title.clone(),
             LibraryEntity::Release(r) => r.title.clone(),
+            LibraryEntity::Genre(_) => todo!(),
             LibraryEntity::Track(_) => todo!(),
         }
     }

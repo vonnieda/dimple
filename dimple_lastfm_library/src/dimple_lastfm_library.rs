@@ -24,15 +24,8 @@ impl Library for LastFmLibrary {
         Box::new(vec![].into_iter())
     }
 
+    // reqwest::blocking::get("http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=Cher&api_key=YOUR_API_KEY&format=json")
     fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
-        match entity {
-            LibraryEntity::Artist(a) => {
-                // reqwest::blocking::get("http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=Cher&api_key=YOUR_API_KEY&format=json")
-                None
-            }
-            LibraryEntity::Genre(_) => None,
-            LibraryEntity::Release(_) => None,
-            LibraryEntity::Track(_) => None,
-        }
+        None
     }
 }
