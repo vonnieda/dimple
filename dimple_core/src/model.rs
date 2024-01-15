@@ -30,6 +30,7 @@ pub struct DimpleReleaseGroup {
     pub relations: Option<Vec<DimpleRelation>>,
     pub genres: Option<Vec<DimpleGenre>>,
     pub releases: Option<Vec<DimpleRelease>>,
+    pub artists: Option<Vec<DimpleArtist>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]

@@ -71,10 +71,10 @@ impl AppWindowController {
         else if url == "dimple://artists" {
             Self::artists(librarian, ui);
         }
-        else if url.starts_with("dimple://artists/") {
+        else if url.starts_with("dimple://artist/") {
             Self::artist_details(&url, librarian, ui);
         }
-        else if url.starts_with("dimple://release_groups/") {
+        else if url.starts_with("dimple://release-group/") {
             Self::release_group_details(&url, librarian, ui);
         }
     }
@@ -94,11 +94,11 @@ impl AppWindowController {
 
             // Preload images
             // TODO is trash
-            // search_results
-            //     .par_iter()
-            //     .for_each(|f| {
-            //         librarian.image(f);
-            //     });
+            search_results
+                .par_iter()
+                .for_each(|f| {
+                    librarian.image(f);
+                });
 
             search_results.sort_by_key(|e| e.name().to_lowercase());
             ui.upgrade_in_event_loop(move |ui| {
@@ -132,7 +132,7 @@ impl AppWindowController {
         let ui = ui.clone();
         std::thread::spawn(move || {
             // TODO ew
-            let mbid = url.split_at("dimple://artists/".len()).1;
+            let mbid = url.split_at("dimple://artist/".len()).1;
             let query = DimpleArtist { id: mbid.to_string(), ..Default::default() };
             if let Some(LibraryEntity::Artist(artist)) = librarian.fetch(&LibraryEntity::Artist(query)) {
                 ui.upgrade_in_event_loop(move |ui| {
@@ -151,7 +151,7 @@ impl AppWindowController {
             // I need to split this URL better, which means I should probably pass
             // a parsed URL, and I need to get image loading and any significant
             // processing into this thread and not the UI one.
-            let mbid = url.split_at("dimple://release_groups/".len()).1;
+            let mbid = url.split_at("dimple://release-group/".len()).1;
             let query = DimpleReleaseGroup { id: mbid.to_string(), ..Default::default() };
             if let Some(LibraryEntity::ReleaseGroup(rel)) = librarian.fetch(&LibraryEntity::ReleaseGroup(query)) {
                 ui.upgrade_in_event_loop(move |ui| {
@@ -170,7 +170,7 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
             .flatten()
             .map(|genre| Link {
                 name: genre.name.clone().into(),
-                ..Default::default()
+                url: format!("dimple://genre/{}", genre.name).into(),
             })
             .collect();
 
@@ -247,7 +247,16 @@ impl From<(&Librarian, DimpleReleaseGroup)> for ReleaseGroupDetailsModel {
             .flatten()
             .map(|genre| Link {
                 name: genre.name.clone().into(),
-                ..Default::default()
+                url: format!("dimple://genre/{}", genre.name).into(),
+            })
+            .collect();
+
+        let artists: Vec<Link> = value.artists
+            .iter()
+            .flatten()
+            .map(|artist| Link {
+                name: artist.name.clone().into(),
+                url: format!("dimple://artist/{}", artist.id).into(),
             })
             .collect();
 
@@ -292,10 +301,12 @@ impl From<(&Librarian, DimpleReleaseGroup)> for ReleaseGroupDetailsModel {
             disambiguation: value.disambiguation.clone().into(),
             summary: value.summary.clone().map(|b| b.value).unwrap_or("".to_string()).into(),
             // TODO get rid of the card and pass the image(s) in higher res
-            card: (lib, value).into(), 
+            card: (lib, value.clone()).into(), 
             genres: ModelRc::from(genres.as_slice()),
             releases: ModelRc::from(releases.as_slice()),
             links: ModelRc::from(links.as_slice()),
+            primary_type: value.primary_type.clone().into(),
+            artists: ModelRc::from(artists.as_slice()),
         }
     }
 }
@@ -318,7 +329,7 @@ impl From<(&Librarian, DimpleArtist)> for CardModel {
         CardModel {
             title: Link { 
                 name: artist.name.clone().into(), 
-                url: format!("dimple://artists/{}", &artist.id).into() 
+                url: format!("dimple://artist/{}", &artist.id).into() 
             },
             sub_title: [
                 Link { 
@@ -329,7 +340,7 @@ impl From<(&Librarian, DimpleArtist)> for CardModel {
             image: ImageLink { 
                 image: thumbnail(library, &ent, 500, 500), 
                 name: artist.name.clone().into(), 
-                url: format!("dimple://artists/{}", &artist.id).into() 
+                url: format!("dimple://artist/{}", &artist.id).into() 
             },
         }
     }
@@ -341,7 +352,7 @@ impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
         CardModel {
             title: Link { 
                 name: release_group.title.clone().into(), 
-                url: format!("dimple://release_groups/{}", release_group.id.clone()).into() 
+                url: format!("dimple://release-group/{}", release_group.id.clone()).into() 
             },
             sub_title: [
                 Link { 
@@ -352,7 +363,7 @@ impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
             image: ImageLink { 
                 image: thumbnail(lib, &ent, 200, 200), 
                 name: release_group.title.clone().into(), 
-                url: format!("dimple://release_groups/{}", release_group.id.clone()).into() 
+                url: format!("dimple://release-group/{}", release_group.id.clone()).into() 
             },
         }
     }

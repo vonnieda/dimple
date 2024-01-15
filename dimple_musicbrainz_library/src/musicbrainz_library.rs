@@ -100,7 +100,6 @@ impl Library for MusicBrainzLibrary {
                     .with_tags()
                     .with_url_relations()
                     .execute()
-                    // TODO I guess just throwing away the errors was bad.
                     .inspect_err(|f| log::error!("{}", f))
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
