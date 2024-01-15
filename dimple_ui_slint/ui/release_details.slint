@@ -1,0 +1,130 @@
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { Palette, Link, Navigator, Links , Linnk} from "common.slint";
+import { CardModel } from "card.slint";
+import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
+import { CardGrid } from "card_grid.slint";
+
+export struct ReleaseDetailsModel {
+    card: CardModel,
+    disambiguation: string,
+    summary: string,
+    genres: [Link],
+    // releases: [CardModel],
+    links: [Link],
+    primary_type: string,
+    artists: [Link],
+}
+
+export component ReleaseDetails inherits ScrollView {
+    VerticalBox {
+        alignment: start;
+        spacing: StyleMetrics.layout-spacing * 2;
+        // Header
+        HorizontalLayout {
+            alignment: start;
+            spacing: StyleMetrics.layout-spacing;
+            Rectangle {
+                width: Palette.thumbnail-width-extra-large;
+                height: Palette.thumbnail-width-extra-large;
+                border-radius: Palette.thumbnail-border-radius;
+                border-color: Palette.thumbnail-border-color;
+                border-width: Palette.thumbnail-border-width;
+                clip: true;
+                Image {
+                    width: Palette.thumbnail-width-extra-large;
+                    height: Palette.thumbnail-width-extra-large;
+                    source: model.card.image.image;
+                }
+            }
+            VerticalBox {
+                alignment: start;
+                Text {
+                    text: model.card.title.name;
+                    font-weight: Palette.font-weight-bold;
+                    font-size: 4rem;
+                }
+                if model.artists.length > 0: HorizontalLayout {
+                    alignment: start;
+                    Text {
+                        text: "Release by ";
+                        font-size: 1.3rem;
+                    }
+                    Links {
+                        links: model.artists;
+                    }
+                }
+                if model.genres.length > 0: HorizontalLayout {
+                    alignment: start;
+                    Text {
+                        text: "In ";
+                        font-size: 1.3rem;
+                    }    
+                    Links {
+                        links: model.genres;
+                    }
+                }
+                Text {
+                    text: model.summary;
+                    wrap: word-wrap;
+                    font-size: 1.2rem;
+                }
+            }
+        }
+
+        // // Releases
+        // if model.releases.length > 0: VerticalLayout {
+        //     Text {
+        //         text: "Releases";
+        //         font-weight: Palette.font-weight-bold;
+        //         font-size: 2rem;
+        //     }
+        //     CardGrid {
+        //         cards: model.releases;
+        //         parent-width: root.width;
+        //     }
+        // }
+
+        // Links
+        if model.links.length > 0: VerticalLayout {
+            Text {
+                text: "Links";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            for link in model.links: Linnk {
+                url: link.url;
+                name: link.name;
+            }
+        }
+    }
+
+    in property <ReleaseDetailsModel> model: {
+        card: {
+            image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+            title: {name: "A Reign of Fish",url: "internal://release/1234"},
+            sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
+        },
+        disambiguation: "regular kind",
+        summary: "I swear it thwernt but 784 years ago when they came. I tell ya, they were glorious. The regular kind, you see? Not them fancy ones. The common ones. Common as muck my ma said! But when they came walkin in you knew it. Shit, everyone knew it. I know Kenny knew it, cause when they come walkin in Kenny stood up, pointed, shit his pants and passed out on the floor. Now, like I said, these're the regular ones, not the diamond ones, so you get it, but still. And I suppose it's fair to mention that Kenny'd had about half a bottle of something so who knews if it were the liquor or not. Anyway, really nice folks. Good music too.",
+        genres: [ {name: "fish jazz",url: "internal://release/1234"} ],
+        artists: [ 
+            { name: "Shield Fish", url: "internal://release/1234" }, 
+            { name: "Zim Babwe", url: "internal://release/1234" }, 
+            { name: "Vic Toria", url: "internal://release/1234" }, 
+        ],
+        primary-type: "Album",
+    };
+}
+
+
+
+// export struct ReleaseGroupDetailsModel {
+//     card: CardModel,
+//     disambiguation: string,
+//     summary: string,
+//     genres: [Link],
+//     releases: [CardModel],
+//     links: [Link],
+//     primary_type: string,
+//     artists: [Link],
+// }

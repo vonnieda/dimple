@@ -1,7 +1,8 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-// TODO feels more like attributed things are their own objects.
+// TODO feels more like attributed things are their own objects and not fields
+// on structs that may also be attributed.
 
 /// References
 /// https://musicbrainz.org/doc/Artist
@@ -44,11 +45,19 @@ pub struct DimpleRelease {
     pub title: String,
     pub disambiguation: String,
     pub summary: Option<Attributed<String>>,
-    pub primary_type: String,
-    pub first_release_date: String,
+    // pub primary_type: String,
+    // pub first_release_date: String,
     pub relations: Option<Vec<DimpleRelation>>,
     pub genres: Option<Vec<DimpleGenre>>,
-    // pub releases: Option<Vec<DimpleReleaseGroup>>,
+    pub artists: Option<Vec<DimpleArtist>>,
+    pub status: String,
+    pub date: String,
+    pub packaging: String,
+    pub country: String,
+    pub barcode: String,
+    pub asin: String,
+    #[serde(default)]
+    pub fetched: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]

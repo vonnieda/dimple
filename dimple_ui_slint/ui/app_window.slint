@@ -29,6 +29,7 @@ import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 import { ReleaseGroupDetails } from "release_group_details.slint";
+import { ReleaseDetails, ReleaseDetailsModel } from "release_details.slint";
 
 export { Navigator, Link, ImageLink, CardModel }
 
@@ -39,6 +40,7 @@ export component AppWindow inherits Window {
     in-out property <[CardModel]> card-grid-cards;
     in-out property <ArtistDetailsModel> artist-details;
     in-out property <ReleaseGroupDetailsModel> release-group-details;
+    in-out property <ReleaseDetailsModel> release-details;
     
     title: "Dimple";
     preferred-width: 1440px;
@@ -79,6 +81,13 @@ export component AppWindow inherits Window {
             ReleaseGroupDetails {  
                 vertical-stretch: 1;
                 model: root.release-group-details;
+            }                
+        }
+        if page == 3: GroupBox {
+            vertical-stretch: 1;
+            ReleaseDetails {  
+                vertical-stretch: 1;
+                model: root.release-details;
             }                
         }
         GroupBox {

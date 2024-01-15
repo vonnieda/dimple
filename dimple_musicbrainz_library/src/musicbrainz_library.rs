@@ -105,8 +105,34 @@ impl Library for MusicBrainzLibrary {
                     .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| DimpleReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
                     .map(LibraryEntity::ReleaseGroup)        
-            }
-            LibraryEntity::Release(_) => None,
+            },
+            LibraryEntity::Release(r) => {
+                LibrarySupport::log_request(self, 
+                    &format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.id));
+                Release::fetch()
+                    .id(&r.id)
+                    .with_aliases()
+                    .with_annotations()
+                    .with_artist_credits()
+                    // .with_artist_relations()
+                    .with_artists()
+                    .with_genres()
+                    .with_labels()
+                    .with_ratings()
+                    // .with_recording_level_relations()
+                    .with_recordings()
+                    .with_release_groups()
+                    .with_tags()
+                    .with_url_relations()
+                    // .with_work_level_relations()
+                    // .with_work_relations()
+                    .execute()
+                    .inspect_err(|f| log::error!("{}", f))
+                    .ok()
+                    .inspect(|src| log::debug!("{:?}", src))
+                    .map(|src| DimpleRelease::from(ReleaseConverter::from(src.clone())))
+                    .map(LibraryEntity::Release)        
+            },
             LibraryEntity::Genre(_) => None,
             LibraryEntity::Track(_) => None,
         }        
@@ -128,7 +154,37 @@ impl Library for MusicBrainzLibrary {
                     .ok()
                     .map(|resp| self.get_coverart(resp))?
             },
-            LibraryEntity::Release(r) => None,
+            LibraryEntity::Release(r) => {
+                LibrarySupport::log_request(self, 
+                    &format!("http://coverartarchive.org/{}", r.id));                
+                let mb = Release {
+                    id: r.id.to_string(),
+                    aliases: None,
+                    annotation:  None,
+                    artist_credit: None,
+                    barcode: None,
+                    country: None,
+                    date: None,
+                    disambiguation: None,
+                    genres: None,
+                    label_info: None,
+                    title: "".to_string(),
+                    status_id: None,
+                    status: None,
+                    quality: None,
+                    packaging_id: None,
+                    packaging: None,
+                    relations: None,
+                    release_group: None,
+                    media: None,
+                    tags: None,
+                };
+                mb.get_coverart()
+                    .front()
+                    .execute()
+                    .ok()
+                    .map(|resp| self.get_coverart(resp))?
+            },
             LibraryEntity::Artist(_) => None,
             LibraryEntity::Genre(_) => None,
             LibraryEntity::Track(_) => None,
@@ -234,6 +290,10 @@ impl From<ReleaseConverter> for dimple_core::model::DimpleRelease {
         dimple_core::model::DimpleRelease {
             id: value.0.id,
             title: value.0.title,
+            country: value.0.country.unwrap_or("".to_string()),
+            date: value.0.date.map(|f| f.to_string()).unwrap_or("".to_string()),
+            barcode: value.0.barcode.map(|f| f.to_string()).unwrap_or("".to_string()),
+            status: value.0.status.map(|f| format!("{:?}", f)).unwrap_or("".to_string()),
             // primary_type: value.0.primary_type.map(|f| format!("{:?}", f)).unwrap_or("".to_string()),
             // first_release_date: value.0.first_release_date.map(|f| f.to_string()).unwrap_or("".to_string()),
             // TODO this is always going to be Some even if there are None
@@ -241,6 +301,17 @@ impl From<ReleaseConverter> for dimple_core::model::DimpleRelease {
                 .flatten()
                 .map(|f| f.to_owned())
                 .map(|f| DimpleGenre::from(GenreConverter::from(f)))
+                .collect()),
+            artists: Some(value.0.artist_credit.iter()
+                .flatten()
+                .map(|f| f.to_owned())
+                .map(|f| {
+                    DimpleArtist {
+                        id: f.artist.id,
+                        name: f.name,
+                        ..Default::default()
+                    }
+                })
                 .collect()),
             // releases: Some(value.0.releases.iter()
             //     .flatten()

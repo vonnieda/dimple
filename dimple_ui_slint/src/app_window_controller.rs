@@ -77,6 +77,9 @@ impl AppWindowController {
         else if url.starts_with("dimple://release-group/") {
             Self::release_group_details(&url, librarian, ui);
         }
+        else if url.starts_with("dimple://release/") {
+            Self::release_details(&url, librarian, ui);
+        }
     }
 
     fn home(ui: slint::Weak<AppWindow>) {
@@ -171,6 +174,21 @@ impl AppWindowController {
                 ui.upgrade_in_event_loop(move |ui| {
                     ui.set_release_group_details((librarian.as_ref(), rel).into());
                     ui.set_page(2)
+                }).unwrap();
+            }
+        });
+    }
+
+    fn release_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+        let url = url.to_string();
+        let ui = ui.clone();
+        std::thread::spawn(move || {
+            let mbid = url.split_at("dimple://release/".len()).1;
+            let query = DimpleRelease { id: mbid.to_string(), ..Default::default() };
+            if let Some(LibraryEntity::Release(rel)) = librarian.fetch(&LibraryEntity::Release(query)) {
+                ui.upgrade_in_event_loop(move |ui| {
+                    ui.set_release_details((librarian.as_ref(), rel).into());
+                    ui.set_page(3)
                 }).unwrap();
             }
         });
@@ -325,6 +343,58 @@ impl From<(&Librarian, DimpleReleaseGroup)> for ReleaseGroupDetailsModel {
     }
 }
 
+impl From<(&Librarian, DimpleRelease)> for ReleaseDetailsModel {
+    fn from((lib, value): (&Librarian, DimpleRelease)) -> Self {
+        let genres: Vec<Link> = value.genres
+            .iter()
+            .flatten()
+            .map(|genre| Link {
+                name: genre.name.clone().into(),
+                url: format!("dimple://genre/{}", genre.name).into(),
+            })
+            .collect();
+
+        let artists: Vec<Link> = value.artists
+            .iter()
+            .flatten()
+            .map(|artist| Link {
+                name: artist.name.clone().into(),
+                url: format!("dimple://artist/{}", artist.id).into(),
+            })
+            .collect();
+
+        // TODO raw links are temporary
+        let links: Vec<Link> = value.relations
+            .iter()
+            .flatten()
+            .map(|rel| rel.to_owned())
+            .filter_map(|rel| match rel.content {
+                DimpleRelationContent::Url(url) => Some(url),
+                _ => None,
+            })
+            .map(|url| Link {
+                name: url.resource.clone().into(),
+                url: url.resource.clone().into(),
+            })
+            .chain(std::iter::once(Link { 
+                name: format!("https://musicbrainz.org/release-group/{}", value.id).into(),
+                url: format!("https://musicbrainz.org/release-group/{}", value.id).into(),
+            }))
+            .collect();
+        ReleaseDetailsModel {
+            disambiguation: value.disambiguation.clone().into(),
+            summary: value.summary.clone().map(|b| b.value).unwrap_or("".to_string()).into(),
+            // TODO get rid of the card and pass the image(s) in higher res
+            card: (lib, value.clone()).into(), 
+            genres: ModelRc::from(genres.as_slice()),
+            // releases: ModelRc::from(releases.as_slice()),
+            links: ModelRc::from(links.as_slice()),
+            primary_type: "".to_string().into(),
+            artists: ModelRc::from(artists.as_slice()),
+        }
+    }
+}
+
 impl From<(&Librarian, LibraryEntity)> for CardModel {
     fn from((librarian, value): (&Librarian, LibraryEntity)) -> Self {
         match value {
@@ -370,7 +440,7 @@ impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
             },
             sub_title: [
                 Link { 
-                    name: release_group.first_release_date.into(),
+                    name: format!("{} {}", release_group.first_release_date, release_group.primary_type).into(),
                     url: "".into() 
                 }
             ].into(),
@@ -386,14 +456,20 @@ impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
 impl From<(&Librarian, DimpleRelease)> for CardModel {
     fn from((lib, release): (&Librarian, DimpleRelease)) -> Self {
         let ent = LibraryEntity::Release(release.clone());
+        // TODO 
+        // let format = release.media[0].format
+        let format = "CD";
         CardModel {
             title: Link { 
-                name: release.title.clone().into(), 
+                // TODO this looks nice on release groups but fucks up on
+                // release details. It's time to put these converters away
+                // and use some rendering functions.
+                name: format!("{}", format).into(), 
                 url: format!("dimple://release/{}", release.id.clone()).into() 
             },
             sub_title: [
                 Link { 
-                    name: release.first_release_date.into(),
+                    name: format!("{} {}", release.country, release.date).into(),
                     url: "".into() 
                 }
             ].into(),

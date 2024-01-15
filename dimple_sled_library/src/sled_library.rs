@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::{DimpleArtist, DimpleReleaseGroup}};
+use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease}};
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
@@ -16,6 +16,7 @@ pub struct SledLibrary {
     name: String,
     artists: Tree,
     release_groups: Tree,
+    releases: Tree,
     pub images: ImageCache,
     _audio: Tree,
 }
@@ -31,6 +32,7 @@ impl SledLibrary {
         // TODO magic root path, and remove ulid?
         let db = sled::open(format!("data/{}", ulid)).unwrap();
         let release_groups = db.open_tree("release_groups").unwrap();
+        let releases = db.open_tree("releases").unwrap();
         let images = db.open_tree("images").unwrap();
         let audio = db.open_tree("audio").unwrap();
         let artists = db.open_tree("artists").unwrap();
@@ -38,6 +40,7 @@ impl SledLibrary {
             _ulid: String::from(ulid),
             name: String::from(name),
             release_groups,
+            releases,
             artists,
             images: ImageCache::new(images),
             _audio: audio,
@@ -56,7 +59,7 @@ impl SledLibrary {
 
     pub fn set_artist(&self, a: &DimpleArtist) {
         assert!(!a.id.is_empty());
-        serde_json::to_string_pretty(a)
+        serde_json::to_string(a)
             .map(|json| {
                 self.artists.insert(a.id.to_string(), &*json).unwrap()
             })
@@ -73,11 +76,30 @@ impl SledLibrary {
             })
     }
 
+    fn get_release(&self, mbid: &str) -> Option<DimpleRelease> {
+        assert!(!mbid.is_empty());
+        self.releases.get(mbid).ok()?
+            .and_then(|v| {
+                let bytes = v.as_bytes();
+                let json: String = String::from_utf8(bytes.into()).unwrap();
+                serde_json::from_str(&json).unwrap()
+            })
+    }
+
     pub fn set_release_group(&self, a: &DimpleReleaseGroup) {
         assert!(!a.id.is_empty());
-        serde_json::to_string_pretty(a)
+        serde_json::to_string(a)
             .map(|json| {
                 self.release_groups.insert(a.id.to_string(), &*json).unwrap()
+            })
+            .unwrap();
+    }
+
+    pub fn set_release(&self, a: &DimpleRelease) {
+        assert!(!a.id.is_empty());
+        serde_json::to_string(a)
+            .map(|json| {
+                self.releases.insert(a.id.to_string(), &*json).unwrap()
             })
             .unwrap();
     }
@@ -126,7 +148,10 @@ impl Library for SledLibrary {
                 let r = self.get_release_group(&r.id)?;
                 Some(LibraryEntity::ReleaseGroup(r))
             },
-            LibraryEntity::Release(_) => todo!(),
+            LibraryEntity::Release(r) => {
+                let r = self.get_release(&r.id)?;
+                Some(LibraryEntity::Release(r))
+            },
             LibraryEntity::Genre(_) => todo!(),
             LibraryEntity::Track(_) => todo!(),
         }        

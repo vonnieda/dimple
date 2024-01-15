@@ -12,6 +12,21 @@ pub enum LibraryEntity {
     Track(DimpleTrack),
 }
 
+pub trait LibraryEntity2 {
+    fn id(&self) -> String;
+    fn name(&self) -> String;
+}
+
+impl LibraryEntity2 for DimpleArtist {
+    fn id(&self) -> String {
+        self.id.clone()
+    }
+
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+}
+
 impl LibraryEntity {
     pub fn id(&self) -> String {
         match self {
@@ -38,7 +53,7 @@ impl LibraryEntity {
         match self {
             LibraryEntity::Artist(a) => a.fetched,
             LibraryEntity::ReleaseGroup(r) => r.fetched,
-            LibraryEntity::Release(r) => todo!(),
+            LibraryEntity::Release(r) => r.fetched,
             LibraryEntity::Genre(_) => todo!(),
             LibraryEntity::Track(_) => todo!(),
         }
