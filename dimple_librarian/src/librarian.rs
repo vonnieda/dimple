@@ -49,7 +49,7 @@ impl Librarian {
     }
 
     pub fn thumbnail(&self, entity: &LibraryEntity, width: u32, height: u32) -> Option<DynamicImage> {
-        self.local_library.images.get(&entity.mbid(), width, height)
+        self.local_library.images.get(&entity.id(), width, height)
             .or_else(|| {
                 self.image(entity).map(|dyn_image| {
                     self.local_library.set_image(entity, &dyn_image);
@@ -62,7 +62,7 @@ impl Librarian {
                 // "original" quality image.
                 self.local_library.set_image(entity, 
                     &self.generate_masterpiece(entity, 1000, 1000));
-                self.local_library.images.get(&entity.mbid(), width, height)
+                self.local_library.images.get(&entity.id(), width, height)
             })
     }
 }
@@ -183,6 +183,7 @@ impl Library for Librarian {
                         base.releases = merge_vec(base.releases, b.releases);
                         base.summary = base.summary.or(b.summary.clone());
                         base.title = longer(base.title, b.title);
+                        base.artists = merge_vec(base.artists, b.artists);
                     }
                     Some(LibraryEntity::ReleaseGroup(base))
                 },
@@ -190,9 +191,13 @@ impl Library for Librarian {
             }
         };
 
-        log::debug!("{} {} ({})", "Fetch".green(), entity.name().blue(), entity.mbid().yellow());        
+        log::debug!("{} {} ({})", "Fetch".green(), entity.name().blue(), entity.id().yellow());        
 
         let local_result: Option<LibraryEntity> = fetch_and_log(&self.local_library, entity);
+
+        if local_result.clone().is_some_and(|x| x.fetched()) {
+            return local_result;
+        }
 
         let query_result: &LibraryEntity = local_result.as_ref().unwrap_or(entity);
         
@@ -214,6 +219,21 @@ impl Library for Librarian {
         
         remote_results2.into_iter()
             .fold(None, merge)
+            .map(|f| {
+                match f {
+                    LibraryEntity::Artist(a) => {
+                        let mut a = a.clone();
+                        a.fetched = true;
+                        LibraryEntity::Artist(a)
+                    },
+                    LibraryEntity::ReleaseGroup(r) => {
+                        let mut r = r.clone();
+                        r.fetched = true;
+                        LibraryEntity::ReleaseGroup(r)
+                    },
+                    _ => todo!(),
+                }
+            })
             .map(store_and_log)
             .inspect(|f| {
                 log::debug!("{:?}", &f);
@@ -236,7 +256,7 @@ impl Library for Librarian {
             result
         };
 
-        log::debug!("{} {} ({})", "Image".magenta(), entity.name().blue(), entity.mbid().yellow());
+        log::debug!("{} {} ({})", "Image".magenta(), entity.name().blue(), entity.id().yellow());
         fetch_and_log(&self.local_library, entity)
             .or_else(|| {
                 self.libraries.read().ok()?.par_iter()

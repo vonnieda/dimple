@@ -16,6 +16,8 @@ pub struct DimpleArtist {
     pub releases: Option<Vec<DimpleRelease>>,
     pub relations: Option<Vec<DimpleRelation>>,
     pub genres: Option<Vec<DimpleGenre>>,
+    #[serde(default)]
+    pub fetched: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
@@ -31,6 +33,8 @@ pub struct DimpleReleaseGroup {
     pub genres: Option<Vec<DimpleGenre>>,
     pub releases: Option<Vec<DimpleRelease>>,
     pub artists: Option<Vec<DimpleArtist>>,
+    #[serde(default)]
+    pub fetched: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]

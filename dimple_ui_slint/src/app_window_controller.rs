@@ -97,7 +97,8 @@ impl AppWindowController {
             search_results
                 .par_iter()
                 .for_each(|f| {
-                    librarian.image(f);
+                    thumbnail(&librarian, f, 200, 200);
+                    thumbnail(&librarian, f, 275, 275);
                 });
 
             search_results.sort_by_key(|e| e.name().to_lowercase());
@@ -135,6 +136,17 @@ impl AppWindowController {
             let mbid = url.split_at("dimple://artist/".len()).1;
             let query = DimpleArtist { id: mbid.to_string(), ..Default::default() };
             if let Some(LibraryEntity::Artist(artist)) = librarian.fetch(&LibraryEntity::Artist(query)) {
+                // TODO preload images
+                // TODO is poop
+                artist.release_groups.iter()
+                    .par_bridge()
+                    .flatten()
+                    .for_each(|f| {
+                        let ent = LibraryEntity::ReleaseGroup(f.clone());
+                        thumbnail(&librarian, &ent, 200, 200);
+                        thumbnail(&librarian, &ent, 275, 275);
+                    });
+
                 ui.upgrade_in_event_loop(move |ui| {
                     ui.set_artist_details((librarian.as_ref(), artist).into());
                     ui.set_page(1)
@@ -151,6 +163,8 @@ impl AppWindowController {
             // I need to split this URL better, which means I should probably pass
             // a parsed URL, and I need to get image loading and any significant
             // processing into this thread and not the UI one.
+            // For image loading, I need to load the images in this thread and
+            // get the thumbs, and only pass the thumbs
             let mbid = url.split_at("dimple://release-group/".len()).1;
             let query = DimpleReleaseGroup { id: mbid.to_string(), ..Default::default() };
             if let Some(LibraryEntity::ReleaseGroup(rel)) = librarian.fetch(&LibraryEntity::ReleaseGroup(query)) {
@@ -324,7 +338,7 @@ impl From<(&Librarian, LibraryEntity)> for CardModel {
 }
 
 impl From<(&Librarian, DimpleArtist)> for CardModel {
-    fn from((library, artist): (&Librarian, DimpleArtist)) -> Self {
+    fn from((lib, artist): (&Librarian, DimpleArtist)) -> Self {
         let ent = LibraryEntity::Artist(artist.clone());
         CardModel {
             title: Link { 
@@ -338,7 +352,7 @@ impl From<(&Librarian, DimpleArtist)> for CardModel {
                 }
             ].into(),
             image: ImageLink { 
-                image: thumbnail(library, &ent, 500, 500), 
+                image: thumbnail(lib, &ent, 200, 200), 
                 name: artist.name.clone().into(), 
                 url: format!("dimple://artist/{}", &artist.id).into() 
             },

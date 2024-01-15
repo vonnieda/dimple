@@ -72,7 +72,7 @@ impl Library for DeezerLibrary {
                 a.relations?.clone().iter()
                     .for_each(|rel| {
                         if let DimpleRelationContent::Url(con) = &rel.content {
-                            dbg!(&con.resource);
+                            // dbg!(&con.resource);
                         }
                     });
                 None

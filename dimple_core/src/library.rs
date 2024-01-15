@@ -13,7 +13,7 @@ pub enum LibraryEntity {
 }
 
 impl LibraryEntity {
-    pub fn mbid(&self) -> String {
+    pub fn id(&self) -> String {
         match self {
             LibraryEntity::Artist(a) => a.id.clone(),
             LibraryEntity::ReleaseGroup(r) => r.id.clone(),
@@ -28,6 +28,17 @@ impl LibraryEntity {
             LibraryEntity::Artist(a) => a.name.clone(),
             LibraryEntity::ReleaseGroup(r) => r.title.clone(),
             LibraryEntity::Release(r) => r.title.clone(),
+            LibraryEntity::Genre(_) => todo!(),
+            LibraryEntity::Track(_) => todo!(),
+        }
+    }
+
+    // TODO this fetched thing is a hack. Need to come up with something better.
+    pub fn fetched(&self) -> bool {
+        match self {
+            LibraryEntity::Artist(a) => a.fetched,
+            LibraryEntity::ReleaseGroup(r) => r.fetched,
+            LibraryEntity::Release(r) => todo!(),
             LibraryEntity::Genre(_) => todo!(),
             LibraryEntity::Track(_) => todo!(),
         }

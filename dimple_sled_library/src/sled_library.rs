@@ -83,7 +83,7 @@ impl SledLibrary {
     }
 
     pub fn set_image(&self, entity: &LibraryEntity, dyn_image: &DynamicImage) {
-        self.images.insert(&entity.mbid(), dyn_image);
+        self.images.insert(&entity.id(), dyn_image);
     }
 }
 
@@ -133,6 +133,6 @@ impl Library for SledLibrary {
     }
 
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
-        self.images.get_original(&entity.mbid())
+        self.images.get_original(&entity.id())
     }
 }

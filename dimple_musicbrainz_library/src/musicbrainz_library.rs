@@ -205,6 +205,17 @@ impl From<ReleaseGroupConverter> for dimple_core::model::DimpleReleaseGroup {
                 .map(|f| f.to_owned())
                 .map(|f| DimpleRelation::from(RelationConverter::from(f)))
                 .collect()),
+            artists: Some(value.0.artist_credit.iter()
+                .flatten()
+                .map(|f| f.to_owned())
+                .map(|f| {
+                    DimpleArtist {
+                        id: f.artist.id,
+                        name: f.name,
+                        ..Default::default()
+                    }
+                })
+                .collect()),
             ..Default::default()
         }
     }
