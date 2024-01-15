@@ -94,11 +94,11 @@ impl AppWindowController {
 
             // Preload images
             // TODO is trash
-            search_results
-                .par_iter()
-                .for_each(|f| {
-                    librarian.image(f);
-                });
+            // search_results
+            //     .par_iter()
+            //     .for_each(|f| {
+            //         librarian.image(f);
+            //     });
 
             search_results.sort_by_key(|e| e.name().to_lowercase());
             ui.upgrade_in_event_loop(move |ui| {
@@ -177,7 +177,7 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
         // Preload images
         // TODO is trash
         value.release_groups
-            .par_iter()
+            .iter()
             .flatten()
             .for_each(|f| {
                 lib.image(&LibraryEntity::ReleaseGroup(f.clone()));

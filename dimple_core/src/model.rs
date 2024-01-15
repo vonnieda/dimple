@@ -82,7 +82,6 @@ pub struct DimpleUrl {
 ///     license: "CC-BY-SA"
 ///     copyright_holder: "WikiCommons"
 /// }
-/// TODO just move all this into the Attributed
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct Attributed<T> {
     pub value: T,

@@ -75,10 +75,10 @@ impl Library for MusicBrainzLibrary {
                     .with_genres()
                     .with_rating()
                     .with_tags()
-                    .with_releases()
                     .with_release_groups()
                     .with_url_relations()
                     .execute()
+                    .inspect_err(|f| log::error!("{}", f))
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| DimpleArtist::from(ArtistConverter::from(src.clone())))
@@ -86,7 +86,7 @@ impl Library for MusicBrainzLibrary {
             },
             LibraryEntity::ReleaseGroup(r) => {
                 LibrarySupport::log_request(self, 
-                    &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels&fmt=json", r.id));
+                    &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", r.id));
                 ReleaseGroup::fetch()
                     .id(&r.id)
                     .with_aliases()
@@ -94,12 +94,14 @@ impl Library for MusicBrainzLibrary {
                     .with_artists()
                     .with_genres()
                     .with_ratings()
-                    .with_release_group_relations()
+                    // .with_release_group_relations()
                     .with_releases()
-                    .with_series_relations()
+                    // .with_series_relations()
                     .with_tags()
                     .with_url_relations()
                     .execute()
+                    // TODO I guess just throwing away the errors was bad.
+                    .inspect_err(|f| log::error!("{}", f))
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| DimpleReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
@@ -151,7 +153,8 @@ impl From<ArtistConverter> for dimple_core::model::DimpleArtist {
             name: value.0.name,
             disambiguation: value.0.disambiguation,
             summary: None,
-            // TODO this is always going to be Some even if there are None
+            // TODO this is always going to be Some even if there are None,
+            // which can screw up merging. Don't have brain right now to fix.
             genres: Some(value.0.genres.iter()
                 .flatten()
                 .map(|f| f.to_owned())
