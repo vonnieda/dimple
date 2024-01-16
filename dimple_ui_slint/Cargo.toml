@@ -10,11 +10,10 @@ description = "Dimple is an open source, cross-platform music player that celebr
 
 [dependencies]
 log = "0.4.19"
-slint = "1.3.0"
+slint = { version = "1.3.0", default-features = true }
 env_logger = "0.10.0"
 dimple_core = { path = "../dimple_core" }
 # dimple_player = { path = "../dimple_player" }
-# dimple_sled_library = { path = "../dimple_sled_library" }
 # dimple_folder_library = { path = "../dimple_folder_library" }
 # dimple_navidrome_library = { path = "../dimple_navidrome_library" }
 # dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
@@ -25,10 +24,7 @@ dimple_fanart_tv_library = { path = "../dimple_fanart_tv_library" }
 dimple_wikidata_library = { path = "../dimple_wikidata_library" }
 dimple_librarian = { path = "../dimple_librarian" }
 serde = "1.0.175"
-config = "0.13.3"
 image = "0.24.6"
-num-complex = "0.4.3"
-rand = "0.8.5"
 url = "2.5.0"
 opener = "0.6.1"
 rayon = "1.8.0"

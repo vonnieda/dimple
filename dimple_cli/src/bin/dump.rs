@@ -1,36 +1,11 @@
-enum LibraryItem {
-    Artist(String),
-    Release(String),
-    Track(String),
-}
+use std::sync::Arc;
 
-trait Library {
-    fn name(&self) -> String;
-    fn search(&self) -> Box<dyn Iterator<Item = LibraryItem>>;
-}
+use dimple_librarian::librarian::Librarian;
 
-trait LibrarySearch {
-}
-
-#[derive(Default)]
-struct FileLibrary {
-
-}
-
-impl Library for FileLibrary {
-    fn name(&self) -> String {
-        "hi".to_string()
-    }
-
-    fn search(&self) -> Box<dyn Iterator<Item = LibraryItem>> {
-        let r: Vec<LibraryItem> = vec![];
-        Box::new(r.into_iter())
-    }
-}
-
+use directories::ProjectDirs;
 
 fn main() {
-    let lib: Box<dyn Library> = Box::new(FileLibrary::default());
-    lib.name();
-    lib.search();
+    let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
+    let dir = dirs.data_dir().to_str().unwrap();
+    let librarian = Arc::new(Librarian::new(dir));
 }

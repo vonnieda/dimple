@@ -50,8 +50,8 @@ impl Library for MusicBrainzLibrary {
 
         // TODO And releases, tracks, etc.
         let search_query = ArtistSearchQuery::query_builder()
-                .artist(&query)
-                .build();
+            .artist(&query)
+            .build();
         let results: Vec<LibraryEntity> = Artist::search(search_query)
             .execute().unwrap() // TODO error handling
             .entities
