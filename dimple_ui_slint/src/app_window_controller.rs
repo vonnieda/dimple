@@ -12,7 +12,6 @@ use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle};
 
 slint::include_modules!();
-
 use rayon::prelude::*;
 
 pub type LibrarianHandle = Arc<Librarian>;
@@ -23,10 +22,14 @@ pub struct AppWindowController {
     // player: PlayerHandle,
 }
 
+use directories::ProjectDirs;
+
 impl Default for AppWindowController {
     fn default() -> Self {
         let ui = AppWindow::new().unwrap();
-        let librarian = Arc::new(Librarian::default());
+        let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
+        let dir = dirs.data_dir().to_str().unwrap();
+        let librarian = Arc::new(Librarian::new(dir));
         // let player = Player::new(librarian.clone());
         Self {
             ui,
@@ -216,27 +219,39 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
             });
 
         // TODO sort
-        let albums: Vec<CardModel> = value.release_groups
+        let mut albums: Vec<_> = value.release_groups
             .iter()
             .flatten()
             .map(|rel| rel.to_owned())
-            .filter(|rel| rel.primary_type == "Album")
+            .filter(|rel| rel.primary_type.to_lowercase() == "album")
+            .collect();
+        albums.sort_by_key(|f| f.first_release_date.to_string());
+        albums.reverse();
+        let albums: Vec<_> = albums.iter()
             .map(|rel| (lib, rel.clone()).into())
             .collect();
 
-        let singles_and_eps: Vec<CardModel> = value.release_groups
+        let singles: Vec<CardModel> = value.release_groups
             .iter()
             .flatten()
             .map(|rel| rel.to_owned())
-            .filter(|rel| rel.primary_type == "Single" || rel.primary_type == "EP")
+            .filter(|rel| rel.primary_type.to_lowercase() == "single")
             .map(|rel| (lib, rel.clone()).into())
             .collect();
 
-        let other_releases: Vec<CardModel> = value.release_groups
+        let eps: Vec<CardModel> = value.release_groups
             .iter()
             .flatten()
             .map(|rel| rel.to_owned())
-            .filter(|rel| rel.primary_type != "Album" && rel.primary_type != "Single" && rel.primary_type == "EP")
+            .filter(|rel| rel.primary_type.to_lowercase() == "ep")
+            .map(|rel| (lib, rel.clone()).into())
+            .collect();
+
+        let others: Vec<CardModel> = value.release_groups
+            .iter()
+            .flatten()
+            .map(|rel| rel.to_owned())
+            .filter(|rel| rel.primary_type.to_lowercase() != "album" && rel.primary_type.to_lowercase() != "single" && rel.primary_type.to_lowercase() != "ep")
             .map(|rel| (lib, rel.clone()).into())
             .collect();
 
@@ -258,6 +273,9 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
                 url: format!("https://musicbrainz.org/artist/{}", value.id).into(),
             }))
             .collect();
+        // TODO think I'm not supposed to create new models every time. Not sure
+        // where I get their type then, like for VecModel.
+        // https://slint.dev/releases/1.3.2/docs/rust/slint/struct.SortModel
         ArtistDetailsModel {
             disambiguation: value.disambiguation.clone().into(),
             summary: value.summary.clone().map(|b| b.value).unwrap_or("".to_string()).into(),
@@ -265,8 +283,9 @@ impl From<(&Librarian, DimpleArtist)> for ArtistDetailsModel {
             card: (lib, value).into(), 
             genres: ModelRc::from(genres.as_slice()),
             albums: ModelRc::from(albums.as_slice()),
-            singles_and_eps: ModelRc::from(singles_and_eps.as_slice()),
-            other_releases: ModelRc::from(other_releases.as_slice()),
+            singles: ModelRc::from(singles.as_slice()),
+            eps: ModelRc::from(eps.as_slice()),
+            others: ModelRc::from(others.as_slice()),
             links: ModelRc::from(links.as_slice()),
         }
     }
@@ -377,8 +396,8 @@ impl From<(&Librarian, DimpleRelease)> for ReleaseDetailsModel {
                 url: url.resource.clone().into(),
             })
             .chain(std::iter::once(Link { 
-                name: format!("https://musicbrainz.org/release-group/{}", value.id).into(),
-                url: format!("https://musicbrainz.org/release-group/{}", value.id).into(),
+                name: format!("https://musicbrainz.org/release/{}", value.id).into(),
+                url: format!("https://musicbrainz.org/release/{}", value.id).into(),
             }))
             .collect();
         ReleaseDetailsModel {
@@ -387,10 +406,13 @@ impl From<(&Librarian, DimpleRelease)> for ReleaseDetailsModel {
             // TODO get rid of the card and pass the image(s) in higher res
             card: (lib, value.clone()).into(), 
             genres: ModelRc::from(genres.as_slice()),
-            // releases: ModelRc::from(releases.as_slice()),
             links: ModelRc::from(links.as_slice()),
-            primary_type: "".to_string().into(),
             artists: ModelRc::from(artists.as_slice()),
+            release_group: Link { 
+                name: value.release_group.clone().map(|f| f.title).unwrap_or("".to_string()).into(),
+                url: format!("dimple://release-group/{}", 
+                    value.release_group.map(|f| f.id).unwrap_or("".to_string())).into(),
+            },
         }
     }
 }
@@ -440,7 +462,7 @@ impl From<(&Librarian, DimpleReleaseGroup)> for CardModel {
             },
             sub_title: [
                 Link { 
-                    name: format!("{} {}", release_group.first_release_date, release_group.primary_type).into(),
+                    name: format!("{:.4} {}", release_group.first_release_date, release_group.primary_type).into(),
                     url: "".into() 
                 }
             ].into(),
@@ -461,15 +483,12 @@ impl From<(&Librarian, DimpleRelease)> for CardModel {
         let format = "CD";
         CardModel {
             title: Link { 
-                // TODO this looks nice on release groups but fucks up on
-                // release details. It's time to put these converters away
-                // and use some rendering functions.
-                name: format!("{}", format).into(), 
+                name: release.title.clone().into(), 
                 url: format!("dimple://release/{}", release.id.clone()).into() 
             },
             sub_title: [
                 Link { 
-                    name: format!("{} {}", release.country, release.date).into(),
+                    name: format!("{} {} {}", format, release.country, release.date).into(),
                     url: "".into() 
                 }
             ].into(),

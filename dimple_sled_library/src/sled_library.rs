@@ -12,8 +12,7 @@ use sled::Tree;
 /// the combined library from all the remotes. Object are serialized as JSON,
 /// media is stored raw.
 pub struct SledLibrary {
-    _ulid: String,
-    name: String,
+    path: String,
     artists: Tree,
     release_groups: Tree,
     releases: Tree,
@@ -23,22 +22,20 @@ pub struct SledLibrary {
 
 #[derive(Deserialize, Debug, Serialize)]
 pub struct SledLibraryConfig {
-    pub ulid: String,
-    pub name: String,
+    pub path: String,
 }
 
 impl SledLibrary {
-    pub fn new(ulid: &str, name: &str) -> Self {
+    pub fn new(path: &str) -> Self {
         // TODO magic root path, and remove ulid?
-        let db = sled::open(format!("data/{}", ulid)).unwrap();
+        let db = sled::open(path).unwrap();
         let release_groups = db.open_tree("release_groups").unwrap();
         let releases = db.open_tree("releases").unwrap();
         let images = db.open_tree("images").unwrap();
         let audio = db.open_tree("audio").unwrap();
         let artists = db.open_tree("artists").unwrap();
         Self { 
-            _ulid: String::from(ulid),
-            name: String::from(name),
+            path: path.to_string(),
             release_groups,
             releases,
             artists,
@@ -109,15 +106,9 @@ impl SledLibrary {
     }
 }
 
-impl From<SledLibraryConfig> for SledLibrary {
-    fn from(config: SledLibraryConfig) -> Self {
-        Self::new(&config.ulid, &config.name)
-    }
-}
-
 impl Library for SledLibrary {
     fn name(&self) -> String {
-        self.name.to_string()
+        format!("SledLibrary({})", self.path)
     }
 
     fn search(&self, _query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {

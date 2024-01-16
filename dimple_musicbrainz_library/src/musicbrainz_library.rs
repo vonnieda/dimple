@@ -36,8 +36,7 @@ impl MusicBrainzLibrary {
 }
 
 // TODO all of the log_requests below are semi made up cause I can't get the
-// real URL from the FetchQuery etc. I should at least change them to be correct
-// according to the API spec.
+// real URL from the FetchQuery etc.
 impl Library for MusicBrainzLibrary {
     fn name(&self) -> String {
         "MusicBrainz".to_string()
@@ -114,18 +113,14 @@ impl Library for MusicBrainzLibrary {
                     .with_aliases()
                     .with_annotations()
                     .with_artist_credits()
-                    // .with_artist_relations()
                     .with_artists()
                     .with_genres()
                     .with_labels()
                     .with_ratings()
-                    // .with_recording_level_relations()
                     .with_recordings()
                     .with_release_groups()
                     .with_tags()
                     .with_url_relations()
-                    // .with_work_level_relations()
-                    // .with_work_relations()
                     .execute()
                     .inspect_err(|f| log::error!("{}", f))
                     .ok()
@@ -245,9 +240,7 @@ impl From<ReleaseGroupConverter> for dimple_core::model::DimpleReleaseGroup {
             title: value.0.title,
             primary_type: value.0.primary_type.map(|f| format!("{:?}", f)).unwrap_or("".to_string()),
             first_release_date: value.0.first_release_date.map(|f| f.to_string()).unwrap_or("".to_string()),
-            // TODO this is always going to be Some even if there are None
-            genres: Some(value.0.genres.iter()
-                .flatten()
+            genres: value.0.genres.map(|f| f.iter()
                 .map(|f| f.to_owned())
                 .map(|f| DimpleGenre::from(GenreConverter::from(f)))
                 .collect()),
@@ -294,8 +287,6 @@ impl From<ReleaseConverter> for dimple_core::model::DimpleRelease {
             date: value.0.date.map(|f| f.to_string()).unwrap_or("".to_string()),
             barcode: value.0.barcode.map(|f| f.to_string()).unwrap_or("".to_string()),
             status: value.0.status.map(|f| format!("{:?}", f)).unwrap_or("".to_string()),
-            // primary_type: value.0.primary_type.map(|f| format!("{:?}", f)).unwrap_or("".to_string()),
-            // first_release_date: value.0.first_release_date.map(|f| f.to_string()).unwrap_or("".to_string()),
             // TODO this is always going to be Some even if there are None
             genres: Some(value.0.genres.iter()
                 .flatten()
@@ -318,6 +309,7 @@ impl From<ReleaseConverter> for dimple_core::model::DimpleRelease {
             //     .map(|f| f.to_owned())
             //     .map(|f| DimpleRelease::from(ReleaseConverter::from(f)))
             //     .collect()),
+            release_group: value.0.release_group.map(|f| DimpleReleaseGroup::from(ReleaseGroupConverter::from(f.clone()))),
             relations: Some(value.0.relations.iter()
                 .flatten()
                 .map(|f| f.to_owned())

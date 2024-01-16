@@ -21,16 +21,14 @@ pub struct Librarian {
     libraries: RwLock<Vec<Box<dyn Library>>>,
 }
 
-impl Default for Librarian {
-    fn default() -> Self {
+impl Librarian {
+    pub fn new(path: &str) -> Self {
         Self { 
-            local_library: SledLibrary::new("local_library", "local_library"),
+            local_library: SledLibrary::new(path),
             libraries: Default::default(), 
         }
-    }    
-}
+    }
 
-impl Librarian {
     pub fn add_library(&self, library: Box<dyn Library>) {
         self.libraries.write().unwrap().push(library);
     }

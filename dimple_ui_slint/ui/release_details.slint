@@ -11,8 +11,9 @@ export struct ReleaseDetailsModel {
     genres: [Link],
     // releases: [CardModel],
     links: [Link],
-    primary_type: string,
+    // primary_type: string,
     artists: [Link],
+    release_group: Link,
 }
 
 export component ReleaseDetails inherits ScrollView {
@@ -51,6 +52,17 @@ export component ReleaseDetails inherits ScrollView {
                     }
                     Links {
                         links: model.artists;
+                    }
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    Text {
+                        text: "From the release group ";
+                        font-size: 1.3rem;
+                    }
+                    Linnk {
+                        url: model.release-group.url;
+                        name: model.release-group.name;
                     }
                 }
                 if model.genres.length > 0: HorizontalLayout {
@@ -112,7 +124,7 @@ export component ReleaseDetails inherits ScrollView {
             { name: "Zim Babwe", url: "internal://release/1234" }, 
             { name: "Vic Toria", url: "internal://release/1234" }, 
         ],
-        primary-type: "Album",
+        release-group: {name: "A Reign of Fish",url: "internal://release/1234"},
     };
 }
 

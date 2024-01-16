@@ -10,8 +10,9 @@ export struct ArtistDetailsModel {
     disambiguation: string,
     genres: [Link],
     albums: [CardModel],
-    singles_and_eps: [CardModel],
-    other_releases: [CardModel],
+    singles: [CardModel],
+    eps: [CardModel],
+    others: [CardModel],
     links: [Link],
 }
 
@@ -86,28 +87,41 @@ export component ArtistDetails inherits ScrollView {
             }
         }
 
-        // Singles & EPs
-        if model.singles-and-eps.length > 0: VerticalLayout {
+        // Singles
+        if model.singles.length > 0: VerticalLayout {
             Text {
-                text: "Singles & EPs";
+                text: "Singles";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
-                cards: model.singles-and-eps;
+                cards: model.singles;
+                parent-width: root.width;
+            }
+        }
+
+        // EPs
+        if model.eps.length > 0: VerticalLayout {
+            Text {
+                text: "EPs";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.eps;
                 parent-width: root.width;
             }
         }
 
         // Other Releases
-        if model.other-releases.length > 0: VerticalLayout {
+        if model.others.length > 0: VerticalLayout {
             Text {
                 text: "Other Releases";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
-                cards: model.other-releases;
+                cards: model.others;
                 parent-width: root.width;
             }
         }

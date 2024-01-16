@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Jason von Nieda <jason@vonnieda.org>"]
 edition = "2021"
 build = "build.rs"
+description = "Dimple is an open source, cross-platform music player that celebrates music and privacy."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -31,6 +32,27 @@ rand = "0.8.5"
 url = "2.5.0"
 opener = "0.6.1"
 rayon = "1.8.0"
+directories = "5.0.1"
 
 [build-dependencies]
 slint-build = "1.1"
+
+# https://github.com/burtonageo/cargo-bundle
+[package.metadata.bundle]
+name = "Dimple"
+identifier = "lol.dimple.dimple_ui_slint"
+icon = ["images/icon_512x512.png"]
+# version = "0.0.1"
+# resources = ["images/**", "icons/**", "fonts/**"]
+# copyright = "Copyright (c) Jason von Nieda 2023-2024. All rights reserved."
+category = "Music"
+short_description = "Open source, cross-platform music player."
+# long_description = """
+# Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+# eiusmod tempor incididunt ut labore et dolore magna aliqua.  Ut
+# enim ad minim veniam, quis nostrud exercitation ullamco laboris
+# nisi ut aliquip ex ea commodo consequat.
+# """
+# deb_depends = ["libgl1-mesa-glx", "libsdl2-2.0-0 (>= 2.0.5)"]
+# osx_frameworks = ["OpenGL"]
+osx_url_schemes = ["lol.dimple.dimple_ui_slint", "dimple://"]

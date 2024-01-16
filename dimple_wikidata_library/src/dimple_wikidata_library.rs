@@ -81,14 +81,34 @@ impl WikidataLibrary {
         let wikidata_item = response.json::<WdItem>().ok()?;
 
         // Get the English Wikipedia URL for the item
-        // TODO support language selection, priority.
-        if wikidata_item.sitelinks.enwiki.url.is_empty() {
-            return None;
+        fn non_empty(s: &String) -> Option<String> {
+            if s.is_empty() {
+                None
+            }
+            else {
+                Some(s.to_string())
+            }
         }
+
+
+        // TODO support languange priority, this is temp
+        let wikipedia_url = non_empty(&wikidata_item.sitelinks.enwiki.url)
+            .or(non_empty(&wikidata_item.sitelinks.eswiki.url))
+            .or(non_empty(&wikidata_item.sitelinks.frwiki.url))
+            .or(non_empty(&wikidata_item.sitelinks.dewiki.url))
+            .or(non_empty(&wikidata_item.sitelinks.ptwiki.url))
+            .or(non_empty(&wikidata_item.sitelinks.itwiki.url))
+            .or(non_empty(&wikidata_item.sitelinks.ruwiki.url))
+            .or(non_empty(&wikidata_item.sitelinks.svwiki.url))
+            .or(non_empty(&wikidata_item.sitelinks.jawiki.url))
+            .or(non_empty(&wikidata_item.sitelinks.cswiki.url))
+            .or(non_empty(&wikidata_item.sitelinks.dawiki.url))
+            .or(non_empty(&wikidata_item.sitelinks.vlwiki.url))
+            ?;
 
         // Extract the Wikipedia title
         // https://en.wikipedia.org/wiki/Brutus_(Belgian_band)
-        let parsed_url = Url::parse(&wikidata_item.sitelinks.enwiki.url).ok()?;
+        let parsed_url = Url::parse(&wikipedia_url).ok()?;
         let wikipedia_title = parsed_url.path_segments()?.nth(1)?;
 
         // Use the Wikipedia API to fetch the summary
