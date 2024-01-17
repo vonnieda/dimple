@@ -1,4 +1,4 @@
-import { StyleMetrics } from "std-widgets.slint";
+import { StyleMetrics , VerticalBox} from "std-widgets.slint";
 
 export global Palette  {
     in-out property<int> font-weight-bold: 700;
@@ -84,6 +84,91 @@ export component Linnk inherits TouchArea {
         color: parent.has-hover 
             ? Palette.link-color-hover
             : StyleMetrics.default-text-color;
+    }
+}
+
+export struct Track {
+    title: string,
+    track_number: int,
+    length: string, // 5:03
+    artists: [Link],
+    plays: int,
+}
+
+export component TrackList inherits VerticalLayout {
+    in-out property <[Track]> tracks;
+
+    in-out property <length> font-size: 1.3rem;
+
+    HorizontalLayout {
+        padding: 4px;
+        Text {
+            text: "#";
+            font-size: root.font-size;
+            font-weight: Palette.font-weight-bold;
+            width: 10%;
+        }
+        Text {
+            text: "Title";
+            font-size: root.font-size;
+            font-weight: Palette.font-weight-bold;
+            width: 35%;
+        }
+        Text {
+            text: "Artists";
+            font-size: root.font-size;
+            font-weight: Palette.font-weight-bold;
+            width: 35%;
+        }
+        Text {
+            text: "Plays";
+            font-size: root.font-size;
+            font-weight: Palette.font-weight-bold;
+            width: 10%;
+        }
+        Text {
+            text: "Length";
+            font-size: root.font-size;
+            font-weight: Palette.font-weight-bold;
+            width: 10%;
+        }
+    }
+    Rectangle {
+        background: StyleMetrics.default-text-color.darker(0.5);
+        height: 1px;
+    }
+    for track in tracks: VerticalLayout {
+       HorizontalLayout {
+            padding: 4px;
+            Text {
+                text: track.track_number;
+                font-size: root.font-size;
+                width: 10%;
+            }
+            Text {
+                text: track.title;
+                font-size: root.font-size;
+                width: 35%;
+            }
+            Links {
+                links: track.artists;
+                width: 35%;
+            }
+            Text {
+                text: track.plays;
+                font-size: root.font-size;
+                width: 10%;
+            }
+            Text {
+                text: track.length;
+                font-size: root.font-size;
+                width: 10%;
+            }
+        }
+        Rectangle {
+            background: StyleMetrics.default-text-color.darker(0.5);
+            height: 1px;
+        }   
     }
 }
 
