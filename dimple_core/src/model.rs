@@ -7,6 +7,13 @@ use serde::Serialize;
 /// References
 /// https://musicbrainz.org/doc/Artist
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
+/// These objects all closely map Musicbrainz objects and were heavily
+/// lifted from musicbrainz_rs. 
+
+// ReleseGroup -> Release -> Media -> Track -> Recording
+
+
+// https://musicbrainz.org/doc/Artist
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct DimpleArtist {
     pub id: String,
@@ -21,6 +28,7 @@ pub struct DimpleArtist {
     pub fetched: bool,
 }
 
+// https://musicbrainz.org/doc/ReleaseGroup
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(default)]
 pub struct DimpleReleaseGroup {
@@ -38,6 +46,7 @@ pub struct DimpleReleaseGroup {
     pub fetched: bool,
 }
 
+// https://musicbrainz.org/doc/Release
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(default)]
 pub struct DimpleRelease {
@@ -57,13 +66,12 @@ pub struct DimpleRelease {
     pub release_group: Option<DimpleReleaseGroup>,
     #[serde(default)]
     pub fetched: bool,
-    pub media: Vec<DimpleMedia>,
+    pub media: Vec<DimpleMedium>,
 }
 
-// ReleseGroup -> Release -> Media -> Track -> Recording
-
+// https://musicbrainz.org/doc/Medium
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
-pub struct DimpleMedia {
+pub struct DimpleMedium {
     pub title: Option<String>,
     pub position: Option<u32>,
     pub track_count: u32,
@@ -75,6 +83,7 @@ pub struct DimpleMedia {
     pub fetched: bool,
 }
 
+// https://musicbrainz.org/doc/Track
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
 pub struct DimpleTrack {
     pub recording: DimpleRecording,
@@ -87,6 +96,7 @@ pub struct DimpleTrack {
     pub fetched: bool,
 }
 
+// https://musicbrainz.org/doc/Recording
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
 pub struct DimpleRecording {
     /// See [MusicBrainz Identifier](https://musicbrainz.org/doc/MusicBrainz_Identifier).

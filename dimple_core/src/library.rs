@@ -60,6 +60,11 @@ impl LibraryEntity {
     }
 }
 
+// TODO trying to device if it makes sense just to add store and load here,
+// or if I want to keep that special to the librarian. Presumably I'm going to
+// want to be able to save likes and shit.
+
+
 pub trait Library: Send + Sync {
     /// Get a user friendly display name for the Library.
     fn name(&self) -> String {

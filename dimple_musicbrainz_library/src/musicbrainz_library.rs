@@ -283,6 +283,7 @@ impl From<ReleaseConverter> for dimple_core::model::DimpleRelease {
         dimple_core::model::DimpleRelease {
             id: value.0.id,
             title: value.0.title,
+            disambiguation: value.0.disambiguation.unwrap_or("".to_string()),
             country: value.0.country.unwrap_or("".to_string()),
             date: value.0.date.map(|f| f.to_string()).unwrap_or("".to_string()),
             barcode: value.0.barcode.map(|f| f.to_string()).unwrap_or("".to_string()),

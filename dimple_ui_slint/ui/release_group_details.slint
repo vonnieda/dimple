@@ -1,8 +1,21 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { Palette, Link, Navigator, Links , Linnk} from "common.slint";
 import { CardModel } from "card.slint";
-import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { CardGrid } from "card_grid.slint";
+
+// export struct TrackModel {
+//     title: string,
+//     track_number: int,
+//     length: string, // 5:03
+//     artists: [Link],
+//     plays: int,
+// }
+
+export struct MediumModel {
+    title: string,
+    tracks: [[StandardListViewItem]],
+}
 
 export struct ReleaseGroupDetailsModel {
     card: CardModel,
@@ -13,16 +26,22 @@ export struct ReleaseGroupDetailsModel {
     links: [Link],
     primary_type: string,
     artists: [Link],
+
+    // From the default and/or selected release.
+    media: [MediumModel],
+
+    attribution: string,
 }
 
 export component ReleaseGroupDetails inherits ScrollView {
     VerticalBox {
         alignment: start;
         spacing: StyleMetrics.layout-spacing * 2;
-        // Header
+        // Header: Image, Title, Artists, Genres, Summary
         HorizontalLayout {
             alignment: start;
             spacing: StyleMetrics.layout-spacing;
+            // Image
             Rectangle {
                 width: Palette.thumbnail-width-extra-large;
                 height: Palette.thumbnail-width-extra-large;
@@ -36,14 +55,21 @@ export component ReleaseGroupDetails inherits ScrollView {
                     source: model.card.image.image;
                 }
             }
-            // TODO pick default release and show tracks.
             VerticalBox {
                 alignment: start;
+                // Title
                 Text {
                     text: model.card.title.name;
                     font-weight: Palette.font-weight-bold;
-                    font-size: 4rem;
+                    font-size: 5rem;
                 }
+                // Disambiguation
+                if model.disambiguation > 0: Text {
+                    text: model.disambiguation;
+                    // font-weight: Palette.font-weight-bold;
+                    font-size: 1.3rem;
+                }
+                // Type and artists
                 if model.artists.length > 0: HorizontalLayout {
                     alignment: start;
                     Text {
@@ -54,6 +80,7 @@ export component ReleaseGroupDetails inherits ScrollView {
                         links: model.artists;
                     }
                 }
+                // Genres
                 if model.genres.length > 0: HorizontalLayout {
                     alignment: start;
                     Text {
@@ -64,18 +91,50 @@ export component ReleaseGroupDetails inherits ScrollView {
                         links: model.genres;
                     }
                 }
+                // Summary
                 Text {
                     text: model.summary;
                     wrap: word-wrap;
                     font-size: 1.2rem;
+                }
+                // Attribution
+                Text {
+                    horizontal-alignment: right;
+                    text: model.attribution;
+                    wrap: word-wrap;
+                    font-size: 0.9rem;
+                }
+            }
+        }
+
+        // Media and Tracks
+        if model.media.length > 0: VerticalLayout {
+            spacing: StyleMetrics.layout-spacing * 0.50;
+            for medium in model.media: VerticalLayout {
+                Text {
+                    text: medium.title;
+                    font-weight: Palette.font-weight-bold;
+                    font-size: 2rem;
+                }
+                // https://github.com/slint-ui/slint/blob/master/internal/compiler/widgets/cupertino-base/tableview.slint
+                StandardTableView {
+                    columns: [
+                        { title: "#", horizontal_stretch: 0.1 },
+                        { title: "Title" , horizontal_stretch: 1 },
+                        { title: "Artists" , horizontal_stretch: 1  },
+                        { title: "Plays" , horizontal_stretch: 0.4  },
+                        { title: "Length" , horizontal_stretch: 0.4  },
+                    ];
+                    rows: medium.tracks;
                 }
             }
         }
 
         // Releases
         if model.releases.length > 0: VerticalLayout {
+            spacing: StyleMetrics.layout-spacing * 0.50;
             Text {
-                text: "Releases";
+                text: "Other Releases";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
@@ -97,6 +156,14 @@ export component ReleaseGroupDetails inherits ScrollView {
                 name: link.name;
             }
         }
+
+        // Additional Attributions
+        Text {
+            horizontal-alignment: right;
+            text: model.attribution;
+            wrap: word-wrap;
+            font-size: 0.9rem;
+        }
     }
 
     in property <ReleaseGroupDetailsModel> model: {
@@ -106,6 +173,7 @@ export component ReleaseGroupDetails inherits ScrollView {
             sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
         },
         disambiguation: "regular kind",
+        attribution: "Copyright 2013 Whoever and Whatever",
         summary: "I swear it thwernt but 784 years ago when they came. I tell ya, they were glorious. The regular kind, you see? Not them fancy ones. The common ones. Common as muck my ma said! But when they came walkin in you knew it. Shit, everyone knew it. I know Kenny knew it, cause when they come walkin in Kenny stood up, pointed, shit his pants and passed out on the floor. Now, like I said, these're the regular ones, not the diamond ones, so you get it, but still. And I suppose it's fair to mention that Kenny'd had about half a bottle of something so who knews if it were the liquor or not. Anyway, really nice folks. Good music too.",
         genres: [ {name: "fish jazz",url: "internal://release/1234"} ],
         artists: [ 
@@ -113,7 +181,53 @@ export component ReleaseGroupDetails inherits ScrollView {
             { name: "Zim Babwe", url: "internal://release/1234" }, 
             { name: "Vic Toria", url: "internal://release/1234" }, 
         ],
+        links: [ 
+            { name: "Shield Fish", url: "internal://release/1234" }, 
+            { name: "Zim Babwe", url: "internal://release/1234" }, 
+            { name: "Vic Toria", url: "internal://release/1234" }, 
+        ],
+        releases: [
+            { 
+                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
+            },
+            { 
+                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
+            },
+            { 
+                image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
+            },
+        ],
         primary-type: "Album",
+        media: [
+            {
+                title: "Disc 1 of 2",
+                tracks: [
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                ],
+            },
+            {
+                title: "Disc 2 of 2",
+                tracks: [
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                    [{ text: "1" }, { text: "Ocean" }, { text: "Shield Fish" }, { text: "13" }, { text: "3:17" }],
+                ],
+            },
+        ]
     };
 }
 
