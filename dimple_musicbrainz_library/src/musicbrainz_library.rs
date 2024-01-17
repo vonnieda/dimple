@@ -1,7 +1,7 @@
 use std::any::Any;
 
 use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
-use dimple_core::model::{DimpleGenre, DimpleArtist, DimpleReleaseGroup, DimpleRelation, DimpleRelationContent, DimpleUrl, DimpleRelease};
+use dimple_core::model::{DimpleGenre, DimpleArtist, DimpleReleaseGroup, DimpleRelation, DimpleRelationContent, DimpleUrl, DimpleRelease, DimpleMedium};
 use image::DynamicImage;
 use musicbrainz_rs::entity::CoverartResponse;
 use musicbrainz_rs::entity::artist::{Artist, ArtistSearchQuery};
@@ -305,17 +305,25 @@ impl From<ReleaseConverter> for dimple_core::model::DimpleRelease {
                     }
                 })
                 .collect()),
-            // releases: Some(value.0.releases.iter()
-            //     .flatten()
-            //     .map(|f| f.to_owned())
-            //     .map(|f| DimpleRelease::from(ReleaseConverter::from(f)))
-            //     .collect()),
             release_group: value.0.release_group.map(|f| DimpleReleaseGroup::from(ReleaseGroupConverter::from(f.clone()))),
             relations: Some(value.0.relations.iter()
                 .flatten()
                 .map(|f| f.to_owned())
                 .map(|f| DimpleRelation::from(RelationConverter::from(f)))
                 .collect()),
+            media: value.0.media.iter()
+                .flatten()
+                .map(|f| DimpleMedium {
+                    disc_count: f.disc_count,
+                    format: f.format.clone(),
+                    format_id: f.format_id.clone(),
+                    position: f.position,
+                    title: f.title.clone(),
+                    track_count: f.track_count,
+                    // tracks: f.tracks
+                    ..Default::default()
+                })
+                .collect(),
             ..Default::default()
         }
     }

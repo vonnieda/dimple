@@ -9,7 +9,7 @@ use std::sync::Arc;
 use dimple_core::{model::{DimpleArtist, DimpleGenre, DimpleTrack, DimpleReleaseGroup, DimpleRelationContent, DimpleRelease}, library::{Library, LibraryEntity}};
 use dimple_librarian::librarian::{Librarian, self};
 use image::DynamicImage;
-use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle};
+use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, Model};
 
 slint::include_modules!();
 use rayon::prelude::*;
@@ -358,6 +358,7 @@ impl From<(&Librarian, DimpleReleaseGroup)> for ReleaseGroupDetailsModel {
             links: ModelRc::from(links.as_slice()),
             primary_type: value.primary_type.clone().into(),
             artists: ModelRc::from(artists.as_slice()),
+            media: ModelRc::default(),
         }
     }
 }

@@ -96,7 +96,7 @@ pub struct DimpleTrack {
     pub fetched: bool,
 }
 
-// https://musicbrainz.org/doc/Recording
+// https://musicbrainz.org/doc/Track
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
 pub struct DimpleRecording {
     /// See [MusicBrainz Identifier](https://musicbrainz.org/doc/MusicBrainz_Identifier).
@@ -166,6 +166,7 @@ pub struct DimpleUrl {
 ///     license: "CC-BY-SA"
 ///     copyright_holder: "WikiCommons"
 /// }
+/// TODO read https://wiki.creativecommons.org/wiki/Best_practices_for_attribution#This_is_a_great_attribution
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct Attributed<T> {
     pub value: T,

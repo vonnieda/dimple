@@ -88,7 +88,7 @@ export component Linnk inherits TouchArea {
 }
 
 export struct Track {
-    title: string,
+    title: Link,
     track_number: int,
     length: string, // 5:03
     artists: [Link],
@@ -145,9 +145,9 @@ export component TrackList inherits VerticalLayout {
                 font-size: root.font-size;
                 width: 10%;
             }
-            Text {
-                text: track.title;
-                font-size: root.font-size;
+            Linnk {
+                name: track.title.name;
+                url: track.title.url;
                 width: 35%;
             }
             Links {

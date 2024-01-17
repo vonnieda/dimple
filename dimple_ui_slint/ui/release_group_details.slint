@@ -4,14 +4,6 @@ import { CardModel } from "card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { CardGrid } from "card_grid.slint";
 
-// export struct TrackModel {
-//     title: string,
-//     track_number: int,
-//     length: string, // 5:03
-//     artists: [Link],
-//     plays: int,
-// }
-
 export struct MediumModel {
     title: string,
     tracks: [Track],
@@ -29,8 +21,6 @@ export struct ReleaseGroupDetailsModel {
 
     // From the default and/or selected release.
     media: [MediumModel],
-
-    attribution: string,
 }
 
 export component ReleaseGroupDetails inherits ScrollView {
@@ -97,13 +87,6 @@ export component ReleaseGroupDetails inherits ScrollView {
                     wrap: word-wrap;
                     font-size: 1.2rem;
                 }
-                // Attribution
-                Text {
-                    horizontal-alignment: right;
-                    text: model.attribution;
-                    wrap: word-wrap;
-                    font-size: 0.9rem;
-                }
             }
         }
 
@@ -122,19 +105,19 @@ export component ReleaseGroupDetails inherits ScrollView {
             }
         }
 
-        // Releases
-        if model.releases.length > 0: VerticalLayout {
-            spacing: StyleMetrics.layout-spacing * 0.50;
-            Text {
-                text: "Other Releases";
-                font-weight: Palette.font-weight-bold;
-                font-size: 2rem;
-            }
-            CardGrid {
-                cards: model.releases;
-                parent-width: root.width;
-            }
-        }
+        // // Releases
+        // if model.releases.length > 0: VerticalLayout {
+        //     spacing: StyleMetrics.layout-spacing * 0.50;
+        //     Text {
+        //         text: "Other Releases";
+        //         font-weight: Palette.font-weight-bold;
+        //         font-size: 2rem;
+        //     }
+        //     CardGrid {
+        //         cards: model.releases;
+        //         parent-width: root.width;
+        //     }
+        // }
 
         // Links
         if model.links.length > 0: VerticalLayout {
@@ -148,14 +131,6 @@ export component ReleaseGroupDetails inherits ScrollView {
                 name: link.name;
             }
         }
-
-        // Additional Attributions
-        Text {
-            horizontal-alignment: right;
-            text: model.attribution;
-            wrap: word-wrap;
-            font-size: 0.9rem;
-        }
     }
 
     in property <ReleaseGroupDetailsModel> model: {
@@ -165,7 +140,6 @@ export component ReleaseGroupDetails inherits ScrollView {
             sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
         },
         disambiguation: "regular kind",
-        attribution: "Copyright 2013 Whoever and Whatever",
         summary: "I swear it thwernt but 784 years ago when they came. I tell ya, they were glorious. The regular kind, you see? Not them fancy ones. The common ones. Common as muck my ma said! But when they came walkin in you knew it. Shit, everyone knew it. I know Kenny knew it, cause when they come walkin in Kenny stood up, pointed, shit his pants and passed out on the floor. Now, like I said, these're the regular ones, not the diamond ones, so you get it, but still. And I suppose it's fair to mention that Kenny'd had about half a bottle of something so who knews if it were the liquor or not. Anyway, really nice folks. Good music too.",
         genres: [ {name: "fish jazz",url: "internal://release/1234"} ],
         artists: [ 
@@ -200,13 +174,13 @@ export component ReleaseGroupDetails inherits ScrollView {
             {
                 title: "Disc 1 of 2",
                 tracks: [
-                    { title: "Graphing Pencil", track_number: 1, length: "5:03", 
+                    { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
                         artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
                         plays: 17, },
-                    { title: "Funky Zow", track_number: 1, length: "5:03", 
+                    { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
                         artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
                         plays: 21, },
-                    { title: "Turn Up For What? When? I'm busy that night.", track_number: 1, length: "5:03", 
+                    { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
                         artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
                         plays: 79, },
                 ]
@@ -214,13 +188,13 @@ export component ReleaseGroupDetails inherits ScrollView {
             {
                 title: "Disc 2 of 2",
                 tracks: [
-                    { title: "Graphing Pencil", track_number: 1, length: "5:03", 
+                    { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
                         artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
                         plays: 17, },
-                    { title: "Funky Zow", track_number: 1, length: "5:03", 
+                    { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
                         artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
                         plays: 21, },
-                    { title: "Turn Up For What? When? I'm busy that night.", track_number: 1, length: "5:03", 
+                    { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
                         artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
                         plays: 79, },
                 ]
