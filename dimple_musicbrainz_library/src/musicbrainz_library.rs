@@ -268,9 +268,9 @@ impl From<ReleaseConverter> for dimple_core::model::DimpleRelease {
             artists: value.0.artist_credit.iter().flatten()
                 .map(|f| DimpleArtist::from(ArtistCreditConverter::from(f.to_owned())))
                 .collect(),
-            // TODO unwrap
-            release_group: value.0.release_group
-                .map(|f| DimpleReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
+            // // TODO unwrap
+            // release_group: value.0.release_group
+            //     .map(|f| DimpleReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
             relations: value.0.relations.iter().flatten()
                 .map(|f| DimpleRelation::from(RelationConverter::from(f.to_owned())))
                 .collect(),

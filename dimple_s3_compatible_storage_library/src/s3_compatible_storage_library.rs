@@ -114,8 +114,6 @@ impl Library for S3CompatibleStorageLibrary {
 
             // Store the track identifier, it will be used to filter packets.
             let track_id = track.id;
-
-            dbg!(track_id);
         }
 
         let (_sender, receiver) = std::sync::mpsc::channel::<Release>();

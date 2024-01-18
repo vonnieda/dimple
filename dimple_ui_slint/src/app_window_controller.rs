@@ -8,15 +8,13 @@ use url::Url;
 
 use std::{sync::{Arc, RwLock}, error::Error, collections::HashMap};
 
-use dimple_core::{model::{DimpleArtist, DimpleGenre, DimpleTrack, DimpleReleaseGroup, DimpleRelationContent, DimpleRelease}, library::{Library, LibraryEntity}};
+use dimple_core::{model::{DimpleArtist, DimpleReleaseGroup, DimpleRelationContent, DimpleRelease, DimpleMedium, DimpleTrack}, library::{Library, LibraryEntity}};
 use dimple_librarian::librarian::{Librarian, self};
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, Model, VecModel};
 
 slint::include_modules!();
 use rayon::prelude::*;
-
-use once_cell::sync::Lazy;
 
 pub type LibrarianHandle = Arc<Librarian>;
 
@@ -105,9 +103,7 @@ impl AppWindowController {
                 .ok_or("missing path").unwrap()
                 .nth(0)
                 .ok_or("missing query").unwrap();
-            let mut search_results: Vec<_> = librarian.search(query)
-                // .map(|ent| librarian.fetch(&ent))
-                .collect();
+            let mut search_results: Vec<_> = librarian.search(query).collect();
             search_results.sort_by_key(|e| e.name().to_lowercase());
             let cards = entity_cards(search_results, &librarian, 500, 500);
             ui.upgrade_in_event_loop(move |ui| {
@@ -145,12 +141,47 @@ impl AppWindowController {
                 .ok_or("missing id").unwrap();
             let artist = DimpleArtist::get(id, librarian.as_ref()).unwrap();
             let card = entity_card(&LibraryEntity::Artist(artist.clone()), 500, 500, &librarian);
+            let mut release_groups = artist.release_groups.clone();
+            release_groups.sort_by_key(|f| f.first_release_date.to_owned());
+            release_groups.reverse();
+            let albums: Vec<_> = release_groups.iter()
+                .filter(|f| f.primary_type.to_lowercase() == "album")
+                .cloned()
+                .collect();
+            let album_cards = release_group_cards(albums, &librarian, 500, 500);
+            let singles: Vec<_> = release_groups.iter()
+                .filter(|f| f.primary_type.to_lowercase() == "single")
+                .cloned()
+                .collect();
+            let single_cards = release_group_cards(singles, &librarian, 500, 500);
+            let eps: Vec<_> = release_groups.iter()
+                .filter(|f| f.primary_type.to_lowercase() == "ep")
+                .cloned()
+                .collect();
+            let ep_cards = release_group_cards(eps, &librarian, 500, 500);
+            let other_release_groups: Vec<_> = release_groups.iter()
+                .filter(|f| f.primary_type.to_lowercase() != "album" && f.primary_type.to_lowercase() != "single" && f.primary_type.to_lowercase() != "ep")
+                .cloned()
+                .collect();
+            let other_release_group_cards = release_group_cards(other_release_groups, &librarian, 500, 500);
+            let genres = artist.genres.iter()
+                .map(|g| Link {
+                    name: g.name.clone(),
+                    url: format!("dimple://genre/{}", g.name),
+                })
+                .collect();
+
             ui.upgrade_in_event_loop(move |ui| {
                 let adapter = ArtistDetailsAdapter {
                     card: card_adapter(&card),
-                    disambiguation: artist.disambiguation.into(),
-                    summary: artist.summary.into(),
-                    ..Default::default()
+                    disambiguation: artist.disambiguation.clone().into(),
+                    summary: artist.summary.clone().into(),
+                    albums: card_adapters(album_cards),
+                    singles: card_adapters(single_cards),
+                    eps: card_adapters(ep_cards),
+                    others: card_adapters(other_release_group_cards),
+                    genres: link_adapters(genres),
+                    links: link_adapters(artist_links(&artist)),
                 };
                 ui.set_artist_details(adapter);
                 ui.set_page(1)
@@ -159,38 +190,53 @@ impl AppWindowController {
     }
 
     fn release_group_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
-        // std::thread::spawn(move || {
-        //     let url = Url::parse(&url).unwrap();
-        //     let id = url.path_segments()
-        //         .ok_or("missing path").unwrap()
-        //         .nth(1)
-        //         .ok_or("missing id").unwrap();
-        //     let release_group = DimpleReleaseGroup::get(id, librarian.as_ref())
-        //         .ok_or("release group not found").unwrap();
-        //     // TODO thumbnail, right?
-        //     let image = release_group.image(librarian.as_ref()).unwrap();
-        //     // let release = release_group.releases.first().ok_or("no releases found").unwrap()
-        //     //     .fetch(librarian.as_ref()).ok_or("error loading release").unwrap();
-        //     // TODO instead of just first, prefer "better"
-        //     // let media = release.media.first().ok_or("no media found").unwrap();
-        //     // let tracks = media.tracks;
+        let url = url.to_owned();
+        std::thread::spawn(move || {
+            let url = Url::parse(&url).unwrap();
+            let id = url.path_segments()
+                .ok_or("missing path").unwrap()
+                .nth(0)
+                .ok_or("missing id").unwrap();
+            let release_group = DimpleReleaseGroup::get(id, librarian.as_ref())
+                .ok_or("release group not found").unwrap();
+            let card = entity_card(&LibraryEntity::ReleaseGroup(release_group.clone()), 500, 500, &librarian);
+            let genres = release_group.genres.iter()
+                .map(|g| Link {
+                    name: g.name.clone(),
+                    url: format!("dimple://genre/{}", g.name),
+                })
+                .collect();
+            let artists = release_group.artists.iter()
+                .map(|a| Link {
+                    name: a.name.clone(),
+                    url: format!("dimple://artist/{}", a.id),
+                })
+                .collect();
+            let releases: Vec<_> = release_group.releases.clone();
+            let release_cards = release_cards(releases, &librarian, 500, 500);
+            let release = release_group.releases.first()
+                .ok_or("no releases")
+                .unwrap();
+            let release = release.fetch(librarian.as_ref())
+                .ok_or("release not found")
+                .unwrap();
 
-        //     // let artists = release_group.artists
-            
-        //     ui.upgrade_in_event_loop(move |ui| {
-        //         let model = ReleaseGroupDetailsAdapter {
-        //             id: release_group.id.into(),
-        //             disambiguation: release_group.disambiguation.into(),
-        //             // TODO performance
-        //             image: dynamic_image_to_slint_image(&image),
-        //             summary: release_group.summary.into(),
-        //             title: release_group.title.into(),
-        //             ..Default::default()
-        //         };
-        //         ui.set_release_group_details(model);
-        //         ui.set_page(2)
-        //     }).unwrap();
-        // });
+            ui.upgrade_in_event_loop(move |ui| {
+                let model = ReleaseGroupDetailsAdapter {                    
+                    card: card_adapter(&card),
+                    disambiguation: release_group.disambiguation.clone().into(),
+                    genres: link_adapters(genres),
+                    summary: release_group.summary.clone().into(),
+                    primary_type: release_group.primary_type.clone().into(),
+                    artists: link_adapters(artists),
+                    links: link_adapters(release_group_links(&release_group)),
+                    media: media_adapters(release.media),
+                    releases: card_adapters(release_cards),
+                };
+                ui.set_release_group_details(model);
+                ui.set_page(2)
+            }).unwrap();
+        });
     }
 
     fn release_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
@@ -209,8 +255,22 @@ impl AppWindowController {
     }
 }
 
+fn link_adapter(link: &Link) -> LinkAdapter {
+    LinkAdapter {
+        name: link.name.clone().into(),
+        url: link.url.clone().into(),
+    }
+}
+
+fn link_adapters(links: Vec<Link>) -> ModelRc<LinkAdapter> {
+    let links: Vec<_> = links.iter()
+        .map(link_adapter)
+        .collect();
+    ModelRc::from(links.as_slice())
+}
+
 fn entity_cards(entities: Vec<LibraryEntity>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
-    entities.iter()
+    entities.par_iter()
         .map(|ent| entity_card(ent, width, height, lib))
         .collect()
 }
@@ -218,12 +278,14 @@ fn entity_cards(entities: Vec<LibraryEntity>, lib: &Librarian, width: u32, heigh
 fn entity_card(entity: &LibraryEntity, width: u32, height: u32, lib: &Librarian) -> Card {
     match entity {
         LibraryEntity::Artist(e) => artist_card(e, width, height, lib),
+        LibraryEntity::ReleaseGroup(e) => release_group_card(e, width, height, lib),
+        LibraryEntity::Release(e) => release_card(e, width, height, lib),
         _ => todo!(),
     }
 }
 
 fn artist_cards(entities: Vec<DimpleArtist>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
-    entities.iter()
+    entities.par_iter()
         .map(|ent| artist_card(ent, width, height, lib))
         .collect()
 }
@@ -240,6 +302,56 @@ fn artist_card(artist: &DimpleArtist, width: u32, height: u32, lib: &Librarian) 
         title: Link {
             name: artist.name.clone(),
             url: format!("dimple://artist/{}", artist.id),
+        },
+        // TODO
+        // sub_title: 
+        ..Default::default()
+    }
+}
+
+fn release_group_cards(entities: Vec<DimpleReleaseGroup>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
+    entities.par_iter()
+        .map(|ent| release_group_card(ent, width, height, lib))
+        .collect()
+}
+
+fn release_cards(entities: Vec<DimpleRelease>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
+    entities.par_iter()
+        .map(|ent| release_card(ent, width, height, lib))
+        .collect()
+}
+
+fn release_group_card(release_group: &DimpleReleaseGroup, width: u32, height: u32, lib: &Librarian) -> Card {
+    Card {
+        image: ImageLink {
+            image: lib.thumbnail(&LibraryEntity::ReleaseGroup(release_group.clone()), width, height),
+            link: Link {
+                name: release_group.title.clone(),
+                url: format!("dimple://release-group/{}", release_group.id),
+            },
+        },
+        title: Link {
+            name: release_group.title.clone(),
+            url: format!("dimple://release-group/{}", release_group.id),
+        },
+        // TODO
+        // sub_title: 
+        ..Default::default()
+    }
+}
+
+fn release_card(release: &DimpleRelease, width: u32, height: u32, lib: &Librarian) -> Card {
+    Card {
+        image: ImageLink {
+            image: lib.thumbnail(&LibraryEntity::Release(release.clone()), width, height),
+            link: Link {
+                name: release.title.clone(),
+                url: format!("dimple://release/{}", release.id),
+            },
+        },
+        title: Link {
+            name: release.title.clone(),
+            url: format!("dimple://release/{}", release.id),
         },
         // TODO
         // sub_title: 
@@ -268,11 +380,78 @@ fn card_adapter(card: &Card) -> CardAdapter {
     }
 }
 
+fn artist_links(artist: &DimpleArtist) -> Vec<Link> {
+    artist.relations
+        .iter()
+        .map(|rel| rel.to_owned())
+        // TODO maybe can get name from rel?
+        .filter_map(|rel| match rel.content {
+            DimpleRelationContent::Url(url) => Some(url),
+            _ => None,
+        })
+        .map(|url| Link {
+            name: url.resource.clone(),
+            url: url.resource.clone(),
+        })
+        .chain(std::iter::once(Link { 
+            name: format!("https://musicbrainz.org/artist/{}", artist.id),
+            url: format!("https://musicbrainz.org/artist/{}", artist.id),
+        }))
+        .collect()
+}
+
+fn release_group_links(release_group: &DimpleReleaseGroup) -> Vec<Link> {
+    release_group.relations
+        .iter()
+        .map(|rel| rel.to_owned())
+        // TODO maybe can get name from rel?
+        .filter_map(|rel| match rel.content {
+            DimpleRelationContent::Url(url) => Some(url),
+            _ => None,
+        })
+        .map(|url| Link {
+            name: url.resource.clone(),
+            url: url.resource.clone(),
+        })
+        .chain(std::iter::once(Link { 
+            name: format!("https://musicbrainz.org/release-group/{}", release_group.id),
+            url: format!("https://musicbrainz.org/release-group/{}", release_group.id),
+        }))
+        .collect()
+}
+
 fn card_adapters(cards: Vec<Card>) -> ModelRc<CardAdapter> {
     let card_models: Vec<_>  = cards.iter()
         .map(card_adapter)
         .collect();
     ModelRc::from(card_models.as_slice())
+}
+
+fn track_adapters(tracks: Vec<DimpleTrack>) -> ModelRc<TrackAdapter> {
+    let adapters: Vec<_> = tracks.iter()
+        .map(|t| TrackAdapter {
+            title: LinkAdapter {
+                name: t.title.clone().into(),
+                url: format!("dimple://track/{}", t.id).into(),
+            },
+            track_number: t.number.clone().into(),
+            length: format!("{}:{:02}", t.length, t.length).into(),
+            plays: 17,
+            ..Default::default()
+        })
+        .collect();
+    ModelRc::from(adapters.as_slice())
+}
+
+fn media_adapters(media: Vec<DimpleMedium>) -> ModelRc<MediumAdapter> {
+    let adapters: Vec<_> = media.iter()
+        .map(|m| MediumAdapter {
+            title: format!("{} {} of {}", m.format, m.position, m.disc_count).into(),
+            tracks: track_adapters(m.tracks.clone()),
+            ..Default::default()
+        })
+        .collect();
+    ModelRc::from(adapters.as_slice())
 }
 
 fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {

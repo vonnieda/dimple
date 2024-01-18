@@ -88,7 +88,7 @@ export component Link inherits TouchArea {
 
 export struct TrackAdapter {
     title: LinkAdapter,
-    track_number: int,
+    track_number: string,
     length: string, // 5:03
     artists: [LinkAdapter],
     plays: int,
@@ -111,13 +111,7 @@ export component TrackList inherits VerticalLayout {
             text: "Title";
             font-size: root.font-size;
             font-weight: Palette.font-weight-bold;
-            width: 35%;
-        }
-        Text {
-            text: "Artists";
-            font-size: root.font-size;
-            font-weight: Palette.font-weight-bold;
-            width: 35%;
+            width: 70%;
         }
         Text {
             text: "Plays";
@@ -140,33 +134,34 @@ export component TrackList inherits VerticalLayout {
        HorizontalLayout {
             padding: 4px;
             Text {
+                vertical-alignment: center;
                 text: track.track_number;
                 font-size: root.font-size;
                 width: 10%;
             }
-            Link {
-                name: track.title.name;
-                url: track.title.url;
-                width: 35%;
-            }
-            Links {
-                links: track.artists;
-                width: 35%;
+            VerticalLayout {
+                width: 70%;
+                spacing: 4px;
+                Link {
+                    name: track.title.name;
+                    url: track.title.url;
+                }
+                Links {
+                    links: track.artists;
+                }
             }
             Text {
+                vertical-alignment: center;
                 text: track.plays;
                 font-size: root.font-size;
                 width: 10%;
             }
             Text {
+                vertical-alignment: center;
                 text: track.length;
                 font-size: root.font-size;
                 width: 10%;
             }
         }
-        Rectangle {
-            background: StyleMetrics.default-text-color.darker(0.5);
-            height: 1px;
-        }   
     }
 }

@@ -52,16 +52,13 @@ impl Librarian {
     pub fn thumbnail(&self, entity: &LibraryEntity, width: u32, height: u32) -> DynamicImage {
         let cached = self.local_library.images.get(&entity.id(), width, height);
         if let Some(dyn_image) = cached {
-            log::info!("{} cached", entity.id());
             return dyn_image;
         }
-        let loaded = self.local_library.images.get(&entity.id(), width, height);
+        let loaded = self.image(entity);
         if let Some(dyn_image) = loaded {
-            log::info!("{} loaded", entity.id());
             self.local_library.set_image(entity, &dyn_image);
             return self.local_library.images.get(&entity.id(), width, height).unwrap();
         }
-        log::info!("{} generated", entity.id());
         let generated = &self.generate_masterpiece(entity, width, height);
         self.local_library.set_image(entity, generated);
         self.local_library.images.get(&entity.id(), width, height).unwrap()
@@ -173,17 +170,16 @@ impl Library for Librarian {
                 LibraryEntity::Release(mut base) => {
                     if let LibraryEntity::Release(b) = b {
                         base.artists = merge_vec(base.artists, b.artists);
+                        base.asin = longer(base.asin, b.asin);
+                        base.country = longer(base.country, b.country);
                         base.date = longer(base.date, b.date);
                         base.barcode = longer(base.barcode, b.barcode);
-                        base.status = longer(base.status, b.status);
-
                         base.disambiguation = longer(base.disambiguation, b.disambiguation);
-                        // base.first_release_date = longer(base.first_release_date, b.first_release_date);
                         base.genres = merge_vec(base.genres, b.genres);
+                        base.media = merge_vec(base.media, b.media);
                         base.id = longer(base.id, b.id);
-                        // base.primary_type = longer(base.primary_type, b.primary_type);
                         base.relations = merge_vec(base.relations, b.relations);
-                        // base.releases = merge_vec(base.releases, b.releases);
+                        base.status = longer(base.status, b.status);
                         base.summary = longer(base.summary, b.summary);
                         base.title = longer(base.title, b.title);
                     }

@@ -4,15 +4,13 @@ import { CardAdapter } from "card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { CardGrid } from "card_grid.slint";
 
-export struct MediumModel {
+export struct MediumAdapter {
     title: string,
     tracks: [TrackAdapter],
 }
 
 export struct ReleaseGroupDetailsAdapter {
-    id: string,
-    title: string,
-    image: image,
+    card: CardAdapter,
     disambiguation: string,
     summary: string,
     genres: [LinkAdapter],
@@ -22,7 +20,7 @@ export struct ReleaseGroupDetailsAdapter {
     artists: [LinkAdapter],
 
     // From the default and/or selected release.
-    media: [MediumModel],
+    media: [MediumAdapter],
 }
 
 export component ReleaseGroupDetails inherits ScrollView {
@@ -44,14 +42,14 @@ export component ReleaseGroupDetails inherits ScrollView {
                 Image {
                     width: Palette.thumbnail-width-extra-large;
                     height: Palette.thumbnail-width-extra-large;
-                    source: model.image;
+                    source: model.card.image.image;
                 }
             }
             VerticalBox {
                 alignment: start;
                 // Title
                 Text {
-                    text: model.title;
+                    text: model.card.title.name;
                     font-weight: Palette.font-weight-bold;
                     font-size: 5rem;
                 }
@@ -107,19 +105,19 @@ export component ReleaseGroupDetails inherits ScrollView {
             }
         }
 
-        // // Releases
-        // if model.releases.length > 0: VerticalLayout {
-        //     spacing: StyleMetrics.layout-spacing * 0.50;
-        //     Text {
-        //         text: "Other Releases";
-        //         font-weight: Palette.font-weight-bold;
-        //         font-size: 2rem;
-        //     }
-        //     CardGrid {
-        //         cards: model.releases;
-        //         parent-width: root.width;
-        //     }
-        // }
+        // Releases
+        if model.releases.length > 0: VerticalLayout {
+            spacing: StyleMetrics.layout-spacing * 0.50;
+            Text {
+                text: "Other Releases";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.releases;
+                parent-width: root.width;
+            }
+        }
 
         // Links
         if model.links.length > 0: VerticalLayout {
@@ -136,13 +134,13 @@ export component ReleaseGroupDetails inherits ScrollView {
     }
 
     in property <ReleaseGroupDetailsAdapter> model: {
-        id: "123-123-123-123",
-        title: "A Reign of Fish",
-        // card: {
-        //     image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        //     title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        //     sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
-        // },
+        // id: "123-123-123-123",
+        // title: "A Reign of Fish",
+        card: {
+            image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+            title: {name: "A Reign of Fish",url: "internal://release/1234"},
+            sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
+        },
         disambiguation: "regular kind",
         summary: "I swear it thwernt but 784 years ago when they came. I tell ya, they were glorious. The regular kind, you see? Not them fancy ones. The common ones. Common as muck my ma said! But when they came walkin in you knew it. Shit, everyone knew it. I know Kenny knew it, cause when they come walkin in Kenny stood up, pointed, shit his pants and passed out on the floor. Now, like I said, these're the regular ones, not the diamond ones, so you get it, but still. And I suppose it's fair to mention that Kenny'd had about half a bottle of something so who knews if it were the liquor or not. Anyway, really nice folks. Good music too.",
         genres: [ {name: "fish jazz",url: "internal://release/1234"} ],
