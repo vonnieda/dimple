@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use image::DynamicImage;
 use serde::Deserialize;
 use serde::Serialize;
@@ -24,11 +22,13 @@ use crate::library::LibraryEntity;
 pub struct DimpleArtist {
     pub id: String,
     pub name: String,
+
     pub disambiguation: String,
-    pub summary: String,
+    pub genres: Vec<DimpleGenre>,
     pub release_groups: Vec<DimpleReleaseGroup>,
     pub relations: Vec<DimpleRelation>,
-    pub genres: Vec<DimpleGenre>,
+    pub summary: String,
+    
     #[serde(default)]
     pub fetched: bool,
 }
@@ -39,14 +39,16 @@ pub struct DimpleArtist {
 pub struct DimpleReleaseGroup {
     pub id: String,
     pub title: String,
-    pub disambiguation: String,
-    pub summary: String,
-    pub primary_type: String,
-    pub first_release_date: String,
-    pub relations: Vec<DimpleRelation>,
-    pub genres: Vec<DimpleGenre>,
-    pub releases: Vec<DimpleRelease>,
+
     pub artists: Vec<DimpleArtist>,
+    pub disambiguation: String,
+    pub first_release_date: String,
+    pub genres: Vec<DimpleGenre>,
+    pub primary_type: String,
+    pub relations: Vec<DimpleRelation>,
+    pub releases: Vec<DimpleRelease>,
+    pub summary: String,
+    
     #[serde(default)]
     pub fetched: bool,
 }
@@ -57,68 +59,87 @@ pub struct DimpleReleaseGroup {
 pub struct DimpleRelease {
     pub id: String,
     pub title: String,
-    pub disambiguation: String,
-    pub summary: String,
-    pub relations: Vec<DimpleRelation>,
-    pub genres: Vec<DimpleGenre>,
+
     pub artists: Vec<DimpleArtist>,
-    pub status: String,
-    pub date: String,
-    pub packaging: String,
-    pub country: String,
     pub barcode: String,
-    pub asin: String,
+    pub country: String,
+    pub date: String,
+    pub disambiguation: String,
+    pub genres: Vec<DimpleGenre>,
+    pub media: Vec<DimpleMedium>,
+    pub packaging: String,
+    pub relations: Vec<DimpleRelation>,
     pub release_group: DimpleReleaseGroup,
+    pub status: String,
+    pub summary: String,
+
     #[serde(default)]
     pub fetched: bool,
-    pub media: Vec<DimpleMedium>,
 }
 
 // https://musicbrainz.org/doc/Medium
-#[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct DimpleMedium {
     pub title: String,
+
+    pub disc_count: u32,
+    pub format: String,
     pub position: u32,
     pub track_count: u32,
-    pub disc_count: u32,
-    pub format_id: String,
-    pub format: String,
     pub tracks: Vec<DimpleTrack>,
+
     #[serde(default)]
     pub fetched: bool,
 }
 
 // https://musicbrainz.org/doc/Track
-#[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct DimpleTrack {
-    pub recording: DimpleRecording,
-    pub title: String,
-    pub number: String,
-    pub length: u32,
-    pub position: u32,
     pub id: String,
+    pub title: String,
+
+    pub length: u32,
+    pub number: String,
+    pub position: u32,
+    pub recording: DimpleRecording,
+
     #[serde(default)]
     pub fetched: bool,
 }
 
-// https://musicbrainz.org/doc/Track
-#[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
+// https://musicbrainz.org/doc/Recording
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct DimpleRecording {
     pub id: String,
     pub title: String,
-    pub length: u32,
-    pub disambiguation: String,
+
     pub annotation: String,
+    pub disambiguation: String,
+    pub length: u32,
+    pub summary: String,
+
+    pub isrcs: Vec<String>,
+    pub relations: Vec<DimpleRelation>,
+    pub releases: Vec<DimpleRelease>,
+    pub artist_credits: Vec<DimpleArtist>,
+    // pub aliases: Vec<DimpleAlias>,
+    // pub tags Vec<Tag>
+    // pub rating: Rating,
+
+    pub genres: Vec<DimpleGenre>,
+
     #[serde(default)]
     pub fetched: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct DimpleGenre {
-    // pub id: String,
     pub name: String,
     pub count: u32,
     pub summary: String,
+
+    #[serde(default)]
+    pub fetched: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -221,6 +242,26 @@ impl DimpleReleaseGroup {
 
     pub fn image(&self, lib: &dyn Library) -> Option<DynamicImage> {
         lib.image(&self.entity())
+    }
+}
+
+impl DimpleRecording {
+    pub fn from_id(id: &str) -> Self {
+        Self {
+            id: id.to_string(),
+            ..Default::default()
+        }
+    }
+
+    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
+        match lib.fetch(&LibraryEntity::Recording(Self::from_id(id))) {
+            Some(LibraryEntity::Recording(o)) => Some(o),
+            _ => todo!()
+        }
+    }
+
+    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
+        Self::get(&self.id, lib)
     }
 }
 

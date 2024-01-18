@@ -1,6 +1,6 @@
 use colored::Colorize;
 
-use crate::model::{DimpleReleaseGroup, DimpleTrack, DimpleArtist, DimpleGenre, DimpleRelease};
+use crate::model::{DimpleReleaseGroup, DimpleTrack, DimpleArtist, DimpleGenre, DimpleRelease, DimpleRecording};
 
 #[derive(Clone, Debug)]
 pub enum LibraryEntity {
@@ -9,6 +9,8 @@ pub enum LibraryEntity {
     ReleaseGroup(DimpleReleaseGroup),
     Release(DimpleRelease),
     Track(DimpleTrack),
+    Recording(DimpleRecording),
+
 }
 
 impl LibraryEntity {
@@ -17,8 +19,9 @@ impl LibraryEntity {
             LibraryEntity::Artist(a) => a.id.clone(),
             LibraryEntity::ReleaseGroup(r) => r.id.clone(),
             LibraryEntity::Release(r) => r.id.clone(),
-            LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Track(_) => todo!(),
+            LibraryEntity::Recording(r) => r.id.clone(),
+            LibraryEntity::Genre(g) => g.name.clone(),
+            LibraryEntity::Track(t) => t.id.clone(),
         }
     }
 
@@ -27,8 +30,9 @@ impl LibraryEntity {
             LibraryEntity::Artist(a) => a.name.clone(),
             LibraryEntity::ReleaseGroup(r) => r.title.clone(),
             LibraryEntity::Release(r) => r.title.clone(),
-            LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Track(_) => todo!(),
+            LibraryEntity::Recording(r) => r.title.clone(),
+            LibraryEntity::Genre(g) => g.name.clone(),
+            LibraryEntity::Track(t) => t.title.clone(),
         }
     }
 
@@ -38,8 +42,9 @@ impl LibraryEntity {
             LibraryEntity::Artist(a) => a.fetched,
             LibraryEntity::ReleaseGroup(r) => r.fetched,
             LibraryEntity::Release(r) => r.fetched,
-            LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Track(_) => todo!(),
+            LibraryEntity::Recording(r) => r.fetched,
+            LibraryEntity::Genre(g) => g.fetched,
+            LibraryEntity::Track(t) => t.fetched,
         }
     }
 }

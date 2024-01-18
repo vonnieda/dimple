@@ -30,6 +30,7 @@ import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 import { ReleaseGroupDetails } from "release_group_details.slint";
 import { ReleaseDetails, ReleaseDetailsModel } from "release_details.slint";
+import { RecordingDetails, RecordingDetailsAdapter } from "recording_details.slint";
 
 export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter }
 
@@ -41,6 +42,7 @@ export component AppWindow inherits Window {
     in-out property <ArtistDetailsAdapter> artist-details;
     in-out property <ReleaseGroupDetailsAdapter> release-group-details;
     in-out property <ReleaseDetailsModel> release-details;
+    in-out property <RecordingDetailsAdapter> recording-details;
     
     title: "Dimple";
     icon: @image-url("../images/icon_512x512.png");
@@ -89,6 +91,13 @@ export component AppWindow inherits Window {
             ReleaseDetails {  
                 vertical-stretch: 1;
                 model: root.release-details;
+            }                
+        }
+        if page == 4: GroupBox {
+            vertical-stretch: 1;
+            RecordingDetails {  
+                vertical-stretch: 1;
+                model: root.recording-details;
             }                
         }
         GroupBox {

@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease}};
+use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
@@ -17,6 +17,7 @@ pub struct SledLibrary {
     release_groups: Tree,
     releases: Tree,
     pub images: ImageCache,
+    recordings: Tree,
     _audio: Tree,
 }
 
@@ -34,12 +35,14 @@ impl SledLibrary {
         let images = db.open_tree("images").unwrap();
         let audio = db.open_tree("audio").unwrap();
         let artists = db.open_tree("artists").unwrap();
+        let recordings = db.open_tree("recordings").unwrap();
         Self { 
             path: path.to_string(),
             release_groups,
             releases,
             artists,
             images: ImageCache::new(images),
+            recordings,
             _audio: audio,
         }
     }
@@ -83,6 +86,16 @@ impl SledLibrary {
             })
     }
 
+    fn get_recording(&self, mbid: &str) -> Option<DimpleRecording> {
+        assert!(!mbid.is_empty());
+        self.recordings.get(mbid).ok()?
+            .and_then(|v| {
+                let bytes = v.as_bytes();
+                let json: String = String::from_utf8(bytes.into()).unwrap();
+                serde_json::from_str(&json).unwrap()
+            })
+    }
+
     pub fn set_release_group(&self, a: &DimpleReleaseGroup) {
         assert!(!a.id.is_empty());
         serde_json::to_string(a)
@@ -97,6 +110,15 @@ impl SledLibrary {
         serde_json::to_string(a)
             .map(|json| {
                 self.releases.insert(a.id.to_string(), &*json).unwrap()
+            })
+            .unwrap();
+    }
+
+    pub fn set_recording(&self, a: &DimpleRecording) {
+        assert!(!a.id.is_empty());
+        serde_json::to_string(a)
+            .map(|json| {
+                self.recordings.insert(a.id.to_string(), &*json).unwrap()
             })
             .unwrap();
     }
@@ -142,6 +164,10 @@ impl Library for SledLibrary {
             LibraryEntity::Release(r) => {
                 let r = self.get_release(&r.id)?;
                 Some(LibraryEntity::Release(r))
+            },
+            LibraryEntity::Recording(r) => {
+                let r = self.get_recording(&r.id)?;
+                Some(LibraryEntity::Recording(r))
             },
             LibraryEntity::Genre(_) => todo!(),
             LibraryEntity::Track(_) => todo!(),

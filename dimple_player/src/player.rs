@@ -7,7 +7,6 @@
 
 use std::{sync::{Arc, RwLock, mpsc::{Sender, Receiver}}, fmt::Debug, io::Cursor, collections::{HashMap, HashSet}, time::Duration};
 
-use dimple_core::{model::{Release, Track}, library::LibraryHandle};
 use playback_rs::{Song, Hint};
 
 pub struct Player {    

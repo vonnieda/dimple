@@ -40,6 +40,7 @@ impl Library for FanartTvLibrary {
                     .https_only(true)
                     .user_agent(dimple_core::USER_AGENT)
                     .build().ok()?;
+                // TODO STOPSHIP
                 let api_key = "55b9ef19f6822b9f835c97426d435d72";
                 let mbid = a.id.to_string();
                 let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", mbid, api_key);
@@ -55,11 +56,7 @@ impl Library for FanartTvLibrary {
                 let bytes = thumb_resp.bytes().ok()?;
                 image::load_from_memory(&bytes).ok()
             }
-            // Seems like it only supports artists by mbid
-            LibraryEntity::Genre(_) => None,
-            LibraryEntity::ReleaseGroup(_) => None,
-            LibraryEntity::Release(_) => None,
-            LibraryEntity::Track(_) => None,
+            _ => None,
         }
     }
 }

@@ -115,6 +115,7 @@ impl Library for Librarian {
                 LibraryEntity::Artist(artist) => self.local_library.set_artist(artist),
                 LibraryEntity::ReleaseGroup(r) => self.local_library.set_release_group(r),
                 LibraryEntity::Release(r) => self.local_library.set_release(r),
+                LibraryEntity::Recording(r) => self.local_library.set_recording(r),
                 LibraryEntity::Genre(_) => todo!(),
                 LibraryEntity::Track(_) => todo!(),
             };
@@ -170,7 +171,6 @@ impl Library for Librarian {
                 LibraryEntity::Release(mut base) => {
                     if let LibraryEntity::Release(b) = b {
                         base.artists = merge_vec(base.artists, b.artists);
-                        base.asin = longer(base.asin, b.asin);
                         base.country = longer(base.country, b.country);
                         base.date = longer(base.date, b.date);
                         base.barcode = longer(base.barcode, b.barcode);
@@ -184,6 +184,26 @@ impl Library for Librarian {
                         base.title = longer(base.title, b.title);
                     }
                     Some(LibraryEntity::Release(base))
+                },
+                LibraryEntity::Recording(mut base) => {
+                    if let LibraryEntity::Recording(b) = b {
+                        base.annotation = longer(base.annotation, b.annotation);
+                        base.artist_credits = merge_vec(base.artist_credits, b.artist_credits);
+                        // base.asin = longer(base.asin, b.asin);
+                        // base.country = longer(base.country, b.country);
+                        // base.date = longer(base.date, b.date);
+                        // base.barcode = longer(base.barcode, b.barcode);
+                        base.disambiguation = longer(base.disambiguation, b.disambiguation);
+                        // base.genres = merge_vec(base.genres, b.genres);
+                        // base.media = merge_vec(base.media, b.media);
+                        base.id = longer(base.id, b.id);
+                        // base.length = 
+                        // base.relations = merge_vec(base.relations, b.relations);
+                        // base.status = longer(base.status, b.status);
+                        base.summary = longer(base.summary, b.summary);
+                        base.title = longer(base.title, b.title);
+                    }
+                    Some(LibraryEntity::Recording(base))
                 },
                 _ => todo!(),
             }
@@ -233,6 +253,11 @@ impl Library for Librarian {
                         let mut r = r.clone();
                         r.fetched = true;
                         LibraryEntity::Release(r)
+                    },
+                    LibraryEntity::Recording(r) => {
+                        let mut r = r.clone();
+                        r.fetched = true;
+                        LibraryEntity::Recording(r)
                     },
                     _ => todo!(),
                 }

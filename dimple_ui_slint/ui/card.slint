@@ -1,19 +1,19 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
-import { ImageLinkAdapter, LinkAdapter, Links } from "./common.slint";
+import { ImageLinkAdapter, LinkAdapter, Links, Link } from "./common.slint";
 import { Palette, Navigator } from "common.slint";
 import {StyleMetrics} from "std-widgets.slint";
 
 export struct CardAdapter {
     image: ImageLinkAdapter,
     title: LinkAdapter,
-    sub-title: [LinkAdapter],
+    sub-title: LinkAdapter,
 }
 
 export component Card inherits VerticalLayout {
     in property <CardAdapter> model: {
         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
         title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
+        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
     };
 
     width: Palette.thumbnail-width-large;
@@ -42,19 +42,12 @@ export component Card inherits VerticalLayout {
         }
     }
     Rectangle {}
-    title-area := TouchArea {
-        mouse-cursor: pointer;
-        clicked => { Navigator.navigate(model.title.url); }
-        title := Text {
-            width: root.width;
-            text: model.title.name;
-            wrap: word-wrap;
-            font-weight: Palette.font-weight-bold;
-            font-size: 1.2rem;
-            color: parent.has-hover 
-                ? Palette.link-color-hover
-                : Palette.link-color;
-        }
+    title-area := Link {
+        url: model.title.url;
+        name: model.title.name;
     }
-    sub-title-area := Links { links: model.sub-title; }
+    sub-title-area := Link {
+        url: model.sub-title.url;
+        name: model.sub-title.name;
+    }
 }
