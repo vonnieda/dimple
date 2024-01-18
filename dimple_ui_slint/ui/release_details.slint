@@ -1,19 +1,19 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette, Link, Navigator, Links , Linnk} from "common.slint";
-import { CardModel } from "card.slint";
+import { Palette, Navigator, Links, Link, LinkAdapter} from "common.slint";
+import { CardAdapter } from "card.slint";
 import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
 import { CardGrid } from "card_grid.slint";
 
 export struct ReleaseDetailsModel {
-    card: CardModel,
+    card: CardAdapter,
     disambiguation: string,
     summary: string,
-    genres: [Link],
+    genres: [LinkAdapter],
     // releases: [CardModel],
-    links: [Link],
+    links: [LinkAdapter],
     // primary_type: string,
-    artists: [Link],
-    release_group: Link,
+    artists: [LinkAdapter],
+    release_group: LinkAdapter,
 }
 
 export component ReleaseDetails inherits ScrollView {
@@ -60,7 +60,7 @@ export component ReleaseDetails inherits ScrollView {
                         text: "From the release group ";
                         font-size: 1.3rem;
                     }
-                    Linnk {
+                    Link {
                         url: model.release-group.url;
                         name: model.release-group.name;
                     }
@@ -103,7 +103,7 @@ export component ReleaseDetails inherits ScrollView {
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
-            for link in model.links: Linnk {
+            for link in model.links: Link {
                 url: link.url;
                 name: link.name;
             }

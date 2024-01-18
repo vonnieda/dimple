@@ -54,11 +54,10 @@ struct WpSummary {
 }
 
 impl WikidataLibrary {
-    fn get_summary(&self, relations: &Option<Vec<DimpleRelation>>) -> Option<String> {
+    fn get_summary(&self, relations: &Vec<DimpleRelation>) -> Option<String> {
         // Find a Wikidata link if one exists.
         let wikidata_url: String = relations
             .iter()
-            .flatten()
             .map(|rel| rel.to_owned())
             .filter_map(|rel| match rel.content {
                 DimpleRelationContent::Url(url) => Some(url.resource),
@@ -147,22 +146,13 @@ impl Library for WikidataLibrary {
     fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
         match entity.clone() {
             LibraryEntity::Artist(mut artist) => {
-                artist.summary = self.get_summary(&artist.relations).map(|f| {
-                    Attributed {
-                        value: f.to_string(),
-                        ..Default::default()
-                    }
-                });
+                artist.summary = self.get_summary(&artist.relations).unwrap_or_default();
                 Some(LibraryEntity::Artist(artist))
             },
 
             LibraryEntity::ReleaseGroup(mut release_group) => {
-                release_group.summary = self.get_summary(&release_group.relations).map(|f| {
-                    Attributed {
-                        value: f.to_string(),
-                        ..Default::default()
-                    }
-                });
+                release_group.summary = self.get_summary(&release_group.relations)
+                    .unwrap_or_default();
                 Some(LibraryEntity::ReleaseGroup(release_group))
             },
 

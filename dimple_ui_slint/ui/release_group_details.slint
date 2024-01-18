@@ -1,23 +1,25 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette, Link, Navigator, Links , Linnk, TrackList, Track} from "common.slint";
-import { CardModel } from "card.slint";
+import { Palette, LinkAdapter, Navigator, Links , Link, TrackList, TrackAdapter} from "common.slint";
+import { CardAdapter } from "card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { CardGrid } from "card_grid.slint";
 
 export struct MediumModel {
     title: string,
-    tracks: [Track],
+    tracks: [TrackAdapter],
 }
 
-export struct ReleaseGroupDetailsModel {
-    card: CardModel,
+export struct ReleaseGroupDetailsAdapter {
+    id: string,
+    title: string,
+    image: image,
     disambiguation: string,
     summary: string,
-    genres: [Link],
-    releases: [CardModel],
-    links: [Link],
+    genres: [LinkAdapter],
+    releases: [CardAdapter],
+    links: [LinkAdapter],
     primary_type: string,
-    artists: [Link],
+    artists: [LinkAdapter],
 
     // From the default and/or selected release.
     media: [MediumModel],
@@ -42,14 +44,14 @@ export component ReleaseGroupDetails inherits ScrollView {
                 Image {
                     width: Palette.thumbnail-width-extra-large;
                     height: Palette.thumbnail-width-extra-large;
-                    source: model.card.image.image;
+                    source: model.image;
                 }
             }
             VerticalBox {
                 alignment: start;
                 // Title
                 Text {
-                    text: model.card.title.name;
+                    text: model.title;
                     font-weight: Palette.font-weight-bold;
                     font-size: 5rem;
                 }
@@ -126,19 +128,21 @@ export component ReleaseGroupDetails inherits ScrollView {
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
-            for link in model.links: Linnk {
+            for link in model.links: Link {
                 url: link.url;
                 name: link.name;
             }
         }
     }
 
-    in property <ReleaseGroupDetailsModel> model: {
-        card: {
-            image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-            title: {name: "A Reign of Fish",url: "internal://release/1234"},
-            sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
-        },
+    in property <ReleaseGroupDetailsAdapter> model: {
+        id: "123-123-123-123",
+        title: "A Reign of Fish",
+        // card: {
+        //     image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+        //     title: {name: "A Reign of Fish",url: "internal://release/1234"},
+        //     sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],
+        // },
         disambiguation: "regular kind",
         summary: "I swear it thwernt but 784 years ago when they came. I tell ya, they were glorious. The regular kind, you see? Not them fancy ones. The common ones. Common as muck my ma said! But when they came walkin in you knew it. Shit, everyone knew it. I know Kenny knew it, cause when they come walkin in Kenny stood up, pointed, shit his pants and passed out on the floor. Now, like I said, these're the regular ones, not the diamond ones, so you get it, but still. And I suppose it's fair to mention that Kenny'd had about half a bottle of something so who knews if it were the liquor or not. Anyway, really nice folks. Good music too.",
         genres: [ {name: "fish jazz",url: "internal://release/1234"} ],

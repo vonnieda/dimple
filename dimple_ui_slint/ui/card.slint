@@ -1,16 +1,16 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
-import { ImageLink, Link, Links } from "./common.slint";
+import { ImageLinkAdapter, LinkAdapter, Links } from "./common.slint";
 import { Palette, Navigator } from "common.slint";
 import {StyleMetrics} from "std-widgets.slint";
 
-export struct CardModel {
-    image: ImageLink,
-    title: Link,
-    sub-title: [Link],
+export struct CardAdapter {
+    image: ImageLinkAdapter,
+    title: LinkAdapter,
+    sub-title: [LinkAdapter],
 }
 
 export component Card inherits VerticalLayout {
-    in property <CardModel> model: {
+    in property <CardAdapter> model: {
         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
         title: {name: "A Reign of Fish",url: "internal://release/1234"},
         sub-title: [{name: "Fresh Pliers",url: "internal://artist/9876"}],

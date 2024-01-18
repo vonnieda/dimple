@@ -66,21 +66,6 @@ impl Library for DeezerLibrary {
     }
 
     fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
-        match entity {
-            LibraryEntity::Artist(a) => {
-                let a = a.clone();
-                a.relations?.clone().iter()
-                    .for_each(|rel| {
-                        if let DimpleRelationContent::Url(con) = &rel.content {
-                            // dbg!(&con.resource);
-                        }
-                    });
-                None
-            },
-            LibraryEntity::Genre(_) => None,
-            LibraryEntity::ReleaseGroup(_) => None,
-            LibraryEntity::Release(_) => None,
-            LibraryEntity::Track(_) => None,           
-        }
+        None
     }
 }

@@ -1,10 +1,14 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
-import { Card, CardModel } from "card.slint";
+import { Card, CardAdapter } from "card.slint";
 import { Palette, Navigator } from "common.slint";
 import {StyleMetrics} from "std-widgets.slint";
 
+export struct CardGridAdapter {
+    cards: [CardAdapter],
+}
+
 export component CardGrid inherits VerticalLayout {
-    in-out property <[CardModel]> cards;
+    in-out property <[CardAdapter]> cards;
 
     in property <length> parent_width: 100px;
 

@@ -2,7 +2,6 @@ use colored::Colorize;
 
 use crate::model::{DimpleReleaseGroup, DimpleTrack, DimpleArtist, DimpleGenre, DimpleRelease};
 
-// TODO I think this enum's time is up. Replace with Traits.
 #[derive(Clone, Debug)]
 pub enum LibraryEntity {
     Artist(DimpleArtist),
@@ -10,21 +9,6 @@ pub enum LibraryEntity {
     ReleaseGroup(DimpleReleaseGroup),
     Release(DimpleRelease),
     Track(DimpleTrack),
-}
-
-pub trait LibraryEntity2 {
-    fn id(&self) -> String;
-    fn name(&self) -> String;
-}
-
-impl LibraryEntity2 for DimpleArtist {
-    fn id(&self) -> String {
-        self.id.clone()
-    }
-
-    fn name(&self) -> String {
-        self.name.clone()
-    }
 }
 
 impl LibraryEntity {
@@ -59,11 +43,6 @@ impl LibraryEntity {
         }
     }
 }
-
-// TODO trying to device if it makes sense just to add store and load here,
-// or if I want to keep that special to the librarian. Presumably I'm going to
-// want to be able to save likes and shit.
-
 
 pub trait Library: Send + Sync {
     /// Get a user friendly display name for the Library.

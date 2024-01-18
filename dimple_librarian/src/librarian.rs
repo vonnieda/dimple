@@ -46,22 +46,25 @@ impl Librarian {
         DynamicImage::new_rgb8(width, height)
     }
 
-    pub fn thumbnail(&self, entity: &LibraryEntity, width: u32, height: u32) -> Option<DynamicImage> {
-        self.local_library.images.get(&entity.id(), width, height)
-            .or_else(|| {
-                self.image(entity).map(|dyn_image| {
-                    self.local_library.set_image(entity, &dyn_image);
-                    dyn_image
-                })
-            })
-            .or_else(|| {
-                // TODO magic, used 1000x1000 cause that's what fanart.tv uses
-                // for artist thumbs. Could probably go higher res for an
-                // "original" quality image.
-                self.local_library.set_image(entity, 
-                    &self.generate_masterpiece(entity, 1000, 1000));
-                self.local_library.images.get(&entity.id(), width, height)
-            })
+    /// Get or create a thumbmail image at the given size for the entity.
+    /// If no image can be loaded from the library one is generated. Results
+    /// either from the library or generated are cached for future calls.
+    pub fn thumbnail(&self, entity: &LibraryEntity, width: u32, height: u32) -> DynamicImage {
+        let cached = self.local_library.images.get(&entity.id(), width, height);
+        if let Some(dyn_image) = cached {
+            log::info!("{} cached", entity.id());
+            return dyn_image;
+        }
+        let loaded = self.local_library.images.get(&entity.id(), width, height);
+        if let Some(dyn_image) = loaded {
+            log::info!("{} loaded", entity.id());
+            self.local_library.set_image(entity, &dyn_image);
+            return self.local_library.images.get(&entity.id(), width, height).unwrap();
+        }
+        log::info!("{} generated", entity.id());
+        let generated = &self.generate_masterpiece(entity, width, height);
+        self.local_library.set_image(entity, generated);
+        self.local_library.images.get(&entity.id(), width, height).unwrap()
     }
 }
 
@@ -130,26 +133,8 @@ impl Library for Librarian {
             }
         }
 
-        fn merge_vec<T>(a: Option<Vec<T>>, b: Option<Vec<T>>) -> Option<Vec<T>> {
-            if a.is_none() && b.is_none() {
-                return None;
-            }
-            if a.is_some() & b.is_some() {
-                let a = a.unwrap();
-                let b = b.unwrap();
-                if a.len() >= b.len() {
-                    Some(a)
-                } 
-                else {
-                    Some(b)
-                }
-            }
-            else if a.is_some() {
-                return a;
-            }
-            else {
-                return b;
-            }
+        fn merge_vec<T>(a: Vec<T>, b: Vec<T>) -> Vec<T> {
+            if a.len() > b.len() { a } else { b }
         }
 
         // TODO this sucks, it needs to be genericd so the two variants have
@@ -166,7 +151,7 @@ impl Library for Librarian {
                         base.name = longer(base.name, b.name);
                         base.relations = merge_vec(base.relations, b.relations);
                         base.release_groups = merge_vec(base.release_groups, b.release_groups);
-                        base.summary = base.summary.or(b.summary.clone());
+                        base.summary = longer(base.summary, b.summary);
                     }
                     Some(LibraryEntity::Artist(base))
                 },
@@ -179,7 +164,7 @@ impl Library for Librarian {
                         base.primary_type = longer(base.primary_type, b.primary_type);
                         base.relations = merge_vec(base.relations, b.relations);
                         base.releases = merge_vec(base.releases, b.releases);
-                        base.summary = base.summary.or(b.summary.clone());
+                        base.summary = longer(base.summary, b.summary);
                         base.title = longer(base.title, b.title);
                         base.artists = merge_vec(base.artists, b.artists);
                     }
@@ -199,7 +184,7 @@ impl Library for Librarian {
                         // base.primary_type = longer(base.primary_type, b.primary_type);
                         base.relations = merge_vec(base.relations, b.relations);
                         // base.releases = merge_vec(base.releases, b.releases);
-                        base.summary = base.summary.or(b.summary.clone());
+                        base.summary = longer(base.summary, b.summary);
                         base.title = longer(base.title, b.title);
                     }
                     Some(LibraryEntity::Release(base))

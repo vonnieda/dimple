@@ -1,5 +1,11 @@
+use std::error::Error;
+
+use image::DynamicImage;
 use serde::Deserialize;
 use serde::Serialize;
+
+use crate::library::Library;
+use crate::library::LibraryEntity;
 
 // TODO feels more like attributed things are their own objects and not fields
 // on structs that may also be attributed.
@@ -19,11 +25,10 @@ pub struct DimpleArtist {
     pub id: String,
     pub name: String,
     pub disambiguation: String,
-    pub summary: Option<Attributed<String>>,
-    pub release_groups: Option<Vec<DimpleReleaseGroup>>,
-    pub releases: Option<Vec<DimpleRelease>>,
-    pub relations: Option<Vec<DimpleRelation>>,
-    pub genres: Option<Vec<DimpleGenre>>,
+    pub summary: String,
+    pub release_groups: Vec<DimpleReleaseGroup>,
+    pub relations: Vec<DimpleRelation>,
+    pub genres: Vec<DimpleGenre>,
     #[serde(default)]
     pub fetched: bool,
 }
@@ -35,13 +40,13 @@ pub struct DimpleReleaseGroup {
     pub id: String,
     pub title: String,
     pub disambiguation: String,
-    pub summary: Option<Attributed<String>>,
+    pub summary: String,
     pub primary_type: String,
     pub first_release_date: String,
-    pub relations: Option<Vec<DimpleRelation>>,
-    pub genres: Option<Vec<DimpleGenre>>,
-    pub releases: Option<Vec<DimpleRelease>>,
-    pub artists: Option<Vec<DimpleArtist>>,
+    pub relations: Vec<DimpleRelation>,
+    pub genres: Vec<DimpleGenre>,
+    pub releases: Vec<DimpleRelease>,
+    pub artists: Vec<DimpleArtist>,
     #[serde(default)]
     pub fetched: bool,
 }
@@ -53,17 +58,17 @@ pub struct DimpleRelease {
     pub id: String,
     pub title: String,
     pub disambiguation: String,
-    pub summary: Option<Attributed<String>>,
-    pub relations: Option<Vec<DimpleRelation>>,
-    pub genres: Option<Vec<DimpleGenre>>,
-    pub artists: Option<Vec<DimpleArtist>>,
+    pub summary: String,
+    pub relations: Vec<DimpleRelation>,
+    pub genres: Vec<DimpleGenre>,
+    pub artists: Vec<DimpleArtist>,
     pub status: String,
     pub date: String,
     pub packaging: String,
     pub country: String,
     pub barcode: String,
     pub asin: String,
-    pub release_group: Option<DimpleReleaseGroup>,
+    pub release_group: DimpleReleaseGroup,
     #[serde(default)]
     pub fetched: bool,
     pub media: Vec<DimpleMedium>,
@@ -72,13 +77,13 @@ pub struct DimpleRelease {
 // https://musicbrainz.org/doc/Medium
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
 pub struct DimpleMedium {
-    pub title: Option<String>,
-    pub position: Option<u32>,
+    pub title: String,
+    pub position: u32,
     pub track_count: u32,
-    pub disc_count: Option<u32>,
-    pub format_id: Option<String>,
-    pub format: Option<String>,
-    pub tracks: Option<Vec<DimpleTrack>>,
+    pub disc_count: u32,
+    pub format_id: String,
+    pub format: String,
+    pub tracks: Vec<DimpleTrack>,
     #[serde(default)]
     pub fetched: bool,
 }
@@ -89,7 +94,7 @@ pub struct DimpleTrack {
     pub recording: DimpleRecording,
     pub title: String,
     pub number: String,
-    pub length: Option<u32>,
+    pub length: u32,
     pub position: u32,
     pub id: String,
     #[serde(default)]
@@ -99,37 +104,11 @@ pub struct DimpleTrack {
 // https://musicbrainz.org/doc/Track
 #[derive(Default, Debug, Clone, Serialize, Eq, Hash, PartialEq, Deserialize)]
 pub struct DimpleRecording {
-    /// See [MusicBrainz Identifier](https://musicbrainz.org/doc/MusicBrainz_Identifier).
     pub id: String,
-    /// The title of the recording.
     pub title: String,
-
-    pub video: Option<bool>,
-    /// The length of the recording. It's only entered manually for
-    /// [standalone recordings](https://musicbrainz.org/doc/Standalone_Recording). For recordings
-    /// that are being used on releases, the recording length is the median length of all tracks
-    /// (that have a track length) associated with that recording. If there is an even number of
-    /// track lengths, the smaller median candidate is used.
-    pub length: Option<u32>, // TODO: CUSTOM Deserialized to make this a duration
-    /// The disambiguation comments are fields in the database used to help distinguish identically
-    /// named artists, labels and other entities.
-    pub disambiguation: Option<String>,
-    /// The International Standard Recording Code assigned to the recording.
-    pub isrcs: Option<Vec<String>>,
-    // pub relations: Option<Vec<Relation>>,
-    // pub releases: Option<Vec<Release>>,
-    /// Artist credits indicate who is the main credited artist (or artists) for releases, release
-    /// groups, tracks and recordings, and how they are credited.
-    // pub artist_credit: Option<Vec<ArtistCredit>>,
-    /// Aliases are alternate names for a recording.
-    // pub aliases: Option<Vec<Alias>>,
-    // pub tags: Option<Vec<Tag>>,
-    // pub rating: Option<Rating>,
-    /// Genres are currently supported in MusicBrainz as part of the tag system.
-    // pub genres: Option<Vec<Genre>>,
-    /// Annotations are text fields, functioning like a miniature wiki, that can be added to any
-    /// existing artists, labels, recordings, releases, release groups and works.
-    pub annotation: Option<String>,
+    pub length: u32,
+    pub disambiguation: String,
+    pub annotation: String,
     #[serde(default)]
     pub fetched: bool,
 }
@@ -139,7 +118,7 @@ pub struct DimpleGenre {
     // pub id: String,
     pub name: String,
     pub count: u32,
-    pub description: Option<Attributed<String>>,
+    pub summary: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -176,3 +155,72 @@ pub struct Attributed<T> {
     pub license: String,
     pub copyright_holder: String,
 }
+
+impl DimpleArtist {
+    pub fn from_id(id: &str) -> Self {
+        Self {
+            id: id.to_string(),
+            ..Default::default()
+        }
+    }
+
+    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
+        match lib.fetch(&LibraryEntity::Artist(Self::from_id(id))) {
+            Some(LibraryEntity::Artist(o)) => Some(o),
+            _ => todo!()
+        }
+    }
+
+    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
+        Self::get(&self.id, lib)
+    }
+}
+
+impl DimpleRelease {
+    pub fn from_id(id: &str) -> Self {
+        Self {
+            id: id.to_string(),
+            ..Default::default()
+        }
+    }
+
+    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
+        match lib.fetch(&LibraryEntity::Release(Self::from_id(id))) {
+            Some(LibraryEntity::Release(o)) => Some(o),
+            _ => todo!()
+        }
+    }
+
+    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
+        Self::get(&self.id, lib)
+    }
+}
+
+impl DimpleReleaseGroup {
+    pub fn from_id(id: &str) -> Self {
+        Self {
+            id: id.to_string(),
+            ..Default::default()
+        }
+    }
+
+    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
+        match lib.fetch(&LibraryEntity::ReleaseGroup(Self::from_id(id))) {
+            Some(LibraryEntity::ReleaseGroup(o)) => Some(o),
+            _ => todo!()
+        }
+    }
+
+    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
+        Self::get(&self.id, lib)
+    }
+
+    pub fn entity(&self) -> LibraryEntity {
+        LibraryEntity::ReleaseGroup(self.clone())
+    }
+
+    pub fn image(&self, lib: &dyn Library) -> Option<DynamicImage> {
+        lib.image(&self.entity())
+    }
+}
+

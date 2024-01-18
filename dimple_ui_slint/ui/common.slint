@@ -21,19 +21,19 @@ export global Navigator {
     callback url() -> string;
 }
 
-export struct Link {
+export struct LinkAdapter {
     name: string,
     url: string,
 }
 
-export struct ImageLink {
+export struct ImageLinkAdapter {
     image: image,
     name: string,
     url: string,
 }
 
 export component Links inherits HorizontalLayout {
-    in property <[Link]> links;
+    in property <[LinkAdapter]> links;
     alignment: start;
     // TODO I think the kerning ends up incorrect when doing it this way. It
     // looks weird. But I don't know another way to get individual links with
@@ -68,8 +68,7 @@ export component Links inherits HorizontalLayout {
     }
 }
 
-
-export component Linnk inherits TouchArea {
+export component Link inherits TouchArea {
     in property <string> url;
     in property <string> name;
 
@@ -87,16 +86,16 @@ export component Linnk inherits TouchArea {
     }
 }
 
-export struct Track {
-    title: Link,
+export struct TrackAdapter {
+    title: LinkAdapter,
     track_number: int,
     length: string, // 5:03
-    artists: [Link],
+    artists: [LinkAdapter],
     plays: int,
 }
 
 export component TrackList inherits VerticalLayout {
-    in-out property <[Track]> tracks;
+    in-out property <[TrackAdapter]> tracks;
 
     in-out property <length> font-size: 1.3rem;
 
@@ -145,7 +144,7 @@ export component TrackList inherits VerticalLayout {
                 font-size: root.font-size;
                 width: 10%;
             }
-            Linnk {
+            Link {
                 name: track.title.name;
                 url: track.title.url;
                 width: 35%;
@@ -171,41 +170,3 @@ export component TrackList inherits VerticalLayout {
         }   
     }
 }
-
-// ReleaseGroup -> Release -> Media -> Track -> Recording
-
-// export struct Artist {
-//     id: string,
-//     name: string,
-//     disambiguation: string,
-//     summary: string,
-//     release-groups: [ReleaseGroup],
-    
-// }
-
-// export struct ReleaseGroup {
-//     id: string,
-//     title: string,
-//     disambiguation: string,
-//     summary: string,
-//     primary_type: string,
-//     first_release_date: string,
-// }
-
-// export struct Release {
-//     id: string,
-//     name: string,
-//     media: [Medium]
-// }
-
-// export struct Medium {
-
-// }
-
-// export struct Track {
-
-// }
-
-// export struct Recording {
-
-// }

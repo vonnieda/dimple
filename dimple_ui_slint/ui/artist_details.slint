@@ -1,19 +1,19 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette, Link, Navigator, Links , Linnk} from "common.slint";
-import { CardModel } from "card.slint";
+import { Palette, LinkAdapter, Navigator, Links, Link} from "common.slint";
+import { CardAdapter } from "card.slint";
 import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
 import { CardGrid } from "card_grid.slint";
 
-export struct ArtistDetailsModel {
-    card: CardModel,
+export struct ArtistDetailsAdapter {
+    card: CardAdapter,
     summary: string,
     disambiguation: string,
-    genres: [Link],
-    albums: [CardModel],
-    singles: [CardModel],
-    eps: [CardModel],
-    others: [CardModel],
-    links: [Link],
+    genres: [LinkAdapter],
+    albums: [CardAdapter],
+    singles: [CardAdapter],
+    eps: [CardAdapter],
+    others: [CardAdapter],
+    links: [LinkAdapter],
 }
 
 export component ArtistDetails inherits ScrollView {
@@ -133,12 +133,12 @@ export component ArtistDetails inherits ScrollView {
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
-            for link in model.links: Linnk {
+            for link in model.links: Link {
                 url: link.url;
                 name: link.name;
             }
         }
     }
 
-    in property <ArtistDetailsModel> model;
+    in property <ArtistDetailsAdapter> model;
 }

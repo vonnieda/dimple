@@ -1,11 +1,11 @@
 import { Button, VerticalBox , ScrollView, TextEdit, LineEdit, GroupBox} from "std-widgets.slint";
-import { CardGrid } from "card_grid.slint";
-import { Card, CardModel } from "card.slint";
+import { CardGrid, CardGridAdapter } from "card_grid.slint";
+import { Card, CardAdapter } from "card.slint";
 import { PlayerBar } from "player_bar.slint";
 import { NavBar } from "nav_bar.slint";
-import { ArtistDetails, ArtistDetailsModel } from "artist_details.slint";
-import { ReleaseGroupDetails, ReleaseGroupDetailsModel } from "release_group_details.slint";
-import { Palette, Navigator, Link, ImageLink } from "common.slint";
+import { ArtistDetails, ArtistDetailsAdapter } from "artist_details.slint";
+import { ReleaseGroupDetails, ReleaseGroupDetailsAdapter } from "release_group_details.slint";
+import { Palette, Navigator, LinkAdapter, ImageLinkAdapter } from "common.slint";
 import { StyleMetrics } from "std-widgets.slint";
 
 // import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
@@ -31,15 +31,15 @@ import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 import { ReleaseGroupDetails } from "release_group_details.slint";
 import { ReleaseDetails, ReleaseDetailsModel } from "release_details.slint";
 
-export { Navigator, Link, ImageLink, CardModel }
+export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter }
 
 export component AppWindow inherits Window {
     in-out property <int> page: 1;
     // TODO Note to self: Currently you can't expose properties on
     // sub-components, so all this is needed.
-    in-out property <[CardModel]> card-grid-cards;
-    in-out property <ArtistDetailsModel> artist-details;
-    in-out property <ReleaseGroupDetailsModel> release-group-details;
+    in-out property <CardGridAdapter> card-grid-adapter;
+    in-out property <ArtistDetailsAdapter> artist-details;
+    in-out property <ReleaseGroupDetailsAdapter> release-group-details;
     in-out property <ReleaseDetailsModel> release-details;
     
     title: "Dimple";
@@ -60,13 +60,13 @@ export component AppWindow inherits Window {
             VerticalLayout {
                 ScrollView {                        
                     card-grid := CardGrid {
-                        cards: root.card-grid-cards;
+                        cards: root.card-grid-adapter.cards;
                         parent-width: parent.width;
                     }
                 }
                 Text {
                     horizontal-alignment: right;
-                    text: card-grid-cards.length + " items";
+                    text: card-grid-adapter.cards.length + " items";
                 }
             }
         }
