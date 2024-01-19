@@ -52,6 +52,7 @@ export component ReleaseGroupDetails inherits ScrollView {
                     text: model.card.title.name;
                     font-weight: Palette.font-weight-bold;
                     font-size: 5rem;
+                    wrap: word-wrap;
                 }
                 // Disambiguation
                 if model.disambiguation > 0: Text {
@@ -68,6 +69,7 @@ export component ReleaseGroupDetails inherits ScrollView {
                     }
                     Links {
                         links: model.artists;
+                        font-size: 1.3rem;
                     }
                 }
                 // Genres
@@ -79,6 +81,7 @@ export component ReleaseGroupDetails inherits ScrollView {
                     }    
                     Links {
                         links: model.genres;
+                        font-size: 1.3rem;
                     }
                 }
                 // Summary

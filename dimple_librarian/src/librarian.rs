@@ -171,9 +171,9 @@ impl Library for Librarian {
                 LibraryEntity::Release(mut base) => {
                     if let LibraryEntity::Release(b) = b {
                         base.artists = merge_vec(base.artists, b.artists);
+                        base.barcode = longer(base.barcode, b.barcode);
                         base.country = longer(base.country, b.country);
                         base.date = longer(base.date, b.date);
-                        base.barcode = longer(base.barcode, b.barcode);
                         base.disambiguation = longer(base.disambiguation, b.disambiguation);
                         base.genres = merge_vec(base.genres, b.genres);
                         base.media = merge_vec(base.media, b.media);

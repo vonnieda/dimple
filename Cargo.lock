@@ -1163,6 +1163,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dimple_coverartarchive_library"
+version = "0.1.0"
+dependencies = [
+ "dimple_core",
+ "image",
+ "log",
+ "musicbrainz_rs",
+ "reqwest",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "dimple_deezer_library"
 version = "0.1.0"
 dependencies = [
@@ -1242,6 +1255,7 @@ name = "dimple_ui_slint"
 version = "0.1.0"
 dependencies = [
  "dimple_core",
+ "dimple_coverartarchive_library",
  "dimple_deezer_library",
  "dimple_fanart_tv_library",
  "dimple_lastfm_library",

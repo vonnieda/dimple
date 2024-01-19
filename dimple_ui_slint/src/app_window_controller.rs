@@ -1,3 +1,4 @@
+use dimple_coverartarchive_library::CoverArtArchiveLibrary;
 use dimple_musicbrainz_library::MusicBrainzLibrary;
 use dimple_lastfm_library::LastFmLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
@@ -55,6 +56,7 @@ impl AppWindowController {
         self.librarian.add_library(Box::<FanartTvLibrary>::default());
         self.librarian.add_library(Box::<DeezerLibrary>::default());
         self.librarian.add_library(Box::<WikidataLibrary>::default());
+        self.librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
@@ -203,21 +205,39 @@ impl AppWindowController {
             let release_group = DimpleReleaseGroup::get(id, librarian.as_ref())
                 .ok_or("release group not found").unwrap();
             let card = entity_card(&LibraryEntity::ReleaseGroup(release_group.clone()), 500, 500, &librarian);
-            let genres = release_group.genres.iter()
+            let mut genres: Vec<_> = release_group.genres.iter()
                 .map(|g| Link {
                     name: g.name.clone(),
                     url: format!("dimple://genre/{}", g.name),
                 })
                 .collect();
-            let artists = release_group.artists.iter()
+            genres.sort_by_key(|g| g.name.to_owned());
+            // genres.sort_by_key(|g| )
+            let mut artists: Vec<_> = release_group.artists.iter()
                 .map(|a| Link {
                     name: a.name.clone(),
                     url: format!("dimple://artist/{}", a.id),
                 })
                 .collect();
+            artists.sort_by_key(|a| a.name.to_owned());
             // let releases: Vec<_> = release_group.releases.clone();
             // let release_cards = release_cards(releases, &librarian, 500, 500);
-            let release = release_group.releases.first()
+            let mut releases: Vec<_> = release_group.releases.iter()
+                // .filter_map(|f| f.fetch(librarian.as_ref()))
+                .collect();
+            releases.sort_by(|a, b| {
+                let a_score = score_release(a);
+                let b_score = score_release(b);
+                a_score.partial_cmp(&b_score).unwrap()
+            });
+            releases.reverse();
+            for release in releases.clone() {
+                log::info!("{} {} {} {} {} {}", score_release(release), release.country, release.status, release.packaging, release.disambiguation, release.id);
+                for media in release.media.clone() {
+                    log::info!("  {} {}", media.format, media.disc_count);
+                }
+            }
+            let release = releases.first()
                 .ok_or("no releases")
                 .unwrap();
             let release = release.fetch(librarian.as_ref())
@@ -556,6 +576,53 @@ fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
     );
     slint::Image::from_rgba8(shared_pixbuf)
 }
+
+// Creates a simple score for a release to use when selecting a
+// a default release.
+// TODO this is super naive, just needed something to set the example.
+fn score_release(r: &DimpleRelease) -> f64 {
+    let mut score = 0.;
+    let country = r.country.to_lowercase();
+    if country == "xw" {
+        score += 1.0;
+    }                
+    else if country == "us" || country == "gb" || country == "xe" {
+        score += 0.7;
+    }
+    else if !country.is_empty() {
+        score += 0.1;
+    }
+
+    if r.status.to_lowercase() == "official" {
+        score += 1.0;
+    }
+
+    let packaging = r.packaging.to_lowercase();
+    if packaging == "digipak" {
+        score += 1.0;
+    }
+    else if packaging == "jewelcase" {
+        score += 0.5;
+    }
+
+    if !r.media.is_empty() {
+        let mut media_format_score = 0.;
+        for media in r.media.clone() {
+            let format = media.format.to_lowercase();
+            if format == "digital media" {
+                media_format_score += 1.0;
+            }
+            else if format == "cd" {
+                media_format_score += 0.5;
+            }
+        }
+        score += media_format_score / r.media.len() as f64;
+    }
+
+    score / 4.
+}
+
+
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 struct Link {

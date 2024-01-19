@@ -1,9 +1,5 @@
-use std::any::Any;
-
 use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
 use dimple_core::model::{DimpleGenre, DimpleArtist, DimpleReleaseGroup, DimpleRelation, DimpleRelationContent, DimpleUrl, DimpleRelease, DimpleMedium, DimpleTrack, DimpleRecording};
-use image::DynamicImage;
-use musicbrainz_rs::entity::CoverartResponse;
 use musicbrainz_rs::entity::artist::{Artist, ArtistSearchQuery};
 use musicbrainz_rs::entity::recording::Recording;
 use musicbrainz_rs::entity::relations::RelationContent;
@@ -20,18 +16,6 @@ impl MusicBrainzLibrary {
     pub fn new() -> Self {
         musicbrainz_rs::config::set_user_agent(dimple_core::USER_AGENT);
         Self {
-        }
-    }
-
-    pub fn get_coverart(&self, resp: CoverartResponse) -> Option<DynamicImage> {
-        match resp {
-            musicbrainz_rs::entity::CoverartResponse::Json(_) => todo!(),
-            musicbrainz_rs::entity::CoverartResponse::Url(url) => {
-                LibrarySupport::log_request(self, &url);
-                reqwest::blocking::get(url).ok()
-                    .map(|resp| resp.bytes().ok())?
-                    .and_then(|bytes| image::load_from_memory(&bytes).ok())
-            },    
         }
     }
 }
@@ -133,57 +117,6 @@ impl Library for MusicBrainzLibrary {
             LibraryEntity::Genre(_) => None,
             LibraryEntity::Track(_) => None,
         }        
-    }
-
-    // TODO split caa into it's own library, has no rate limits.
-    fn image(&self, _entity: &LibraryEntity) -> Option<image::DynamicImage> {
-        match _entity {
-            LibraryEntity::ReleaseGroup(r) => {
-                LibrarySupport::log_request(self, 
-                    &format!("http://coverartarchive.org/{}", r.id));                
-                let mb = ReleaseGroup {
-                    id: r.id.to_string(),
-                    ..Default::default()
-                };
-                mb.get_coverart()
-                    .front()
-                    .execute()
-                    .ok()
-                    .map(|resp| self.get_coverart(resp))?
-            },
-            LibraryEntity::Release(r) => {
-                LibrarySupport::log_request(self, 
-                    &format!("http://coverartarchive.org/{}", r.id));                
-                let mb = Release {
-                    id: r.id.to_string(),
-                    title: "".to_string(),
-                    aliases: None,
-                    annotation:  None,
-                    artist_credit: None,
-                    barcode: None,
-                    country: None,
-                    date: None,
-                    disambiguation: None,
-                    genres: None,
-                    label_info: None,
-                    status_id: None,
-                    status: None,
-                    quality: None,
-                    packaging_id: None,
-                    packaging: None,
-                    relations: None,
-                    release_group: None,
-                    media: None,
-                    tags: None,
-                };
-                mb.get_coverart()
-                    .front()
-                    .execute()
-                    .ok()
-                    .map(|resp| self.get_coverart(resp))?
-            },
-            _ => None,
-        }
     }
 }
 

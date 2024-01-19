@@ -1,0 +1,2 @@
+pub mod coverartarchive_library;
+pub use coverartarchive_library::CoverArtArchiveLibrary;

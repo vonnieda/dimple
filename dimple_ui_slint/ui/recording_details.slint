@@ -48,6 +48,7 @@ export component RecordingDetails inherits ScrollView {
                     text: model.card.title.name;
                     font-weight: Palette.font-weight-bold;
                     font-size: 5rem;
+                    wrap: word-wrap;
                 }
                 // Disambiguation
                 if model.disambiguation > 0: Text {
