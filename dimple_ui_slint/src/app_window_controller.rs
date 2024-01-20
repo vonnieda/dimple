@@ -157,35 +157,26 @@ impl AppWindowController {
             let mut release_groups = artist.release_groups.clone();
             release_groups.sort_by_key(|f| f.first_release_date.to_owned());
             release_groups.reverse();
-            let albums: Vec<_> = release_groups.iter()
-                .filter(|f| f.primary_type.to_lowercase() == "album")
-                .cloned()
+            let release_group_cards: Vec<_> = release_groups.par_iter()
+                .map(|rg| (rg.primary_type.to_lowercase().clone(), 
+                    release_group_card(rg, Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian)))
                 .collect();
-            // TODO this call is taking 30s for a new artist
-            let album_cards = release_group_cards(albums, &librarian,
-                Self::THUMBNAIL_WIDTH, 
-                Self::THUMBNAIL_WIDTH);
-            let singles: Vec<_> = release_groups.iter()
-                .filter(|f| f.primary_type.to_lowercase() == "single")
-                .cloned()
+            let album_cards: Vec<_> = release_group_cards.par_iter()
+                .filter(|(primary_type, _card)| primary_type == "album")
+                .map(|(_primary_type, card)| card.clone())
                 .collect();
-            let single_cards = release_group_cards(singles, &librarian,
-                Self::THUMBNAIL_WIDTH, 
-                Self::THUMBNAIL_WIDTH);
-            let eps: Vec<_> = release_groups.iter()
-                .filter(|f| f.primary_type.to_lowercase() == "ep")
-                .cloned()
+            let single_cards: Vec<_> = release_group_cards.par_iter()
+                .filter(|(primary_type, _card)| primary_type == "single")
+                .map(|(_primary_type, card)| card.clone())
                 .collect();
-            let ep_cards = release_group_cards(eps, &librarian,
-                Self::THUMBNAIL_WIDTH, 
-                Self::THUMBNAIL_WIDTH);
-            let other_release_groups: Vec<_> = release_groups.iter()
-                .filter(|f| f.primary_type.to_lowercase() != "album" && f.primary_type.to_lowercase() != "single" && f.primary_type.to_lowercase() != "ep")
-                .cloned()
+            let ep_cards: Vec<_> = release_group_cards.par_iter()
+                .filter(|(primary_type, _card)| primary_type == "ep")
+                .map(|(_primary_type, card)| card.clone())
                 .collect();
-            let other_release_group_cards = release_group_cards(other_release_groups, &librarian,
-                Self::THUMBNAIL_WIDTH, 
-                Self::THUMBNAIL_WIDTH);
+            let other_release_group_cards: Vec<_> = release_group_cards.par_iter()
+                .filter(|(primary_type, _card)| primary_type != "album" && primary_type != "single" && primary_type != "ep")
+                .map(|(_primary_type, card)| card.clone())
+                .collect();
             let genres = artist.genres.iter()
                 .map(|g| Link {
                     name: g.name.clone(),
@@ -230,7 +221,6 @@ impl AppWindowController {
                 })
                 .collect();
             genres.sort_by_key(|g| g.name.to_owned());
-            // genres.sort_by_key(|g| )
             let mut artists: Vec<_> = release_group.artists.iter()
                 .map(|a| Link {
                     name: a.name.clone(),
@@ -238,8 +228,6 @@ impl AppWindowController {
                 })
                 .collect();
             artists.sort_by_key(|a| a.name.to_owned());
-            // let releases: Vec<_> = release_group.releases.clone();
-            // let release_cards = release_cards(releases, &librarian, 500, 500);
             let mut releases: Vec<_> = release_group.releases.iter()
                 // .filter_map(|f| f.fetch(librarian.as_ref()))
                 .collect();
@@ -281,6 +269,21 @@ impl AppWindowController {
                 ui.set_page(2)
             }).unwrap();
         });
+    }
+
+    fn release_details(_url: &str, _librarian: LibrarianHandle, _ui: slint::Weak<AppWindow>) {
+        // let url = url.to_string();
+        // let ui = ui.clone();
+        // std::thread::spawn(move || {
+        //     let mbid = url.split_at("dimple://release/".len()).1;
+        //     let query = DimpleRelease { id: mbid.to_string(), ..Default::default() };
+        //     if let Some(LibraryEntity::Release(rel)) = librarian.fetch(&LibraryEntity::Release(query)) {
+        //         ui.upgrade_in_event_loop(move |ui| {
+        //             ui.set_release_details((librarian.as_ref(), rel).into());
+        //             ui.set_page(3)
+        //         }).unwrap();
+        //     }
+        // });
     }
 
     fn recording_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
@@ -340,21 +343,6 @@ impl AppWindowController {
                 ui.set_page(4)
             }).unwrap();
         });
-    }
-
-    fn release_details(_url: &str, _librarian: LibrarianHandle, _ui: slint::Weak<AppWindow>) {
-        // let url = url.to_string();
-        // let ui = ui.clone();
-        // std::thread::spawn(move || {
-        //     let mbid = url.split_at("dimple://release/".len()).1;
-        //     let query = DimpleRelease { id: mbid.to_string(), ..Default::default() };
-        //     if let Some(LibraryEntity::Release(rel)) = librarian.fetch(&LibraryEntity::Release(query)) {
-        //         ui.upgrade_in_event_loop(move |ui| {
-        //             ui.set_release_details((librarian.as_ref(), rel).into());
-        //             ui.set_page(3)
-        //         }).unwrap();
-        //     }
-        // });
     }
 }
 
