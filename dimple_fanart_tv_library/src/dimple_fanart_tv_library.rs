@@ -44,15 +44,21 @@ impl Library for FanartTvLibrary {
                 let api_key = "55b9ef19f6822b9f835c97426d435d72";
                 let mbid = a.id.to_string();
                 let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", mbid, api_key);
-                LibrarySupport::log_request(self, &url);
+                let request_token = LibrarySupport::start_request(self, &url);
                 let response = client.get(url).send().ok()?;
+                LibrarySupport::end_request(request_token, 
+                    Some(response.status().as_u16()), 
+                    response.content_length());
                 let artist_resp = response.json::<ArtistResponse>().ok()?;
                 let thumb = artist_resp.artistthumb.first()
                     .or_else(|| artist_resp.artistbackground.first())
                     .or_else(|| artist_resp.hdmusiclogo.first())
                     .or_else(|| artist_resp.musiclogo.first())?;
-                LibrarySupport::log_request(self, &thumb.url);
+                let request_token = LibrarySupport::start_request(self, &thumb.url);
                 let thumb_resp = client.get(&thumb.url).send().ok()?;
+                LibrarySupport::end_request(request_token, 
+                    Some(thumb_resp.status().as_u16()),
+                    thumb_resp.content_length());
                 let bytes = thumb_resp.bytes().ok()?;
                 image::load_from_memory(&bytes).ok()
             }

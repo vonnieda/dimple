@@ -19,13 +19,19 @@ impl CoverArtArchiveLibrary {
         match resp {
             musicbrainz_rs::entity::CoverartResponse::Json(_) => todo!(),
             musicbrainz_rs::entity::CoverartResponse::Url(url) => {
-                LibrarySupport::log_request(self, &url);
+                let request_token = LibrarySupport::start_request(self, &url);
                 let client = Client::builder()
                     .user_agent(dimple_core::USER_AGENT)
                     .build().unwrap();
-                client.get(url).send().ok()
-                    .map(|resp| resp.bytes().ok())?
-                    .and_then(|bytes| image::load_from_memory(&bytes).ok())
+                let response = client.get(&url).send().ok()?;
+                let status = response.status();
+                let content_length = response.content_length();
+                let bytes = response.bytes().ok()?;
+                LibrarySupport::end_request(request_token, 
+                    Some(status.as_u16()), 
+                    content_length);
+                let image = image::load_from_memory(&bytes).ok()?;
+                Some(image)
             },    
         }
     }
@@ -39,20 +45,26 @@ impl Library for CoverArtArchiveLibrary {
     fn image(&self, _entity: &LibraryEntity) -> Option<image::DynamicImage> {
         match _entity {
             LibraryEntity::ReleaseGroup(r) => {
-                LibrarySupport::log_request(self, 
+                let request_token = LibrarySupport::start_request(self, 
                     &format!("http://coverartarchive.org/{}", r.id));                
                 let mb = ReleaseGroup {
                     id: r.id.to_string(),
                     ..Default::default()
                 };
+                // TODO replace with reqwest
                 mb.get_coverart()
                     .front()
                     .execute()
                     .ok()
-                    .map(|resp| self.get_coverart(resp))?
+                    .map(|resp| self.get_coverart(resp))
+                    .inspect(|_f| {
+                        // TODO
+                        LibrarySupport::end_request(request_token, None, None);
+                    })
+                    ?
             },
             LibraryEntity::Release(r) => {
-                LibrarySupport::log_request(self, 
+                let request_token = LibrarySupport::start_request(self, 
                     &format!("http://coverartarchive.org/{}", r.id));                
                 let mb = Release {
                     id: r.id.to_string(),
@@ -80,7 +92,12 @@ impl Library for CoverArtArchiveLibrary {
                     .front()
                     .execute()
                     .ok()
-                    .map(|resp| self.get_coverart(resp))?
+                    .map(|resp| self.get_coverart(resp))
+                    .inspect(|_f| {
+                        // TODO
+                        LibrarySupport::end_request(request_token, None, None);
+                    })
+                    ?
             },
             _ => None,
         }

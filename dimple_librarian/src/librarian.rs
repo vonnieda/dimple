@@ -1,7 +1,7 @@
-use std::sync::RwLock;
+use std::{sync::{RwLock, Mutex}, collections::HashSet, any::Any};
 
 use colored::Colorize;
-use dimple_core::{library::{Library, LibraryEntity}, model::DimpleArtist};
+use dimple_core::{library::{Library, LibraryEntity}, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
 use rayon::prelude::*;
@@ -54,8 +54,7 @@ impl Librarian {
         if let Some(dyn_image) = cached {
             return dyn_image;
         }
-        let loaded = self.image(entity);
-        if let Some(dyn_image) = loaded {
+        else if let Some(dyn_image) = self.image(entity) {
             self.local_library.set_image(entity, &dyn_image);
             return self.local_library.images.get(&entity.id(), width, height).unwrap();
         }
@@ -87,213 +86,164 @@ impl Library for Librarian {
         self.local_library.artists()
     }
 
-
-    /// Librarian extends the contract of fetch by combining the results of
-    /// fetching from each registered library into one result. This result is
-    /// cached in the local library and updated whenever fetch_force is called.
-    /// 
-    /// The local library is queried first, and if a value is found it is used
-    /// as the input for the other queries. The ensures that libraries that
-    /// depend on content from Musicbrainz for their query can access it, if we
-    /// have it.
     fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
-        // TODO include timing
-        let fetch_and_log = |lib: &dyn Library, entity: &LibraryEntity| {
-            lib.fetch(entity)
-                .map(|ent| { 
-                    log::debug!("  {} {}", "✔".bright_green(), lib.name().bright_green());
-                    ent
-                })
-                .or_else(|| {
-                    log::debug!("  {} {}", "✗".bright_red(), lib.name().bright_red());
-                    None
-                })
-        };
-
-        let store_and_log = |entity: LibraryEntity| -> LibraryEntity {
-            match &entity {
-                LibraryEntity::Artist(artist) => self.local_library.set_artist(artist),
-                LibraryEntity::ReleaseGroup(r) => self.local_library.set_release_group(r),
-                LibraryEntity::Release(r) => self.local_library.set_release(r),
-                LibraryEntity::Recording(r) => self.local_library.set_recording(r),
-                LibraryEntity::Genre(_) => todo!(),
-                LibraryEntity::Track(_) => todo!(),
-            };
-            entity
-        };
-
-        fn longer(a: String, b: String) -> String {
-            if a.len() > b.len() {
-                a
-            }
-            else {
-                b
-            }
-        }
-
-        fn merge_vec<T>(a: Vec<T>, b: Vec<T>) -> Vec<T> {
-            if a.len() > b.len() { a } else { b }
-        }
-
-        // TODO this sucks, it needs to be genericd so the two variants have
-        // to be of the same type.
-        // TODO merge de-dup etc.
-        let merge = |a: Option<LibraryEntity>, b: LibraryEntity| -> Option<LibraryEntity> {
-            let base = a.unwrap_or(b.clone());
-            match base {
-                LibraryEntity::Artist(mut base) => {
-                    if let LibraryEntity::Artist(b) = b {
-                        base.disambiguation = longer(base.disambiguation, b.disambiguation);
-                        base.genres = merge_vec(base.genres, b.genres);
-                        base.id = longer(base.id, b.id);
-                        base.name = longer(base.name, b.name);
-                        base.relations = merge_vec(base.relations, b.relations);
-                        base.release_groups = merge_vec(base.release_groups, b.release_groups);
-                        base.summary = longer(base.summary, b.summary);
-                    }
-                    Some(LibraryEntity::Artist(base))
-                },
-                LibraryEntity::ReleaseGroup(mut base) => {
-                    if let LibraryEntity::ReleaseGroup(b) = b {
-                        base.disambiguation = longer(base.disambiguation, b.disambiguation);
-                        base.first_release_date = longer(base.first_release_date, b.first_release_date);
-                        base.genres = merge_vec(base.genres, b.genres);
-                        base.id = longer(base.id, b.id);
-                        base.primary_type = longer(base.primary_type, b.primary_type);
-                        base.relations = merge_vec(base.relations, b.relations);
-                        base.releases = merge_vec(base.releases, b.releases);
-                        base.summary = longer(base.summary, b.summary);
-                        base.title = longer(base.title, b.title);
-                        base.artists = merge_vec(base.artists, b.artists);
-                    }
-                    Some(LibraryEntity::ReleaseGroup(base))
-                },
-                LibraryEntity::Release(mut base) => {
-                    if let LibraryEntity::Release(b) = b {
-                        base.artists = merge_vec(base.artists, b.artists);
-                        base.barcode = longer(base.barcode, b.barcode);
-                        base.country = longer(base.country, b.country);
-                        base.date = longer(base.date, b.date);
-                        base.disambiguation = longer(base.disambiguation, b.disambiguation);
-                        base.genres = merge_vec(base.genres, b.genres);
-                        base.media = merge_vec(base.media, b.media);
-                        base.id = longer(base.id, b.id);
-                        base.relations = merge_vec(base.relations, b.relations);
-                        base.status = longer(base.status, b.status);
-                        base.summary = longer(base.summary, b.summary);
-                        base.title = longer(base.title, b.title);
-                    }
-                    Some(LibraryEntity::Release(base))
-                },
-                LibraryEntity::Recording(mut base) => {
-                    if let LibraryEntity::Recording(b) = b {
-                        base.annotation = longer(base.annotation, b.annotation);
-                        base.artist_credits = merge_vec(base.artist_credits, b.artist_credits);
-                        // base.asin = longer(base.asin, b.asin);
-                        // base.country = longer(base.country, b.country);
-                        // base.date = longer(base.date, b.date);
-                        // base.barcode = longer(base.barcode, b.barcode);
-                        base.disambiguation = longer(base.disambiguation, b.disambiguation);
-                        // base.genres = merge_vec(base.genres, b.genres);
-                        // base.media = merge_vec(base.media, b.media);
-                        base.id = longer(base.id, b.id);
-                        // base.length = 
-                        // base.relations = merge_vec(base.relations, b.relations);
-                        // base.status = longer(base.status, b.status);
-                        base.summary = longer(base.summary, b.summary);
-                        base.title = longer(base.title, b.title);
-                    }
-                    Some(LibraryEntity::Recording(base))
-                },
-                _ => todo!(),
-            }
-        };
-
-        log::debug!("{} {} ({})", "Fetch".green(), entity.name().blue(), entity.id().yellow());        
-
-        let local_result: Option<LibraryEntity> = fetch_and_log(&self.local_library, entity);
-
-        if local_result.clone().is_some_and(|x| x.fetched()) {
+        let local_result = self.local_library.fetch(entity);
+        if local_result.is_some() {
             return local_result;
         }
 
-        let query_result: &LibraryEntity = local_result.as_ref().unwrap_or(entity);
-        
-        let first_results: Vec<LibraryEntity> = self.libraries.read().ok()?.par_iter()
-            .filter_map(|lib| fetch_and_log(lib.as_ref(), query_result))
-            .collect();
-        
-        let first_result = first_results.into_iter()
-            .fold(local_result, merge)?;
-
-        // All good up to here. Now just need to not re-query the ones that 
-        // returned a valid ret
-        let remote_results2: Vec<LibraryEntity> = self.libraries.read().ok()?.par_iter()
-            .filter_map(|lib| fetch_and_log(lib.as_ref(), &first_result))
-            .collect();
-
-        // TODO this is all working great, but I can't double query everyone.
-        // So I think I need to exclude the ones return Some.
-        
-        remote_results2.into_iter()
-            .fold(None, merge)
-            .map(|f| {
-                match f {
-                    LibraryEntity::Artist(a) => {
-                        let mut a = a.clone();
-                        a.fetched = true;
-                        LibraryEntity::Artist(a)
-                    },
-                    LibraryEntity::ReleaseGroup(r) => {
-                        let mut r = r.clone();
-                        r.fetched = true;
-                        LibraryEntity::ReleaseGroup(r)
-                    },
-                    LibraryEntity::Release(r) => {
-                        let mut r = r.clone();
-                        r.fetched = true;
-                        LibraryEntity::Release(r)
-                    },
-                    LibraryEntity::Recording(r) => {
-                        let mut r = r.clone();
-                        r.fetched = true;
-                        LibraryEntity::Recording(r)
-                    },
-                    _ => todo!(),
+        // TODO I think ultimately to solve the don't query twice problem
+        // I need to change the interface to Result, so that I can know
+        // here if there was an error and it's worth trying again, or if
+        // it worked but there was no result.
+        // So like something like WikiData could return Err if there was no
+        // wikidata link. 
+        let skip_libs: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+        let first_result: LibraryEntity = self.libraries.read().ok()?.par_iter()
+            .filter_map(|lib| {
+                let result = lib.fetch(entity);
+                if result.is_some() {
+                    skip_libs.lock().unwrap().insert(lib.name());
                 }
+                result
             })
-            .map(store_and_log)
-            .inspect(|f| {
-                log::debug!("{:?}", &f);
-            })
+            .reduce(|| entity.clone(), LibraryEntity::merge);
+        
+        let second_result: LibraryEntity = self.libraries.read().ok()?.par_iter()
+            .filter(|f| !skip_libs.lock().unwrap().contains(&f.name()))
+            .filter_map(|lib| lib.fetch(&first_result))
+            .reduce(|| entity.clone(), LibraryEntity::merge);
+
+        let result = LibraryEntity::merge(first_result, second_result);
+        self.local_library.store(&result);
+
+        Some(result)
     }
 
     /// If there is an image stored in the local library for the entity return
     /// it, otherwise search the attached libraries for one. If one is found,
-    /// cache it in the local library and return it. Furture requests will be
+    /// cache it in the local library and return it. Future requests will be
     /// served from the cache.
     fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
-        let fetch_and_log = |lib: &dyn Library, entity: &LibraryEntity| {
-            let result = lib.image(entity);
-            if result.is_some() {
-                log::debug!("  {} {}", "✔".bright_green(), lib.name().green());
-            }
-            else {
-                log::debug!("  {} {}", "✗".bright_red(), lib.name().bright_red());
-            }
-            result
-        };
+        let image = self.local_library.image(entity);
+        if image.is_some() {
+            return image;
+        }
 
-        log::debug!("{} {} ({})", "Image".magenta(), entity.name().blue(), entity.id().yellow());
-        fetch_and_log(&self.local_library, entity)
-            .or_else(|| {
-                self.libraries.read().ok()?.par_iter()
-                    .find_map_first(|lib| fetch_and_log(lib.as_ref(), entity))
-                    .map(|dyn_image| {
-                        self.local_library.set_image(entity, &dyn_image);
-                        dyn_image
-                    })
-            }
-        )
+        self.libraries.read().ok()?.par_iter()
+            .find_map_first(|lib| lib.image(entity))
+            .map(|dyn_image| {
+                self.local_library.set_image(entity, &dyn_image);
+                dyn_image
+            })
+    }
+}
+
+trait Merge<T> {
+    fn merge(a: T, b: T) -> T;
+}
+
+fn longer(a: String, b: String) -> String {
+    if a.len() > b.len() { a }
+    else { b }
+}
+
+fn merge_vec<T>(a: Vec<T>, b: Vec<T>) -> Vec<T> {
+    if a.len() > b.len() { a } else { b }
+}
+
+impl Merge<LibraryEntity> for LibraryEntity {
+    fn merge(left: LibraryEntity, right: LibraryEntity) -> Self {
+        match left {
+            LibraryEntity::Artist(left) => match right {
+                LibraryEntity::Artist(right) => LibraryEntity::Artist(DimpleArtist::merge(left, right)),
+                _ => panic!("no")
+            },
+            LibraryEntity::ReleaseGroup(left) => match right {
+                LibraryEntity::ReleaseGroup(right) => LibraryEntity::ReleaseGroup(DimpleReleaseGroup::merge(left, right)),
+                _ => panic!("no")
+            },
+            LibraryEntity::Release(left) => match right {
+                LibraryEntity::Release(right) => LibraryEntity::Release(DimpleRelease::merge(left, right)),
+                _ => panic!("no")
+            },
+            LibraryEntity::Recording(left) => match right {
+                LibraryEntity::Recording(right) => LibraryEntity::Recording(DimpleRecording::merge(left, right)),
+                _ => panic!("no")
+            },
+            _ => panic!("no")
+        }
+    }
+}
+
+impl Merge<Self> for DimpleArtist {
+    fn merge(base: Self, b: Self) -> Self {
+        let mut base = base.clone();
+        base.disambiguation = longer(base.disambiguation, b.disambiguation);
+        base.genres = merge_vec(base.genres, b.genres);
+        base.id = longer(base.id, b.id);
+        base.name = longer(base.name, b.name);
+        base.relations = merge_vec(base.relations, b.relations);
+        base.release_groups = merge_vec(base.release_groups, b.release_groups);
+        base.summary = longer(base.summary, b.summary);
+        base
+    }
+}
+
+impl Merge<Self> for DimpleReleaseGroup {
+    fn merge(base: Self, b: Self) -> Self {
+        let mut base = base.clone();
+        base.disambiguation = longer(base.disambiguation, b.disambiguation);
+        base.first_release_date = longer(base.first_release_date, b.first_release_date);
+        base.genres = merge_vec(base.genres, b.genres);
+        base.id = longer(base.id, b.id);
+        base.primary_type = longer(base.primary_type, b.primary_type);
+        base.relations = merge_vec(base.relations, b.relations);
+        base.releases = merge_vec(base.releases, b.releases);
+        base.summary = longer(base.summary, b.summary);
+        base.title = longer(base.title, b.title);
+        base.artists = merge_vec(base.artists, b.artists);
+        base
+    }
+}
+
+impl Merge<Self> for DimpleRelease {
+    fn merge(base: Self, b: Self) -> Self {
+        let mut base = base.clone();
+        base.artists = merge_vec(base.artists, b.artists);
+        base.barcode = longer(base.barcode, b.barcode);
+        base.country = longer(base.country, b.country);
+        base.date = longer(base.date, b.date);
+        base.disambiguation = longer(base.disambiguation, b.disambiguation);
+        base.genres = merge_vec(base.genres, b.genres);
+        base.media = merge_vec(base.media, b.media);
+        base.id = longer(base.id, b.id);
+        base.relations = merge_vec(base.relations, b.relations);
+        base.status = longer(base.status, b.status);
+        base.summary = longer(base.summary, b.summary);
+        base.title = longer(base.title, b.title);
+        base
+    }
+}
+
+impl Merge<Self> for DimpleRecording {
+    fn merge(base: Self, b: Self) -> Self {
+        let mut base = base.clone();
+        base.annotation = longer(base.annotation, b.annotation);
+        base.artist_credits = merge_vec(base.artist_credits, b.artist_credits);
+        // base.asin = longer(base.asin, b.asin);
+        // base.country = longer(base.country, b.country);
+        // base.date = longer(base.date, b.date);
+        // base.barcode = longer(base.barcode, b.barcode);
+        base.disambiguation = longer(base.disambiguation, b.disambiguation);
+        // base.genres = merge_vec(base.genres, b.genres);
+        // base.media = merge_vec(base.media, b.media);
+        base.id = longer(base.id, b.id);
+        // base.length = 
+        // base.relations = merge_vec(base.relations, b.relations);
+        // base.status = longer(base.status, b.status);
+        base.summary = longer(base.summary, b.summary);
+        base.title = longer(base.title, b.title);
+        base
     }
 }

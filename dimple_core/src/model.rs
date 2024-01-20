@@ -28,9 +28,6 @@ pub struct DimpleArtist {
     pub release_groups: Vec<DimpleReleaseGroup>,
     pub relations: Vec<DimpleRelation>,
     pub summary: String,
-    
-    #[serde(default)]
-    pub fetched: bool,
 }
 
 // https://musicbrainz.org/doc/ReleaseGroup
@@ -48,9 +45,6 @@ pub struct DimpleReleaseGroup {
     pub relations: Vec<DimpleRelation>,
     pub releases: Vec<DimpleRelease>,
     pub summary: String,
-    
-    #[serde(default)]
-    pub fetched: bool,
 }
 
 // https://musicbrainz.org/doc/Release
@@ -72,9 +66,6 @@ pub struct DimpleRelease {
     pub release_group: DimpleReleaseGroup,
     pub status: String,
     pub summary: String,
-
-    #[serde(default)]
-    pub fetched: bool,
 }
 
 // https://musicbrainz.org/doc/Medium
@@ -87,9 +78,6 @@ pub struct DimpleMedium {
     pub position: u32,
     pub track_count: u32,
     pub tracks: Vec<DimpleTrack>,
-
-    #[serde(default)]
-    pub fetched: bool,
 }
 
 // https://musicbrainz.org/doc/Track
@@ -102,9 +90,6 @@ pub struct DimpleTrack {
     pub number: String,
     pub position: u32,
     pub recording: DimpleRecording,
-
-    #[serde(default)]
-    pub fetched: bool,
 }
 
 // https://musicbrainz.org/doc/Recording
@@ -127,9 +112,6 @@ pub struct DimpleRecording {
     // pub rating: Rating,
 
     pub genres: Vec<DimpleGenre>,
-
-    #[serde(default)]
-    pub fetched: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]

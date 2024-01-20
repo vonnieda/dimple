@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{io::Cursor, time::Instant};
 
 use image::{imageops::FilterType, DynamicImage, ImageOutputFormat};
 use sled::Tree;
@@ -59,11 +59,7 @@ impl ImageCache {
     }
 
     fn load(&self, key: &str) -> Option<DynamicImage> {
-        if let Ok(Some(bytes)) = self.tree.get(key) {
-            if let Ok(image) = image::load_from_memory(&bytes) {
-                return Some(image);
-            }
-        }
-        None
+        let bytes = self.tree.get(key).ok()??;
+        image::load_from_memory(&bytes).ok()
     }
 }

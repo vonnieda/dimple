@@ -6,9 +6,9 @@ use dimple_core::model::{DimpleGenre, DimpleArtist, DimpleReleaseGroup, DimpleRe
 use musicbrainz_rs::entity::artist::{Artist, ArtistSearchQuery};
 use musicbrainz_rs::entity::recording::Recording;
 use musicbrainz_rs::entity::relations::RelationContent;
-use musicbrainz_rs::entity::release::{Release, Track};
+use musicbrainz_rs::entity::release::{Release};
 use musicbrainz_rs::entity::release_group::ReleaseGroup;
-use musicbrainz_rs::{prelude::*, FetchQuery};
+use musicbrainz_rs::{prelude::*};
 
 #[derive(Debug)]
 pub struct MusicBrainzLibrary {
@@ -50,7 +50,7 @@ impl Library for MusicBrainzLibrary {
         let query = query.to_string();
 
         self.enforce_rate_limit();
-        LibrarySupport::log_request(self, 
+        let request_token = LibrarySupport::start_request(self, 
             &format!("http://musicbrainz.org/search/artist/{}", &query));
 
         // TODO And releases, tracks, etc.
@@ -58,7 +58,12 @@ impl Library for MusicBrainzLibrary {
             .artist(&query)
             .build();
         let results: Vec<LibraryEntity> = Artist::search(search_query)
-            .execute().unwrap() // TODO error handling
+            .execute()
+            .inspect(|_f| {
+                LibrarySupport::end_request(request_token, None, None);
+            })
+            // TODO
+            .unwrap()
             .entities
             .iter()
             .map(|src| dimple_core::model::DimpleArtist::from(ArtistConverter::from(src.clone())))
@@ -71,12 +76,15 @@ impl Library for MusicBrainzLibrary {
         match _entity {
             LibraryEntity::Artist(a) => {
                 self.enforce_rate_limit();
-                LibrarySupport::log_request(self, 
+                let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", a.id));
                 Artist::fetch().id(&a.id)
                     .with_aliases().with_annotations().with_genres().with_rating()
                     .with_tags().with_release_groups().with_url_relations()
                     .execute()
+                    .inspect(|_f| {
+                        LibrarySupport::end_request(request_token, None, None);
+                    })        
                     .inspect_err(|f| log::error!("{}", f))
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
@@ -85,13 +93,16 @@ impl Library for MusicBrainzLibrary {
             },
             LibraryEntity::ReleaseGroup(r) => {
                 self.enforce_rate_limit();
-                LibrarySupport::log_request(self, 
+                let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", r.id));
                 ReleaseGroup::fetch().id(&r.id)
                     .with_aliases().with_annotations().with_artists()
                     .with_genres().with_ratings().with_releases().with_tags()
                     .with_url_relations()
                     .execute()
+                    .inspect(|_f| {
+                        LibrarySupport::end_request(request_token, None, None);
+                    })        
                     .inspect_err(|f| log::error!("{}", f))
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
@@ -100,7 +111,7 @@ impl Library for MusicBrainzLibrary {
             },
             LibraryEntity::Release(r) => {
                 self.enforce_rate_limit();
-                LibrarySupport::log_request(self, 
+                let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.id));
                 Release::fetch().id(&r.id)
                     .with_aliases().with_annotations().with_artist_credits()
@@ -108,6 +119,9 @@ impl Library for MusicBrainzLibrary {
                     .with_recordings().with_release_groups().with_tags()
                     .with_url_relations()
                     .execute()
+                    .inspect(|_f| {
+                        LibrarySupport::end_request(request_token, None, None);
+                    })        
                     .inspect_err(|f| log::error!("{}", f))
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
@@ -116,13 +130,16 @@ impl Library for MusicBrainzLibrary {
             },
             LibraryEntity::Recording(r) => {
                 self.enforce_rate_limit();
-                LibrarySupport::log_request(self, 
+                let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/recording/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.id));
                 Recording::fetch().id(&r.id)
                     .with_aliases().with_annotations().with_artists()
                     .with_genres().with_isrcs().with_ratings().with_releases()
                     .with_tags().with_url_relations()
                     .execute()
+                    .inspect(|_f| {
+                        LibrarySupport::end_request(request_token, None, None);
+                    })        
                     .inspect_err(|f| log::error!("{}", f))
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
@@ -159,7 +176,6 @@ impl From<ArtistConverter> for dimple_core::model::DimpleArtist {
                 .map(|f| DimpleRelation::from(RelationConverter::from(f.to_owned())))
                 .collect(),
             summary: Default::default(),
-            fetched: Default::default(),
         }
     }
 }
@@ -197,7 +213,6 @@ impl From<ReleaseGroupConverter> for dimple_core::model::DimpleReleaseGroup {
                 .map(|f| DimpleArtist::from(ArtistCreditConverter::from(f.to_owned())))
                 .collect(),
             summary: Default::default(),
-            fetched: Default::default(),
         }
     }
 }
@@ -240,7 +255,6 @@ impl From<ReleaseConverter> for dimple_core::model::DimpleRelease {
 
             release_group: Default::default(),
             summary: Default::default(),
-            fetched: Default::default(),
         }
     }
 }
@@ -341,8 +355,6 @@ impl From<MediumConverter> for dimple_core::model::DimpleMedium {
                 .map(|f| DimpleTrack::from(TrackConverter::from(f.to_owned())))
                 .collect(),
             track_count: value.0.track_count,
-
-            fetched: Default::default(),
         }
     }
 }
@@ -364,8 +376,6 @@ impl From<TrackConverter> for dimple_core::model::DimpleTrack {
             length: value.0.length.unwrap_or_default(),
             position: value.0.position,
             recording: DimpleRecording::from(RecordingConverter::from(value.0.recording)),
-
-            fetched: Default::default()
         }
     }
 }
@@ -404,7 +414,6 @@ impl From<RecordingConverter> for dimple_core::model::DimpleRecording {
                 .collect(),
 
             summary: Default::default(),
-            fetched: Default::default()
         }
     }
 }

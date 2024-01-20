@@ -7,12 +7,12 @@ use dimple_wikidata_library::WikidataLibrary;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use std::{sync::{Arc, RwLock}, error::Error, collections::HashMap};
+use std::{sync::{Arc}};
 
 use dimple_core::{model::{DimpleArtist, DimpleReleaseGroup, DimpleRelationContent, DimpleRelease, DimpleMedium, DimpleTrack, DimpleRecording}, library::{Library, LibraryEntity}};
-use dimple_librarian::librarian::{Librarian, self};
+use dimple_librarian::librarian::{Librarian};
 use image::DynamicImage;
-use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, Model, VecModel};
+use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, Model};
 
 slint::include_modules!();
 use rayon::prelude::*;
@@ -43,6 +43,9 @@ impl Default for AppWindowController {
 }
 
 impl AppWindowController {
+    const THUMBNAIL_WIDTH: u32 = 200;
+    const THUMBNAIL_HEIGHT: u32 = 200;
+
     pub fn run(&self) -> Result<(), slint::PlatformError> {
         let ui = self.ui.as_weak();
         let librarian = self.librarian.clone();
@@ -64,7 +67,7 @@ impl AppWindowController {
     }
 
     fn navigate(url: slint::SharedString, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
-        dbg!(&url);
+        log::info!("{}", url);
         // let url = Url::parse(&url);
         if url.starts_with("http") {
             let _ = opener::open_browser(url.to_string());
@@ -110,7 +113,9 @@ impl AppWindowController {
                 .ok_or("missing query").unwrap();
             let mut search_results: Vec<_> = librarian.search(query).collect();
             search_results.sort_by_key(|e| e.name().to_lowercase());
-            let cards = entity_cards(search_results, &librarian, 500, 500);
+            let cards = entity_cards(search_results, &librarian, 
+                Self::THUMBNAIL_WIDTH, 
+                Self::THUMBNAIL_WIDTH);
             ui.upgrade_in_event_loop(move |ui| {
                 let adapter = CardGridAdapter {
                     cards: card_adapters(cards),
@@ -125,7 +130,9 @@ impl AppWindowController {
         std::thread::spawn(move || {
             let mut artists: Vec<DimpleArtist> = librarian.artists().collect();
             artists.sort_by_key(|a| a.name.to_lowercase());
-            let cards = artist_cards(artists, &librarian, 500, 500);
+            let cards = artist_cards(artists, &librarian,
+                Self::THUMBNAIL_WIDTH, 
+                Self::THUMBNAIL_WIDTH);
             ui.upgrade_in_event_loop(move |ui| {
                 let adapter = CardGridAdapter {
                     cards: card_adapters(cards),
@@ -145,7 +152,8 @@ impl AppWindowController {
                 .nth(0)
                 .ok_or("missing id").unwrap();
             let artist = DimpleArtist::get(id, librarian.as_ref()).unwrap();
-            let card = entity_card(&LibraryEntity::Artist(artist.clone()), 500, 500, &librarian);
+            let card = entity_card(&LibraryEntity::Artist(artist.clone()), 
+                Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
             let mut release_groups = artist.release_groups.clone();
             release_groups.sort_by_key(|f| f.first_release_date.to_owned());
             release_groups.reverse();
@@ -153,22 +161,31 @@ impl AppWindowController {
                 .filter(|f| f.primary_type.to_lowercase() == "album")
                 .cloned()
                 .collect();
-            let album_cards = release_group_cards(albums, &librarian, 500, 500);
+            // TODO this call is taking 30s for a new artist
+            let album_cards = release_group_cards(albums, &librarian,
+                Self::THUMBNAIL_WIDTH, 
+                Self::THUMBNAIL_WIDTH);
             let singles: Vec<_> = release_groups.iter()
                 .filter(|f| f.primary_type.to_lowercase() == "single")
                 .cloned()
                 .collect();
-            let single_cards = release_group_cards(singles, &librarian, 500, 500);
+            let single_cards = release_group_cards(singles, &librarian,
+                Self::THUMBNAIL_WIDTH, 
+                Self::THUMBNAIL_WIDTH);
             let eps: Vec<_> = release_groups.iter()
                 .filter(|f| f.primary_type.to_lowercase() == "ep")
                 .cloned()
                 .collect();
-            let ep_cards = release_group_cards(eps, &librarian, 500, 500);
+            let ep_cards = release_group_cards(eps, &librarian,
+                Self::THUMBNAIL_WIDTH, 
+                Self::THUMBNAIL_WIDTH);
             let other_release_groups: Vec<_> = release_groups.iter()
                 .filter(|f| f.primary_type.to_lowercase() != "album" && f.primary_type.to_lowercase() != "single" && f.primary_type.to_lowercase() != "ep")
                 .cloned()
                 .collect();
-            let other_release_group_cards = release_group_cards(other_release_groups, &librarian, 500, 500);
+            let other_release_group_cards = release_group_cards(other_release_groups, &librarian,
+                Self::THUMBNAIL_WIDTH, 
+                Self::THUMBNAIL_WIDTH);
             let genres = artist.genres.iter()
                 .map(|g| Link {
                     name: g.name.clone(),
@@ -189,7 +206,7 @@ impl AppWindowController {
                     links: link_adapters(artist_links(&artist)),
                 };
                 ui.set_artist_details(adapter);
-                ui.set_page(1)
+                ui.set_page(1);
             }).unwrap();
         });
     }
@@ -204,7 +221,8 @@ impl AppWindowController {
                 .ok_or("missing id").unwrap();
             let release_group = DimpleReleaseGroup::get(id, librarian.as_ref())
                 .ok_or("release group not found").unwrap();
-            let card = entity_card(&LibraryEntity::ReleaseGroup(release_group.clone()), 500, 500, &librarian);
+            let card = entity_card(&LibraryEntity::ReleaseGroup(release_group.clone()), 
+                Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
             let mut genres: Vec<_> = release_group.genres.iter()
                 .map(|g| Link {
                     name: g.name.clone(),
@@ -232,7 +250,9 @@ impl AppWindowController {
             });
             releases.reverse();
             for release in releases.clone() {
-                log::info!("{} {} {} {} {} {}", score_release(release), release.country, release.status, release.packaging, release.disambiguation, release.id);
+                log::info!("{} {} {} {} {} {}", score_release(release), 
+                    release.country, release.status, release.packaging, 
+                    release.disambiguation, release.id);
                 for media in release.media.clone() {
                     log::info!("  {} {}", media.format, media.disc_count);
                 }
@@ -273,7 +293,8 @@ impl AppWindowController {
                 .ok_or("missing id").unwrap();
             let recording = DimpleRecording::get(id, librarian.as_ref())
                 .ok_or("recording not found").unwrap();
-            let card = entity_card(&LibraryEntity::Recording(recording.clone()), 500, 500, &librarian);
+            let card = entity_card(&LibraryEntity::Recording(recording.clone()),
+                Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
             let genres = recording.genres.iter()
                 .map(|g| Link {
                     name: g.name.clone(),
@@ -321,7 +342,7 @@ impl AppWindowController {
         });
     }
 
-    fn release_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+    fn release_details(_url: &str, _librarian: LibrarianHandle, _ui: slint::Weak<AppWindow>) {
         // let url = url.to_string();
         // let ui = ui.clone();
         // std::thread::spawn(move || {

@@ -47,6 +47,26 @@ impl SledLibrary {
         }
     }
 
+    // TODO for now assuming storing does not modify the object, so no need
+    // to return one. Might change. 
+    pub fn store(&self, entity: &LibraryEntity) {
+        match entity {
+            LibraryEntity::Artist(a) => {
+                self.set_artist(a)
+            }
+            LibraryEntity::ReleaseGroup(r) => {
+                self.set_release_group(r)
+            }
+            LibraryEntity::Release(r) => {
+                self.set_release(r)
+            }
+            LibraryEntity::Recording(r) => {
+                self.set_recording(r)
+            }
+            _ => todo!()
+        }
+    }
+
     fn get_artist(&self, mbid: &str) -> Option<DimpleArtist> {
         assert!(!mbid.is_empty());
         self.artists.get(mbid).ok()?

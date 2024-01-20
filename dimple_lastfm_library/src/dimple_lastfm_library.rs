@@ -16,7 +16,7 @@ impl Library for LastFmLibrary {
         "last.fm".to_string()
     }
 
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
+    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
         Box::new(vec![].into_iter())
     }
 
@@ -25,7 +25,7 @@ impl Library for LastFmLibrary {
     }
 
     // reqwest::blocking::get("http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=Cher&api_key=YOUR_API_KEY&format=json")
-    fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
+    fn image(&self, _entity: &LibraryEntity) -> Option<image::DynamicImage> {
         None
     }
 }

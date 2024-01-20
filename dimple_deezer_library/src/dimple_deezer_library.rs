@@ -44,7 +44,7 @@ impl Library for DeezerLibrary {
         "Deezer".to_string()
     }
 
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
+    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
         // let client = Client::builder()
         //     .https_only(true)
         //     .user_agent(dimple_core::USER_AGENT)
@@ -65,7 +65,7 @@ impl Library for DeezerLibrary {
         Box::new(vec![].into_iter())
     }
 
-    fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
+    fn image(&self, _entity: &LibraryEntity) -> Option<image::DynamicImage> {
         None
     }
 }

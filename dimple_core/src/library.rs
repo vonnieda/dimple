@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use colored::Colorize;
 
 use crate::model::{DimpleReleaseGroup, DimpleTrack, DimpleArtist, DimpleGenre, DimpleRelease, DimpleRecording};
@@ -10,7 +12,6 @@ pub enum LibraryEntity {
     Release(DimpleRelease),
     Track(DimpleTrack),
     Recording(DimpleRecording),
-
 }
 
 impl LibraryEntity {
@@ -35,25 +36,11 @@ impl LibraryEntity {
             LibraryEntity::Track(t) => t.title.clone(),
         }
     }
-
-    // TODO this fetched thing is a hack. Need to come up with something better.
-    pub fn fetched(&self) -> bool {
-        match self {
-            LibraryEntity::Artist(a) => a.fetched,
-            LibraryEntity::ReleaseGroup(r) => r.fetched,
-            LibraryEntity::Release(r) => r.fetched,
-            LibraryEntity::Recording(r) => r.fetched,
-            LibraryEntity::Genre(g) => g.fetched,
-            LibraryEntity::Track(t) => t.fetched,
-        }
-    }
 }
 
 pub trait Library: Send + Sync {
     /// Get a user friendly display name for the Library.
-    fn name(&self) -> String {
-        todo!()
-    }
+    fn name(&self) -> String;
 
     /// Search the library for entities that match the query string. How the
     /// search query is interpreted is left up to the implementation. In
@@ -88,8 +75,27 @@ pub trait Library: Send + Sync {
 pub struct LibrarySupport {
 }
 
+pub struct RequestToken {
+    library_name: String,
+    start_time: Instant,
+    url: String,
+}
+
 impl LibrarySupport {
-    pub fn log_request(library: &dyn Library, url: &str) {
-        log::info!("{} {}", library.name().blue(), url.yellow());
+    pub fn start_request(library: &dyn Library, url: &str) -> RequestToken {
+        RequestToken {
+            library_name: library.name().to_owned(),
+            start_time: Instant::now(),
+            url: url.to_owned(),
+        }
+    }
+
+    pub fn end_request(token: RequestToken, status_code: Option<u16>, length: Option<u64>) {
+        log::info!("{} [{:?}] {}ms {:?} {}", 
+            token.library_name.blue(), 
+            status_code, 
+            token.start_time.elapsed().as_millis(), 
+            length,
+            token.url.yellow());
     }
 }

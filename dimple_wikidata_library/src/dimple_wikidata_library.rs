@@ -1,6 +1,4 @@
-use std::default;
-
-use dimple_core::{library::{Library, LibraryEntity, LibrarySupport}, model::{DimpleRelationContent, DimpleArtist, Attributed, DimpleRelation}};
+use dimple_core::{library::{Library, LibraryEntity, LibrarySupport}, model::{DimpleRelationContent, DimpleRelation}};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
 
@@ -53,6 +51,8 @@ struct WpSummary {
     extract: String,
 }
 
+// TODO expand this to pull in all the alternate IDs and store them on objects.
+// https://www.wikidata.org/wiki/Q2549534
 impl WikidataLibrary {
     fn get_summary(&self, relations: &Vec<DimpleRelation>) -> Option<String> {
         // Find a Wikidata link if one exists.
@@ -61,7 +61,6 @@ impl WikidataLibrary {
             .map(|rel| rel.to_owned())
             .filter_map(|rel| match rel.content {
                 DimpleRelationContent::Url(url) => Some(url.resource),
-                _ => None,
             })
             .find(|f| f.starts_with("https://www.wikidata.org/wiki/Q"))?;
 
@@ -71,15 +70,18 @@ impl WikidataLibrary {
 
         // Use the Wikidata API to fetch the item
         let client = Client::builder()
-            // .https_only(true)
             .user_agent(dimple_core::USER_AGENT)
             .build().ok()?;
         let url = format!("https://www.wikidata.org/w/rest.php/wikibase/v0/entities/items/{}", wikidata_id);
-        LibrarySupport::log_request(self, &url);
-        let response = client.get(url).send().ok()?;
+        let request_token = LibrarySupport::start_request(self, &url);
+        let response = client.get(url).send().ok()
+            .inspect(|f| {
+                LibrarySupport::end_request(request_token, 
+                    Some(f.status().as_u16()), 
+                    f.content_length());
+            })?;
         let wikidata_item = response.json::<WdItem>().ok()?;
 
-        // Get the English Wikipedia URL for the item
         fn non_empty(s: &String) -> Option<String> {
             if s.is_empty() {
                 None
@@ -90,6 +92,7 @@ impl WikidataLibrary {
         }
 
 
+        // Get the Wikipedia URL for the item
         // TODO support languange priority, this is temp
         let wikipedia_url = non_empty(&wikidata_item.sitelinks.enwiki.url)
             .or(non_empty(&wikidata_item.sitelinks.eswiki.url))
@@ -111,13 +114,20 @@ impl WikidataLibrary {
         let wikipedia_title = parsed_url.path_segments()?.nth(1)?;
 
         // Use the Wikipedia API to fetch the summary
+        // TODO should wikipedia be it's own thing?
         let client = Client::builder()
             // .https_only(true)
             .user_agent(dimple_core::USER_AGENT)
             .build().ok()?;
         let url = format!("https://en.wikipedia.org/api/rest_v1/page/summary/{}", wikipedia_title);
-        LibrarySupport::log_request(self, &url);
-        let response = client.get(url).send().ok()?;
+        let request_token = LibrarySupport::start_request(self, &url);
+        let response = client.get(url).send().ok()
+            .inspect(|f| {
+                LibrarySupport::end_request(request_token, 
+                    Some(f.status().as_u16()), 
+                    f.content_length());
+            })?;
+
         let wikipedia_summary = response.json::<WpSummary>().ok()?;
 
         if wikipedia_summary.extract.is_empty() {
@@ -136,8 +146,7 @@ impl WikidataLibrary {
 // sitelinks.enwiki https://en.wikipedia.org/wiki/Brutus_(Belgian_band)
 // https://en.wikipedia.org/api/rest_v1/page/summary/Brutus_(Belgian_band)                
 // https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles=Stack%20Overflow                
-// TODO can also get images here.
-// TODO this is a hyperpanic mess. Will be rewritten. I WANT BIOS
+// TODO can also get images here and wiki commons? or via here to wiki commons?
 impl Library for WikidataLibrary {
     fn name(&self) -> String {
         "Wikidata".to_string()
