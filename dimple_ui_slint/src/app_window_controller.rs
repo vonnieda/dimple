@@ -67,7 +67,7 @@ impl AppWindowController {
         dbg!(&url);
         // let url = Url::parse(&url);
         if url.starts_with("http") {
-            opener::open_browser(url.to_string());
+            let _ = opener::open_browser(url.to_string());
         }
         else if url.starts_with("dimple://home") {
             Self::home(ui);

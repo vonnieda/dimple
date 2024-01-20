@@ -1,3 +1,6 @@
+use std::sync::Mutex;
+use std::time::{Instant, Duration};
+
 use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
 use dimple_core::model::{DimpleGenre, DimpleArtist, DimpleReleaseGroup, DimpleRelation, DimpleRelationContent, DimpleUrl, DimpleRelease, DimpleMedium, DimpleTrack, DimpleRecording};
 use musicbrainz_rs::entity::artist::{Artist, ArtistSearchQuery};
@@ -7,21 +10,37 @@ use musicbrainz_rs::entity::release::{Release, Track};
 use musicbrainz_rs::entity::release_group::ReleaseGroup;
 use musicbrainz_rs::{prelude::*, FetchQuery};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MusicBrainzLibrary {
+    rate_limit_lock: Mutex<Instant>,
 }
 
-// TODO implement high level rate limiting and paralleling
-impl MusicBrainzLibrary {
-    pub fn new() -> Self {
+impl Default for MusicBrainzLibrary {
+    fn default() -> Self {
         musicbrainz_rs::config::set_user_agent(dimple_core::USER_AGENT);
         Self {
+            rate_limit_lock: Mutex::new(Instant::now()),
         }
     }
 }
 
-// TODO all of the log_requests below are semi made up cause I can't get the
-// real URL from the FetchQuery etc.
+impl MusicBrainzLibrary {
+    /// Blocks until at least one second has passed since the last request.
+    fn enforce_rate_limit(&self) {
+        let mut last_request_time = self.rate_limit_lock.lock().unwrap();
+
+        if let Some(time_passed) = Instant::now().checked_duration_since(*last_request_time) {
+            if time_passed < Duration::from_secs(1) {
+                let sleep_duration = Duration::from_secs(1) - time_passed;
+                std::thread::sleep(sleep_duration);
+            }
+        }
+
+        // Update the last request time
+        *last_request_time = Instant::now();
+    }
+}
+
 impl Library for MusicBrainzLibrary {
     fn name(&self) -> String {
         "MusicBrainz".to_string()
@@ -30,6 +49,7 @@ impl Library for MusicBrainzLibrary {
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
         let query = query.to_string();
 
+        self.enforce_rate_limit();
         LibrarySupport::log_request(self, 
             &format!("http://musicbrainz.org/search/artist/{}", &query));
 
@@ -50,6 +70,7 @@ impl Library for MusicBrainzLibrary {
     fn fetch(&self, _entity: &LibraryEntity) -> Option<LibraryEntity> {
         match _entity {
             LibraryEntity::Artist(a) => {
+                self.enforce_rate_limit();
                 LibrarySupport::log_request(self, 
                     &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", a.id));
                 Artist::fetch().id(&a.id)
@@ -63,6 +84,7 @@ impl Library for MusicBrainzLibrary {
                     .map(LibraryEntity::Artist)        
             },
             LibraryEntity::ReleaseGroup(r) => {
+                self.enforce_rate_limit();
                 LibrarySupport::log_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", r.id));
                 ReleaseGroup::fetch().id(&r.id)
@@ -77,6 +99,7 @@ impl Library for MusicBrainzLibrary {
                     .map(LibraryEntity::ReleaseGroup)        
             },
             LibraryEntity::Release(r) => {
+                self.enforce_rate_limit();
                 LibrarySupport::log_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.id));
                 Release::fetch().id(&r.id)
@@ -92,21 +115,13 @@ impl Library for MusicBrainzLibrary {
                     .map(LibraryEntity::Release)        
             },
             LibraryEntity::Recording(r) => {
+                self.enforce_rate_limit();
                 LibrarySupport::log_request(self, 
                     &format!("https://musicbrainz.org/ws/2/recording/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.id));
                 Recording::fetch().id(&r.id)
-                    .with_aliases()
-                    .with_annotations()
-                    // .with_artist_credits()
-                    .with_artists()
-                    .with_genres()
-                    .with_isrcs()
-                    // .with_labels()
-                    .with_ratings()
-                    // .with_recordings()
-                    .with_releases()
-                    .with_tags()
-                    .with_url_relations()
+                    .with_aliases().with_annotations().with_artists()
+                    .with_genres().with_isrcs().with_ratings().with_releases()
+                    .with_tags().with_url_relations()
                     .execute()
                     .inspect_err(|f| log::error!("{}", f))
                     .ok()
@@ -229,6 +244,11 @@ impl From<ReleaseConverter> for dimple_core::model::DimpleRelease {
         }
     }
 }
+
+// Note that in the converters below ..Default is never used. If a Default
+// is temporarily needed it can be specified on the field itself, but not
+// the entire struct. This is to help avoid skipping fields when new ones
+// are added.
 
 pub struct GenreConverter(musicbrainz_rs::entity::genre::Genre);
 

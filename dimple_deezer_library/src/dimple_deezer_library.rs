@@ -2,6 +2,7 @@ use dimple_core::{library::{Library, LibraryEntity}};
 use serde::Deserialize;
 
 /// https://developers.deezer.com/api
+/// https://developers.deezer.com/guidelines
 #[derive(Debug, Default)]
 pub struct DeezerLibrary {
 }
