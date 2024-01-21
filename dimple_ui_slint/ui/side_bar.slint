@@ -5,7 +5,7 @@ import { Palette, Navigator } from "common.slint";
 import {StyleMetrics, VerticalBox, TextEdit} from "std-widgets.slint";
 import { ImageLinkAdapter, LinkAdapter, Links, Link } from "./common.slint";
 
-component SideBarItem inherits Rectangle {
+component SideBarImageItem inherits Rectangle {
     in property <ImageLinkAdapter> image: {
         image: @image-url("../images/dark.png"),
         name: "We Were Heading North",
@@ -29,13 +29,7 @@ component SideBarItem inherits Rectangle {
     HorizontalLayout {
         spacing: 8px;
 
-        // in property <CardAdapter> model: {
-        //     image: {image: @image-url("../images/dark.png"),name: "We Were Heading North",url: "internal://release/1234"},
-        //     title: {name: "We Were Heading North",url: "internal://release/1234"},
-        //     sub-title: {name: "Artist",url: "internal://artist/9876"},
-        // };
-
-        image-area := TouchArea {
+        TouchArea {
             width: image-width;
             height: image-width;
             mouse-cursor: pointer;
@@ -44,9 +38,10 @@ component SideBarItem inherits Rectangle {
                 width: 100%;
                 height: 100%;
                 border-radius: Palette.thumbnail-border-radius;
-                // border-width: Palette.thumbnail-border-width;
-                // border-color: Palette.thumbnail-border-color;
                 clip: true;
+                drop-shadow-color: black;
+                drop-shadow-blur: 3px;
+                drop-shadow-offset-y: 1px;
                 Image {
                     colorize: image-colorize;
                     width: 100%;
@@ -74,6 +69,37 @@ component SideBarItem inherits Rectangle {
         }
     }
 }
+
+component SideBarMenuItem inherits HorizontalLayout {
+    in property <image> image: @image-url("../icons/phosphor/SVGs/regular/house.svg");
+    in property <string> url: "dimple://home";
+    in property <string> text: "Home";
+
+    spacing: 8px;
+    TouchArea {
+        width: Palette.thumbnail-width-sidebar;
+        height: 24px;
+        clicked => { Navigator.navigate(url); }
+        Image {
+            source: image;
+            width: 24px;
+            colorize: parent.has-hover 
+                ? Palette.link-color-hover
+                : StyleMetrics.default-text-color;
+
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        Link {
+            font-size: 1.4rem;
+            name: text;
+            font-weight: Palette.font-weight-bold;
+            url: url;
+        }
+    }
+}
+
 export component SideBar inherits VerticalBox {
     // alignment: start;
     padding: 0;
@@ -84,41 +110,42 @@ export component SideBar inherits VerticalBox {
         accepted(query) => { Navigator.navigate("dimple://search/" + query); }
         font-size: 1.3rem;
     }
-    SideBarItem {
-        image: { image: @image-url("../icons/phosphor/SVGs/light/house-light.svg"), name: "Home", url: "dimple://home" };
-        title: { name: "Home", url: "dimple://home" };
-        sub-title: { name: "", url: "" };
-        image-colorize: StyleMetrics.default-text-color;
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/house.svg");
+        url: "dimple://home";
+        text: "Home";
     }
-    SideBarItem {
-        image: { image: @image-url("../icons/phosphor/SVGs/light/books-light.svg"), name: "Library", url: "dimple://artists" };
-        title: { name: "Library", url: "dimple://artists" };
-        sub-title: { name: "", url: "" };
-        image-colorize: StyleMetrics.default-text-color;
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/books.svg");
+        url: "dimple://artists";
+        text: "Library";
     }
-    SideBarItem {
-        image: {image: @image-url("../images/light.png"),name: "We Were Heading North",url: "internal://release/1234"};
-        title: {name: "We Were Heading North",url: "internal://release/1234"};
+    SideBarImageItem {
+        image: { image: @image-url("../images/wwhn-lightness.png"), 
+            name: "We Were Heading North",url: "internal://release/1234" };
+        title: { name: "We Were Heading North",url: "internal://release/1234" };
         sub-title: {name: "Artist",url: "internal://artist/9876"};
     }
-    SideBarItem {
-        image: {image: @image-url("../images/dark.png"),name: "We Were Heading North",url: "internal://release/1234"};
-        title: {name: "Blackgaze Essentials",url: "internal://release/1234"};
-        sub-title: {name: "Playlist • 2613 Songs",url: "internal://artist/9876"};
+    SideBarImageItem {
+        image: { image: @image-url("../images/dark.png"), 
+            name: "We Were Heading North", url: "internal://release/1234" };
+        title: { name: "Blackgaze Essentials", url: "internal://release/1234" };
+        sub-title: { name: "Playlist • 2613 Songs", url: "internal://artist/9876" };
     }
-    SideBarItem {
-        image: {image: @image-url("../images/dark.png"),name: "We Were Heading North",url: "internal://release/1234"};
-        title: {name: "Brass Death Metal",url: "internal://release/1234"};
-        sub-title: {name: "Playlist • 14 Songs",url: "internal://artist/9876"};
+    SideBarImageItem {
+        image: { image: @image-url("../images/dark.png"),
+            name: "We Were Heading North", url: "internal://release/1234" };
+        title: { name: "Death Metal + Horns", url: "internal://release/1234" };
+        sub-title: { name: "Playlist • 14 Songs",url: "internal://artist/9876" };
     }
+    // Fills the space between the last normal item and the settings, at the bottom.
     Rectangle {
         
     }
-    SideBarItem {
-        image: { image: @image-url("../icons/phosphor/SVGs/light/gear-light.svg"), name: "Home", url: "dimple://home" };
-        title: {name: "Settings",url: "dimple://settings"};
-        sub-title: {name: "",url: ""};
-        image-colorize: StyleMetrics.default-text-color;
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/light/gear-light.svg");
+        text: "Settings";
+        url: "dimple://settings";
     }
 }
 
