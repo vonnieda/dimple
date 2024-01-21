@@ -6,7 +6,7 @@ import { NavBar } from "nav_bar.slint";
 import { ArtistDetails, ArtistDetailsAdapter } from "artist_details.slint";
 import { ReleaseGroupDetails, ReleaseGroupDetailsAdapter } from "release_group_details.slint";
 import { Palette, Navigator, LinkAdapter, ImageLinkAdapter } from "common.slint";
-import { StyleMetrics } from "std-widgets.slint";
+import { StyleMetrics , HorizontalBox} from "std-widgets.slint";
 
 // import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
 // import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
@@ -31,6 +31,7 @@ import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 import { ReleaseGroupDetails } from "release_group_details.slint";
 import { ReleaseDetails, ReleaseDetailsModel } from "release_details.slint";
 import { RecordingDetails, RecordingDetailsAdapter } from "recording_details.slint";
+import { SideBar } from "side_bar.slint";
 
 export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter, Palette }
 
@@ -49,60 +50,50 @@ export component AppWindow inherits Window {
     preferred-width: 1440px;
     preferred-height: 1024px;
 
-    VerticalLayout {
-        padding: StyleMetrics.layout-padding * 2;
-        padding-top: 0px;
-        GroupBox {
-            vertical-stretch: 0;
-            NavBar {  
-                spacing: StyleMetrics.layout-spacing;
+    VerticalBox {
+        padding: StyleMetrics.layout-spacing * 0.5;
+        padding-top: StyleMetrics.layout-spacing * 0.25;
+        spacing: StyleMetrics.layout-spacing * 0.25;
+        HorizontalBox {
+            spacing: StyleMetrics.layout-spacing * 0.25;
+            padding: 0;
+            GroupBox {
+                SideBar {
+                }
             }
-        }
-        if page == 0: GroupBox { 
-            VerticalLayout {
-                ScrollView {                        
-                    card-grid := CardGrid {
-                        cards: root.card-grid-adapter.cards;
-                        parent-width: parent.width;
+            GroupBox {
+                horizontal-stretch: 1;
+                Rectangle {
+                    if page == 0: VerticalLayout {
+                        ScrollView {                        
+                            card-grid := CardGrid {
+                                cards: root.card-grid-adapter.cards;
+                                parent-width: parent.width;
+                            }
+                        }
+                        Text {
+                            horizontal-alignment: right;
+                            text: card-grid-adapter.cards.length + " items";
+                        }
+                    }
+                    if page == 1: ArtistDetails {  
+                        model: root.artist-details;
+                    }
+                    if page == 2: ReleaseGroupDetails {  
+                        model: root.release-group-details;
+                    }
+                    if page == 3: ReleaseDetails {  
+                        model: root.release-details;
+                    }                
+                    if page == 4: RecordingDetails {  
+                        model: root.recording-details;
                     }
                 }
-                Text {
-                    horizontal-alignment: right;
-                    text: card-grid-adapter.cards.length + " items";
-                }
-            }
-        }
-        if page == 1: GroupBox {
-            vertical-stretch: 1;
-            ArtistDetails {  
-                vertical-stretch: 1;
-                model: root.artist-details;
-            }                
-        }
-        if page == 2: GroupBox {
-            vertical-stretch: 1;
-            ReleaseGroupDetails {  
-                vertical-stretch: 1;
-                model: root.release-group-details;
-            }                
-        }
-        if page == 3: GroupBox {
-            vertical-stretch: 1;
-            ReleaseDetails {  
-                vertical-stretch: 1;
-                model: root.release-details;
-            }                
-        }
-        if page == 4: GroupBox {
-            vertical-stretch: 1;
-            RecordingDetails {  
-                vertical-stretch: 1;
-                model: root.recording-details;
-            }                
-        }
+            }    
+        }   
         GroupBox {
             vertical-stretch: 0;
-            PlayerBar { 
+            PlayerBar {
             }
         }
     }

@@ -1,0 +1,176 @@
+import { Button , LineEdit, HorizontalBox, GroupBox} from "std-widgets.slint";
+import { Navigator } from "common.slint";
+import {CardAdapter } from "card.slint";
+import { Palette, Navigator } from "common.slint";
+import {StyleMetrics, VerticalBox, TextEdit} from "std-widgets.slint";
+import { ImageLinkAdapter, LinkAdapter, Links, Link } from "./common.slint";
+
+component SideBarItem inherits Rectangle {
+    in property <ImageLinkAdapter> image: {
+        image: @image-url("../images/dark.png"),
+        name: "We Were Heading North",
+        url: "internal://release/1234"
+    };
+
+    in property <LinkAdapter> title: {
+        name: "We Were Heading North",
+        url: "internal://release/1234",
+    };
+
+    in property <LinkAdapter> sub-title: {
+        name: "Artist",
+        url: "internal://artist/9876",
+    };
+
+    in property <color> image-colorize;
+
+    in property <length> image-width: Palette.thumbnail-width-sidebar;
+
+    HorizontalLayout {
+        spacing: 8px;
+
+        // in property <CardAdapter> model: {
+        //     image: {image: @image-url("../images/dark.png"),name: "We Were Heading North",url: "internal://release/1234"},
+        //     title: {name: "We Were Heading North",url: "internal://release/1234"},
+        //     sub-title: {name: "Artist",url: "internal://artist/9876"},
+        // };
+
+        image-area := TouchArea {
+            width: image-width;
+            height: image-width;
+            mouse-cursor: pointer;
+            clicked => { Navigator.navigate(image.url); }
+            Rectangle {
+                width: 100%;
+                height: 100%;
+                border-radius: Palette.thumbnail-border-radius;
+                // border-width: Palette.thumbnail-border-width;
+                // border-color: Palette.thumbnail-border-color;
+                clip: true;
+                Image {
+                    colorize: image-colorize;
+                    width: 100%;
+                    height: 100%;
+                    source: image.image;
+                    accessible-role: button;
+                    accessible-description: image.name;
+                }    
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 4px;
+            title-area := Link {
+                url: title.url;
+                name: title.name;
+                font-size: 1.3rem;
+                font-weight: Palette.font-weight-bold;
+            }
+            sub-title-area := Link {
+                url: sub-title.url;
+                name: sub-title.name;
+                font-size: 1.2rem;
+            }
+        }
+    }
+}
+export component SideBar inherits VerticalBox {
+    // alignment: start;
+    padding: 0;
+    // TODO icons could be smaller, art is good.
+    LineEdit {
+        placeholder-text: "Search...";
+        // TODO change back to edited when better handling in the search function
+        accepted(query) => { Navigator.navigate("dimple://search/" + query); }
+        font-size: 1.3rem;
+    }
+    SideBarItem {
+        image: { image: @image-url("../icons/phosphor/SVGs/light/house-light.svg"), name: "Home", url: "dimple://home" };
+        title: { name: "Home", url: "dimple://home" };
+        sub-title: { name: "", url: "" };
+        image-colorize: StyleMetrics.default-text-color;
+    }
+    SideBarItem {
+        image: { image: @image-url("../icons/phosphor/SVGs/light/books-light.svg"), name: "Library", url: "dimple://artists" };
+        title: { name: "Library", url: "dimple://artists" };
+        sub-title: { name: "", url: "" };
+        image-colorize: StyleMetrics.default-text-color;
+    }
+    SideBarItem {
+        image: {image: @image-url("../images/light.png"),name: "We Were Heading North",url: "internal://release/1234"};
+        title: {name: "We Were Heading North",url: "internal://release/1234"};
+        sub-title: {name: "Artist",url: "internal://artist/9876"};
+    }
+    SideBarItem {
+        image: {image: @image-url("../images/dark.png"),name: "We Were Heading North",url: "internal://release/1234"};
+        title: {name: "Blackgaze Essentials",url: "internal://release/1234"};
+        sub-title: {name: "Playlist • 2613 Songs",url: "internal://artist/9876"};
+    }
+    SideBarItem {
+        image: {image: @image-url("../images/dark.png"),name: "We Were Heading North",url: "internal://release/1234"};
+        title: {name: "Brass Death Metal",url: "internal://release/1234"};
+        sub-title: {name: "Playlist • 14 Songs",url: "internal://artist/9876"};
+    }
+    Rectangle {
+        
+    }
+    SideBarItem {
+        image: { image: @image-url("../icons/phosphor/SVGs/light/gear-light.svg"), name: "Home", url: "dimple://home" };
+        title: {name: "Settings",url: "dimple://settings"};
+        sub-title: {name: "",url: ""};
+        image-colorize: StyleMetrics.default-text-color;
+    }
+}
+
+
+
+
+    // SideBarItem {
+    //     image: { image: @image-url("../icons/phosphor/SVGs/regular/users-three.svg"), name: "Artists", url: "internal://release/1234" };
+    //     title: { name: "Artists", url: "internal://release/1234" };
+    //     sub-title: { name: "", url: "internal://artist/9876" };
+    //     image-colorize: StyleMetrics.default-text-color;
+    // }
+    // SideBarItem {
+    //     image: { image: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg"), name: "Albums", url: "internal://release/1234" };
+    //     title: { name: "Albums", url: "internal://release/1234" };
+    //     sub-title: { name: "", url: "internal://artist/9876" };
+    //     image-colorize: StyleMetrics.default-text-color;
+    // }
+    // SideBarItem {
+    //     image: { image: @image-url("../icons/phosphor/SVGs/regular/music-notes.svg"), name: "Songs", url: "internal://release/1234" };
+    //     title: { name: "Songs", url: "internal://release/1234" };
+    //     sub-title: { name: "", url: "internal://artist/9876" };
+    //     image-colorize: StyleMetrics.default-text-color;
+    // }
+
+    // SideBarItem {
+    //     image: { image: @image-url("../icons/phosphor/SVGs/regular/music-notes.svg"), name: "Artists", url: "internal://release/1234" };
+    //     title: { name: "Genres", url: "internal://release/1234" };
+    //     sub-title: { name: "", url: "internal://artist/9876" };
+    //     image-colorize: StyleMetrics.default-text-color;
+    // }
+
+
+        // Button {
+    // }
+    // Button {
+    //     text: "Artists";
+    //     clicked => { Navigator.navigate("dimple://artists"); }
+    // }
+    // // TODO Albums, filtered, I think.
+    // Button {
+    //     text: "Releases";
+    //     clicked => { Navigator.navigate("dimple://release-groups"); }
+    // }
+    // Button {
+    //     text: "Genres";
+    //     clicked => { Navigator.navigate("dimple://genres"); }
+    // }
+    // LineEdit {
+    //     horizontal-stretch: 1;
+    //     placeholder-text: "Search for artists, albums, songs, genres, lyrics, bios, years, instruments, labels, etc.";
+    //     // TODO change back to edited when better handling in the search function
+    //     accepted(query) => { Navigator.navigate("dimple://search/" + query); }
+    // }
+    // Rectangle {}

@@ -54,16 +54,19 @@ struct WpSummary {
 // TODO expand this to pull in all the alternate IDs and store them on objects.
 // https://www.wikidata.org/wiki/Q2549534
 impl WikidataLibrary {
-    fn get_summary(&self, relations: &Vec<DimpleRelation>) -> Option<String> {
+    fn get_summary(&self, relations: &[DimpleRelation]) -> Option<String> {
         // Find a Wikidata link if one exists.
-        let wikidata_url: String = relations
+        let wikidata_url = relations
             .iter()
-            .map(|rel| rel.to_owned())
-            .filter_map(|rel| match rel.content {
-                DimpleRelationContent::Url(url) => Some(url.resource),
-            })
-            .find(|f| f.starts_with("https://www.wikidata.org/wiki/Q"))?;
-
+            .find_map(|rel| {
+                if let DimpleRelationContent::Url(url) = &rel.content {
+                    if url.resource.starts_with("https://www.wikidata.org/wiki/Q") || url.resource.starts_with("http://www.wikidata.org/wiki/Q") {
+                        return Some(url.resource.clone());
+                    }
+                }
+                None
+            })?;
+            
         // Extract the Wikidata ID
         let parsed_url = Url::parse(&wikidata_url).ok()?;
         let wikidata_id = parsed_url.path_segments()?.nth(1)?;
@@ -114,7 +117,7 @@ impl WikidataLibrary {
         let wikipedia_title = parsed_url.path_segments()?.nth(1)?;
 
         // Use the Wikipedia API to fetch the summary
-        // TODO should wikipedia be it's own thing?
+        // TODO should wikipedia be it's own library, perhaps after the ids have been extracted?
         let client = Client::builder()
             // .https_only(true)
             .user_agent(dimple_core::USER_AGENT)
