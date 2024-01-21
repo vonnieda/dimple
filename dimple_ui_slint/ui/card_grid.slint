@@ -15,15 +15,14 @@ export component CardGrid inherits VerticalLayout {
     property <int> cols: Math.floor((self.parent_width - StyleMetrics.layout-padding) 
         / (Palette.thumbnail-width-large + StyleMetrics.layout-spacing));
 
-    property <bool> last_row;
+    property <length> col_spacing: (self.parent_width - StyleMetrics.layout-padding - StyleMetrics.layout-spacing - (cols * Palette.thumbnail-width-large)) / (cols);
 
     spacing: StyleMetrics.layout-spacing;
     padding-right: StyleMetrics.layout-padding;
     alignment: start;
     for row in Math.ceil(cards.length / cols): HorizontalLayout {
         alignment: start;
-        // TODO distribute the remaining space
-        spacing: StyleMetrics.layout-spacing;
+        spacing: col-spacing;
         for col in Math.min(cols, cards.length - (row * cols)): Card {
             model: cards[row * cols + col];
         }
