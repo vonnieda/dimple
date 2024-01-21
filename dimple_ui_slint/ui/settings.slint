@@ -1,7 +1,4 @@
 /**
-    TODO Not ready to write this yet, but need to start recording some of the
-    settings:
-
     - language: Will used to narrow wikidata queries, select bios, and for i18n.
     - libraries: List of the enabled libraries. I guess this should really be a
       plugin system but we'll get there later. For now it's ReferenceMachine.
@@ -11,3 +8,150 @@
       a reason for those to be libraries. 
     - cache stats, clear, relocate, etc.
  */
+
+
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { Palette, LinkAdapter, Navigator, Links, Link} from "common.slint";
+import { CardAdapter } from "card.slint";
+import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
+import { CardGrid } from "card_grid.slint";
+
+export struct SettingsAdapter {
+    card: CardAdapter,
+    summary: string,
+    disambiguation: string,
+    genres: [LinkAdapter],
+    albums: [CardAdapter],
+    singles: [CardAdapter],
+    eps: [CardAdapter],
+    others: [CardAdapter],
+    links: [LinkAdapter],
+}
+
+export component Settings inherits ScrollView {
+    VerticalBox {
+        alignment: start;
+        spacing: StyleMetrics.layout-spacing * 2;
+        // Header
+        HorizontalLayout {
+            alignment: start;
+            spacing: StyleMetrics.layout-spacing;
+            Rectangle {
+                width: Palette.thumbnail-width-extra-large;
+                height: Palette.thumbnail-width-extra-large;
+                border-radius: Palette.thumbnail-border-radius;
+                border-color: Palette.thumbnail-border-color;
+                border-width: Palette.thumbnail-border-width;
+                clip: true;
+                Image {
+                    width: Palette.thumbnail-width-extra-large;
+                    height: Palette.thumbnail-width-extra-large;
+                    source: model.card.image.image;
+                }
+            }
+            VerticalLayout {
+                alignment: start;
+                spacing: StyleMetrics.layout-spacing;
+                HorizontalLayout {
+                    alignment: start;
+                    spacing: StyleMetrics.layout-spacing;
+                    Image {
+                        // TODO DRY
+                        source: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
+                        height: 4rem;
+                        width: 4rem;
+                        colorize: StyleMetrics.default-text-color;
+                    }
+                    Text {
+                        text: model.card.title.name;
+                        font-weight: Palette.font-weight-bold;
+                        font-size: 4rem;
+                    }
+                }
+                if model.genres.length > 0: 
+                    HorizontalLayout {
+                        alignment: start;
+                        Text {
+                            text: "In ";
+                            font-size: 1.3rem;
+                        }    
+                        Links {
+                            links: model.genres;
+                        }
+                    }
+                    Text {
+                        text: model.summary;
+                        wrap: word-wrap;
+                        font-size: 1.2rem;
+                    }
+            }
+        }
+
+        // Albums
+        if model.albums.length > 0: VerticalLayout {
+            Text {
+                text: "Albums";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.albums;
+                parent-width: root.width;
+            }
+        }
+
+        // Singles
+        if model.singles.length > 0: VerticalLayout {
+            Text {
+                text: "Singles";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.singles;
+                parent-width: root.width;
+            }
+        }
+
+        // EPs
+        if model.eps.length > 0: VerticalLayout {
+            Text {
+                text: "EPs";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.eps;
+                parent-width: root.width;
+            }
+        }
+
+        // Other Releases
+        if model.others.length > 0: VerticalLayout {
+            Text {
+                text: "Other Releases";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.others;
+                parent-width: root.width;
+            }
+        }
+
+        // Links
+        if model.links.length > 0: VerticalLayout {
+            Text {
+                text: "Links";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            for link in model.links: Link {
+                url: link.url;
+                name: link.name;
+            }
+        }
+    }
+
+    in property <SettingsAdapter> model;
+}

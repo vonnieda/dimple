@@ -18,24 +18,33 @@ struct WdItem {
     // artistbackground: Vec<ImageResponse>,
     // status: String,
     // error_message: String,
+    descriptions: WdDescription,
 }
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(default)]
 struct WdSiteLinks {
-    ptwiki: WdSiteLink,
-    dewiki: WdSiteLink,
-    jawiki: WdSiteLink,
     cswiki: WdSiteLink,
-    frwiki: WdSiteLink,
-    ruwiki: WdSiteLink,
+    dawiki: WdSiteLink,
+    dewiki: WdSiteLink,
+    enwiki: WdSiteLink,
     eswiki: WdSiteLink,
+    frwiki: WdSiteLink,
     itwiki: WdSiteLink,
+    jawiki: WdSiteLink,
+    nowiki: WdSiteLink,
+    ptwiki: WdSiteLink,
+    ruwiki: WdSiteLink,
     svwiki: WdSiteLink,
     vlwiki: WdSiteLink,
-    dawiki: WdSiteLink,
-    enwiki: WdSiteLink,
     commonswiki: WdSiteLink,
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(default)]
+struct WdDescription {
+    de: String, 
+    en: String,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -105,6 +114,7 @@ impl WikidataLibrary {
             .or(non_empty(&wikidata_item.sitelinks.itwiki.url))
             .or(non_empty(&wikidata_item.sitelinks.ruwiki.url))
             .or(non_empty(&wikidata_item.sitelinks.svwiki.url))
+            .or(non_empty(&wikidata_item.sitelinks.nowiki.url))
             .or(non_empty(&wikidata_item.sitelinks.jawiki.url))
             .or(non_empty(&wikidata_item.sitelinks.cswiki.url))
             .or(non_empty(&wikidata_item.sitelinks.dawiki.url))

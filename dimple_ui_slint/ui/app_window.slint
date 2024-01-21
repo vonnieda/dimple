@@ -5,7 +5,7 @@ import { PlayerBar } from "player_bar.slint";
 import { NavBar } from "nav_bar.slint";
 import { ArtistDetails, ArtistDetailsAdapter } from "artist_details.slint";
 import { ReleaseGroupDetails, ReleaseGroupDetailsAdapter } from "release_group_details.slint";
-import { Palette, Navigator, LinkAdapter, ImageLinkAdapter } from "common.slint";
+import { Palette, Navigator, LinkAdapter, ImageLinkAdapter , Tag} from "common.slint";
 import { StyleMetrics , HorizontalBox} from "std-widgets.slint";
 
 // import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
@@ -32,11 +32,13 @@ import { ReleaseGroupDetails } from "release_group_details.slint";
 import { ReleaseDetails, ReleaseDetailsModel } from "release_details.slint";
 import { RecordingDetails, RecordingDetailsAdapter } from "recording_details.slint";
 import { SideBar } from "side_bar.slint";
+import { Home } from "home.slint";
+import { Settings } from "settings.slint";
 
 export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter, Palette }
 
 export component AppWindow inherits Window {
-    in-out property <int> page: 1;
+    in-out property <int> page: 0;
     // TODO Note to self: Currently you can't expose properties on
     // sub-components, so all this is needed.
     in-out property <CardGridAdapter> card-grid-adapter;
@@ -65,6 +67,35 @@ export component AppWindow inherits Window {
                 horizontal-stretch: 1;
                 Rectangle {
                     if page == 0: VerticalLayout {
+                        // HorizontalBox {
+                        //     padding-top: 0;
+                        //     padding-left: 0;
+                        //     alignment: start;
+                        //     Tag {
+                        //         color: #bd6b3f;
+                        //         name: "Artists";
+                        //         font-color: StyleMetrics.default-text-color;
+                        //         font-weight: 700;
+                        //     }
+                        //     Tag {
+                        //         color: #3c9c8a;
+                        //         name: "Albums";
+                        //         font-color: StyleMetrics.default-text-color;
+                        //         font-weight: 700;
+                        //     }
+                        //     Tag {
+                        //         color: #4e4cd9;
+                        //         name: "Genres";
+                        //         font-color: StyleMetrics.default-text-color;
+                        //         font-weight: 700;
+                        //     }
+                        //     Tag {
+                        //         color: #963fc5;
+                        //         name: "Playlists";
+                        //         font-color: StyleMetrics.default-text-color;
+                        //         font-weight: 700;
+                        //     }
+                        // }
                         ScrollView {                        
                             card-grid := CardGrid {
                                 cards: root.card-grid-adapter.cards;
@@ -87,6 +118,12 @@ export component AppWindow inherits Window {
                     }                
                     if page == 4: RecordingDetails {  
                         model: root.recording-details;
+                    }
+                    if page == 5: Home {  
+                        // model: root.recording-details;
+                    }
+                    if page == 6: Settings {  
+                        // model: root.recording-details;
                     }
                 }
             }    

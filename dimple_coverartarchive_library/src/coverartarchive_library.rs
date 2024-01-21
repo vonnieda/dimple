@@ -54,6 +54,7 @@ impl Library for CoverArtArchiveLibrary {
                 // TODO replace with reqwest
                 mb.get_coverart()
                     .front()
+                    .res_1200()
                     .execute()
                     .ok()
                     .map(|resp| self.get_coverart(resp))
@@ -90,6 +91,7 @@ impl Library for CoverArtArchiveLibrary {
                 };
                 mb.get_coverart()
                     .front()
+                    .res_1200()
                     .execute()
                     .ok()
                     .map(|resp| self.get_coverart(resp))

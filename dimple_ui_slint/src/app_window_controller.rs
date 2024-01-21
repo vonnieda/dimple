@@ -93,13 +93,24 @@ impl AppWindowController {
         else if url.starts_with("dimple://recording/") {
             Self::recording_details(&url, librarian, ui);
         }
+        else if url.starts_with("dimple://settings") {
+            Self::settings(ui);
+        }
     }
 
     fn home(ui: slint::Weak<AppWindow>) {
         ui.upgrade_in_event_loop(move |ui| {
-            let adapter = CardGridAdapter::default();
-            ui.set_card_grid_adapter(adapter);
-            ui.set_page(0)
+            // let adapter = CardGridAdapter::default();
+            // ui.set_card_grid_adapter(adapter);
+            ui.set_page(5)
+        }).unwrap();
+    }
+
+    fn settings(ui: slint::Weak<AppWindow>) {
+        ui.upgrade_in_event_loop(move |ui| {
+            // let adapter = CardGridAdapter::default();
+            // ui.set_card_grid_adapter(adapter);
+            ui.set_page(6)
         }).unwrap();
     }
 

@@ -15,6 +15,9 @@ export component CardGrid inherits VerticalLayout {
     property <int> cols: Math.floor((self.parent_width - StyleMetrics.layout-padding) 
         / (Palette.thumbnail-width-large + StyleMetrics.layout-spacing));
 
+    // TODO this still isn't quite right, keep ending up with hscroll. I think
+    // just give up on calculating the spacing, use space-between and then
+    // insert empties to fill the gap at the end.
     property <length> col_spacing: (self.parent_width - StyleMetrics.layout-padding - StyleMetrics.layout-spacing - (cols * Palette.thumbnail-width-large)) / (cols);
 
     spacing: StyleMetrics.layout-spacing;
