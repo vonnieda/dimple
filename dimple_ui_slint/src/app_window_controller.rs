@@ -7,12 +7,12 @@ use dimple_wikidata_library::WikidataLibrary;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use std::{sync::{Arc}};
+use std::{sync::{Arc, Mutex}, collections::VecDeque};
 
 use dimple_core::{model::{DimpleArtist, DimpleReleaseGroup, DimpleRelationContent, DimpleRelease, DimpleMedium, DimpleTrack, DimpleRecording}, library::{Library, LibraryEntity}};
 use dimple_librarian::librarian::{Librarian};
 use image::DynamicImage;
-use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, Model};
+use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, Model, SharedString};
 
 slint::include_modules!();
 use rayon::prelude::*;
@@ -22,6 +22,7 @@ pub type LibrarianHandle = Arc<Librarian>;
 pub struct AppWindowController {
     ui: AppWindow,
     librarian: LibrarianHandle,
+    history: Arc<Mutex<VecDeque<String>>>,
     // player: PlayerHandle,
 }
 
@@ -37,6 +38,7 @@ impl Default for AppWindowController {
         Self {
             ui,
             librarian,
+            history: Arc::new(Mutex::new(VecDeque::new())),
             // player,
         }
     }
@@ -49,9 +51,10 @@ impl AppWindowController {
     pub fn run(&self) -> Result<(), slint::PlatformError> {
         let ui = self.ui.as_weak();
         let librarian = self.librarian.clone();
+        let history = self.history.clone();
         
         self.ui.global::<Navigator>().on_navigate(move |url| 
-            Self::navigate(url, librarian.clone(), ui.clone()));
+            Self::navigate(url, history.clone(), librarian.clone(), ui.clone()));
 
         // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
         self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
@@ -66,8 +69,10 @@ impl AppWindowController {
         self.ui.run()
     }
 
-    fn navigate(url: slint::SharedString, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
-        log::info!("{}", url);
+    fn navigate(url: slint::SharedString, history: Arc<Mutex<VecDeque<String>>>, 
+        librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+
+        log::info!("{}", &url);
         // let url = Url::parse(&url);
         if url.starts_with("http") {
             let _ = opener::open_browser(url.to_string());
@@ -93,9 +98,47 @@ impl AppWindowController {
         else if url.starts_with("dimple://recording/") {
             Self::recording_details(&url, librarian, ui);
         }
-        else if url.starts_with("dimple://settings") {
+        else if url == "dimple://back" {
+            Self::back(history.clone(), librarian, ui);
+        }
+        else if url == "dimple://settings" {
             Self::settings(ui);
         }
+        else if url == "dimple://refresh" {
+            Self::refresh(history.clone(), librarian, ui);
+        }
+
+        // Store history.
+        if url != "dimple://back" && url != "dimple://refresh" {
+            history.lock().unwrap().push_back(url.into());
+        }
+    }
+
+    fn back(history: Arc<Mutex<VecDeque<String>>>, 
+        librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+            ui.upgrade_in_event_loop(move |ui| {
+                let url: Option<String> = history.lock().ok()
+                    .and_then(|mut history| {
+                        let _ = history.pop_back()?;
+                        history.pop_back()
+                    });
+                if let Some(url) = url {
+                    Self::navigate(url.into(), history.clone(), librarian, ui.as_weak());
+                }
+            }).unwrap();
+    }
+
+    fn refresh(history: Arc<Mutex<VecDeque<String>>>, 
+        librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+            ui.upgrade_in_event_loop(move |ui| {
+                let url: Option<String> = history.lock().ok()
+                    .and_then(|mut history| {
+                        history.pop_back()
+                    });
+                if let Some(url) = url {
+                    Self::navigate(url.into(), history.clone(), librarian, ui.as_weak());
+                }
+            }).unwrap();
     }
 
     fn home(ui: slint::Weak<AppWindow>) {
@@ -107,11 +150,25 @@ impl AppWindowController {
     }
 
     fn settings(ui: slint::Weak<AppWindow>) {
-        ui.upgrade_in_event_loop(move |ui| {
-            // let adapter = CardGridAdapter::default();
-            // ui.set_card_grid_adapter(adapter);
-            ui.set_page(6)
-        }).unwrap();
+        std::thread::spawn(move || {
+            // TODO just playing around
+            let cache_stats = vec![
+                "Metadata Objects: 5276 / 27.3MB",
+                "Images: 1286 / 12.6GB",
+                "Audio Files: 986 / 36.2GB",
+            ];
+            
+            ui.upgrade_in_event_loop(move |ui| {
+                let cache_stats: Vec<SharedString> = cache_stats.into_iter()
+                    .map(Into::into)
+                    .collect();
+                let adapter = SettingsAdapter {
+                    cache_stats: ModelRc::from(cache_stats.as_slice()),
+                };
+                ui.set_settings_adapter(adapter);
+                ui.set_page(6)
+            }).unwrap();
+        });
     }
 
     fn search(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {

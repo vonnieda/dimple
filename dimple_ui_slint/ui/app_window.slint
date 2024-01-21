@@ -2,11 +2,18 @@ import { Button, VerticalBox , ScrollView, TextEdit, LineEdit, GroupBox} from "s
 import { CardGrid, CardGridAdapter } from "card_grid.slint";
 import { Card, CardAdapter } from "card.slint";
 import { PlayerBar } from "player_bar.slint";
-import { NavBar } from "nav_bar.slint";
 import { ArtistDetails, ArtistDetailsAdapter } from "artist_details.slint";
 import { ReleaseGroupDetails, ReleaseGroupDetailsAdapter } from "release_group_details.slint";
 import { Palette, Navigator, LinkAdapter, ImageLinkAdapter , Tag} from "common.slint";
 import { StyleMetrics , HorizontalBox} from "std-widgets.slint";
+import { ReleaseGroupDetails } from "release_group_details.slint";
+import { ReleaseDetails, ReleaseDetailsModel } from "release_details.slint";
+import { RecordingDetails, RecordingDetailsAdapter } from "recording_details.slint";
+import { SideBar } from "side_bar.slint";
+import { Home } from "home.slint";
+import { Settings, SettingsAdapter } from "settings.slint";
+
+export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter, Palette }
 
 // import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
 // import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
@@ -28,17 +35,9 @@ import "../fonts/Roboto/Roboto-MediumItalic.ttf";
 import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
-import { ReleaseGroupDetails } from "release_group_details.slint";
-import { ReleaseDetails, ReleaseDetailsModel } from "release_details.slint";
-import { RecordingDetails, RecordingDetailsAdapter } from "recording_details.slint";
-import { SideBar } from "side_bar.slint";
-import { Home } from "home.slint";
-import { Settings } from "settings.slint";
-
-export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter, Palette }
 
 export component AppWindow inherits Window {
-    in-out property <int> page: 0;
+    in-out property <int> page: 1;
     // TODO Note to self: Currently you can't expose properties on
     // sub-components, so all this is needed.
     in-out property <CardGridAdapter> card-grid-adapter;
@@ -46,6 +45,7 @@ export component AppWindow inherits Window {
     in-out property <ReleaseGroupDetailsAdapter> release-group-details;
     in-out property <ReleaseDetailsModel> release-details;
     in-out property <RecordingDetailsAdapter> recording-details;
+    in-out property <SettingsAdapter> settings-adapter;
     
     title: "Dimple";
     icon: @image-url("../images/icon_512x512.png");
@@ -123,7 +123,7 @@ export component AppWindow inherits Window {
                         // model: root.recording-details;
                     }
                     if page == 6: Settings {  
-                        // model: root.recording-details;
+                        adapter: root.settings-adapter;
                     }
                 }
             }    

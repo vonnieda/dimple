@@ -143,6 +143,16 @@ export component SideBar inherits VerticalBox {
         
     }
     SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/light/arrow-left-light.svg");
+        text: "Back";
+        url: "dimple://back";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/light/arrow-clockwise-light.svg");
+        text: "Refresh";
+        url: "dimple://refresh";
+    }
+    SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/light/gear-light.svg");
         text: "Settings";
         url: "dimple://settings";
