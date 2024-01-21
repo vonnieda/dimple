@@ -101,14 +101,23 @@ component SideBarMenuItem inherits HorizontalLayout {
 }
 
 export component SideBar inherits VerticalBox {
-    // alignment: start;
     padding: 0;
-    // TODO icons could be smaller, art is good.
+
     LineEdit {
         placeholder-text: "Search...";
         // TODO change back to edited when better handling in the search function
         accepted(query) => { Navigator.navigate("dimple://search/" + query); }
         font-size: 1.3rem;
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/light/arrow-left-light.svg");
+        text: "Back";
+        url: "dimple://back";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/light/arrow-clockwise-light.svg");
+        text: "Refresh";
+        url: "dimple://refresh";
     }
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/regular/house.svg");
@@ -141,16 +150,6 @@ export component SideBar inherits VerticalBox {
     // Fills the space between the last normal item and the settings, at the bottom.
     Rectangle {
         
-    }
-    SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/light/arrow-left-light.svg");
-        text: "Back";
-        url: "dimple://back";
-    }
-    SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/light/arrow-clockwise-light.svg");
-        text: "Refresh";
-        url: "dimple://refresh";
     }
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/light/gear-light.svg");
