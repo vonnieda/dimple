@@ -1151,6 +1151,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dimple_cli"
+version = "0.1.0"
+dependencies = [
+ "dimple_core",
+ "dimple_deezer_library",
+ "dimple_librarian",
+ "dimple_musicbrainz_library",
+ "dimple_wikidata_library",
+ "env_logger",
+ "log",
+]
+
+[[package]]
 name = "dimple_core"
 version = "0.1.0"
 dependencies = [
@@ -1251,6 +1264,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "dimple_theaudiodb_library"
+version = "0.1.0"
+dependencies = [
+ "dimple_core",
+ "image",
+ "log",
+ "reqwest",
+ "serde",
+]
+
+[[package]]
 name = "dimple_ui_slint"
 version = "0.1.0"
 dependencies = [
@@ -1261,6 +1285,7 @@ dependencies = [
  "dimple_lastfm_library",
  "dimple_librarian",
  "dimple_musicbrainz_library",
+ "dimple_theaudiodb_library",
  "dimple_wikidata_library",
  "directories",
  "env_logger",

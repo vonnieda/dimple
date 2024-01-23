@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use colored::Colorize;
 
-use crate::model::{DimpleReleaseGroup, DimpleTrack, DimpleArtist, DimpleGenre, DimpleRelease, DimpleRecording};
+use crate::model::{DimpleReleaseGroup, DimpleTrack, DimpleArtist, DimpleGenre, DimpleRelease, DimpleRecording, DimpleRecordingSource};
 
 #[derive(Clone, Debug)]
 pub enum LibraryEntity {
@@ -67,6 +67,10 @@ pub trait Library: Send + Sync {
     // TODO Eventually this will allow access to more image types.
     fn image(&self, _entity: &LibraryEntity) -> Option<image::DynamicImage> {
         None
+    }
+
+    fn sources(&self, _entity: &LibraryEntity) -> Box<dyn Iterator<Item = DimpleRecordingSource>> {
+        Box::new(vec![].into_iter())
     }
 
     // fn list<T: LibraryEnt + 'static>(&self) -> Box<dyn Iterator<Item = T>>;

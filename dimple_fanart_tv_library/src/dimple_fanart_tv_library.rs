@@ -2,6 +2,10 @@ use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
+// TODO consider using https://crates.io/crates/fuzzy-matcher to try to find
+// albums that might match the name of the artist to use as a back up for
+// artist artwork.
+
 // https://wiki.fanart.tv/General/personal%20api/
 #[derive(Debug, Default)]
 pub struct FanartTvLibrary {
@@ -50,6 +54,10 @@ impl Library for FanartTvLibrary {
                     Some(response.status().as_u16()), 
                     response.content_length());
                 let artist_resp = response.json::<ArtistResponse>().ok()?;
+                // TODO see if we can get smaller images.
+                // docs say you can add /preview, but when I added it to artistthumb
+                // it didn't work (404)
+                // https://fanart.tv/api-docs/api-v3/
                 let thumb = artist_resp.artistthumb.first()
                     .or_else(|| artist_resp.artistbackground.first())
                     .or_else(|| artist_resp.hdmusiclogo.first())

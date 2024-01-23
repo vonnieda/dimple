@@ -18,14 +18,14 @@ export component CardGrid inherits VerticalLayout {
     // TODO this still isn't quite right, keep ending up with hscroll. I think
     // just give up on calculating the spacing, use space-between and then
     // insert empties to fill the gap at the end.
-    property <length> col_spacing: (self.parent_width - StyleMetrics.layout-padding - StyleMetrics.layout-spacing - (cols * Palette.thumbnail-width-large)) / (cols);
+    // property <length> col_spacing: (self.parent_width - StyleMetrics.layout-padding - StyleMetrics.layout-spacing - (cols * Palette.thumbnail-width-large)) / (cols);
 
     spacing: StyleMetrics.layout-spacing;
     padding-right: StyleMetrics.layout-padding;
     alignment: start;
     for row in Math.ceil(cards.length / cols): HorizontalLayout {
         alignment: start;
-        spacing: col-spacing;
+        spacing: StyleMetrics.layout-spacing;
         for col in Math.min(cols, cards.length - (row * cols)): Card {
             model: cards[row * cols + col];
         }

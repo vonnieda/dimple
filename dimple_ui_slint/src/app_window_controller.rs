@@ -3,6 +3,7 @@ use dimple_musicbrainz_library::MusicBrainzLibrary;
 use dimple_lastfm_library::LastFmLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
 use dimple_deezer_library::DeezerLibrary;
+use dimple_theaudiodb_library::TheAudioDbLibrary;
 use dimple_wikidata_library::WikidataLibrary;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -58,10 +59,11 @@ impl AppWindowController {
 
         // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
         self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
-        self.librarian.add_library(Box::<LastFmLibrary>::default());
+        self.librarian.add_library(Box::<TheAudioDbLibrary>::default());
         self.librarian.add_library(Box::<FanartTvLibrary>::default());
         self.librarian.add_library(Box::<DeezerLibrary>::default());
         self.librarian.add_library(Box::<WikidataLibrary>::default());
+        self.librarian.add_library(Box::<LastFmLibrary>::default());
         self.librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
@@ -174,6 +176,10 @@ impl AppWindowController {
     fn search(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         let url = url.to_owned();
         std::thread::spawn(move || {
+            ui.upgrade_in_event_loop(move |ui| {
+                ui.global::<Navigator>().set_busy(true);
+            }).unwrap();
+
             let url = Url::parse(&url).unwrap();
             let query = url.path_segments()
                 .ok_or("missing path").unwrap()
@@ -189,7 +195,9 @@ impl AppWindowController {
                     cards: card_adapters(cards),
                 };
                 ui.set_card_grid_adapter(adapter);
-                ui.set_page(0)
+                ui.set_page(0);
+
+                ui.global::<Navigator>().set_busy(false);
             }).unwrap();
         });
     }
@@ -214,6 +222,10 @@ impl AppWindowController {
     fn artist_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         let url = url.to_owned();
         std::thread::spawn(move || {
+            ui.upgrade_in_event_loop(move |ui| {
+                ui.global::<Navigator>().set_busy(true);
+            }).unwrap();
+    
             let url = Url::parse(&url).unwrap();
             let id = url.path_segments()
                 .ok_or("missing path").unwrap()
@@ -266,6 +278,7 @@ impl AppWindowController {
                 };
                 ui.set_artist_details(adapter);
                 ui.set_page(1);
+                ui.global::<Navigator>().set_busy(false);
             }).unwrap();
         });
     }
@@ -273,6 +286,10 @@ impl AppWindowController {
     fn release_group_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         let url = url.to_owned();
         std::thread::spawn(move || {
+            ui.upgrade_in_event_loop(move |ui| {
+                ui.global::<Navigator>().set_busy(true);
+            }).unwrap();
+
             let url = Url::parse(&url).unwrap();
             let id = url.path_segments()
                 .ok_or("missing path").unwrap()
@@ -297,7 +314,7 @@ impl AppWindowController {
                 .collect();
             artists.sort_by_key(|a| a.name.to_owned());
             let mut releases: Vec<_> = release_group.releases.iter()
-                // .filter_map(|f| f.fetch(librarian.as_ref()))
+                .filter_map(|f| f.fetch(librarian.as_ref()))
                 .collect();
             releases.sort_by(|a, b| {
                 let a_score = score_release(a);
@@ -306,19 +323,28 @@ impl AppWindowController {
             });
             releases.reverse();
             for release in releases.clone() {
-                log::info!("{} {} {} {} {} {}", score_release(release), 
+                log::info!("{} {} {} {} {} {}", score_release(&release), 
                     release.country, release.status, release.packaging, 
                     release.disambiguation, release.id);
                 for media in release.media.clone() {
                     log::info!("  {} {}", media.format, media.disc_count);
                 }
             }
+            // TODO error handling
             let release = releases.first()
                 .ok_or("no releases")
                 .unwrap();
             let release = release.fetch(librarian.as_ref())
                 .ok_or("release not found")
                 .unwrap();
+
+            let mut combined_links = vec![];
+            combined_links.extend_from_slice(&release_group_links(&release_group));
+            for release in releases {
+                let release_links = release_links(&release);
+                combined_links.extend_from_slice(&release_links);
+            }
+
 
             ui.upgrade_in_event_loop(move |ui| {
                 let model = ReleaseGroupDetailsAdapter {                    
@@ -328,13 +354,14 @@ impl AppWindowController {
                     summary: release_group.summary.clone().into(),
                     primary_type: release_group.primary_type.clone().into(),
                     artists: link_adapters(artists),
-                    links: link_adapters(release_group_links(&release_group)),
+                    links: link_adapters(combined_links),
                     media: media_adapters(release.media),
                     // releases: card_adapters(release_cards),
                     releases: Default::default()
                 };
                 ui.set_release_group_details(model);
-                ui.set_page(2)
+                ui.set_page(2);
+                ui.global::<Navigator>().set_busy(false);
             }).unwrap();
         });
     }
@@ -581,6 +608,26 @@ fn release_group_links(release_group: &DimpleReleaseGroup) -> Vec<Link> {
         .chain(std::iter::once(Link { 
             name: format!("https://musicbrainz.org/release-group/{}", release_group.id),
             url: format!("https://musicbrainz.org/release-group/{}", release_group.id),
+        }))
+        .collect()
+}
+
+fn release_links(release: &DimpleRelease) -> Vec<Link> {
+    release.relations
+        .iter()
+        .map(|rel| rel.to_owned())
+        // TODO maybe can get name from rel?
+        .filter_map(|rel| match rel.content {
+            DimpleRelationContent::Url(url) => Some(url),
+            _ => None,
+        })
+        .map(|url| Link {
+            name: url.resource.clone(),
+            url: url.resource.clone(),
+        })
+        .chain(std::iter::once(Link { 
+            name: format!("https://musicbrainz.org/release/{}", release.id),
+            url: format!("https://musicbrainz.org/release/{}", release.id),
         }))
         .collect()
 }

@@ -21,6 +21,7 @@ struct WdItem {
     descriptions: WdDescription,
 }
 
+// https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
 #[derive(Deserialize, Debug, Default)]
 #[serde(default)]
 struct WdSiteLinks {

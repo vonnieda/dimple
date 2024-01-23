@@ -22,6 +22,7 @@ dimple_musicbrainz_library = { path = "../dimple_musicbrainz_library" }
 dimple_lastfm_library = { path = "../dimple_lastfm_library" }
 dimple_deezer_library = { path = "../dimple_deezer_library" }
 dimple_fanart_tv_library = { path = "../dimple_fanart_tv_library" }
+dimple_theaudiodb_library = { path = "../dimple_theaudiodb_library" }
 dimple_wikidata_library = { path = "../dimple_wikidata_library" }
 dimple_librarian = { path = "../dimple_librarian" }
 serde = "1.0.175"

@@ -10,3 +10,6 @@ env_logger = "0.10.0"
 log = "0.4.17"
 dimple_core = { path = "../dimple_core" }
 dimple_librarian = { path = "../dimple_librarian" }
+dimple_deezer_library = { path = "../dimple_deezer_library" }
+dimple_musicbrainz_library = { path = "../dimple_musicbrainz_library" }
+dimple_wikidata_library = { path = "../dimple_wikidata_library" }

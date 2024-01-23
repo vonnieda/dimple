@@ -19,8 +19,8 @@ export global Palette  {
 
 export global Navigator {
     callback navigate(string);
-    callback refresh();
     callback url() -> string;
+    in-out property <bool> busy;
 }
 
 export struct LinkAdapter {
@@ -135,6 +135,9 @@ export component TrackList inherits VerticalLayout {
             font-size: root.font-size;
             font-weight: Palette.font-weight-bold;
             width: 10%;
+        }
+        HorizontalLayout {
+            // TODO like, save, etc. icons
         }
         Text {
             text: "Title";
