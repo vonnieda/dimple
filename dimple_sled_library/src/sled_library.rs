@@ -153,22 +153,28 @@ impl Library for SledLibrary {
         format!("SledLibrary({})", self.path)
     }
 
-    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
+    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
         let v: Vec<LibraryEntity> = vec![];
         Box::new(v.into_iter())
     }    
 
-    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::DimpleArtist>> {
-        let artists: Vec<DimpleArtist> = self.artists.iter()
-            .map(|t| {
-                let (_k, v) = t.unwrap();
-                let bytes = v.as_bytes();
-                let json: String = String::from_utf8(bytes.into()).unwrap();
-                serde_json::from_str(&json).unwrap()
-            })
-            .collect();
+    fn list(&self, entity: &LibraryEntity) -> Box<dyn Iterator<Item = LibraryEntity>> {
+        let entities = match entity {
+            LibraryEntity::Artist(_) => {
+                self.artists.iter()
+                .map(|t| {
+                    let (_k, v) = t.unwrap();
+                    let bytes = v.as_bytes();
+                    let json: String = String::from_utf8(bytes.into()).unwrap();
+                    serde_json::from_str(&json).unwrap()
+                })
+                .map(LibraryEntity::Artist)
+                .collect()
+            }
+            _ => vec![],
+        };
 
-        Box::new(artists.into_iter())
+        Box::new(entities.into_iter())
     }
 
     fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {

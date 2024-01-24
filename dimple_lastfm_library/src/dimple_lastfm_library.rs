@@ -16,16 +16,16 @@ impl Library for LastFmLibrary {
         "last.fm".to_string()
     }
 
-    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
-        Box::new(vec![].into_iter())
-    }
+    // fn search(&self, _query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
+    //     Box::new(vec![].into_iter())
+    // }
 
-    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::DimpleArtist>> {
-        Box::new(vec![].into_iter())
-    }
+    // fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::DimpleArtist>> {
+    //     Box::new(vec![].into_iter())
+    // }
 
-    // reqwest::blocking::get("http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=Cher&api_key=YOUR_API_KEY&format=json")
-    fn image(&self, _entity: &LibraryEntity) -> Option<image::DynamicImage> {
-        None
-    }
+    // // reqwest::blocking::get("http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=Cher&api_key=YOUR_API_KEY&format=json")
+    // fn image(&self, _entity: &LibraryEntity) -> Option<image::DynamicImage> {
+    //     None
+    // }
 }

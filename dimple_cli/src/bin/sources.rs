@@ -17,8 +17,8 @@ fn main() {
     libr.add_library(Box::<DeezerLibrary>::default());
     libr.add_library(Box::<WikidataLibrary>::default());
     let rg = DimpleReleaseGroup::get("68ee0e21-a7c2-467d-8808-fd38fec2ffb8", &libr).unwrap();
-    let sources = libr.sources(&LibraryEntity::ReleaseGroup(rg));
-    for source in sources {
-        dbg!(source);
-    }
+    // let sources = libr.sources(&LibraryEntity::ReleaseGroup(rg));
+    // for source in sources {
+    //     dbg!(source);
+    // }
 }

@@ -1,5 +1,5 @@
 [package]
-name = "dimple_folder_library"
+name = "dimple_file_library"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,7 +10,6 @@ walkdir = "2.3.3"
 dimple_core = { path = "../dimple_core" }
 image = { version = "0.24.5", features = ["jpeg", "png"] }
 serde = { version = "1.0.158", features = ["derive"] }
-sled = "0.34.7"
 log = "0.4.17"
-audiotags = "0.4.1"
+symphonia = { version = "0.5.3", features = ["all"] }
 

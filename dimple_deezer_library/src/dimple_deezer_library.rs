@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, LibraryEntity}};
+use dimple_core::{library::{Library, LibraryEntity}, model::DimpleRelationContent};
 use serde::Deserialize;
 
 /// https://developers.deezer.com/api
@@ -13,6 +13,53 @@ impl DeezerLibrary {
         }
     }
 }
+
+impl Library for DeezerLibrary {
+    fn name(&self) -> String {
+        "Deezer".to_string()
+    }
+
+    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
+        // let client = Client::builder()
+        //     .https_only(true)
+        //     .user_agent(dimple_core::USER_AGENT)
+        //     .build().unwrap();
+        // let url = format!("https://api.deezer.com/search/artist?q={}", query);
+        // let response = client.get(url).send().unwrap();
+        // let artist_resp = response.json::<DeezerResponse>().unwrap();
+        // log::info!("Deezer found {} artists", artist_resp.total);
+        // // let thumb = artist_resp.artistthumb.first()?;
+        // // log::debug!("Downloading {}", &thumb.url);
+        // // let thumb_resp = client.get(&thumb.url).send().ok()?;
+        // // let bytes = thumb_resp.bytes().ok()?;
+        // // image::load_from_memory(&bytes).ok()
+        Box::new(vec![].into_iter())
+    }
+
+    // fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::DimpleArtist>> {
+    //     Box::new(vec![].into_iter())
+    // }
+
+    // fn image(&self, _entity: &LibraryEntity) -> Option<image::DynamicImage> {
+    //     None
+    // }
+
+    // fn sources(&self, _entity: &LibraryEntity) -> Box<dyn Iterator<Item = dimple_core::model::DimpleRecordingSource>> {
+    //     if let LibraryEntity::Release(r) = _entity {
+    //         let urls: Vec<_> = r.relations.iter()
+    //             .filter_map(|r| {
+    //                 if let DimpleRelationContent::Url(url) = &r.content {
+    //                     return Some(url)
+    //                 }
+    //                 None
+    //             })
+    //             .collect();
+
+    //     }
+    //     Box::new(vec![].into_iter())
+    // }
+}
+
 
 #[derive(Deserialize, Debug)]
 struct DeezerResponse {
@@ -39,33 +86,3 @@ struct DeezerArtist {
     picture_big: String,
 }
 
-impl Library for DeezerLibrary {
-    fn name(&self) -> String {
-        "Deezer".to_string()
-    }
-
-    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
-        // let client = Client::builder()
-        //     .https_only(true)
-        //     .user_agent(dimple_core::USER_AGENT)
-        //     .build().unwrap();
-        // let url = format!("https://api.deezer.com/search/artist?q={}", query);
-        // let response = client.get(url).send().unwrap();
-        // let artist_resp = response.json::<DeezerResponse>().unwrap();
-        // log::info!("Deezer found {} artists", artist_resp.total);
-        // // let thumb = artist_resp.artistthumb.first()?;
-        // // log::debug!("Downloading {}", &thumb.url);
-        // // let thumb_resp = client.get(&thumb.url).send().ok()?;
-        // // let bytes = thumb_resp.bytes().ok()?;
-        // // image::load_from_memory(&bytes).ok()
-        Box::new(vec![].into_iter())
-    }
-
-    fn artists(&self) -> Box<dyn Iterator<Item = dimple_core::model::DimpleArtist>> {
-        Box::new(vec![].into_iter())
-    }
-
-    fn image(&self, _entity: &LibraryEntity) -> Option<image::DynamicImage> {
-        None
-    }
-}

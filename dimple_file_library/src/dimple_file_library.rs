@@ -1,0 +1,129 @@
+
+use std::{collections::HashMap, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
+use dimple_core::library::Library;
+use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey}, probe::Hint};
+use walkdir::{WalkDir, DirEntry};
+
+pub struct FileLibrary {
+    paths: Vec<String>,
+    files: Arc<Mutex<HashMap<String, FileDetails>>>,
+}
+
+#[derive(Clone, Debug, Default)]
+struct FileDetails {
+    path: String,
+    artist: Option<String>,
+    album: Option<String>,
+    title: Option<String>,
+    musicbrainz_track_id: Option<String>,
+    musicbrainz_recording_id: Option<String>,
+    musicbrainz_release_id: Option<String>,
+    musicbrainz_release_group_id: Option<String>,
+}
+
+impl FileLibrary {
+    pub fn new(paths: &[String]) -> Self {
+        let files = Arc::new(Mutex::new(HashMap::new()));
+        for path in paths {
+            let path = path.clone();
+            let files = files.clone();
+            std::thread::spawn(move || Self::scanner(&path, files));
+        }
+        Self {
+            paths: paths.into(),
+            files,
+        }
+    }
+
+    /// Okay quick kinda thinking of if I just ask for a list of tracks that's
+    /// kinda reasonable. Librarian can just merge them in.
+    /// Actually, now I think of it, list() and fetch() really do the dew here.
+    /// The Librarian can do a regular "merge everything" and it will request
+    /// Recordings (tracks), artists, albums, etc. because we need to sync
+    /// "likes" and all that anyway.
+    fn scanner(path: &str, files: Arc<Mutex<HashMap<String, FileDetails>>>) {
+        loop {
+            let now = Instant::now();
+            let file_details: Vec<_> = WalkDir::new(path)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| e.file_type().is_file())
+                .filter(|e| e.path().extension().is_some())
+                .map(|e| (e.clone(), Self::read(&e)))
+                .filter(|(_e, tag)| tag.is_ok())
+                .collect();
+            log::info!("Scanned {} files in {}ms", file_details.len(), now.elapsed().as_millis());
+
+            std::thread::sleep(Duration::from_secs(60 * 60));
+        }
+    }
+
+    fn read(e: &DirEntry) -> Result<FileDetails, Box<dyn Error>> {
+        let path = e.path().to_string_lossy().to_string();
+        let extension = e.path().extension().map(|f| f.to_string_lossy().to_string());
+
+        let mut hint = Hint::new();
+        if let Some(extension) = extension {
+            hint.with_extension(&extension);
+        }
+        
+        let media_source = File::open(&path)?;
+        let media_source_stream =
+            MediaSourceStream::new(Box::new(media_source), Default::default());
+
+        // Use the default options for metadata and format readers.
+        let meta_opts: MetadataOptions = Default::default();
+        let fmt_opts: FormatOptions = Default::default();
+
+        // Probe the media source.
+        let probed = symphonia::default::get_probe()
+            .format(&hint, media_source_stream, &fmt_opts, &meta_opts)?;
+
+        // Get the instantiated format reader.
+        let mut format = probed.format;
+
+        let metadata = format.metadata();
+
+        let mut details = FileDetails {
+            path: path.clone(),
+            ..Default::default()
+        };
+
+        if let Some(metadata) = metadata.current() {
+            let tags = metadata.tags();
+            // https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
+            for tag in tags {
+                if let Some(StandardTagKey::TrackTitle) = tag.std_key {
+                    details.title = Some(tag.value.to_string());
+                }
+                else if let Some(StandardTagKey::Album) = tag.std_key {
+                    details.album = Some(tag.value.to_string());
+                }
+                else if let Some(StandardTagKey::Artist) = tag.std_key {
+                    details.artist = Some(tag.value.to_string());
+                }
+                else if let Some(StandardTagKey::MusicBrainzAlbumId) = tag.std_key {
+                    details.musicbrainz_release_id = Some(tag.value.to_string());
+                }
+                else if let Some(StandardTagKey::MusicBrainzRecordingId) = tag.std_key {
+                    details.musicbrainz_recording_id = Some(tag.value.to_string());
+                }
+                else if let Some(StandardTagKey::MusicBrainzReleaseGroupId) = tag.std_key {
+                    details.musicbrainz_release_group_id = Some(tag.value.to_string());
+                }
+                else if let Some(StandardTagKey::MusicBrainzTrackId) = tag.std_key {
+                    details.musicbrainz_track_id = Some(tag.value.to_string());
+                }
+            }
+        }
+
+        Ok(details)
+    }
+}
+
+impl Library for FileLibrary {
+    fn name(&self) -> String {
+        format!("FolderLibrary({:?})", self.paths)
+    }
+}
+

@@ -1,15 +1,32 @@
 # Dimple
 
-Dimple is an open source and cross-platform music player that celebrates music
-and privacy. 
+--Dimple is an open source and cross-platform music player that celebrates music
+and privacy.--
+
+Dimple is an open source, cross-platform music player for the open Internet.
 
 It runs on all the common desktops and mobiles, and gives you all the power of
-a streaming service in a single app.
+a streaming service in a beautiful, self-contained app.
 
-Dimple is $3.99 on any app store, or you can download it for free right here. 
+Dimple is $6.99 on any app store, or you can download it for free right here. 
 The only difference between the two is that app store sales pay for Dimple's
-development. **Dimple is my full time job and I'm working hard to make it the
-best music player I can.**
+development.
+
+**Dimple is my full time job and I'm working hard to make it the best music 
+player I can.**
+
+If you you'd like to support Dimple, please consider:
+- Donating or sponsoring Dimple:
+  - Merch:
+  - BTC:
+  - ETH:
+  - DOGE:
+  - Paypal: 
+  - Github:
+  - Venmo: 
+- Donating to Musicbrainz:
+- Donating to fanart.tv:
+- Sponsoring TheAudioDB:
 
 # Features
 
@@ -33,7 +50,7 @@ best music player I can.**
 - Synchronized data is end-to-end encrypted.
 - Works offline with your downloaded music.
 
-## Extensive Synchronization
+## Synchronized
 - Stream and download your music on any supported device, with any S3
   compatible storage service. Dimple offers a cheap and built in option that
   helps pay for development, or use any S3 compatible storage you like.
@@ -76,6 +93,9 @@ best music player I can.**
   - Sparkline: https://simonrepp.com/faircamp/#release
   - Spectrogram: https://en.wikipedia.org/wiki/Spectrogram
   - Wave
+- Visualizations from projectM?: https://github.com/projectM-visualizer/projectm
+  - https://crates.io/crates/projectm
+  - https://crates.io/crates/projectm-sys
 
 ## DRM-Free
 - Dimple does not use or support DRM. See https://www.defectivebydesign.org/guide/audio
@@ -85,9 +105,9 @@ best music player I can.**
 ## Ethical
 - Uses only public and authorized sources of data and music.
 - Attribution is captured and displayed with all relevant data.
-- Supports artists by givers users access to artist preferred streaming and
-  purchasing options.
-- Respects caching and rate limits where required or requested. 
+- Supports artists by givers users access to artist preferred downloads,
+  streaming, and merch.
+- Respects caching and rate limits wherever requested. 
 - TBD% of revenue goes to MetaBrainz, Wikimedia, and other public resources.
 
 ## Fast

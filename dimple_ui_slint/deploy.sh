@@ -5,8 +5,7 @@ BIN="$APP/Contents/MacOS/dimple_ui_slint"
 ZIP="$APP/../Dimple.app.zip"
 IDENT="KZ3MZ5JYNR"
 USERNAME="jason@vonnieda.org"
-# TODO STOPSHIP
-PASSWORD="qsiq-jygl-tprv-sdyw"
+PASSWORD=$NOTARIZE_PASSWORD
 
 cargo bundle --release
 codesign --timestamp --verify -vvv --deep --options=runtime --sign $IDENT $APP

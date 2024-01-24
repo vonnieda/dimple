@@ -117,13 +117,6 @@ pub struct DimpleRecording {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct DimpleRecordingSource {
     pub recording_id: String,
-
-    pub provider_name: String, // Deezer
-    pub media_format: String, // FLAC
-    pub media_quality: f32, // 0 - 1 with 1 being lossless and 0.5 being MP3 VBR 128 or something
-    pub stream: bool,
-    pub purchase: bool,
-    pub download: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]

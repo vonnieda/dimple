@@ -4,23 +4,19 @@ use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
-// TODO consider using https://crates.io/crates/fuzzy-matcher to try to find
-// albums that might match the name of the artist to use as a back up for
-// artist artwork.
-
-// https://wiki.fanart.tv/General/personal%20api/
 #[derive(Debug)]
-pub struct FanartTvLibrary {
+pub struct TheAudioDbLibrary {
     api_key: String,
 }
 
-impl Default for FanartTvLibrary {
+impl Default for TheAudioDbLibrary {
     fn default() -> Self {
-        Self::new(&env::var("FANART_TV_API_KEY").unwrap_or_default())
+        Self::new(&env::var("TADB_API_KEY").unwrap_or_default())
     }
 }
 
-impl FanartTvLibrary {
+
+impl TheAudioDbLibrary {
     pub fn new(api_key: &str) -> Self {
         Self {
             api_key: api_key.to_string(),
@@ -28,17 +24,20 @@ impl FanartTvLibrary {
     }
 }
 
+#[derive(Deserialize, Debug, Default)]
+#[serde(default)]
+struct ArtistsResponse {
+    artists: Vec<ArtistResponse>,
+}
+
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(default)]
 struct ArtistResponse {
-    name: String,
-    artistthumb: Vec<ImageResponse>,
-    musiclogo: Vec<ImageResponse>,
-    hdmusiclogo: Vec<ImageResponse>,
-    artistbackground: Vec<ImageResponse>,
-    status: String,
-    error_message: String,
+    idArtist: String,
+    strArtist: String,
+    strBiographyEN: String,
+    strArtistThumb: String,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -49,37 +48,42 @@ struct ImageResponse {
     likes: String,
 }
 
-impl Library for FanartTvLibrary {
+// https://www.theaudiodb.com/free_music_api
+impl Library for TheAudioDbLibrary {
     fn name(&self) -> String {
-        "fanart.tv".to_string()
+        "TheAudioDB".to_string()
     }
+
+    // TODO add bio
 
     fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
         match entity {
+            // https://www.theaudiodb.com/api/v1/json/api_key/artist-mb.php?i=1d86a19b-8ddd-448c-a815-4f41350bea53
             LibraryEntity::Artist(a) => {
                 let client = Client::builder()
                     .https_only(true)
                     .user_agent(dimple_core::USER_AGENT)
                     .build().ok()?;
+
                 let mbid = a.id.to_string();
-                let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", 
-                    mbid, self.api_key);
+
+                let url = format!("https://www.theaudiodb.com/api/v1/json/{}/artist-mb.php?i={}", 
+                    self.api_key, mbid);
                 let request_token = LibrarySupport::start_request(self, &url);
                 let response = client.get(url).send().ok()?;
                 LibrarySupport::end_request(request_token, 
                     Some(response.status().as_u16()), 
                     response.content_length());
-                let artist_resp = response.json::<ArtistResponse>().ok()?;
-                // TODO see if we can get smaller images.
-                // docs say you can add /preview, but when I added it to artistthumb
-                // it didn't work (404)
-                // https://fanart.tv/api-docs/api-v3/
-                let thumb = artist_resp.artistthumb.first()
-                    .or_else(|| artist_resp.artistbackground.first())
-                    .or_else(|| artist_resp.hdmusiclogo.first())
-                    .or_else(|| artist_resp.musiclogo.first())?;
-                let request_token = LibrarySupport::start_request(self, &thumb.url);
-                let thumb_resp = client.get(&thumb.url).send().ok()?;
+                let artists_resp = response.json::<ArtistsResponse>().ok()?;
+
+                let artist_thumbnail_url = artists_resp.artists.first()?
+                    .strArtistThumb.clone();
+                if artist_thumbnail_url.is_empty() {
+                    return None;
+                }
+
+                let request_token = LibrarySupport::start_request(self, &artist_thumbnail_url);
+                let thumb_resp = client.get(&artist_thumbnail_url).send().ok()?;
                 LibrarySupport::end_request(request_token, 
                     Some(thumb_resp.status().as_u16()),
                     thumb_resp.content_length());

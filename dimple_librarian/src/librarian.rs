@@ -63,35 +63,14 @@ impl Librarian {
         self.local_library.set_image(entity, generated);
         self.local_library.images.get(&entity.id(), width, height).unwrap()
     }
-}
 
-impl Library for Librarian {
-    fn name(&self) -> String {
-        "Librarian".to_string()
-    }
-
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
-        // TODO include local
-        // TODO remove dupes
-        log::debug!("{}: {}", "Search".cyan(), query.blue());
-        let merged: Vec<LibraryEntity> = self.libraries.read().unwrap().iter()
-            .flat_map(|lib| {
-                log::debug!("  {} {}", "✔".bright_green(), lib.name().green());
-                lib.search(query)
-            })
-            .collect();
-        Box::new(merged.into_iter())
-    }    
-
-    fn artists(&self) -> Box<dyn Iterator<Item = DimpleArtist>> {
-        self.local_library.artists()
-    }
-
-    fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
-        let local_result = self.local_library.fetch(entity);
-        if local_result.is_some() {
-            return local_result;
-        }
+    fn fetch_with_force(&self, entity: &LibraryEntity, force: bool) -> Option<LibraryEntity> {
+        if !force {
+            let local_result = self.local_library.fetch(entity);
+            if local_result.is_some() {
+                return local_result;
+            }
+        } 
 
         // TODO I think ultimately to solve the don't query twice problem
         // I need to change the interface to Result, so that I can know
@@ -119,6 +98,33 @@ impl Library for Librarian {
         self.local_library.store(&result);
 
         Some(result)
+    }
+}
+
+impl Library for Librarian {
+    fn name(&self) -> String {
+        "Librarian".to_string()
+    }
+
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
+        // TODO include local
+        // TODO remove dupes
+        log::debug!("{}: {}", "Search".cyan(), query.blue());
+        let merged: Vec<LibraryEntity> = self.libraries.read().unwrap().iter()
+            .flat_map(|lib| {
+                log::debug!("  {} {}", "✔".bright_green(), lib.name().green());
+                lib.search(query)
+            })
+            .collect();
+        Box::new(merged.into_iter())
+    }    
+
+    fn list(&self, entity: &LibraryEntity) -> Box<dyn Iterator<Item = LibraryEntity>> {
+        self.local_library.list(entity)
+    }
+
+    fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
+        self.fetch_with_force(entity, false)
     }
 
     /// If there is an image stored in the local library for the entity return

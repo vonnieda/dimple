@@ -13,7 +13,7 @@ members = [
     # "dimple_s3_compatible_storage_library",
     # "dimple_sqlite3_library",
     # "dimple_navidrome_library",
-    # "dimple_folder_library",
+    "dimple_file_library",
     "dimple_cli",
     # "dimple_ui_egui",
 ]

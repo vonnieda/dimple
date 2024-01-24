@@ -1,4 +1,5 @@
 use dimple_coverartarchive_library::CoverArtArchiveLibrary;
+use dimple_file_library::dimple_file_library::FileLibrary;
 use dimple_musicbrainz_library::MusicBrainzLibrary;
 use dimple_lastfm_library::LastFmLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
@@ -8,7 +9,7 @@ use dimple_wikidata_library::WikidataLibrary;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use std::{sync::{Arc, Mutex}, collections::VecDeque};
+use std::{collections::VecDeque, env, sync::{Arc, Mutex}};
 
 use dimple_core::{model::{DimpleArtist, DimpleReleaseGroup, DimpleRelationContent, DimpleRelease, DimpleMedium, DimpleTrack, DimpleRecording}, library::{Library, LibraryEntity}};
 use dimple_librarian::librarian::{Librarian};
@@ -57,10 +58,13 @@ impl AppWindowController {
         self.ui.global::<Navigator>().on_navigate(move |url| 
             Self::navigate(url, history.clone(), librarian.clone(), ui.clone()));
 
-        // self.librarian.add_library(Arc::new(FolderLibrary::new("/Users/jason/Music/My Music")));
+        let paths = vec![
+            "/Users/jason/Music/My Music".to_string(),
+        ];
+        self.librarian.add_library(Box::new(FileLibrary::new(&paths)));
         self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
-        self.librarian.add_library(Box::<TheAudioDbLibrary>::default());
-        self.librarian.add_library(Box::<FanartTvLibrary>::default());
+        self.librarian.add_library(Box::new(TheAudioDbLibrary::default()));
+        self.librarian.add_library(Box::new(FanartTvLibrary::default()));
         self.librarian.add_library(Box::<DeezerLibrary>::default());
         self.librarian.add_library(Box::<WikidataLibrary>::default());
         self.librarian.add_library(Box::<LastFmLibrary>::default());
@@ -185,8 +189,11 @@ impl AppWindowController {
                 .ok_or("missing path").unwrap()
                 .nth(0)
                 .ok_or("missing query").unwrap();
-            let mut search_results: Vec<_> = librarian.search(query).collect();
-            search_results.sort_by_key(|e| e.name().to_lowercase());
+            let search_results: Vec<_> = librarian.search(query).collect();
+            // TODO woops, was sorting by name when they are returned by
+            // relevance. Once more sources are merged I'll need to bring
+            // rel to the front and sort on it.
+            // search_results.sort_by_key(|e| e.name().to_lowercase());
             let cards = entity_cards(search_results, &librarian, 
                 Self::THUMBNAIL_WIDTH, 
                 Self::THUMBNAIL_WIDTH);
@@ -204,7 +211,13 @@ impl AppWindowController {
 
     fn artists(librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         std::thread::spawn(move || {
-            let mut artists: Vec<DimpleArtist> = librarian.artists().collect();
+            let entity = LibraryEntity::Artist(DimpleArtist::default());
+            let mut artists: Vec<DimpleArtist> = librarian.list(&entity)
+                .filter_map(|e| match e {
+                    LibraryEntity::Artist(a) => Some(a),
+                    _ => None,
+                })
+                .collect();
             artists.sort_by_key(|a| a.name.to_lowercase());
             let cards = artist_cards(artists, &librarian,
                 Self::THUMBNAIL_WIDTH, 
@@ -314,7 +327,7 @@ impl AppWindowController {
                 .collect();
             artists.sort_by_key(|a| a.name.to_owned());
             let mut releases: Vec<_> = release_group.releases.iter()
-                .filter_map(|f| f.fetch(librarian.as_ref()))
+                // .filter_map(|f| f.fetch(librarian.as_ref()))
                 .collect();
             releases.sort_by(|a, b| {
                 let a_score = score_release(a);
