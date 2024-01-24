@@ -1,6 +1,6 @@
 use std::env;
 
-use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
+use dimple_core::library::{Library, DimpleEntity, LibrarySupport};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
@@ -54,9 +54,9 @@ impl Library for FanartTvLibrary {
         "fanart.tv".to_string()
     }
 
-    fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
+    fn image(&self, entity: &DimpleEntity) -> Option<image::DynamicImage> {
         match entity {
-            LibraryEntity::Artist(a) => {
+            DimpleEntity::Artist(a) => {
                 let client = Client::builder()
                     .https_only(true)
                     .user_agent(dimple_core::USER_AGENT)

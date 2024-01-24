@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, LibraryEntity, LibrarySupport}, model::{DimpleRelationContent, DimpleRelation}};
+use dimple_core::{library::{Library, DimpleEntity, LibrarySupport}, model::{DimpleRelationContent, DimpleRelation}};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
 
@@ -166,39 +166,39 @@ impl Library for WikidataLibrary {
         "Wikidata".to_string()
     }
 
-    fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
+    fn fetch(&self, entity: &DimpleEntity) -> Option<DimpleEntity> {
         match entity.clone() {
-            LibraryEntity::Artist(mut artist) => {
+            DimpleEntity::Artist(mut artist) => {
                 artist.summary = self.get_summary(&artist.relations).unwrap_or_default();
                 if artist.summary.is_empty() {
                     return None
                 }
-                Some(LibraryEntity::Artist(artist))
+                Some(DimpleEntity::Artist(artist))
             },
 
-            LibraryEntity::ReleaseGroup(mut release_group) => {
+            DimpleEntity::ReleaseGroup(mut release_group) => {
                 release_group.summary = self.get_summary(&release_group.relations)
                     .unwrap_or_default();
                 if release_group.summary.is_empty() {
                     return None
                 }
-                Some(LibraryEntity::ReleaseGroup(release_group))
+                Some(DimpleEntity::ReleaseGroup(release_group))
             },
 
-            LibraryEntity::Release(mut release) => {
+            DimpleEntity::Release(mut release) => {
                 release.summary = self.get_summary(&release.relations).unwrap_or_default();
                 if release.summary.is_empty() {
                     return None
                 }
-                Some(LibraryEntity::Release(release))
+                Some(DimpleEntity::Release(release))
             },
 
-            LibraryEntity::Recording(mut rec) => {
+            DimpleEntity::Recording(mut rec) => {
                 rec.summary = self.get_summary(&rec.relations).unwrap_or_default();
                 if rec.summary.is_empty() {
                     return None
                 }
-                Some(LibraryEntity::Recording(rec))
+                Some(DimpleEntity::Recording(rec))
             },
 
             _ => None,

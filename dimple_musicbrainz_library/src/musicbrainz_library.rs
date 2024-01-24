@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
-use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
+use dimple_core::library::{Library, DimpleEntity, LibrarySupport};
 use dimple_core::model::{DimpleGenre, DimpleArtist, DimpleReleaseGroup, DimpleRelation, DimpleRelationContent, DimpleUrl, DimpleRelease, DimpleMedium, DimpleTrack, DimpleRecording};
 use musicbrainz_rs::entity::artist::{Artist, ArtistSearchQuery};
 use musicbrainz_rs::entity::recording::Recording;
@@ -46,7 +46,7 @@ impl Library for MusicBrainzLibrary {
         "MusicBrainz".to_string()
     }
 
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = DimpleEntity>> {
         let query = query.to_string();
 
         self.enforce_rate_limit();
@@ -57,7 +57,7 @@ impl Library for MusicBrainzLibrary {
         let search_query = ArtistSearchQuery::query_builder()
             .artist(&query)
             .build();
-        let results: Vec<LibraryEntity> = Artist::search(search_query)
+        let results: Vec<DimpleEntity> = Artist::search(search_query)
             .execute()
             .inspect(|_f| {
                 LibrarySupport::end_request(request_token, None, None);
@@ -67,14 +67,14 @@ impl Library for MusicBrainzLibrary {
             .entities
             .iter()
             .map(|src| dimple_core::model::DimpleArtist::from(ArtistConverter::from(src.clone())))
-            .map(LibraryEntity::Artist)
+            .map(DimpleEntity::Artist)
             .collect();
         Box::new(results.into_iter())
     }
 
-    fn fetch(&self, _entity: &LibraryEntity) -> Option<LibraryEntity> {
+    fn fetch(&self, _entity: &DimpleEntity) -> Option<DimpleEntity> {
         match _entity {
-            LibraryEntity::Artist(a) => {
+            DimpleEntity::Artist(a) => {
                 self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", a.id));
@@ -89,9 +89,9 @@ impl Library for MusicBrainzLibrary {
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| DimpleArtist::from(ArtistConverter::from(src.clone())))
-                    .map(LibraryEntity::Artist)        
+                    .map(DimpleEntity::Artist)        
             },
-            LibraryEntity::ReleaseGroup(r) => {
+            DimpleEntity::ReleaseGroup(r) => {
                 self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", r.id));
@@ -107,9 +107,9 @@ impl Library for MusicBrainzLibrary {
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| DimpleReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-                    .map(LibraryEntity::ReleaseGroup)        
+                    .map(DimpleEntity::ReleaseGroup)        
             },
-            LibraryEntity::Release(r) => {
+            DimpleEntity::Release(r) => {
                 self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.id));
@@ -126,9 +126,9 @@ impl Library for MusicBrainzLibrary {
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| DimpleRelease::from(ReleaseConverter::from(src.clone())))
-                    .map(LibraryEntity::Release)        
+                    .map(DimpleEntity::Release)        
             },
-            LibraryEntity::Recording(r) => {
+            DimpleEntity::Recording(r) => {
                 self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/recording/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.id));
@@ -144,10 +144,10 @@ impl Library for MusicBrainzLibrary {
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| DimpleRecording::from(RecordingConverter::from(src.clone())))
-                    .map(LibraryEntity::Recording)        
+                    .map(DimpleEntity::Recording)        
             },
-            LibraryEntity::Genre(_) => None,
-            LibraryEntity::Track(_) => None,
+            DimpleEntity::Genre(_) => None,
+            DimpleEntity::Track(_) => None,
         }        
     }
 }

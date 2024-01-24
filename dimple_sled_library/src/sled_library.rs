@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, LibraryEntity}, image_cache::ImageCache, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
+use dimple_core::{library::{Library, DimpleEntity}, image_cache::ImageCache, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
@@ -49,18 +49,18 @@ impl SledLibrary {
 
     // TODO for now assuming storing does not modify the object, so no need
     // to return one. Might change. 
-    pub fn store(&self, entity: &LibraryEntity) {
+    pub fn store(&self, entity: &DimpleEntity) {
         match entity {
-            LibraryEntity::Artist(a) => {
+            DimpleEntity::Artist(a) => {
                 self.set_artist(a)
             }
-            LibraryEntity::ReleaseGroup(r) => {
+            DimpleEntity::ReleaseGroup(r) => {
                 self.set_release_group(r)
             }
-            LibraryEntity::Release(r) => {
+            DimpleEntity::Release(r) => {
                 self.set_release(r)
             }
-            LibraryEntity::Recording(r) => {
+            DimpleEntity::Recording(r) => {
                 self.set_recording(r)
             }
             _ => todo!()
@@ -143,7 +143,7 @@ impl SledLibrary {
             .unwrap();
     }
 
-    pub fn set_image(&self, entity: &LibraryEntity, dyn_image: &DynamicImage) {
+    pub fn set_image(&self, entity: &DimpleEntity, dyn_image: &DynamicImage) {
         self.images.insert(&entity.id(), dyn_image);
     }
 }
@@ -153,14 +153,14 @@ impl Library for SledLibrary {
         format!("SledLibrary({})", self.path)
     }
 
-    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = LibraryEntity>> {
-        let v: Vec<LibraryEntity> = vec![];
+    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = DimpleEntity>> {
+        let v: Vec<DimpleEntity> = vec![];
         Box::new(v.into_iter())
     }    
 
-    fn list(&self, entity: &LibraryEntity) -> Box<dyn Iterator<Item = LibraryEntity>> {
+    fn list(&self, entity: &DimpleEntity) -> Box<dyn Iterator<Item = DimpleEntity>> {
         let entities = match entity {
-            LibraryEntity::Artist(_) => {
+            DimpleEntity::Artist(_) => {
                 self.artists.iter()
                 .map(|t| {
                     let (_k, v) = t.unwrap();
@@ -168,7 +168,7 @@ impl Library for SledLibrary {
                     let json: String = String::from_utf8(bytes.into()).unwrap();
                     serde_json::from_str(&json).unwrap()
                 })
-                .map(LibraryEntity::Artist)
+                .map(DimpleEntity::Artist)
                 .collect()
             }
             _ => vec![],
@@ -177,30 +177,30 @@ impl Library for SledLibrary {
         Box::new(entities.into_iter())
     }
 
-    fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
+    fn fetch(&self, entity: &DimpleEntity) -> Option<DimpleEntity> {
         match entity {
-            LibraryEntity::Artist(a) => {
+            DimpleEntity::Artist(a) => {
                 let a = self.get_artist(&a.id)?;
-                Some(LibraryEntity::Artist(a))
+                Some(DimpleEntity::Artist(a))
             },
-            LibraryEntity::ReleaseGroup(r) => {
+            DimpleEntity::ReleaseGroup(r) => {
                 let r = self.get_release_group(&r.id)?;
-                Some(LibraryEntity::ReleaseGroup(r))
+                Some(DimpleEntity::ReleaseGroup(r))
             },
-            LibraryEntity::Release(r) => {
+            DimpleEntity::Release(r) => {
                 let r = self.get_release(&r.id)?;
-                Some(LibraryEntity::Release(r))
+                Some(DimpleEntity::Release(r))
             },
-            LibraryEntity::Recording(r) => {
+            DimpleEntity::Recording(r) => {
                 let r = self.get_recording(&r.id)?;
-                Some(LibraryEntity::Recording(r))
+                Some(DimpleEntity::Recording(r))
             },
-            LibraryEntity::Genre(_) => todo!(),
-            LibraryEntity::Track(_) => todo!(),
+            DimpleEntity::Genre(_) => todo!(),
+            DimpleEntity::Track(_) => todo!(),
         }        
     }
 
-    fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
+    fn image(&self, entity: &DimpleEntity) -> Option<DynamicImage> {
         self.images.get_original(&entity.id())
     }
 }

@@ -1,6 +1,6 @@
 
 use std::{collections::HashMap, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::library::Library;
+use dimple_core::library::{Library, DimpleEntity};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
 
@@ -35,12 +35,6 @@ impl FileLibrary {
         }
     }
 
-    /// Okay quick kinda thinking of if I just ask for a list of tracks that's
-    /// kinda reasonable. Librarian can just merge them in.
-    /// Actually, now I think of it, list() and fetch() really do the dew here.
-    /// The Librarian can do a regular "merge everything" and it will request
-    /// Recordings (tracks), artists, albums, etc. because we need to sync
-    /// "likes" and all that anyway.
     fn scanner(path: &str, files: Arc<Mutex<HashMap<String, FileDetails>>>) {
         loop {
             let now = Instant::now();
@@ -50,9 +44,17 @@ impl FileLibrary {
                 .filter(|e| e.file_type().is_file())
                 .filter(|e| e.path().extension().is_some())
                 .map(|e| (e.clone(), Self::read(&e)))
-                .filter(|(_e, tag)| tag.is_ok())
+                .filter_map(|(_e, tag)| tag.ok())
                 .collect();
             log::info!("Scanned {} files in {}ms", file_details.len(), now.elapsed().as_millis());
+
+            let now = Instant::now();
+            if let Ok(mut files) = files.lock() {
+                for file in file_details {
+                    files.insert(file.path.clone(), file);
+                }
+            }
+            log::info!("Inserted files in {}ms", now.elapsed().as_millis());
 
             std::thread::sleep(Duration::from_secs(60 * 60));
         }
@@ -124,6 +126,17 @@ impl FileLibrary {
 impl Library for FileLibrary {
     fn name(&self) -> String {
         format!("FolderLibrary({:?})", self.paths)
+    }
+
+    fn list(&self, _entity: &DimpleEntity) -> Box<dyn Iterator<Item = DimpleEntity>> {
+        match _entity {
+            DimpleEntity::Artist(_) => {
+                Box::new(vec![].into_iter())
+            }
+            _ => {
+                Box::new(vec![].into_iter())
+            }
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-use dimple_core::library::{Library, LibraryEntity};
+use dimple_core::library::{Library, DimpleEntity};
 
 #[derive(Debug, Default)]
 pub struct LastFmLibrary {

@@ -1,7 +1,6 @@
 use std::{sync::{RwLock, Mutex}, collections::HashSet, any::Any};
 
-use colored::Colorize;
-use dimple_core::{library::{Library, LibraryEntity}, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
+use dimple_core::{library::{Library, DimpleEntity}, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
 use rayon::prelude::*;
@@ -36,7 +35,7 @@ impl Librarian {
     /// Generate some kind of cool artwork for the entity to be used as a
     /// default. Being part of Librarian, it can use data from the library
     /// to create the image.
-    pub fn generate_masterpiece(&self, entity: &LibraryEntity, width: u32, 
+    pub fn generate_masterpiece(&self, entity: &DimpleEntity, width: u32, 
         height: u32) -> DynamicImage {
 
 
@@ -50,7 +49,7 @@ impl Librarian {
     /// Get or create a thumbmail image at the given size for the entity.
     /// If no image can be loaded from the library one is generated. Results
     /// either from the library or generated are cached for future calls.
-    pub fn thumbnail(&self, entity: &LibraryEntity, width: u32, height: u32) -> DynamicImage {
+    pub fn thumbnail(&self, entity: &DimpleEntity, width: u32, height: u32) -> DynamicImage {
         let cached = self.local_library.images.get(&entity.id(), width, height);
         if let Some(dyn_image) = cached {
             return dyn_image;
@@ -64,7 +63,7 @@ impl Librarian {
         self.local_library.images.get(&entity.id(), width, height).unwrap()
     }
 
-    fn fetch_with_force(&self, entity: &LibraryEntity, force: bool) -> Option<LibraryEntity> {
+    fn fetch_with_force(&self, entity: &DimpleEntity, force: bool) -> Option<DimpleEntity> {
         if !force {
             let local_result = self.local_library.fetch(entity);
             if local_result.is_some() {
@@ -79,7 +78,7 @@ impl Librarian {
         // So like something like WikiData could return Err if there was no
         // wikidata link. 
         let skip_libs: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
-        let first_result: LibraryEntity = self.libraries.read().ok()?.par_iter()
+        let first_result: DimpleEntity = self.libraries.read().ok()?.par_iter()
             .filter_map(|lib| {
                 let result = lib.fetch(entity);
                 if result.is_some() {
@@ -87,14 +86,14 @@ impl Librarian {
                 }
                 result
             })
-            .reduce(|| entity.clone(), LibraryEntity::merge);
+            .reduce(|| entity.clone(), DimpleEntity::merge);
         
-        let second_result: LibraryEntity = self.libraries.read().ok()?.par_iter()
+        let second_result: DimpleEntity = self.libraries.read().ok()?.par_iter()
             .filter(|f| !skip_libs.lock().unwrap().contains(&f.name()))
             .filter_map(|lib| lib.fetch(&first_result))
-            .reduce(|| entity.clone(), LibraryEntity::merge);
+            .reduce(|| entity.clone(), DimpleEntity::merge);
 
-        let result = LibraryEntity::merge(first_result, second_result);
+        let result = DimpleEntity::merge(first_result, second_result);
         self.local_library.store(&result);
 
         Some(result)
@@ -106,24 +105,22 @@ impl Library for Librarian {
         "Librarian".to_string()
     }
 
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::LibraryEntity>> {
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::DimpleEntity>> {
         // TODO include local
         // TODO remove dupes
-        log::debug!("{}: {}", "Search".cyan(), query.blue());
-        let merged: Vec<LibraryEntity> = self.libraries.read().unwrap().iter()
+        let merged: Vec<DimpleEntity> = self.libraries.read().unwrap().iter()
             .flat_map(|lib| {
-                log::debug!("  {} {}", "✔".bright_green(), lib.name().green());
                 lib.search(query)
             })
             .collect();
         Box::new(merged.into_iter())
     }    
 
-    fn list(&self, entity: &LibraryEntity) -> Box<dyn Iterator<Item = LibraryEntity>> {
+    fn list(&self, entity: &DimpleEntity) -> Box<dyn Iterator<Item = DimpleEntity>> {
         self.local_library.list(entity)
     }
 
-    fn fetch(&self, entity: &LibraryEntity) -> Option<LibraryEntity> {
+    fn fetch(&self, entity: &DimpleEntity) -> Option<DimpleEntity> {
         self.fetch_with_force(entity, false)
     }
 
@@ -131,7 +128,7 @@ impl Library for Librarian {
     /// it, otherwise search the attached libraries for one. If one is found,
     /// cache it in the local library and return it. Future requests will be
     /// served from the cache.
-    fn image(&self, entity: &LibraryEntity) -> Option<DynamicImage> {
+    fn image(&self, entity: &DimpleEntity) -> Option<DynamicImage> {
         let image = self.local_library.image(entity);
         if image.is_some() {
             return image;
@@ -159,23 +156,23 @@ fn merge_vec<T>(a: Vec<T>, b: Vec<T>) -> Vec<T> {
     if a.len() > b.len() { a } else { b }
 }
 
-impl Merge<LibraryEntity> for LibraryEntity {
-    fn merge(left: LibraryEntity, right: LibraryEntity) -> Self {
+impl Merge<DimpleEntity> for DimpleEntity {
+    fn merge(left: DimpleEntity, right: DimpleEntity) -> Self {
         match left {
-            LibraryEntity::Artist(left) => match right {
-                LibraryEntity::Artist(right) => LibraryEntity::Artist(DimpleArtist::merge(left, right)),
+            DimpleEntity::Artist(left) => match right {
+                DimpleEntity::Artist(right) => DimpleEntity::Artist(DimpleArtist::merge(left, right)),
                 _ => panic!("no")
             },
-            LibraryEntity::ReleaseGroup(left) => match right {
-                LibraryEntity::ReleaseGroup(right) => LibraryEntity::ReleaseGroup(DimpleReleaseGroup::merge(left, right)),
+            DimpleEntity::ReleaseGroup(left) => match right {
+                DimpleEntity::ReleaseGroup(right) => DimpleEntity::ReleaseGroup(DimpleReleaseGroup::merge(left, right)),
                 _ => panic!("no")
             },
-            LibraryEntity::Release(left) => match right {
-                LibraryEntity::Release(right) => LibraryEntity::Release(DimpleRelease::merge(left, right)),
+            DimpleEntity::Release(left) => match right {
+                DimpleEntity::Release(right) => DimpleEntity::Release(DimpleRelease::merge(left, right)),
                 _ => panic!("no")
             },
-            LibraryEntity::Recording(left) => match right {
-                LibraryEntity::Recording(right) => LibraryEntity::Recording(DimpleRecording::merge(left, right)),
+            DimpleEntity::Recording(left) => match right {
+                DimpleEntity::Recording(right) => DimpleEntity::Recording(DimpleRecording::merge(left, right)),
                 _ => panic!("no")
             },
             _ => panic!("no")

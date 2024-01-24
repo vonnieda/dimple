@@ -1,4 +1,4 @@
-use dimple_core::{model::DimpleReleaseGroup, library::{Library, LibraryEntity}};
+use dimple_core::{model::DimpleReleaseGroup, library::{Library, DimpleEntity}};
 use dimple_deezer_library::DeezerLibrary;
 use dimple_librarian::librarian::Librarian;
 use dimple_musicbrainz_library::MusicBrainzLibrary;

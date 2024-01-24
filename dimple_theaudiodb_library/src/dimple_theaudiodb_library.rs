@@ -1,6 +1,6 @@
 use std::env;
 
-use dimple_core::library::{Library, LibraryEntity, LibrarySupport};
+use dimple_core::library::{Library, DimpleEntity, LibrarySupport};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
@@ -56,10 +56,10 @@ impl Library for TheAudioDbLibrary {
 
     // TODO add bio
 
-    fn image(&self, entity: &LibraryEntity) -> Option<image::DynamicImage> {
+    fn image(&self, entity: &DimpleEntity) -> Option<image::DynamicImage> {
         match entity {
             // https://www.theaudiodb.com/api/v1/json/api_key/artist-mb.php?i=1d86a19b-8ddd-448c-a815-4f41350bea53
-            LibraryEntity::Artist(a) => {
+            DimpleEntity::Artist(a) => {
                 let client = Client::builder()
                     .https_only(true)
                     .user_agent(dimple_core::USER_AGENT)

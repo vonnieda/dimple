@@ -3,7 +3,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::library::Library;
-use crate::library::LibraryEntity;
+use crate::library::DimpleEntity;
 
 // TODO feels more like attributed things are their own objects and not fields
 // on structs that may also be attributed.
@@ -178,8 +178,8 @@ impl DimpleArtist {
     }
 
     pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
-        match lib.fetch(&LibraryEntity::Artist(Self::from_id(id))) {
-            Some(LibraryEntity::Artist(o)) => Some(o),
+        match lib.fetch(&DimpleEntity::Artist(Self::from_id(id))) {
+            Some(DimpleEntity::Artist(o)) => Some(o),
             _ => todo!()
         }
     }
@@ -198,8 +198,8 @@ impl DimpleRelease {
     }
 
     pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
-        match lib.fetch(&LibraryEntity::Release(Self::from_id(id))) {
-            Some(LibraryEntity::Release(o)) => Some(o),
+        match lib.fetch(&DimpleEntity::Release(Self::from_id(id))) {
+            Some(DimpleEntity::Release(o)) => Some(o),
             _ => todo!()
         }
     }
@@ -218,8 +218,8 @@ impl DimpleReleaseGroup {
     }
 
     pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
-        match lib.fetch(&LibraryEntity::ReleaseGroup(Self::from_id(id))) {
-            Some(LibraryEntity::ReleaseGroup(o)) => Some(o),
+        match lib.fetch(&DimpleEntity::ReleaseGroup(Self::from_id(id))) {
+            Some(DimpleEntity::ReleaseGroup(o)) => Some(o),
             _ => todo!()
         }
     }
@@ -228,8 +228,8 @@ impl DimpleReleaseGroup {
         Self::get(&self.id, lib)
     }
 
-    pub fn entity(&self) -> LibraryEntity {
-        LibraryEntity::ReleaseGroup(self.clone())
+    pub fn entity(&self) -> DimpleEntity {
+        DimpleEntity::ReleaseGroup(self.clone())
     }
 
     pub fn image(&self, lib: &dyn Library) -> Option<DynamicImage> {
@@ -246,8 +246,8 @@ impl DimpleRecording {
     }
 
     pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
-        match lib.fetch(&LibraryEntity::Recording(Self::from_id(id))) {
-            Some(LibraryEntity::Recording(o)) => Some(o),
+        match lib.fetch(&DimpleEntity::Recording(Self::from_id(id))) {
+            Some(DimpleEntity::Recording(o)) => Some(o),
             _ => todo!()
         }
     }
