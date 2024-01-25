@@ -196,7 +196,6 @@ impl Library for SledLibrary {
                 Some(DimpleEntity::Recording(r))
             },
             DimpleEntity::Genre(_) => todo!(),
-            DimpleEntity::Track(_) => todo!(),
         }        
     }
 

@@ -1,6 +1,6 @@
 
-use std::{collections::HashMap, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::library::{Library, DimpleEntity};
+use std::{collections::{HashMap, HashSet}, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
+use dimple_core::{library::{Library, DimpleEntity}, model::DimpleArtist};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
 
@@ -19,6 +19,7 @@ struct FileDetails {
     musicbrainz_recording_id: Option<String>,
     musicbrainz_release_id: Option<String>,
     musicbrainz_release_group_id: Option<String>,
+    musicbrainz_artist_id: Option<String>,
 }
 
 impl FileLibrary {
@@ -107,6 +108,9 @@ impl FileLibrary {
                 else if let Some(StandardTagKey::MusicBrainzAlbumId) = tag.std_key {
                     details.musicbrainz_release_id = Some(tag.value.to_string());
                 }
+                else if let Some(StandardTagKey::MusicBrainzArtistId) = tag.std_key {
+                    details.musicbrainz_artist_id = Some(tag.value.to_string());
+                }
                 else if let Some(StandardTagKey::MusicBrainzRecordingId) = tag.std_key {
                     details.musicbrainz_recording_id = Some(tag.value.to_string());
                 }
@@ -131,6 +135,19 @@ impl Library for FileLibrary {
     fn list(&self, _entity: &DimpleEntity) -> Box<dyn Iterator<Item = DimpleEntity>> {
         match _entity {
             DimpleEntity::Artist(_) => {
+                if let Ok(files) = self.files.lock() {
+                    // Collect into a HashSet to deduplicate.
+                    let artist_ids: HashSet<String> = files.values()
+                        .filter_map(|f| f.musicbrainz_artist_id.clone())
+                        .collect();
+
+                    let results: Vec<_> = artist_ids.iter()
+                        .map(|id| DimpleEntity::Artist(DimpleArtist::from_id(id)))
+                        .collect();
+
+                    log::info!("list {} artists", results.len());
+                    return Box::new(results.into_iter());
+                }
                 Box::new(vec![].into_iter())
             }
             _ => {

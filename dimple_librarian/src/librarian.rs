@@ -1,21 +1,39 @@
-use std::{sync::{RwLock, Mutex}, collections::HashSet, any::Any};
+use std::{sync::{RwLock, Mutex}, collections::HashSet};
 
 use dimple_core::{library::{Library, DimpleEntity}, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
 use rayon::prelude::*;
 
-// TODO need a favicon service
+/// TODO need a favicon service
+/// TODO I think the assumption that DimpleEntity.id is an mbid needs to go
+/// away for the use cases of always offline, no access to musicbrainz, wants
+/// to use something else as a metadata authority, etc.
 
-
+/// So then, here's the goal and plan for today:
+/// Goal: Get Recordings from the file library matched and merged. In the end,
+/// nearly every track should have an MBID and there should be a list of tracks
+/// on the console that don't, along with errors. 
+/// Plan:
+/// - Add source_id to DimpleEntity
+/// - Add match_status to DimpleEntity
+/// - Add a new forever thread in Librarian that regularly scans all the
+///   libraries, reads their recordings, and submits them for matching.
+/// - Add another forever thread that monitors the match queue, performs
+///   matching and merges the records in. The goal is to either match the
+///   entity to an mbid or to merge it unmatched. Unmatched entities still
+///   need to be available because of the offline or simply unknown use case.
+///   The user should still get the best experience.
+/// Stretch Goals:
+/// - It may be easier, as part of this, to get rid of SledLibrary and pull its
+///   stuff into here.
+/// - I need to make images an entity so I can store attributions, and that
+///   might fit into all this work.
+/// - Consider the rename of Library to Source or something. I think the Librarian
+///   manages one library: your library. It pulls stuff in from sources, not other
+///   libraries. So I can live without a sqlite_library, because that's just
+///   going to happen here. 
 pub struct Librarian {
-    /// TODO It feels like it's about time to retire SledLibrary, and move the
-    /// Sled stuff here. I'm going to need additional trees for configs,
-    /// user images, and other stuff. I had considered just having SledLibrary
-    /// take a Tree, and then I could control the root here, but then SledLibrary
-    /// is basically doing nothing but serializing which is easy enough to do here.
-    /// Then I don't have to be retricted to the Library operations for the stuff
-    /// that happens here.
     local_library: SledLibrary,
     libraries: RwLock<Vec<Box<dyn Library>>>,
 }
@@ -71,12 +89,8 @@ impl Librarian {
             }
         } 
 
-        // TODO I think ultimately to solve the don't query twice problem
-        // I need to change the interface to Result, so that I can know
-        // here if there was an error and it's worth trying again, or if
-        // it worked but there was no result.
-        // So like something like WikiData could return Err if there was no
-        // wikidata link. 
+        // Run the fetch on all of the libraries, keeping track of the ones
+        // that return a good result. 
         let skip_libs: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
         let first_result: DimpleEntity = self.libraries.read().ok()?.par_iter()
             .filter_map(|lib| {
@@ -88,11 +102,15 @@ impl Librarian {
             })
             .reduce(|| entity.clone(), DimpleEntity::merge);
         
+        // Run the fetch on the remaining libraries that did not return a result
+        // the first time. This allows libraries that need metadata from
+        // Musicbrainz to skip the first fetch and run on this one.
         let second_result: DimpleEntity = self.libraries.read().ok()?.par_iter()
             .filter(|f| !skip_libs.lock().unwrap().contains(&f.name()))
             .filter_map(|lib| lib.fetch(&first_result))
             .reduce(|| entity.clone(), DimpleEntity::merge);
 
+        // Merge the results together, store it for later access, and return
         let result = DimpleEntity::merge(first_result, second_result);
         self.local_library.store(&result);
 
@@ -117,7 +135,15 @@ impl Library for Librarian {
     }    
 
     fn list(&self, entity: &DimpleEntity) -> Box<dyn Iterator<Item = DimpleEntity>> {
-        self.local_library.list(entity)
+        let local_results: Vec<_> = self.local_library.list(entity).collect();
+        let lib_results: Vec<_> = self.libraries.read().unwrap().iter()
+            .flat_map(|lib| lib.list(entity))
+            .collect();
+
+        let mut merged = vec![];
+        merged.extend_from_slice(&local_results);
+        merged.extend_from_slice(&lib_results);
+        Box::new(merged.into_iter())
     }
 
     fn fetch(&self, entity: &DimpleEntity) -> Option<DimpleEntity> {

@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use colored::Colorize;
 
-use crate::model::{DimpleReleaseGroup, DimpleTrack, DimpleArtist, DimpleGenre, DimpleRelease, DimpleRecording, DimpleRecordingSource};
+use crate::model::{DimpleReleaseGroup, DimpleArtist, DimpleGenre, DimpleRelease, DimpleRecording, DimpleRecordingSource};
 
 #[derive(Clone, Debug)]
 pub enum DimpleEntity {
@@ -10,7 +10,6 @@ pub enum DimpleEntity {
     Genre(DimpleGenre),
     ReleaseGroup(DimpleReleaseGroup),
     Release(DimpleRelease),
-    Track(DimpleTrack),
     Recording(DimpleRecording),
 }
 
@@ -22,7 +21,6 @@ impl DimpleEntity {
             DimpleEntity::Release(r) => r.id.clone(),
             DimpleEntity::Recording(r) => r.id.clone(),
             DimpleEntity::Genre(g) => g.name.clone(),
-            DimpleEntity::Track(t) => t.id.clone(),
         }
     }
 
@@ -33,7 +31,6 @@ impl DimpleEntity {
             DimpleEntity::Release(r) => r.title.clone(),
             DimpleEntity::Recording(r) => r.title.clone(),
             DimpleEntity::Genre(g) => g.name.clone(),
-            DimpleEntity::Track(t) => t.title.clone(),
         }
     }
 }

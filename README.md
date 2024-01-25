@@ -1,9 +1,9 @@
 # Dimple
 
---Dimple is an open source and cross-platform music player that celebrates music
-and privacy.--
-
-Dimple is an open source, cross-platform music player for the open Internet.
+Dimple is:
+- an open source and cross-platform music player that celebrates music and privacy.
+- an open source, cross-platform music player for the open Internet.
+- a private music streaming service, just for you, in a single app.
 
 It runs on all the common desktops and mobiles, and gives you all the power of
 a streaming service in a beautiful, self-contained app.

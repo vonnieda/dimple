@@ -147,7 +147,6 @@ impl Library for MusicBrainzLibrary {
                     .map(DimpleEntity::Recording)        
             },
             DimpleEntity::Genre(_) => None,
-            DimpleEntity::Track(_) => None,
         }        
     }
 }
