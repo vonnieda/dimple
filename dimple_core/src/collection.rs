@@ -56,10 +56,6 @@ pub trait Collection: Send + Sync {
         None
     }
 
-    // fn artists(&self) -> Box<dyn Iterator<Item = DimpleArtist>> {
-    //     Box::new(vec![].into_iter())
-    // }
-
     // TODO Eventually this will allow access to more image types.
     fn image(&self, _entity: &Model) -> Option<image::DynamicImage> {
         None

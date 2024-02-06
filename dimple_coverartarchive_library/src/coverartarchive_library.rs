@@ -1,4 +1,4 @@
-use dimple_core::library::{Collection, Model, LibrarySupport};
+use dimple_core::collection::{Collection, Model, LibrarySupport};
 use image::DynamicImage;
 use musicbrainz_rs::entity::{CoverartResponse, release_group::ReleaseGroup, release::Release};
 use musicbrainz_rs::FetchCoverart;

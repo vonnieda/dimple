@@ -1,6 +1,6 @@
 use std::env;
 
-use dimple_core::library::{Collection, Model, LibrarySupport};
+use dimple_core::collection::{Collection, Model, LibrarySupport};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 

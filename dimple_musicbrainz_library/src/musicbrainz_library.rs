@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
-use dimple_core::library::{Collection, Model, LibrarySupport};
+use dimple_core::collection::{Collection, Model, LibrarySupport};
 use dimple_core::model::{Genre, Artist, ReleaseGroup, Relation, RelationContent, UrlRelation, Release, Medium, Track, Recording};
 use musicbrainz_rs::entity::artist::{Artist as MBArtist, ArtistSearchQuery};
 use musicbrainz_rs::entity::recording::Recording as MBRecording;

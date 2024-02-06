@@ -1,4 +1,4 @@
-use dimple_core::{library::{Collection, Model, LibrarySupport}, model::{RelationContent, Relation}};
+use dimple_core::{collection::{Collection, Model, LibrarySupport}, model::{RelationContent, Relation}};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
 

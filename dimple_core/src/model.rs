@@ -2,8 +2,8 @@ use image::DynamicImage;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::library::Collection;
-use crate::library::Model;
+use crate::collection::Collection;
+use crate::collection::Model;
 
 /// References
 /// https://musicbrainz.org/doc/Artist

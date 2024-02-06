@@ -1,4 +1,4 @@
-use dimple_core::{library::{Collection, Model}, image_cache::ImageCache, model::{Artist, ReleaseGroup, Release, Recording}};
+use dimple_core::{collection::{Collection, Model}, image_cache::ImageCache, model::{Artist, ReleaseGroup, Release, Recording}};
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};

@@ -1,6 +1,6 @@
 use std::{sync::{RwLock, Mutex}, collections::HashSet};
 
-use dimple_core::{library::{Collection, Model}, model::{Artist, ReleaseGroup, Release, Recording}};
+use dimple_core::{collection::{Collection, Model}, model::{Artist, ReleaseGroup, Release, Recording}};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
 use rayon::prelude::*;
@@ -123,7 +123,7 @@ impl Collection for Librarian {
         "Librarian".to_string()
     }
 
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::Model>> {
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::collection::Model>> {
         // TODO include local
         // TODO remove dupes
         let merged: Vec<Model> = self.libraries.read().unwrap().iter()
