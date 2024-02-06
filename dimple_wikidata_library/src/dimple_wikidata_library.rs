@@ -1,4 +1,4 @@
-use dimple_core::{library::{Collection, Model, LibrarySupport}, model::{DimpleRelationContent, DimpleRelation}};
+use dimple_core::{library::{Collection, Model, LibrarySupport}, model::{RelationContent, Relation}};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
 
@@ -64,12 +64,12 @@ struct WpSummary {
 // TODO expand this to pull in all the alternate IDs and store them on objects.
 // https://www.wikidata.org/wiki/Q2549534
 impl WikidataLibrary {
-    fn get_summary(&self, relations: &[DimpleRelation]) -> Option<String> {
+    fn get_summary(&self, relations: &[Relation]) -> Option<String> {
         // Find a Wikidata link if one exists.
         let wikidata_url = relations
             .iter()
             .find_map(|rel| {
-                if let DimpleRelationContent::Url(url) = &rel.content {
+                if let RelationContent::Url(url) = &rel.content {
                     if url.resource.starts_with("https://www.wikidata.org/wiki/Q") || url.resource.starts_with("http://www.wikidata.org/wiki/Q") {
                         return Some(url.resource.clone());
                     }

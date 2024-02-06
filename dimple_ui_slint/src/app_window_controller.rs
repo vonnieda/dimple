@@ -11,7 +11,7 @@ use url::Url;
 
 use std::{collections::VecDeque, env, sync::{Arc, Mutex}};
 
-use dimple_core::{library::{Collection, Model}, model::{DimpleArtist, DimpleMedium, DimpleRecording, DimpleRelationContent, DimpleRelease, DimpleReleaseGroup, DimpleTrack}};
+use dimple_core::{library::{Collection, Model}, model::{Artist, Medium, Recording, RelationContent, Release, ReleaseGroup, Track}};
 use dimple_librarian::librarian::{Librarian};
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, SharedString};
@@ -211,8 +211,8 @@ impl AppWindowController {
 
     fn artists(librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         std::thread::spawn(move || {
-            let entity = Model::Artist(DimpleArtist::default());
-            let mut artists: Vec<DimpleArtist> = librarian.list(&entity)
+            let entity = Model::Artist(Artist::default());
+            let mut artists: Vec<Artist> = librarian.list(&entity)
                 .filter_map(|e| match e {
                     Model::Artist(a) => Some(a),
                     _ => None,
@@ -244,7 +244,7 @@ impl AppWindowController {
                 .ok_or("missing path").unwrap()
                 .nth(0)
                 .ok_or("missing id").unwrap();
-            let artist = DimpleArtist::get(id, librarian.as_ref()).unwrap();
+            let artist = Artist::get(id, librarian.as_ref()).unwrap();
             let card = entity_card(&Model::Artist(artist.clone()), 
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
             let mut release_groups = artist.release_groups.clone();
@@ -308,7 +308,7 @@ impl AppWindowController {
                 .ok_or("missing path").unwrap()
                 .nth(0)
                 .ok_or("missing id").unwrap();
-            let release_group = DimpleReleaseGroup::get(id, librarian.as_ref())
+            let release_group = ReleaseGroup::get(id, librarian.as_ref())
                 .ok_or("release group not found").unwrap();
             let card = entity_card(&Model::ReleaseGroup(release_group.clone()), 
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
@@ -402,7 +402,7 @@ impl AppWindowController {
                 .ok_or("missing path").unwrap()
                 .nth(0)
                 .ok_or("missing id").unwrap();
-            let recording = DimpleRecording::get(id, librarian.as_ref())
+            let recording = Recording::get(id, librarian.as_ref())
                 .ok_or("recording not found").unwrap();
             let card = entity_card(&Model::Recording(recording.clone()),
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
@@ -476,13 +476,13 @@ fn entity_card(entity: &Model, width: u32, height: u32, lib: &Librarian) -> Card
     }
 }
 
-fn artist_cards(entities: Vec<DimpleArtist>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
+fn artist_cards(entities: Vec<Artist>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
     entities.par_iter()
         .map(|ent| artist_card(ent, width, height, lib))
         .collect()
 }
 
-fn artist_card(artist: &DimpleArtist, width: u32, height: u32, lib: &Librarian) -> Card {
+fn artist_card(artist: &Artist, width: u32, height: u32, lib: &Librarian) -> Card {
     Card {
         image: ImageLink {
             image: lib.thumbnail(&Model::Artist(artist.clone()), width, height),
@@ -502,19 +502,19 @@ fn artist_card(artist: &DimpleArtist, width: u32, height: u32, lib: &Librarian) 
     }
 }
 
-fn release_group_cards(entities: Vec<DimpleReleaseGroup>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
+fn release_group_cards(entities: Vec<ReleaseGroup>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
     entities.par_iter()
         .map(|ent| release_group_card(ent, width, height, lib))
         .collect()
 }
 
-fn release_cards(entities: Vec<DimpleRelease>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
+fn release_cards(entities: Vec<Release>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
     entities.par_iter()
         .map(|ent| release_card(ent, width, height, lib))
         .collect()
 }
 
-fn release_group_card(release_group: &DimpleReleaseGroup, width: u32, height: u32, lib: &Librarian) -> Card {
+fn release_group_card(release_group: &ReleaseGroup, width: u32, height: u32, lib: &Librarian) -> Card {
     Card {
         image: ImageLink {
             image: lib.thumbnail(&Model::ReleaseGroup(release_group.clone()), width, height),
@@ -534,7 +534,7 @@ fn release_group_card(release_group: &DimpleReleaseGroup, width: u32, height: u3
     }
 }
 
-fn release_card(release: &DimpleRelease, width: u32, height: u32, lib: &Librarian) -> Card {
+fn release_card(release: &Release, width: u32, height: u32, lib: &Librarian) -> Card {
     Card {
         image: ImageLink {
             image: lib.thumbnail(&Model::Release(release.clone()), width, height),
@@ -553,7 +553,7 @@ fn release_card(release: &DimpleRelease, width: u32, height: u32, lib: &Libraria
     }
 }
 
-fn recording_card(recording: &DimpleRecording, width: u32, height: u32, lib: &Librarian) -> Card {
+fn recording_card(recording: &Recording, width: u32, height: u32, lib: &Librarian) -> Card {
     Card {
         image: ImageLink {
             image: lib.thumbnail(&Model::Recording(recording.clone()), width, height),
@@ -585,13 +585,13 @@ fn card_adapter(card: &Card) -> CardAdapter {
     }
 }
 
-fn artist_links(artist: &DimpleArtist) -> Vec<Link> {
+fn artist_links(artist: &Artist) -> Vec<Link> {
     artist.relations
         .iter()
         .map(|rel| rel.to_owned())
         // TODO maybe can get name from rel?
         .filter_map(|rel| match rel.content {
-            DimpleRelationContent::Url(url) => Some(url),
+            RelationContent::Url(url) => Some(url),
             _ => None,
         })
         .map(|url| Link {
@@ -605,13 +605,13 @@ fn artist_links(artist: &DimpleArtist) -> Vec<Link> {
         .collect()
 }
 
-fn release_group_links(release_group: &DimpleReleaseGroup) -> Vec<Link> {
+fn release_group_links(release_group: &ReleaseGroup) -> Vec<Link> {
     release_group.relations
         .iter()
         .map(|rel| rel.to_owned())
         // TODO maybe can get name from rel?
         .filter_map(|rel| match rel.content {
-            DimpleRelationContent::Url(url) => Some(url),
+            RelationContent::Url(url) => Some(url),
             _ => None,
         })
         .map(|url| Link {
@@ -625,13 +625,13 @@ fn release_group_links(release_group: &DimpleReleaseGroup) -> Vec<Link> {
         .collect()
 }
 
-fn release_links(release: &DimpleRelease) -> Vec<Link> {
+fn release_links(release: &Release) -> Vec<Link> {
     release.relations
         .iter()
         .map(|rel| rel.to_owned())
         // TODO maybe can get name from rel?
         .filter_map(|rel| match rel.content {
-            DimpleRelationContent::Url(url) => Some(url),
+            RelationContent::Url(url) => Some(url),
             _ => None,
         })
         .map(|url| Link {
@@ -645,13 +645,13 @@ fn release_links(release: &DimpleRelease) -> Vec<Link> {
         .collect()
 }
 
-fn recording_links(recording: &DimpleRecording) -> Vec<Link> {
+fn recording_links(recording: &Recording) -> Vec<Link> {
     recording.relations
         .iter()
         .map(|rel| rel.to_owned())
         // TODO maybe can get name from rel?
         .filter_map(|rel| match rel.content {
-            DimpleRelationContent::Url(url) => Some(url),
+            RelationContent::Url(url) => Some(url),
             _ => None,
         })
         .map(|url| Link {
@@ -678,7 +678,7 @@ fn length_to_string(length: u32) -> String {
         length % (60 * 1000) / 1000)
 }
 
-fn track_adapters(tracks: Vec<DimpleTrack>) -> ModelRc<TrackAdapter> {
+fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
     let adapters: Vec<_> = tracks.iter()
         .map(|t| TrackAdapter {
             title: LinkAdapter {
@@ -694,7 +694,7 @@ fn track_adapters(tracks: Vec<DimpleTrack>) -> ModelRc<TrackAdapter> {
     ModelRc::from(adapters.as_slice())
 }
 
-fn media_adapters(media: Vec<DimpleMedium>) -> ModelRc<MediumAdapter> {
+fn media_adapters(media: Vec<Medium>) -> ModelRc<MediumAdapter> {
     let adapters: Vec<_> = media.iter()
         .map(|m| MediumAdapter {
             title: format!("{} {} of {}", m.format, m.position, m.disc_count).into(),
@@ -717,7 +717,7 @@ fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
 // Creates a simple score for a release to use when selecting a
 // a default release.
 // TODO this is super naive, just needed something to set the example.
-fn score_release(r: &DimpleRelease) -> f64 {
+fn score_release(r: &Release) -> f64 {
     let mut score = 0.;
     let country = r.country.to_lowercase();
     if country == "xw" {

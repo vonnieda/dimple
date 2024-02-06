@@ -1,4 +1,4 @@
-use dimple_core::{library::{Collection, Model}, image_cache::ImageCache, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
+use dimple_core::{library::{Collection, Model}, image_cache::ImageCache, model::{Artist, ReleaseGroup, Release, Recording}};
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
@@ -67,7 +67,7 @@ impl SledLibrary {
         }
     }
 
-    fn get_artist(&self, mbid: &str) -> Option<DimpleArtist> {
+    fn get_artist(&self, mbid: &str) -> Option<Artist> {
         assert!(!mbid.is_empty());
         self.artists.get(mbid).ok()?
             .and_then(|v| {
@@ -77,7 +77,7 @@ impl SledLibrary {
             })
     }
 
-    pub fn set_artist(&self, a: &DimpleArtist) {
+    pub fn set_artist(&self, a: &Artist) {
         assert!(!a.id.is_empty());
         serde_json::to_string(a)
             .map(|json| {
@@ -86,7 +86,7 @@ impl SledLibrary {
             .unwrap();
     }
 
-    fn get_release_group(&self, mbid: &str) -> Option<DimpleReleaseGroup> {
+    fn get_release_group(&self, mbid: &str) -> Option<ReleaseGroup> {
         assert!(!mbid.is_empty());
         self.release_groups.get(mbid).ok()?
             .and_then(|v| {
@@ -96,7 +96,7 @@ impl SledLibrary {
             })
     }
 
-    fn get_release(&self, mbid: &str) -> Option<DimpleRelease> {
+    fn get_release(&self, mbid: &str) -> Option<Release> {
         assert!(!mbid.is_empty());
         self.releases.get(mbid).ok()?
             .and_then(|v| {
@@ -106,7 +106,7 @@ impl SledLibrary {
             })
     }
 
-    fn get_recording(&self, mbid: &str) -> Option<DimpleRecording> {
+    fn get_recording(&self, mbid: &str) -> Option<Recording> {
         assert!(!mbid.is_empty());
         self.recordings.get(mbid).ok()?
             .and_then(|v| {
@@ -116,7 +116,7 @@ impl SledLibrary {
             })
     }
 
-    pub fn set_release_group(&self, a: &DimpleReleaseGroup) {
+    pub fn set_release_group(&self, a: &ReleaseGroup) {
         assert!(!a.id.is_empty());
         serde_json::to_string(a)
             .map(|json| {
@@ -125,7 +125,7 @@ impl SledLibrary {
             .unwrap();
     }
 
-    pub fn set_release(&self, a: &DimpleRelease) {
+    pub fn set_release(&self, a: &Release) {
         assert!(!a.id.is_empty());
         serde_json::to_string(a)
             .map(|json| {
@@ -134,7 +134,7 @@ impl SledLibrary {
             .unwrap();
     }
 
-    pub fn set_recording(&self, a: &DimpleRecording) {
+    pub fn set_recording(&self, a: &Recording) {
         assert!(!a.id.is_empty());
         serde_json::to_string(a)
             .map(|json| {

@@ -1,6 +1,6 @@
 use std::{sync::{RwLock, Mutex}, collections::HashSet};
 
-use dimple_core::{library::{Collection, Model}, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
+use dimple_core::{library::{Collection, Model}, model::{Artist, ReleaseGroup, Release, Recording}};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
 use rayon::prelude::*;
@@ -186,19 +186,19 @@ impl Merge<Model> for Model {
     fn merge(left: Model, right: Model) -> Self {
         match left {
             Model::Artist(left) => match right {
-                Model::Artist(right) => Model::Artist(DimpleArtist::merge(left, right)),
+                Model::Artist(right) => Model::Artist(Artist::merge(left, right)),
                 _ => panic!("no")
             },
             Model::ReleaseGroup(left) => match right {
-                Model::ReleaseGroup(right) => Model::ReleaseGroup(DimpleReleaseGroup::merge(left, right)),
+                Model::ReleaseGroup(right) => Model::ReleaseGroup(ReleaseGroup::merge(left, right)),
                 _ => panic!("no")
             },
             Model::Release(left) => match right {
-                Model::Release(right) => Model::Release(DimpleRelease::merge(left, right)),
+                Model::Release(right) => Model::Release(Release::merge(left, right)),
                 _ => panic!("no")
             },
             Model::Recording(left) => match right {
-                Model::Recording(right) => Model::Recording(DimpleRecording::merge(left, right)),
+                Model::Recording(right) => Model::Recording(Recording::merge(left, right)),
                 _ => panic!("no")
             },
             _ => panic!("no")
@@ -206,7 +206,7 @@ impl Merge<Model> for Model {
     }
 }
 
-impl Merge<Self> for DimpleArtist {
+impl Merge<Self> for Artist {
     fn merge(base: Self, b: Self) -> Self {
         let mut base = base.clone();
         base.disambiguation = longer(base.disambiguation, b.disambiguation);
@@ -220,7 +220,7 @@ impl Merge<Self> for DimpleArtist {
     }
 }
 
-impl Merge<Self> for DimpleReleaseGroup {
+impl Merge<Self> for ReleaseGroup {
     fn merge(base: Self, b: Self) -> Self {
         let mut base = base.clone();
         base.disambiguation = longer(base.disambiguation, b.disambiguation);
@@ -237,7 +237,7 @@ impl Merge<Self> for DimpleReleaseGroup {
     }
 }
 
-impl Merge<Self> for DimpleRelease {
+impl Merge<Self> for Release {
     fn merge(base: Self, b: Self) -> Self {
         let mut base = base.clone();
         base.artists = merge_vec(base.artists, b.artists);
@@ -256,7 +256,7 @@ impl Merge<Self> for DimpleRelease {
     }
 }
 
-impl Merge<Self> for DimpleRecording {
+impl Merge<Self> for Recording {
     fn merge(base: Self, b: Self) -> Self {
         let mut base = base.clone();
         base.annotation = longer(base.annotation, b.annotation);

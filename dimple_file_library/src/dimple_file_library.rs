@@ -1,6 +1,6 @@
 
 use std::{collections::{HashMap, HashSet}, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::{library::{Collection, Model}, model::DimpleArtist};
+use dimple_core::{library::{Collection, Model}, model::Artist};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
 
@@ -142,7 +142,7 @@ impl Collection for FileLibrary {
                         .collect();
 
                     let results: Vec<_> = artist_ids.iter()
-                        .map(|id| Model::Artist(DimpleArtist::from_id(id)))
+                        .map(|id| Model::Artist(Artist::from_id(id)))
                         .collect();
 
                     log::info!("list {} artists", results.len());

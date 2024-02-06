@@ -2,15 +2,15 @@ use std::time::Instant;
 
 use colored::Colorize;
 
-use crate::model::{DimpleReleaseGroup, DimpleArtist, DimpleGenre, DimpleRelease, DimpleRecording, DimpleRecordingSource};
+use crate::model::{ReleaseGroup, Artist, Genre, Release, Recording, RecordingSource};
 
 #[derive(Clone, Debug)]
 pub enum Model {
-    Artist(DimpleArtist),
-    Genre(DimpleGenre),
-    ReleaseGroup(DimpleReleaseGroup),
-    Release(DimpleRelease),
-    Recording(DimpleRecording),
+    Artist(Artist),
+    Genre(Genre),
+    ReleaseGroup(ReleaseGroup),
+    Release(Release),
+    Recording(Recording),
 }
 
 impl Model {
@@ -66,7 +66,7 @@ pub trait Collection: Send + Sync {
     }
 
     /// Return zero or more sources for the given recording. 
-    fn sources(&self, _recording: &DimpleRecording) -> Box<dyn Iterator<Item = DimpleRecordingSource>> {
+    fn sources(&self, _recording: &Recording) -> Box<dyn Iterator<Item = RecordingSource>> {
         Box::new(vec![].into_iter())
     }
 

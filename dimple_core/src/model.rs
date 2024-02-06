@@ -5,96 +5,106 @@ use serde::Serialize;
 use crate::library::Collection;
 use crate::library::Model;
 
-// TODO feels more like attributed things are their own objects and not fields
-// on structs that may also be attributed.
-
 /// References
 /// https://musicbrainz.org/doc/Artist
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
-/// These objects all closely map Musicbrainz objects and were heavily
-/// lifted from musicbrainz_rs. 
 
-// ReleseGroup -> Release -> Media -> Track -> Recording
+
 
 
 // https://musicbrainz.org/doc/Artist
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleArtist {
+pub struct Artist {
     pub id: String,
     pub name: String,
 
     pub disambiguation: String,
-    pub genres: Vec<DimpleGenre>,
-    pub release_groups: Vec<DimpleReleaseGroup>,
-    pub relations: Vec<DimpleRelation>,
+    pub genres: Vec<Genre>,
+    pub release_groups: Vec<ReleaseGroup>,
+    pub relations: Vec<Relation>,
     pub summary: String,
 }
+
+
+
 
 // https://musicbrainz.org/doc/ReleaseGroup
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(default)]
-pub struct DimpleReleaseGroup {
+pub struct ReleaseGroup {
     pub id: String,
     pub title: String,
 
-    pub artists: Vec<DimpleArtist>,
+    pub artists: Vec<Artist>,
     pub disambiguation: String,
     pub first_release_date: String,
-    pub genres: Vec<DimpleGenre>,
+    pub genres: Vec<Genre>,
     pub primary_type: String,
-    pub relations: Vec<DimpleRelation>,
-    pub releases: Vec<DimpleRelease>,
+    pub relations: Vec<Relation>,
+    pub releases: Vec<Release>,
     pub summary: String,
 }
+
+
+
 
 // https://musicbrainz.org/doc/Release
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(default)]
-pub struct DimpleRelease {
+pub struct Release {
     pub id: String,
     pub title: String,
 
-    pub artists: Vec<DimpleArtist>,
+    pub artists: Vec<Artist>,
     pub barcode: String,
     pub country: String,
     pub date: String,
     pub disambiguation: String,
-    pub genres: Vec<DimpleGenre>,
-    pub media: Vec<DimpleMedium>,
+    pub genres: Vec<Genre>,
+    pub media: Vec<Medium>,
     pub packaging: String,
-    pub relations: Vec<DimpleRelation>,
-    pub release_group: DimpleReleaseGroup,
+    pub relations: Vec<Relation>,
+    pub release_group: ReleaseGroup,
     pub status: String,
     pub summary: String,
 }
 
+
+
+
 // https://musicbrainz.org/doc/Medium
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleMedium {
+pub struct Medium {
     pub title: String,
 
     pub disc_count: u32,
     pub format: String,
     pub position: u32,
     pub track_count: u32,
-    pub tracks: Vec<DimpleTrack>,
+    pub tracks: Vec<Track>,
 }
+
+
+
 
 // https://musicbrainz.org/doc/Track
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleTrack {
+pub struct Track {
     pub id: String,
     pub title: String,
 
     pub length: u32,
     pub number: String,
     pub position: u32,
-    pub recording: DimpleRecording,
+    pub recording: Recording,
 }
+
+
+
 
 // https://musicbrainz.org/doc/Recording
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleRecording {
+pub struct Recording {
     pub id: String,
     pub title: String,
 
@@ -104,23 +114,26 @@ pub struct DimpleRecording {
     pub summary: String,
 
     pub isrcs: Vec<String>,
-    pub relations: Vec<DimpleRelation>,
-    pub releases: Vec<DimpleRelease>,
-    pub artist_credits: Vec<DimpleArtist>,
-    // pub aliases: Vec<DimpleAlias>,
-    // pub tags Vec<Tag>
-    // pub rating: Rating,
+    pub relations: Vec<Relation>,
+    pub releases: Vec<Release>,
+    pub artist_credits: Vec<Artist>,
 
-    pub genres: Vec<DimpleGenre>,
+    pub genres: Vec<Genre>,
 }
 
+
+
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleRecordingSource {
+pub struct RecordingSource {
     pub recording_id: String,
 }
 
+
+
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleGenre {
+pub struct Genre {
     pub name: String,
     pub count: u32,
     pub summary: String,
@@ -129,26 +142,41 @@ pub struct DimpleGenre {
     pub fetched: bool,
 }
 
+
+
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimplePlaylist {
+pub struct Playlist {
     pub name: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct DimpleRelation {
-    pub content: DimpleRelationContent,
-}
+
+
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub enum DimpleRelationContent {
-    Url(DimpleUrl),
+pub struct Relation {
+    pub content: RelationContent,
 }
+
+
+
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum RelationContent {
+    Url(UrlRelation),
+}
+
+
+
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleUrl {
+pub struct UrlRelation {
     pub id: String,
     pub resource: String,
 }
+
+
+
 
 /// An attribution for a piece of data. Indicates where the data was sourced,
 /// who owns it, and under what license it is being used.
@@ -169,7 +197,10 @@ pub struct Attributed<T> {
     pub copyright_holder: String,
 }
 
-impl DimpleArtist {
+
+
+
+impl Artist {
     pub fn from_id(id: &str) -> Self {
         Self {
             id: id.to_string(),
@@ -189,7 +220,10 @@ impl DimpleArtist {
     }
 }
 
-impl DimpleRelease {
+
+
+
+impl Release {
     pub fn from_id(id: &str) -> Self {
         Self {
             id: id.to_string(),
@@ -209,7 +243,10 @@ impl DimpleRelease {
     }
 }
 
-impl DimpleReleaseGroup {
+
+
+
+impl ReleaseGroup {
     pub fn from_id(id: &str) -> Self {
         Self {
             id: id.to_string(),
@@ -237,7 +274,10 @@ impl DimpleReleaseGroup {
     }
 }
 
-impl DimpleRecording {
+
+
+
+impl Recording {
     pub fn from_id(id: &str) -> Self {
         Self {
             id: id.to_string(),
