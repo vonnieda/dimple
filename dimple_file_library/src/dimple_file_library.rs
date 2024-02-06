@@ -2,6 +2,7 @@
 use std::{collections::{HashMap, HashSet}, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
 use dimple_core::{collection::Collection, model::Artist};
 use dimple_core::model::Model;
+use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
 
@@ -40,23 +41,21 @@ impl FileLibrary {
     fn scanner(path: &str, files: Arc<Mutex<HashMap<String, FileDetails>>>) {
         loop {
             let now = Instant::now();
-            let file_details: Vec<_> = WalkDir::new(path)
+            WalkDir::new(path)
                 .into_iter()
-                .filter_map(|e| e.ok())
+                .par_bridge()
+                .filter(|e| e.is_ok())
+                .map(|e| e.unwrap())
                 .filter(|e| e.file_type().is_file())
                 .filter(|e| e.path().extension().is_some())
-                .map(|e| (e.clone(), Self::read(&e)))
-                .filter_map(|(_e, tag)| tag.ok())
-                .collect();
-            log::info!("Scanned {} files in {}ms", file_details.len(), now.elapsed().as_millis());
+                .map(|e| Self::read(&e).ok())
+                .filter(|e| e.is_some())
+                .map(|e| e.unwrap())
+                .for_each(|f| {
+                    files.lock().unwrap().insert(f.path.clone(), f.clone());
+                });
 
-            let now = Instant::now();
-            if let Ok(mut files) = files.lock() {
-                for file in file_details {
-                    files.insert(file.path.clone(), file);
-                }
-            }
-            log::info!("Inserted files in {}ms", now.elapsed().as_millis());
+            log::info!("Scanned {} files in {}ms", files.lock().unwrap().len(), now.elapsed().as_millis());
 
             std::thread::sleep(Duration::from_secs(60 * 60));
         }
@@ -134,8 +133,8 @@ impl Collection for FileLibrary {
     }
 
     fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
-        match of_type {
-            Model::Artist(_) => {
+        match (of_type, related_to) {
+            (Model::Artist(_), None) => {
                 if let Ok(files) = self.files.lock() {
                     // Collect into a HashSet to deduplicate.
                     let artist_ids: HashSet<String> = files.values()
@@ -146,7 +145,6 @@ impl Collection for FileLibrary {
                         .map(|id| Model::Artist(Artist::from_id(id)))
                         .collect();
 
-                    log::info!("list {} artists", results.len());
                     return Box::new(results.into_iter());
                 }
                 Box::new(vec![].into_iter())

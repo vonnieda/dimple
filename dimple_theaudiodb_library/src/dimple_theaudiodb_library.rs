@@ -56,6 +56,7 @@ impl Collection for TheAudioDbLibrary {
     }
 
     // TODO add bio
+    // TODO add release groups (albums)
 
     fn image(&self, entity: &Model) -> Option<image::DynamicImage> {
         match entity {

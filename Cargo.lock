@@ -1266,6 +1266,7 @@ dependencies = [
  "dimple_core",
  "image",
  "log",
+ "rayon",
  "serde",
  "symphonia",
  "walkdir",
@@ -1285,7 +1286,6 @@ dependencies = [
 name = "dimple_librarian"
 version = "0.1.0"
 dependencies = [
- "colored",
  "dimple_core",
  "dimple_sled_library",
  "image",
@@ -1294,8 +1294,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sled",
- "threadpool",
- "ulid",
 ]
 
 [[package]]
