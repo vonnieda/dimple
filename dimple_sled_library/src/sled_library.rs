@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, DimpleEntity}, image_cache::ImageCache, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
+use dimple_core::{library::{Library, Model}, image_cache::ImageCache, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
@@ -49,18 +49,18 @@ impl SledLibrary {
 
     // TODO for now assuming storing does not modify the object, so no need
     // to return one. Might change. 
-    pub fn store(&self, entity: &DimpleEntity) {
+    pub fn store(&self, entity: &Model) {
         match entity {
-            DimpleEntity::Artist(a) => {
+            Model::Artist(a) => {
                 self.set_artist(a)
             }
-            DimpleEntity::ReleaseGroup(r) => {
+            Model::ReleaseGroup(r) => {
                 self.set_release_group(r)
             }
-            DimpleEntity::Release(r) => {
+            Model::Release(r) => {
                 self.set_release(r)
             }
-            DimpleEntity::Recording(r) => {
+            Model::Recording(r) => {
                 self.set_recording(r)
             }
             _ => todo!()
@@ -143,7 +143,7 @@ impl SledLibrary {
             .unwrap();
     }
 
-    pub fn set_image(&self, entity: &DimpleEntity, dyn_image: &DynamicImage) {
+    pub fn set_image(&self, entity: &Model, dyn_image: &DynamicImage) {
         self.images.insert(&entity.id(), dyn_image);
     }
 }
@@ -153,14 +153,14 @@ impl Library for SledLibrary {
         format!("SledLibrary({})", self.path)
     }
 
-    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = DimpleEntity>> {
-        let v: Vec<DimpleEntity> = vec![];
+    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = Model>> {
+        let v: Vec<Model> = vec![];
         Box::new(v.into_iter())
     }    
 
-    fn list(&self, entity: &DimpleEntity) -> Box<dyn Iterator<Item = DimpleEntity>> {
+    fn list(&self, entity: &Model) -> Box<dyn Iterator<Item = Model>> {
         let entities = match entity {
-            DimpleEntity::Artist(_) => {
+            Model::Artist(_) => {
                 self.artists.iter()
                 .map(|t| {
                     let (_k, v) = t.unwrap();
@@ -168,7 +168,7 @@ impl Library for SledLibrary {
                     let json: String = String::from_utf8(bytes.into()).unwrap();
                     serde_json::from_str(&json).unwrap()
                 })
-                .map(DimpleEntity::Artist)
+                .map(Model::Artist)
                 .collect()
             }
             _ => vec![],
@@ -177,29 +177,29 @@ impl Library for SledLibrary {
         Box::new(entities.into_iter())
     }
 
-    fn fetch(&self, entity: &DimpleEntity) -> Option<DimpleEntity> {
+    fn fetch(&self, entity: &Model) -> Option<Model> {
         match entity {
-            DimpleEntity::Artist(a) => {
+            Model::Artist(a) => {
                 let a = self.get_artist(&a.id)?;
-                Some(DimpleEntity::Artist(a))
+                Some(Model::Artist(a))
             },
-            DimpleEntity::ReleaseGroup(r) => {
+            Model::ReleaseGroup(r) => {
                 let r = self.get_release_group(&r.id)?;
-                Some(DimpleEntity::ReleaseGroup(r))
+                Some(Model::ReleaseGroup(r))
             },
-            DimpleEntity::Release(r) => {
+            Model::Release(r) => {
                 let r = self.get_release(&r.id)?;
-                Some(DimpleEntity::Release(r))
+                Some(Model::Release(r))
             },
-            DimpleEntity::Recording(r) => {
+            Model::Recording(r) => {
                 let r = self.get_recording(&r.id)?;
-                Some(DimpleEntity::Recording(r))
+                Some(Model::Recording(r))
             },
-            DimpleEntity::Genre(_) => todo!(),
+            Model::Genre(_) => todo!(),
         }        
     }
 
-    fn image(&self, entity: &DimpleEntity) -> Option<DynamicImage> {
+    fn image(&self, entity: &Model) -> Option<DynamicImage> {
         self.images.get_original(&entity.id())
     }
 }

@@ -5,7 +5,7 @@ use colored::Colorize;
 use crate::model::{DimpleReleaseGroup, DimpleArtist, DimpleGenre, DimpleRelease, DimpleRecording, DimpleRecordingSource};
 
 #[derive(Clone, Debug)]
-pub enum DimpleEntity {
+pub enum Model {
     Artist(DimpleArtist),
     Genre(DimpleGenre),
     ReleaseGroup(DimpleReleaseGroup),
@@ -13,29 +13,28 @@ pub enum DimpleEntity {
     Recording(DimpleRecording),
 }
 
-impl DimpleEntity {
+impl Model {
     pub fn id(&self) -> String {
         match self {
-            DimpleEntity::Artist(a) => a.id.clone(),
-            DimpleEntity::ReleaseGroup(r) => r.id.clone(),
-            DimpleEntity::Release(r) => r.id.clone(),
-            DimpleEntity::Recording(r) => r.id.clone(),
-            DimpleEntity::Genre(g) => g.name.clone(),
+            Model::Artist(a) => a.id.clone(),
+            Model::ReleaseGroup(r) => r.id.clone(),
+            Model::Release(r) => r.id.clone(),
+            Model::Recording(r) => r.id.clone(),
+            Model::Genre(g) => g.name.clone(),
         }
     }
 
     pub fn name(&self) -> String {
         match self {
-            DimpleEntity::Artist(a) => a.name.clone(),
-            DimpleEntity::ReleaseGroup(r) => r.title.clone(),
-            DimpleEntity::Release(r) => r.title.clone(),
-            DimpleEntity::Recording(r) => r.title.clone(),
-            DimpleEntity::Genre(g) => g.name.clone(),
+            Model::Artist(a) => a.name.clone(),
+            Model::ReleaseGroup(r) => r.title.clone(),
+            Model::Release(r) => r.title.clone(),
+            Model::Recording(r) => r.title.clone(),
+            Model::Genre(g) => g.name.clone(),
         }
     }
 }
 
-// TODO This becomes Source, I think. Or Provider.
 pub trait Library: Send + Sync {
     /// Get a user friendly display name for the Library.
     fn name(&self) -> String;
@@ -44,7 +43,7 @@ pub trait Library: Send + Sync {
     /// search query is interpreted is left up to the implementation. In
     /// general it should return, at least, matching Artists, Releases,
     /// Genres, and Tracks.
-    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = DimpleEntity>> {
+    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = Model>> {
         Box::new(vec![].into_iter())
     }
 
@@ -53,7 +52,7 @@ pub trait Library: Send + Sync {
     /// criteria. Typically mbid or another id will be used. The Library should
     /// return only those fields that are fetched, it should not return fields
     /// that come from the source entity.
-    fn fetch(&self, _entity: &DimpleEntity) -> Option<DimpleEntity> {
+    fn fetch(&self, _entity: &Model) -> Option<Model> {
         None
     }
 
@@ -62,7 +61,7 @@ pub trait Library: Send + Sync {
     // }
 
     // TODO Eventually this will allow access to more image types.
-    fn image(&self, _entity: &DimpleEntity) -> Option<image::DynamicImage> {
+    fn image(&self, _entity: &Model) -> Option<image::DynamicImage> {
         None
     }
 
@@ -73,7 +72,7 @@ pub trait Library: Send + Sync {
 
     /// Returns an iterator over all of the objects of the type of the entity.
     /// This is used to list all artists, releases, release-groups, etc.
-    fn list(&self, _entity: &DimpleEntity) -> Box<dyn Iterator<Item = DimpleEntity>> {
+    fn list(&self, _entity: &Model) -> Box<dyn Iterator<Item = Model>> {
         Box::new(vec![].into_iter())
     }
 }

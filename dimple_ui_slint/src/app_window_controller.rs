@@ -11,10 +11,10 @@ use url::Url;
 
 use std::{collections::VecDeque, env, sync::{Arc, Mutex}};
 
-use dimple_core::{model::{DimpleArtist, DimpleReleaseGroup, DimpleRelationContent, DimpleRelease, DimpleMedium, DimpleTrack, DimpleRecording}, library::{Library, DimpleEntity}};
+use dimple_core::{library::{Library, Model}, model::{DimpleArtist, DimpleMedium, DimpleRecording, DimpleRelationContent, DimpleRelease, DimpleReleaseGroup, DimpleTrack}};
 use dimple_librarian::librarian::{Librarian};
 use image::DynamicImage;
-use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, Model, SharedString};
+use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, SharedString};
 
 slint::include_modules!();
 use rayon::prelude::*;
@@ -211,10 +211,10 @@ impl AppWindowController {
 
     fn artists(librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         std::thread::spawn(move || {
-            let entity = DimpleEntity::Artist(DimpleArtist::default());
+            let entity = Model::Artist(DimpleArtist::default());
             let mut artists: Vec<DimpleArtist> = librarian.list(&entity)
                 .filter_map(|e| match e {
-                    DimpleEntity::Artist(a) => Some(a),
+                    Model::Artist(a) => Some(a),
                     _ => None,
                 })
                 .collect();
@@ -245,7 +245,7 @@ impl AppWindowController {
                 .nth(0)
                 .ok_or("missing id").unwrap();
             let artist = DimpleArtist::get(id, librarian.as_ref()).unwrap();
-            let card = entity_card(&DimpleEntity::Artist(artist.clone()), 
+            let card = entity_card(&Model::Artist(artist.clone()), 
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
             let mut release_groups = artist.release_groups.clone();
             release_groups.sort_by_key(|f| f.first_release_date.to_owned());
@@ -310,7 +310,7 @@ impl AppWindowController {
                 .ok_or("missing id").unwrap();
             let release_group = DimpleReleaseGroup::get(id, librarian.as_ref())
                 .ok_or("release group not found").unwrap();
-            let card = entity_card(&DimpleEntity::ReleaseGroup(release_group.clone()), 
+            let card = entity_card(&Model::ReleaseGroup(release_group.clone()), 
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
             let mut genres: Vec<_> = release_group.genres.iter()
                 .map(|g| Link {
@@ -404,7 +404,7 @@ impl AppWindowController {
                 .ok_or("missing id").unwrap();
             let recording = DimpleRecording::get(id, librarian.as_ref())
                 .ok_or("recording not found").unwrap();
-            let card = entity_card(&DimpleEntity::Recording(recording.clone()),
+            let card = entity_card(&Model::Recording(recording.clone()),
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
             let genres = recording.genres.iter()
                 .map(|g| Link {
@@ -460,18 +460,18 @@ fn link_adapters(links: Vec<Link>) -> ModelRc<LinkAdapter> {
     ModelRc::from(links.as_slice())
 }
 
-fn entity_cards(entities: Vec<DimpleEntity>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
+fn entity_cards(entities: Vec<Model>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
     entities.par_iter()
         .map(|ent| entity_card(ent, width, height, lib))
         .collect()
 }
 
-fn entity_card(entity: &DimpleEntity, width: u32, height: u32, lib: &Librarian) -> Card {
+fn entity_card(entity: &Model, width: u32, height: u32, lib: &Librarian) -> Card {
     match entity {
-        DimpleEntity::Artist(e) => artist_card(e, width, height, lib),
-        DimpleEntity::ReleaseGroup(e) => release_group_card(e, width, height, lib),
-        DimpleEntity::Release(e) => release_card(e, width, height, lib),
-        DimpleEntity::Recording(e) => recording_card(e, width, height, lib),
+        Model::Artist(e) => artist_card(e, width, height, lib),
+        Model::ReleaseGroup(e) => release_group_card(e, width, height, lib),
+        Model::Release(e) => release_card(e, width, height, lib),
+        Model::Recording(e) => recording_card(e, width, height, lib),
         _ => todo!(),
     }
 }
@@ -485,7 +485,7 @@ fn artist_cards(entities: Vec<DimpleArtist>, lib: &Librarian, width: u32, height
 fn artist_card(artist: &DimpleArtist, width: u32, height: u32, lib: &Librarian) -> Card {
     Card {
         image: ImageLink {
-            image: lib.thumbnail(&DimpleEntity::Artist(artist.clone()), width, height),
+            image: lib.thumbnail(&Model::Artist(artist.clone()), width, height),
             link: Link {
                 name: artist.name.clone(),
                 url: format!("dimple://artist/{}", artist.id),
@@ -517,7 +517,7 @@ fn release_cards(entities: Vec<DimpleRelease>, lib: &Librarian, width: u32, heig
 fn release_group_card(release_group: &DimpleReleaseGroup, width: u32, height: u32, lib: &Librarian) -> Card {
     Card {
         image: ImageLink {
-            image: lib.thumbnail(&DimpleEntity::ReleaseGroup(release_group.clone()), width, height),
+            image: lib.thumbnail(&Model::ReleaseGroup(release_group.clone()), width, height),
             link: Link {
                 name: release_group.title.clone(),
                 url: format!("dimple://release-group/{}", release_group.id),
@@ -537,7 +537,7 @@ fn release_group_card(release_group: &DimpleReleaseGroup, width: u32, height: u3
 fn release_card(release: &DimpleRelease, width: u32, height: u32, lib: &Librarian) -> Card {
     Card {
         image: ImageLink {
-            image: lib.thumbnail(&DimpleEntity::Release(release.clone()), width, height),
+            image: lib.thumbnail(&Model::Release(release.clone()), width, height),
             link: Link {
                 name: release.title.clone(),
                 url: format!("dimple://release/{}", release.id),
@@ -556,7 +556,7 @@ fn release_card(release: &DimpleRelease, width: u32, height: u32, lib: &Libraria
 fn recording_card(recording: &DimpleRecording, width: u32, height: u32, lib: &Librarian) -> Card {
     Card {
         image: ImageLink {
-            image: lib.thumbnail(&DimpleEntity::Recording(recording.clone()), width, height),
+            image: lib.thumbnail(&Model::Recording(recording.clone()), width, height),
             link: Link {
                 name: recording.title.clone(),
                 url: format!("dimple://recording/{}", recording.id),

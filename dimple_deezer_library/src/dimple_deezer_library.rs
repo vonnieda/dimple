@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, DimpleEntity}, model::DimpleRelationContent};
+use dimple_core::{library::{Library, Model}, model::DimpleRelationContent};
 use serde::Deserialize;
 
 /// https://developers.deezer.com/api
@@ -19,7 +19,7 @@ impl Library for DeezerLibrary {
         "Deezer".to_string()
     }
 
-    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = DimpleEntity>> {
+    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = Model>> {
         // let client = Client::builder()
         //     .https_only(true)
         //     .user_agent(dimple_core::USER_AGENT)

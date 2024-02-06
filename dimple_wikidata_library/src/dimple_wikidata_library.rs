@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, DimpleEntity, LibrarySupport}, model::{DimpleRelationContent, DimpleRelation}};
+use dimple_core::{library::{Library, Model, LibrarySupport}, model::{DimpleRelationContent, DimpleRelation}};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
 
@@ -166,39 +166,39 @@ impl Library for WikidataLibrary {
         "Wikidata".to_string()
     }
 
-    fn fetch(&self, entity: &DimpleEntity) -> Option<DimpleEntity> {
+    fn fetch(&self, entity: &Model) -> Option<Model> {
         match entity.clone() {
-            DimpleEntity::Artist(mut artist) => {
+            Model::Artist(mut artist) => {
                 artist.summary = self.get_summary(&artist.relations).unwrap_or_default();
                 if artist.summary.is_empty() {
                     return None
                 }
-                Some(DimpleEntity::Artist(artist))
+                Some(Model::Artist(artist))
             },
 
-            DimpleEntity::ReleaseGroup(mut release_group) => {
+            Model::ReleaseGroup(mut release_group) => {
                 release_group.summary = self.get_summary(&release_group.relations)
                     .unwrap_or_default();
                 if release_group.summary.is_empty() {
                     return None
                 }
-                Some(DimpleEntity::ReleaseGroup(release_group))
+                Some(Model::ReleaseGroup(release_group))
             },
 
-            DimpleEntity::Release(mut release) => {
+            Model::Release(mut release) => {
                 release.summary = self.get_summary(&release.relations).unwrap_or_default();
                 if release.summary.is_empty() {
                     return None
                 }
-                Some(DimpleEntity::Release(release))
+                Some(Model::Release(release))
             },
 
-            DimpleEntity::Recording(mut rec) => {
+            Model::Recording(mut rec) => {
                 rec.summary = self.get_summary(&rec.relations).unwrap_or_default();
                 if rec.summary.is_empty() {
                     return None
                 }
-                Some(DimpleEntity::Recording(rec))
+                Some(Model::Recording(rec))
             },
 
             _ => None,

@@ -1,6 +1,6 @@
 
 use std::{collections::{HashMap, HashSet}, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::{library::{Library, DimpleEntity}, model::DimpleArtist};
+use dimple_core::{library::{Library, Model}, model::DimpleArtist};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
 
@@ -132,9 +132,9 @@ impl Library for FileLibrary {
         format!("FolderLibrary({:?})", self.paths)
     }
 
-    fn list(&self, _entity: &DimpleEntity) -> Box<dyn Iterator<Item = DimpleEntity>> {
+    fn list(&self, _entity: &Model) -> Box<dyn Iterator<Item = Model>> {
         match _entity {
-            DimpleEntity::Artist(_) => {
+            Model::Artist(_) => {
                 if let Ok(files) = self.files.lock() {
                     // Collect into a HashSet to deduplicate.
                     let artist_ids: HashSet<String> = files.values()
@@ -142,7 +142,7 @@ impl Library for FileLibrary {
                         .collect();
 
                     let results: Vec<_> = artist_ids.iter()
-                        .map(|id| DimpleEntity::Artist(DimpleArtist::from_id(id)))
+                        .map(|id| Model::Artist(DimpleArtist::from_id(id)))
                         .collect();
 
                     log::info!("list {} artists", results.len());
