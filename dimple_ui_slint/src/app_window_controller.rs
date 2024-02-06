@@ -11,7 +11,7 @@ use url::Url;
 
 use std::{collections::VecDeque, env, sync::{Arc, Mutex}};
 
-use dimple_core::{collection::{Collection, Model}, model::{Artist, Medium, Recording, RelationContent, Release, ReleaseGroup, Track}};
+use dimple_core::{collection::Collection, model::{Artist, Medium, Model, Recording, RelationContent, Release, ReleaseGroup, Track}};
 use dimple_librarian::librarian::{Librarian};
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, SharedString};
@@ -322,7 +322,7 @@ impl AppWindowController {
             let mut artists: Vec<_> = release_group.artists.iter()
                 .map(|a| Link {
                     name: a.name.clone(),
-                    url: format!("dimple://artist/{}", a.id),
+                    url: format!("dimple://artist/{}", a.key),
                 })
                 .collect();
             artists.sort_by_key(|a| a.name.to_owned());
@@ -338,7 +338,7 @@ impl AppWindowController {
             for release in releases.clone() {
                 log::info!("{} {} {} {} {} {}", score_release(&release), 
                     release.country, release.status, release.packaging, 
-                    release.disambiguation, release.id);
+                    release.disambiguation, release.key);
                 for media in release.media.clone() {
                     log::info!("  {} {}", media.format, media.disc_count);
                 }
@@ -415,7 +415,7 @@ impl AppWindowController {
             let artists = recording.artist_credits.iter()
                 .map(|a| Link {
                     name: a.name.clone(),
-                    url: format!("dimple://artist/{}", a.id),
+                    url: format!("dimple://artist/{}", a.key),
                 })
                 .collect();
             let isrcs = recording.isrcs.iter()
@@ -488,16 +488,16 @@ fn artist_card(artist: &Artist, width: u32, height: u32, lib: &Librarian) -> Car
             image: lib.thumbnail(&Model::Artist(artist.clone()), width, height),
             link: Link {
                 name: artist.name.clone(),
-                url: format!("dimple://artist/{}", artist.id),
+                url: format!("dimple://artist/{}", artist.key),
             },
         },
         title: Link {
             name: artist.name.clone(),
-            url: format!("dimple://artist/{}", artist.id),
+            url: format!("dimple://artist/{}", artist.key),
         },
         sub_title: Link {
             name: artist.disambiguation.clone(),
-            url: format!("dimple://artist/{}", artist.id),
+            url: format!("dimple://artist/{}", artist.key),
         },
     }
 }
@@ -520,16 +520,16 @@ fn release_group_card(release_group: &ReleaseGroup, width: u32, height: u32, lib
             image: lib.thumbnail(&Model::ReleaseGroup(release_group.clone()), width, height),
             link: Link {
                 name: release_group.title.clone(),
-                url: format!("dimple://release-group/{}", release_group.id),
+                url: format!("dimple://release-group/{}", release_group.key),
             },
         },
         title: Link {
             name: release_group.title.clone(),
-            url: format!("dimple://release-group/{}", release_group.id),
+            url: format!("dimple://release-group/{}", release_group.key),
         },
         sub_title: Link { 
             name: format!("{:.4} {}", release_group.first_release_date, release_group.primary_type),
-            url: format!("dimple://release-group/{}", release_group.id),
+            url: format!("dimple://release-group/{}", release_group.key),
         },
     }
 }
@@ -540,12 +540,12 @@ fn release_card(release: &Release, width: u32, height: u32, lib: &Librarian) -> 
             image: lib.thumbnail(&Model::Release(release.clone()), width, height),
             link: Link {
                 name: release.title.clone(),
-                url: format!("dimple://release/{}", release.id),
+                url: format!("dimple://release/{}", release.key),
             },
         },
         title: Link {
             name: release.title.clone(),
-            url: format!("dimple://release/{}", release.id),
+            url: format!("dimple://release/{}", release.key),
         },
         // TODO
         // sub_title: 
@@ -559,12 +559,12 @@ fn recording_card(recording: &Recording, width: u32, height: u32, lib: &Libraria
             image: lib.thumbnail(&Model::Recording(recording.clone()), width, height),
             link: Link {
                 name: recording.title.clone(),
-                url: format!("dimple://recording/{}", recording.id),
+                url: format!("dimple://recording/{}", recording.key),
             },
         },
         title: Link {
             name: recording.title.clone(),
-            url: format!("dimple://release/{}", recording.id),
+            url: format!("dimple://release/{}", recording.key),
         },
         // TODO
         // sub_title: 
@@ -599,8 +599,8 @@ fn artist_links(artist: &Artist) -> Vec<Link> {
             url: url.resource.clone(),
         })
         .chain(std::iter::once(Link { 
-            name: format!("https://musicbrainz.org/artist/{}", artist.id),
-            url: format!("https://musicbrainz.org/artist/{}", artist.id),
+            name: format!("https://musicbrainz.org/artist/{}", artist.key),
+            url: format!("https://musicbrainz.org/artist/{}", artist.key),
         }))
         .collect()
 }
@@ -619,8 +619,8 @@ fn release_group_links(release_group: &ReleaseGroup) -> Vec<Link> {
             url: url.resource.clone(),
         })
         .chain(std::iter::once(Link { 
-            name: format!("https://musicbrainz.org/release-group/{}", release_group.id),
-            url: format!("https://musicbrainz.org/release-group/{}", release_group.id),
+            name: format!("https://musicbrainz.org/release-group/{}", release_group.key),
+            url: format!("https://musicbrainz.org/release-group/{}", release_group.key),
         }))
         .collect()
 }
@@ -639,8 +639,8 @@ fn release_links(release: &Release) -> Vec<Link> {
             url: url.resource.clone(),
         })
         .chain(std::iter::once(Link { 
-            name: format!("https://musicbrainz.org/release/{}", release.id),
-            url: format!("https://musicbrainz.org/release/{}", release.id),
+            name: format!("https://musicbrainz.org/release/{}", release.key),
+            url: format!("https://musicbrainz.org/release/{}", release.key),
         }))
         .collect()
 }
@@ -659,8 +659,8 @@ fn recording_links(recording: &Recording) -> Vec<Link> {
             url: url.resource.clone(),
         })
         .chain(std::iter::once(Link { 
-            name: format!("https://musicbrainz.org/recording/{}", recording.id),
-            url: format!("https://musicbrainz.org/recording/{}", recording.id),
+            name: format!("https://musicbrainz.org/recording/{}", recording.key),
+            url: format!("https://musicbrainz.org/recording/{}", recording.key),
         }))
         .collect()
 }
@@ -683,7 +683,7 @@ fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
         .map(|t| TrackAdapter {
             title: LinkAdapter {
                 name: t.title.clone().into(),
-                url: format!("dimple://recording/{}", t.recording.id).into(),
+                url: format!("dimple://recording/{}", t.recording.key).into(),
             },
             track_number: t.number.clone().into(),
             length: length_to_string(t.length).into(),

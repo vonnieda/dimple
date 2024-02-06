@@ -1,4 +1,4 @@
-use dimple_core::{collection::{Collection, Model}, model::RelationContent};
+use dimple_core::{collection::Collection, model::{Model, RelationContent}};
 use serde::Deserialize;
 
 /// https://developers.deezer.com/api

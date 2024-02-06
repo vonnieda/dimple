@@ -1,8 +1,9 @@
 use std::env;
 
-use dimple_core::collection::{Collection, Model, LibrarySupport};
+use dimple_core::collection::{Collection, LibrarySupport};
 use reqwest::blocking::Client;
 use serde::Deserialize;
+use dimple_core::model::Model;
 
 #[derive(Debug)]
 pub struct TheAudioDbLibrary {
@@ -65,7 +66,7 @@ impl Collection for TheAudioDbLibrary {
                     .user_agent(dimple_core::USER_AGENT)
                     .build().ok()?;
 
-                let mbid = a.id.to_string();
+                let mbid = a.key.to_string();
 
                 let url = format!("https://www.theaudiodb.com/api/v1/json/{}/artist-mb.php?i={}", 
                     self.api_key, mbid);

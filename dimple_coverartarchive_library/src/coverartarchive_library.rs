@@ -1,4 +1,5 @@
-use dimple_core::collection::{Collection, Model, LibrarySupport};
+use dimple_core::collection::{Collection, LibrarySupport};
+use dimple_core::model::Model;
 use image::DynamicImage;
 use musicbrainz_rs::entity::{CoverartResponse, release_group::ReleaseGroup, release::Release};
 use musicbrainz_rs::FetchCoverart;
@@ -46,9 +47,9 @@ impl Collection for CoverArtArchiveLibrary {
         match _entity {
             Model::ReleaseGroup(r) => {
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("http://coverartarchive.org/{}", r.id));                
+                    &format!("http://coverartarchive.org/{}", r.key));                
                 let mb = ReleaseGroup {
-                    id: r.id.to_string(),
+                    id: r.key.to_string(),
                     ..Default::default()
                 };
                 // TODO replace with reqwest
@@ -66,9 +67,9 @@ impl Collection for CoverArtArchiveLibrary {
             },
             Model::Release(r) => {
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("http://coverartarchive.org/{}", r.id));                
+                    &format!("http://coverartarchive.org/{}", r.key));                
                 let mb = Release {
-                    id: r.id.to_string(),
+                    id: r.key.to_string(),
                     title: "".to_string(),
                     aliases: None,
                     annotation:  None,

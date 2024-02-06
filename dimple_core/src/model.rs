@@ -3,7 +3,6 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::collection::Collection;
-use crate::collection::Model;
 
 /// References
 /// https://musicbrainz.org/doc/Artist
@@ -15,7 +14,7 @@ use crate::collection::Model;
 // https://musicbrainz.org/doc/Artist
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct Artist {
-    pub id: String,
+    pub key: String,
     pub name: String,
 
     pub disambiguation: String,
@@ -32,7 +31,7 @@ pub struct Artist {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(default)]
 pub struct ReleaseGroup {
-    pub id: String,
+    pub key: String,
     pub title: String,
 
     pub artists: Vec<Artist>,
@@ -52,7 +51,7 @@ pub struct ReleaseGroup {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(default)]
 pub struct Release {
-    pub id: String,
+    pub key: String,
     pub title: String,
 
     pub artists: Vec<Artist>,
@@ -90,7 +89,7 @@ pub struct Medium {
 // https://musicbrainz.org/doc/Track
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct Track {
-    pub id: String,
+    pub key: String,
     pub title: String,
 
     pub length: u32,
@@ -105,7 +104,7 @@ pub struct Track {
 // https://musicbrainz.org/doc/Recording
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct Recording {
-    pub id: String,
+    pub key: String,
     pub title: String,
 
     pub annotation: String,
@@ -134,6 +133,8 @@ pub struct RecordingSource {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct Genre {
+    pub key: String,
+
     pub name: String,
     pub count: u32,
     pub summary: String,
@@ -203,7 +204,7 @@ pub struct Attributed<T> {
 impl Artist {
     pub fn from_id(id: &str) -> Self {
         Self {
-            id: id.to_string(),
+            key: id.to_string(),
             ..Default::default()
         }
     }
@@ -216,7 +217,7 @@ impl Artist {
     }
 
     pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-        Self::get(&self.id, lib)
+        Self::get(&self.key, lib)
     }
 }
 
@@ -226,7 +227,7 @@ impl Artist {
 impl Release {
     pub fn from_id(id: &str) -> Self {
         Self {
-            id: id.to_string(),
+            key: id.to_string(),
             ..Default::default()
         }
     }
@@ -239,7 +240,7 @@ impl Release {
     }
 
     pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-        Self::get(&self.id, lib)
+        Self::get(&self.key, lib)
     }
 }
 
@@ -249,7 +250,7 @@ impl Release {
 impl ReleaseGroup {
     pub fn from_id(id: &str) -> Self {
         Self {
-            id: id.to_string(),
+            key: id.to_string(),
             ..Default::default()
         }
     }
@@ -262,7 +263,7 @@ impl ReleaseGroup {
     }
 
     pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-        Self::get(&self.id, lib)
+        Self::get(&self.key, lib)
     }
 
     pub fn entity(&self) -> Model {
@@ -280,7 +281,7 @@ impl ReleaseGroup {
 impl Recording {
     pub fn from_id(id: &str) -> Self {
         Self {
-            id: id.to_string(),
+            key: id.to_string(),
             ..Default::default()
         }
     }
@@ -293,7 +294,39 @@ impl Recording {
     }
 
     pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-        Self::get(&self.id, lib)
+        Self::get(&self.key, lib)
     }
 }
 
+
+#[derive(Clone, Debug)]
+pub enum Model {
+    Artist(Artist),
+    Genre(Genre),
+    ReleaseGroup(ReleaseGroup),
+    Release(Release),
+    Recording(Recording),
+}
+
+
+impl Model {
+    pub fn key(&self) -> String {
+        match self {
+            Model::Artist(a) => a.key.clone(),
+            Model::ReleaseGroup(r) => r.key.clone(),
+            Model::Release(r) => r.key.clone(),
+            Model::Recording(r) => r.key.clone(),
+            Model::Genre(g) => g.name.clone(),
+        }
+    }
+
+    pub fn name(&self) -> String {
+        match self {
+            Model::Artist(a) => a.name.clone(),
+            Model::ReleaseGroup(r) => r.title.clone(),
+            Model::Release(r) => r.title.clone(),
+            Model::Recording(r) => r.title.clone(),
+            Model::Genre(g) => g.name.clone(),
+        }
+    }
+}

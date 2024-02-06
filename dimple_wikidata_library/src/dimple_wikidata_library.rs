@@ -1,6 +1,7 @@
-use dimple_core::{collection::{Collection, Model, LibrarySupport}, model::{RelationContent, Relation}};
+use dimple_core::{collection::{Collection, LibrarySupport}, model::{RelationContent, Relation}};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
+use dimple_core::model::Model;
 
 #[derive(Debug, Default)]
 pub struct WikidataLibrary {

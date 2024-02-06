@@ -1,6 +1,7 @@
 
 use std::{collections::{HashMap, HashSet}, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::{collection::{Collection, Model}, model::Artist};
+use dimple_core::{collection::Collection, model::Artist};
+use dimple_core::model::Model;
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
 

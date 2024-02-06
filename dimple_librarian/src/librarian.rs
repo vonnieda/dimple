@@ -1,9 +1,10 @@
 use std::{sync::{RwLock, Mutex}, collections::HashSet};
 
-use dimple_core::{collection::{Collection, Model}, model::{Artist, ReleaseGroup, Release, Recording}};
+use dimple_core::{collection::{Collection}, model::{Artist, ReleaseGroup, Release, Recording}};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
 use rayon::prelude::*;
+use dimple_core::model::Model;
 
 /// TODO need a favicon service
 /// TODO I think the assumption that DimpleEntity.id is an mbid needs to go
@@ -68,17 +69,17 @@ impl Librarian {
     /// If no image can be loaded from the library one is generated. Results
     /// either from the library or generated are cached for future calls.
     pub fn thumbnail(&self, entity: &Model, width: u32, height: u32) -> DynamicImage {
-        let cached = self.local_library.images.get(&entity.id(), width, height);
+        let cached = self.local_library.images.get(&entity.key(), width, height);
         if let Some(dyn_image) = cached {
             return dyn_image;
         }
         else if let Some(dyn_image) = self.image(entity) {
             self.local_library.set_image(entity, &dyn_image);
-            return self.local_library.images.get(&entity.id(), width, height).unwrap();
+            return self.local_library.images.get(&entity.key(), width, height).unwrap();
         }
         let generated = &self.generate_masterpiece(entity, width, height);
         self.local_library.set_image(entity, generated);
-        self.local_library.images.get(&entity.id(), width, height).unwrap()
+        self.local_library.images.get(&entity.key(), width, height).unwrap()
     }
 
     fn fetch_with_force(&self, entity: &Model, force: bool) -> Option<Model> {
@@ -123,7 +124,7 @@ impl Collection for Librarian {
         "Librarian".to_string()
     }
 
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::collection::Model>> {
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = Model>> {
         // TODO include local
         // TODO remove dupes
         let merged: Vec<Model> = self.libraries.read().unwrap().iter()
@@ -211,7 +212,7 @@ impl Merge<Self> for Artist {
         let mut base = base.clone();
         base.disambiguation = longer(base.disambiguation, b.disambiguation);
         base.genres = merge_vec(base.genres, b.genres);
-        base.id = longer(base.id, b.id);
+        base.key = longer(base.key, b.key);
         base.name = longer(base.name, b.name);
         base.relations = merge_vec(base.relations, b.relations);
         base.release_groups = merge_vec(base.release_groups, b.release_groups);
@@ -226,7 +227,7 @@ impl Merge<Self> for ReleaseGroup {
         base.disambiguation = longer(base.disambiguation, b.disambiguation);
         base.first_release_date = longer(base.first_release_date, b.first_release_date);
         base.genres = merge_vec(base.genres, b.genres);
-        base.id = longer(base.id, b.id);
+        base.key = longer(base.key, b.key);
         base.primary_type = longer(base.primary_type, b.primary_type);
         base.relations = merge_vec(base.relations, b.relations);
         base.releases = merge_vec(base.releases, b.releases);
@@ -247,7 +248,7 @@ impl Merge<Self> for Release {
         base.disambiguation = longer(base.disambiguation, b.disambiguation);
         base.genres = merge_vec(base.genres, b.genres);
         base.media = merge_vec(base.media, b.media);
-        base.id = longer(base.id, b.id);
+        base.key = longer(base.key, b.key);
         base.relations = merge_vec(base.relations, b.relations);
         base.status = longer(base.status, b.status);
         base.summary = longer(base.summary, b.summary);
@@ -268,7 +269,7 @@ impl Merge<Self> for Recording {
         base.disambiguation = longer(base.disambiguation, b.disambiguation);
         // base.genres = merge_vec(base.genres, b.genres);
         // base.media = merge_vec(base.media, b.media);
-        base.id = longer(base.id, b.id);
+        base.key = longer(base.key, b.key);
         // base.length = 
         // base.relations = merge_vec(base.relations, b.relations);
         // base.status = longer(base.status, b.status);

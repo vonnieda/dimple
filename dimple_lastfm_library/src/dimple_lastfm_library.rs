@@ -1,4 +1,6 @@
-use dimple_core::collection::{Collection, Model};
+use dimple_core::collection::{Collection};
+use dimple_core::model::Model;
+
 
 #[derive(Debug, Default)]
 pub struct LastFmLibrary {

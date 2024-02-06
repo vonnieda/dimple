@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
-use dimple_core::collection::{Collection, Model, LibrarySupport};
+use dimple_core::collection::{Collection, LibrarySupport};
 use dimple_core::model::{Genre, Artist, ReleaseGroup, Relation, RelationContent, UrlRelation, Release, Medium, Track, Recording};
 use musicbrainz_rs::entity::artist::{Artist as MBArtist, ArtistSearchQuery};
 use musicbrainz_rs::entity::recording::Recording as MBRecording;
@@ -9,6 +9,8 @@ use musicbrainz_rs::entity::relations::RelationContent as MBRelationContent;
 use musicbrainz_rs::entity::release::{Release as MBRelease};
 use musicbrainz_rs::entity::release_group::ReleaseGroup as MBReleaseGroup;
 use musicbrainz_rs::{prelude::*};
+use dimple_core::model::Model;
+
 
 #[derive(Debug)]
 pub struct MusicBrainzLibrary {
@@ -77,8 +79,8 @@ impl Collection for MusicBrainzLibrary {
             Model::Artist(a) => {
                 self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", a.id));
-                MBArtist::fetch().id(&a.id)
+                    &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", a.key));
+                MBArtist::fetch().id(&a.key)
                     .with_aliases().with_annotations().with_genres().with_rating()
                     .with_tags().with_release_groups().with_url_relations()
                     .execute()
@@ -94,8 +96,8 @@ impl Collection for MusicBrainzLibrary {
             Model::ReleaseGroup(r) => {
                 self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", r.id));
-                MBReleaseGroup::fetch().id(&r.id)
+                    &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", r.key));
+                MBReleaseGroup::fetch().id(&r.key)
                     .with_aliases().with_annotations().with_artists()
                     .with_genres().with_ratings().with_releases().with_tags()
                     .with_url_relations()
@@ -112,8 +114,8 @@ impl Collection for MusicBrainzLibrary {
             Model::Release(r) => {
                 self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.id));
-                MBRelease::fetch().id(&r.id)
+                    &format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.key));
+                MBRelease::fetch().id(&r.key)
                     .with_aliases().with_annotations().with_artist_credits()
                     .with_artists().with_genres().with_labels().with_ratings()
                     .with_recordings().with_release_groups().with_tags()
@@ -131,8 +133,8 @@ impl Collection for MusicBrainzLibrary {
             Model::Recording(r) => {
                 self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("https://musicbrainz.org/ws/2/recording/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.id));
-                MBRecording::fetch().id(&r.id)
+                    &format!("https://musicbrainz.org/ws/2/recording/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.key));
+                MBRecording::fetch().id(&r.key)
                     .with_aliases().with_annotations().with_artists()
                     .with_genres().with_isrcs().with_ratings().with_releases()
                     .with_tags().with_url_relations()
@@ -162,7 +164,7 @@ impl From<musicbrainz_rs::entity::artist::Artist> for ArtistConverter {
 impl From<ArtistConverter> for dimple_core::model::Artist {
     fn from(value: ArtistConverter) -> Self {
         dimple_core::model::Artist {
-            id: value.0.id,
+            key: value.0.id,
             name: value.0.name,
             disambiguation: value.0.disambiguation,
             genres: value.0.genres.iter().flatten()
@@ -190,7 +192,7 @@ impl From<musicbrainz_rs::entity::release_group::ReleaseGroup> for ReleaseGroupC
 impl From<ReleaseGroupConverter> for dimple_core::model::ReleaseGroup {
     fn from(value: ReleaseGroupConverter) -> Self {
         dimple_core::model::ReleaseGroup {
-            id: value.0.id,
+            key: value.0.id,
             title: value.0.title,
             disambiguation: value.0.disambiguation,
             primary_type: value.0.primary_type.map(|f| format!("{:?}", f)).unwrap_or("".to_string()),
@@ -227,7 +229,7 @@ impl From<musicbrainz_rs::entity::release::Release> for ReleaseConverter {
 impl From<ReleaseConverter> for dimple_core::model::Release {
     fn from(value: ReleaseConverter) -> Self {
         dimple_core::model::Release {
-            id: value.0.id,
+            key: value.0.id,
             title: value.0.title,
 
             artists: value.0.artist_credit.iter().flatten()
@@ -274,7 +276,8 @@ impl From<musicbrainz_rs::entity::genre::Genre> for GenreConverter {
 impl From<GenreConverter> for dimple_core::model::Genre {
     fn from(value: GenreConverter) -> Self {
         dimple_core::model::Genre {
-            name: value.0.name,
+            key: value.0.name.clone(),
+            name: value.0.name.clone(),
             count: value.0.count,
             summary: Default::default(),
             fetched: Default::default(),
@@ -369,7 +372,7 @@ impl From<musicbrainz_rs::entity::release::Track> for TrackConverter {
 impl From<TrackConverter> for dimple_core::model::Track {
     fn from(value: TrackConverter) -> Self {
         dimple_core::model::Track {
-            id: value.0.id,
+            key: value.0.id,
             title: value.0.title,
             number: value.0.number,
             length: value.0.length.unwrap_or_default(),
@@ -390,7 +393,7 @@ impl From<musicbrainz_rs::entity::recording::Recording> for RecordingConverter {
 impl From<RecordingConverter> for dimple_core::model::Recording {
     fn from(value: RecordingConverter) -> Self {
         dimple_core::model::Recording {
-            id: value.0.id,
+            key: value.0.id,
             title: value.0.title,
 
             annotation: value.0.annotation.unwrap_or_default(),

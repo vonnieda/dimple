@@ -1,4 +1,5 @@
-use dimple_core::{collection::{Collection, Model}, image_cache::ImageCache, model::{Artist, ReleaseGroup, Release, Recording}};
+use dimple_core::{collection::{Collection}, image_cache::ImageCache, model::{Artist, ReleaseGroup, Release, Recording}};
+use dimple_core::model::Model;
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
@@ -78,10 +79,10 @@ impl SledLibrary {
     }
 
     pub fn set_artist(&self, a: &Artist) {
-        assert!(!a.id.is_empty());
+        assert!(!a.key.is_empty());
         serde_json::to_string(a)
             .map(|json| {
-                self.artists.insert(a.id.to_string(), &*json).unwrap()
+                self.artists.insert(a.key.to_string(), &*json).unwrap()
             })
             .unwrap();
     }
@@ -117,34 +118,34 @@ impl SledLibrary {
     }
 
     pub fn set_release_group(&self, a: &ReleaseGroup) {
-        assert!(!a.id.is_empty());
+        assert!(!a.key.is_empty());
         serde_json::to_string(a)
             .map(|json| {
-                self.release_groups.insert(a.id.to_string(), &*json).unwrap()
+                self.release_groups.insert(a.key.to_string(), &*json).unwrap()
             })
             .unwrap();
     }
 
     pub fn set_release(&self, a: &Release) {
-        assert!(!a.id.is_empty());
+        assert!(!a.key.is_empty());
         serde_json::to_string(a)
             .map(|json| {
-                self.releases.insert(a.id.to_string(), &*json).unwrap()
+                self.releases.insert(a.key.to_string(), &*json).unwrap()
             })
             .unwrap();
     }
 
     pub fn set_recording(&self, a: &Recording) {
-        assert!(!a.id.is_empty());
+        assert!(!a.key.is_empty());
         serde_json::to_string(a)
             .map(|json| {
-                self.recordings.insert(a.id.to_string(), &*json).unwrap()
+                self.recordings.insert(a.key.to_string(), &*json).unwrap()
             })
             .unwrap();
     }
 
     pub fn set_image(&self, entity: &Model, dyn_image: &DynamicImage) {
-        self.images.insert(&entity.id(), dyn_image);
+        self.images.insert(&entity.key(), dyn_image);
     }
 }
 
@@ -180,19 +181,19 @@ impl Collection for SledLibrary {
     fn fetch(&self, entity: &Model) -> Option<Model> {
         match entity {
             Model::Artist(a) => {
-                let a = self.get_artist(&a.id)?;
+                let a = self.get_artist(&a.key)?;
                 Some(Model::Artist(a))
             },
             Model::ReleaseGroup(r) => {
-                let r = self.get_release_group(&r.id)?;
+                let r = self.get_release_group(&r.key)?;
                 Some(Model::ReleaseGroup(r))
             },
             Model::Release(r) => {
-                let r = self.get_release(&r.id)?;
+                let r = self.get_release(&r.key)?;
                 Some(Model::Release(r))
             },
             Model::Recording(r) => {
-                let r = self.get_recording(&r.id)?;
+                let r = self.get_recording(&r.key)?;
                 Some(Model::Recording(r))
             },
             Model::Genre(_) => todo!(),
@@ -200,6 +201,6 @@ impl Collection for SledLibrary {
     }
 
     fn image(&self, entity: &Model) -> Option<DynamicImage> {
-        self.images.get_original(&entity.id())
+        self.images.get_original(&entity.key())
     }
 }

@@ -2,38 +2,8 @@ use std::time::Instant;
 
 use colored::Colorize;
 
-use crate::model::{ReleaseGroup, Artist, Genre, Release, Recording, RecordingSource};
+use crate::model::{Artist, Genre, Model, Recording, RecordingSource, Release, ReleaseGroup};
 
-#[derive(Clone, Debug)]
-pub enum Model {
-    Artist(Artist),
-    Genre(Genre),
-    ReleaseGroup(ReleaseGroup),
-    Release(Release),
-    Recording(Recording),
-}
-
-impl Model {
-    pub fn id(&self) -> String {
-        match self {
-            Model::Artist(a) => a.id.clone(),
-            Model::ReleaseGroup(r) => r.id.clone(),
-            Model::Release(r) => r.id.clone(),
-            Model::Recording(r) => r.id.clone(),
-            Model::Genre(g) => g.name.clone(),
-        }
-    }
-
-    pub fn name(&self) -> String {
-        match self {
-            Model::Artist(a) => a.name.clone(),
-            Model::ReleaseGroup(r) => r.title.clone(),
-            Model::Release(r) => r.title.clone(),
-            Model::Recording(r) => r.title.clone(),
-            Model::Genre(g) => g.name.clone(),
-        }
-    }
-}
 
 pub trait Collection: Send + Sync {
     /// Get a user friendly display name for the Library.
