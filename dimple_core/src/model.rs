@@ -2,7 +2,7 @@ use image::DynamicImage;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::library::Library;
+use crate::library::Collection;
 use crate::library::Model;
 
 // TODO feels more like attributed things are their own objects and not fields
@@ -177,14 +177,14 @@ impl DimpleArtist {
         }
     }
 
-    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
+    pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
         match lib.fetch(&Model::Artist(Self::from_id(id))) {
             Some(Model::Artist(o)) => Some(o),
             _ => todo!()
         }
     }
 
-    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
+    pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
         Self::get(&self.id, lib)
     }
 }
@@ -197,14 +197,14 @@ impl DimpleRelease {
         }
     }
 
-    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
+    pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
         match lib.fetch(&Model::Release(Self::from_id(id))) {
             Some(Model::Release(o)) => Some(o),
             _ => todo!()
         }
     }
 
-    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
+    pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
         Self::get(&self.id, lib)
     }
 }
@@ -217,14 +217,14 @@ impl DimpleReleaseGroup {
         }
     }
 
-    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
+    pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
         match lib.fetch(&Model::ReleaseGroup(Self::from_id(id))) {
             Some(Model::ReleaseGroup(o)) => Some(o),
             _ => todo!()
         }
     }
 
-    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
+    pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
         Self::get(&self.id, lib)
     }
 
@@ -232,7 +232,7 @@ impl DimpleReleaseGroup {
         Model::ReleaseGroup(self.clone())
     }
 
-    pub fn image(&self, lib: &dyn Library) -> Option<DynamicImage> {
+    pub fn image(&self, lib: &dyn Collection) -> Option<DynamicImage> {
         lib.image(&self.entity())
     }
 }
@@ -245,14 +245,14 @@ impl DimpleRecording {
         }
     }
 
-    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
+    pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
         match lib.fetch(&Model::Recording(Self::from_id(id))) {
             Some(Model::Recording(o)) => Some(o),
             _ => todo!()
         }
     }
 
-    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
+    pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
         Self::get(&self.id, lib)
     }
 }

@@ -1,6 +1,6 @@
 use std::env;
 
-use dimple_core::library::{Library, Model, LibrarySupport};
+use dimple_core::library::{Collection, Model, LibrarySupport};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
@@ -49,7 +49,7 @@ struct ImageResponse {
     likes: String,
 }
 
-impl Library for FanartTvLibrary {
+impl Collection for FanartTvLibrary {
     fn name(&self) -> String {
         "fanart.tv".to_string()
     }

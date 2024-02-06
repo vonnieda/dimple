@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
-use dimple_core::library::{Library, Model, LibrarySupport};
+use dimple_core::library::{Collection, Model, LibrarySupport};
 use dimple_core::model::{DimpleGenre, DimpleArtist, DimpleReleaseGroup, DimpleRelation, DimpleRelationContent, DimpleUrl, DimpleRelease, DimpleMedium, DimpleTrack, DimpleRecording};
 use musicbrainz_rs::entity::artist::{Artist, ArtistSearchQuery};
 use musicbrainz_rs::entity::recording::Recording;
@@ -41,7 +41,7 @@ impl MusicBrainzLibrary {
     }
 }
 
-impl Library for MusicBrainzLibrary {
+impl Collection for MusicBrainzLibrary {
     fn name(&self) -> String {
         "MusicBrainz".to_string()
     }

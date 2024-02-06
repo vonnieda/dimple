@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, Model}, image_cache::ImageCache, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
+use dimple_core::{library::{Collection, Model}, image_cache::ImageCache, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
@@ -148,7 +148,7 @@ impl SledLibrary {
     }
 }
 
-impl Library for SledLibrary {
+impl Collection for SledLibrary {
     fn name(&self) -> String {
         format!("SledLibrary({})", self.path)
     }

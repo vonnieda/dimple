@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, Model}, model::DimpleRelationContent};
+use dimple_core::{library::{Collection, Model}, model::DimpleRelationContent};
 use serde::Deserialize;
 
 /// https://developers.deezer.com/api
@@ -14,7 +14,7 @@ impl DeezerLibrary {
     }
 }
 
-impl Library for DeezerLibrary {
+impl Collection for DeezerLibrary {
     fn name(&self) -> String {
         "Deezer".to_string()
     }

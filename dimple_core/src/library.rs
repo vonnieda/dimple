@@ -35,7 +35,7 @@ impl Model {
     }
 }
 
-pub trait Library: Send + Sync {
+pub trait Collection: Send + Sync {
     /// Get a user friendly display name for the Library.
     fn name(&self) -> String;
 
@@ -87,7 +87,7 @@ pub struct RequestToken {
 }
 
 impl LibrarySupport {
-    pub fn start_request(library: &dyn Library, url: &str) -> RequestToken {
+    pub fn start_request(library: &dyn Collection, url: &str) -> RequestToken {
         RequestToken {
             library_name: library.name().to_owned(),
             start_time: Instant::now(),

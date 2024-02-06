@@ -1,6 +1,6 @@
 use std::env;
 
-use dimple_core::library::{Library, Model, LibrarySupport};
+use dimple_core::library::{Collection, Model, LibrarySupport};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
@@ -49,7 +49,7 @@ struct ImageResponse {
 }
 
 // https://www.theaudiodb.com/free_music_api
-impl Library for TheAudioDbLibrary {
+impl Collection for TheAudioDbLibrary {
     fn name(&self) -> String {
         "TheAudioDB".to_string()
     }

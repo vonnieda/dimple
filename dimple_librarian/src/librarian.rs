@@ -1,6 +1,6 @@
 use std::{sync::{RwLock, Mutex}, collections::HashSet};
 
-use dimple_core::{library::{Library, Model}, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
+use dimple_core::{library::{Collection, Model}, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
 use rayon::prelude::*;
@@ -35,7 +35,7 @@ use rayon::prelude::*;
 ///   going to happen here. 
 pub struct Librarian {
     local_library: SledLibrary,
-    libraries: RwLock<Vec<Box<dyn Library>>>,
+    libraries: RwLock<Vec<Box<dyn Collection>>>,
 }
 
 impl Librarian {
@@ -46,7 +46,7 @@ impl Librarian {
         }
     }
 
-    pub fn add_library(&self, library: Box<dyn Library>) {
+    pub fn add_library(&self, library: Box<dyn Collection>) {
         self.libraries.write().unwrap().push(library);
     }
 
@@ -118,7 +118,7 @@ impl Librarian {
     }
 }
 
-impl Library for Librarian {
+impl Collection for Librarian {
     fn name(&self) -> String {
         "Librarian".to_string()
     }

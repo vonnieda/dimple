@@ -1,4 +1,4 @@
-use dimple_core::library::{Library, Model};
+use dimple_core::library::{Collection, Model};
 
 #[derive(Debug, Default)]
 pub struct LastFmLibrary {
@@ -11,7 +11,7 @@ impl LastFmLibrary {
     }
 }
 
-impl Library for LastFmLibrary {
+impl Collection for LastFmLibrary {
     fn name(&self) -> String {
         "last.fm".to_string()
     }

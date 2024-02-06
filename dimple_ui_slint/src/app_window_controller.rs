@@ -11,7 +11,7 @@ use url::Url;
 
 use std::{collections::VecDeque, env, sync::{Arc, Mutex}};
 
-use dimple_core::{library::{Library, Model}, model::{DimpleArtist, DimpleMedium, DimpleRecording, DimpleRelationContent, DimpleRelease, DimpleReleaseGroup, DimpleTrack}};
+use dimple_core::{library::{Collection, Model}, model::{DimpleArtist, DimpleMedium, DimpleRecording, DimpleRelationContent, DimpleRelease, DimpleReleaseGroup, DimpleTrack}};
 use dimple_librarian::librarian::{Librarian};
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, SharedString};

@@ -1,4 +1,4 @@
-use dimple_core::{library::{Library, Model, LibrarySupport}, model::{DimpleRelationContent, DimpleRelation}};
+use dimple_core::{library::{Collection, Model, LibrarySupport}, model::{DimpleRelationContent, DimpleRelation}};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
 
@@ -161,7 +161,7 @@ impl WikidataLibrary {
 // https://en.wikipedia.org/api/rest_v1/page/summary/Brutus_(Belgian_band)                
 // https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles=Stack%20Overflow                
 // TODO can also get images here and wiki commons? or via here to wiki commons?
-impl Library for WikidataLibrary {
+impl Collection for WikidataLibrary {
     fn name(&self) -> String {
         "Wikidata".to_string()
     }

@@ -1,6 +1,6 @@
 
 use std::{collections::{HashMap, HashSet}, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::{library::{Library, Model}, model::DimpleArtist};
+use dimple_core::{library::{Collection, Model}, model::DimpleArtist};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
 
@@ -127,7 +127,7 @@ impl FileLibrary {
     }
 }
 
-impl Library for FileLibrary {
+impl Collection for FileLibrary {
     fn name(&self) -> String {
         format!("FolderLibrary({:?})", self.paths)
     }
