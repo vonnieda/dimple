@@ -19,7 +19,6 @@ pub struct Artist {
 
     pub disambiguation: String,
     pub genres: Vec<Genre>,
-    pub release_groups: Vec<ReleaseGroup>,
     pub relations: Vec<Relation>,
     pub summary: String,
 }
@@ -218,6 +217,19 @@ impl Artist {
 
     pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
         Self::get(&self.key, lib)
+    }
+
+    pub fn entity(&self) -> Model {
+        Model::Artist(self.clone())
+    }
+
+    pub fn release_groups(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = ReleaseGroup>> {
+        let iter = lib.list(&ReleaseGroup::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Model::ReleaseGroup(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
     }
 }
 

@@ -247,7 +247,7 @@ impl AppWindowController {
             let artist = Artist::get(id, librarian.as_ref()).unwrap();
             let card = entity_card(&Model::Artist(artist.clone()), 
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
-            let mut release_groups = artist.release_groups.clone();
+            let mut release_groups: Vec<_> = artist.release_groups(librarian.as_ref()).collect();
             release_groups.sort_by_key(|f| f.first_release_date.to_owned());
             release_groups.reverse();
             let release_group_cards: Vec<_> = release_groups.par_iter()

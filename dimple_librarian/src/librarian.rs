@@ -161,8 +161,8 @@ impl Collection for Librarian {
             return image;
         }
 
-        self.libraries.read().ok()?.par_iter()
-            .find_map_first(|lib| lib.image(entity))
+        self.libraries.read().ok()?.iter()
+            .find_map(|lib| lib.image(entity))
             .map(|dyn_image| {
                 self.local_library.set_image(entity, &dyn_image);
                 dyn_image
@@ -215,7 +215,7 @@ impl Merge<Self> for Artist {
         base.key = longer(base.key, b.key);
         base.name = longer(base.name, b.name);
         base.relations = merge_vec(base.relations, b.relations);
-        base.release_groups = merge_vec(base.release_groups, b.release_groups);
+        // base.release_groups = merge_vec(base.release_groups, b.release_groups);
         base.summary = longer(base.summary, b.summary);
         base
     }

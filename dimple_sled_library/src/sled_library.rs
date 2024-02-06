@@ -160,8 +160,9 @@ impl Collection for SledLibrary {
     }    
 
     fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
-        let entities = match of_type {
-            Model::Artist(_) => {
+        // TODO drop the collect here and return the iter.
+        let entities = match (of_type, related_to) {
+            (Model::Artist(_), None) => {
                 self.artists.iter()
                 .map(|t| {
                     let (_k, v) = t.unwrap();

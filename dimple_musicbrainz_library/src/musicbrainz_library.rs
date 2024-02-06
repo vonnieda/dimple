@@ -74,12 +74,36 @@ impl Collection for MusicBrainzLibrary {
         Box::new(results.into_iter())
     }
 
+    fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
+        match (of_type, related_to) {
+            (Model::ReleaseGroup(_), Some(Model::Artist(a))) => {                
+                let request_token = LibrarySupport::start_request(self, 
+                    &format!("https://musicbrainz.org/ws/2/release-group/{}?fmt=json", a.key));
+                self.enforce_rate_limit();
+                let results: Vec<_> = MBReleaseGroup::browse().by_artist(&a.key)
+                    .execute()
+                    .inspect(|_f| {
+                        LibrarySupport::end_request(request_token, None, None);
+                    })        
+                    .inspect_err(|f| log::error!("{}", f))
+                    .unwrap()
+                    .entities
+                    .iter()
+                    .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
+                    .map(Model::ReleaseGroup)
+                    .collect();
+                Box::new(results.into_iter())
+            },
+            _ => Box::new(vec![].into_iter()),
+        }
+    }
+
     fn fetch(&self, _entity: &Model) -> Option<Model> {
         match _entity {
             Model::Artist(a) => {
-                self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", a.key));
+                self.enforce_rate_limit();
                 MBArtist::fetch().id(&a.key)
                     .with_aliases().with_annotations().with_genres().with_rating()
                     .with_tags().with_release_groups().with_url_relations()
@@ -94,9 +118,9 @@ impl Collection for MusicBrainzLibrary {
                     .map(Model::Artist)        
             },
             Model::ReleaseGroup(r) => {
-                self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", r.key));
+                self.enforce_rate_limit();
                 MBReleaseGroup::fetch().id(&r.key)
                     .with_aliases().with_annotations().with_artists()
                     .with_genres().with_ratings().with_releases().with_tags()
@@ -112,9 +136,9 @@ impl Collection for MusicBrainzLibrary {
                     .map(Model::ReleaseGroup)        
             },
             Model::Release(r) => {
-                self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.key));
+                self.enforce_rate_limit();
                 MBRelease::fetch().id(&r.key)
                     .with_aliases().with_annotations().with_artist_credits()
                     .with_artists().with_genres().with_labels().with_ratings()
@@ -131,9 +155,9 @@ impl Collection for MusicBrainzLibrary {
                     .map(Model::Release)        
             },
             Model::Recording(r) => {
-                self.enforce_rate_limit();
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/recording/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", r.key));
+                self.enforce_rate_limit();
                 MBRecording::fetch().id(&r.key)
                     .with_aliases().with_annotations().with_artists()
                     .with_genres().with_isrcs().with_ratings().with_releases()
@@ -170,9 +194,9 @@ impl From<ArtistConverter> for dimple_core::model::Artist {
             genres: value.0.genres.iter().flatten()
                 .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
                 .collect(),
-            release_groups: value.0.release_groups.iter().flatten()
-                .map(|f| ReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned())))
-                .collect(),
+            // release_groups: value.0.release_groups.iter().flatten()
+            //     .map(|f| ReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned())))
+            //     .collect(),
             relations: value.0.relations.iter().flatten()
                 .map(|f| Relation::from(RelationConverter::from(f.to_owned())))
                 .collect(),
