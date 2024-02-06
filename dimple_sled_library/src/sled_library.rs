@@ -159,8 +159,8 @@ impl Collection for SledLibrary {
         Box::new(v.into_iter())
     }    
 
-    fn list(&self, entity: &Model) -> Box<dyn Iterator<Item = Model>> {
-        let entities = match entity {
+    fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
+        let entities = match of_type {
             Model::Artist(_) => {
                 self.artists.iter()
                 .map(|t| {

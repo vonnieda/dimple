@@ -212,7 +212,7 @@ impl AppWindowController {
     fn artists(librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         std::thread::spawn(move || {
             let entity = Model::Artist(Artist::default());
-            let mut artists: Vec<Artist> = librarian.list(&entity)
+            let mut artists: Vec<Artist> = librarian.list(&entity, None)
                 .filter_map(|e| match e {
                     Model::Artist(a) => Some(a),
                     _ => None,

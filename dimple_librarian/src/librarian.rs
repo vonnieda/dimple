@@ -135,10 +135,10 @@ impl Collection for Librarian {
         Box::new(merged.into_iter())
     }    
 
-    fn list(&self, entity: &Model) -> Box<dyn Iterator<Item = Model>> {
-        let local_results: Vec<_> = self.local_library.list(entity).collect();
+    fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
+        let local_results: Vec<_> = self.local_library.list(of_type, related_to).collect();
         let lib_results: Vec<_> = self.libraries.read().unwrap().iter()
-            .flat_map(|lib| lib.list(entity))
+            .flat_map(|lib| lib.list(of_type, related_to))
             .collect();
 
         let mut merged = vec![];

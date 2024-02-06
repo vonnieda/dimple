@@ -133,8 +133,8 @@ impl Collection for FileLibrary {
         format!("FolderLibrary({:?})", self.paths)
     }
 
-    fn list(&self, _entity: &Model) -> Box<dyn Iterator<Item = Model>> {
-        match _entity {
+    fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
+        match of_type {
             Model::Artist(_) => {
                 if let Ok(files) = self.files.lock() {
                     // Collect into a HashSet to deduplicate.
