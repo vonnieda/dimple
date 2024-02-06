@@ -208,6 +208,15 @@ impl Artist {
         }
     }
 
+    pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
+        let iter = col.list(&Artist::default().entity(), None)
+            .map(|m| match m {
+                Model::Artist(a) => a,
+                _ => panic!(),
+            });
+        Box::new(iter)
+    }
+
     pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
         match lib.fetch(&Model::Artist(Self::from_id(id))) {
             Some(Model::Artist(o)) => Some(o),
@@ -298,11 +307,24 @@ impl Recording {
         }
     }
 
+    pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
+        let iter = col.list(&Recording::default().entity(), None)
+            .map(|m| match m {
+                Model::Recording(a) => a,
+                _ => panic!(),
+            });
+        Box::new(iter)
+    }
+
     pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
         match lib.fetch(&Model::Recording(Self::from_id(id))) {
             Some(Model::Recording(o)) => Some(o),
             _ => todo!()
         }
+    }
+
+    pub fn entity(&self) -> Model {
+        Model::Recording(self.clone())
     }
 
     pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {

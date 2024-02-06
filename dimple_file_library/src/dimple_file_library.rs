@@ -1,27 +1,15 @@
 
 use std::{collections::{HashMap, HashSet}, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::{collection::Collection, model::Artist};
+use dimple_core::{collection::Collection, model::{Artist, Recording}};
 use dimple_core::model::Model;
+use log::Record;
 use rayon::iter::{ParallelBridge, ParallelIterator};
-use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey}, probe::Hint};
+use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
 
 pub struct FileLibrary {
     paths: Vec<String>,
     files: Arc<Mutex<HashMap<String, FileDetails>>>,
-}
-
-#[derive(Clone, Debug, Default)]
-struct FileDetails {
-    path: String,
-    artist: Option<String>,
-    album: Option<String>,
-    title: Option<String>,
-    musicbrainz_track_id: Option<String>,
-    musicbrainz_recording_id: Option<String>,
-    musicbrainz_release_id: Option<String>,
-    musicbrainz_release_group_id: Option<String>,
-    musicbrainz_artist_id: Option<String>,
 }
 
 impl FileLibrary {
@@ -79,75 +67,61 @@ impl FileLibrary {
         let fmt_opts: FormatOptions = Default::default();
 
         // Probe the media source.
-        let probed = symphonia::default::get_probe()
+        let mut probed = symphonia::default::get_probe()
             .format(&hint, media_source_stream, &fmt_opts, &meta_opts)?;
 
         // Get the instantiated format reader.
         let mut format = probed.format;
 
-        let metadata = format.metadata();
+        let mut tags: Vec<Tag> = vec![];
 
-        let mut details = FileDetails {
-            path: path.clone(),
-            ..Default::default()
-        };
-
-        if let Some(metadata) = metadata.current() {
-            let tags = metadata.tags();
-            // https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
-            for tag in tags {
-                if let Some(StandardTagKey::TrackTitle) = tag.std_key {
-                    details.title = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::Album) = tag.std_key {
-                    details.album = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::Artist) = tag.std_key {
-                    details.artist = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::MusicBrainzAlbumId) = tag.std_key {
-                    details.musicbrainz_release_id = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::MusicBrainzArtistId) = tag.std_key {
-                    details.musicbrainz_artist_id = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::MusicBrainzRecordingId) = tag.std_key {
-                    details.musicbrainz_recording_id = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::MusicBrainzReleaseGroupId) = tag.std_key {
-                    details.musicbrainz_release_group_id = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::MusicBrainzTrackId) = tag.std_key {
-                    details.musicbrainz_track_id = Some(tag.value.to_string());
-                }
+        if let Some(metadata) = probed.metadata.get() {
+            if let Some(metadata) = metadata.current() {
+                tags.extend(metadata.tags().to_owned());
             }
         }
+
+        let metadata = format.metadata();
+
+        if let Some(metadata) = metadata.current() {
+            tags.extend(metadata.tags().to_owned());
+        }
+
+        let details = FileDetails {
+            path: path.clone(),
+            tags,
+        };
+
+        // log::info!("read {:?}", details);
 
         Ok(details)
     }
 }
 
+#[derive(Clone, Debug, Default)]
+struct FileDetails {
+    path: String,
+    tags: Vec<Tag>,
+}
+
 impl Collection for FileLibrary {
     fn name(&self) -> String {
-        format!("FolderLibrary({:?})", self.paths)
+        format!("FileLibrary({:?})", self.paths)
     }
 
     fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
         match (of_type, related_to) {
             (Model::Artist(_), None) => {
-                if let Ok(files) = self.files.lock() {
-                    // Collect into a HashSet to deduplicate.
-                    let artist_ids: HashSet<String> = files.values()
-                        .filter_map(|f| f.musicbrainz_artist_id.clone())
-                        .collect();
-
-                    let results: Vec<_> = artist_ids.iter()
-                        .map(|id| Model::Artist(Artist::from_id(id)))
-                        .collect();
-
-                    return Box::new(results.into_iter());
-                }
-                Box::new(vec![].into_iter())
+                let files = self.files.lock().unwrap().clone();
+                let artists: Vec<Artist> = files.values().map(Into::into).collect();
+                let models: Vec<Model> = artists.iter().map(Artist::entity).collect();
+                Box::new(models.into_iter())
+            }
+            (Model::Recording(_), None) => {
+                let files = self.files.lock().unwrap().clone();
+                let recordings: Vec<Recording> = files.values().map(Into::into).collect();
+                let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
+                Box::new(models.into_iter())
             }
             _ => {
                 Box::new(vec![].into_iter())
@@ -156,3 +130,61 @@ impl Collection for FileLibrary {
     }
 }
 
+impl FileDetails {
+    pub fn get_tag_value(&self, key: StandardTagKey) -> Option<String> {
+        self.tags.iter().find_map(|t| {
+            if let Some(std_key) = t.std_key {
+                if std_key == key {
+                    return Some(t.value.to_string())
+                }
+            }
+            None
+        })
+    }
+}
+
+impl From<&FileDetails> for Recording {
+    fn from(value: &FileDetails) -> Self {
+        Self {
+            key: value.get_tag_value(StandardTagKey::MusicBrainzRecordingId).unwrap_or_default(),
+            title: value.get_tag_value(StandardTagKey::TrackTitle).unwrap_or_default(),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&FileDetails> for Artist {
+    fn from(value: &FileDetails) -> Self {
+        
+        // for tag in tags {
+        //     if let Some(StandardTagKey::TrackTitle) = tag.std_key {
+        //         details.title = Some(tag.value.to_string());
+        //     }
+        //     else if let Some(StandardTagKey::Album) = tag.std_key {
+        //         details.album = Some(tag.value.to_string());
+        //     }
+        //     else if let Some(StandardTagKey::Artist) = tag.std_key {
+        //         details.artist = Some(tag.value.to_string());
+        //     }
+        //     else if let Some(StandardTagKey::MusicBrainzAlbumId) = tag.std_key {
+        //         details.musicbrainz_release_id = Some(tag.value.to_string());
+        //     }
+        //     else if let Some(StandardTagKey::MusicBrainzArtistId) = tag.std_key {
+        //         details.musicbrainz_artist_id = Some(tag.value.to_string());
+        //     }
+        //     else if let Some(StandardTagKey::MusicBrainzRecordingId) = tag.std_key {
+        //         details.musicbrainz_recording_id = Some(tag.value.to_string());
+        //     }
+        //     else if let Some(StandardTagKey::MusicBrainzReleaseGroupId) = tag.std_key {
+        //         details.musicbrainz_release_group_id = Some(tag.value.to_string());
+        //     }
+        //     else if let Some(StandardTagKey::MusicBrainzTrackId) = tag.std_key {
+        //         details.musicbrainz_track_id = Some(tag.value.to_string());
+
+        Self {
+            key: value.get_tag_value(StandardTagKey::MusicBrainzAlbumArtistId).unwrap_or_default(),
+            name: value.get_tag_value(StandardTagKey::AlbumArtist).unwrap_or_default(),
+            ..Default::default()
+        }
+    }
+}

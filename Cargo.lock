@@ -1204,10 +1204,16 @@ name = "dimple_cli"
 version = "0.1.0"
 dependencies = [
  "dimple_core",
+ "dimple_coverartarchive_library",
  "dimple_deezer_library",
+ "dimple_fanart_tv_library",
+ "dimple_file_library",
+ "dimple_lastfm_library",
  "dimple_librarian",
  "dimple_musicbrainz_library",
+ "dimple_theaudiodb_library",
  "dimple_wikidata_library",
+ "directories",
  "env_logger",
  "log",
 ]
