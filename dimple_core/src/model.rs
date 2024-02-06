@@ -319,14 +319,4 @@ impl Model {
             Model::Genre(g) => g.name.clone(),
         }
     }
-
-    pub fn name(&self) -> String {
-        match self {
-            Model::Artist(a) => a.name.clone(),
-            Model::ReleaseGroup(r) => r.title.clone(),
-            Model::Release(r) => r.title.clone(),
-            Model::Recording(r) => r.title.clone(),
-            Model::Genre(g) => g.name.clone(),
-        }
-    }
 }
