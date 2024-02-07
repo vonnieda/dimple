@@ -218,7 +218,7 @@ impl AppWindowController {
                     _ => None,
                 })
                 .collect();
-            artists.sort_by_key(|a| a.name.to_lowercase());
+            artists.sort_by_key(|a| a.name.clone().unwrap_or_default().to_lowercase());
             let cards = artist_cards(artists, &librarian,
                 Self::THUMBNAIL_WIDTH, 
                 Self::THUMBNAIL_WIDTH);
@@ -280,8 +280,8 @@ impl AppWindowController {
             ui.upgrade_in_event_loop(move |ui| {
                 let adapter = ArtistDetailsAdapter {
                     card: card_adapter(&card),
-                    disambiguation: artist.disambiguation.clone().into(),
-                    summary: artist.summary.clone().into(),
+                    disambiguation: artist.disambiguation.clone().unwrap_or_default().into(),
+                    summary: artist.summary.clone().unwrap_or_default().into(),
                     albums: card_adapters(album_cards),
                     singles: card_adapters(single_cards),
                     eps: card_adapters(ep_cards),
@@ -321,7 +321,7 @@ impl AppWindowController {
             genres.sort_by_key(|g| g.name.to_owned());
             let mut artists: Vec<_> = release_group.artists.iter()
                 .map(|a| Link {
-                    name: a.name.clone(),
+                    name: a.name.clone().unwrap_or_default(),
                     url: format!("dimple://artist/{}", a.key),
                 })
                 .collect();
@@ -414,7 +414,7 @@ impl AppWindowController {
                 .collect();
             let artists = recording.artist_credits.iter()
                 .map(|a| Link {
-                    name: a.name.clone(),
+                    name: a.name.clone().unwrap_or_default(),
                     url: format!("dimple://artist/{}", a.key),
                 })
                 .collect();
@@ -487,16 +487,16 @@ fn artist_card(artist: &Artist, width: u32, height: u32, lib: &Librarian) -> Car
         image: ImageLink {
             image: lib.thumbnail(&Model::Artist(artist.clone()), width, height),
             link: Link {
-                name: artist.name.clone(),
+                name: artist.name.clone().unwrap_or_default(),
                 url: format!("dimple://artist/{}", artist.key),
             },
         },
         title: Link {
-            name: artist.name.clone(),
+            name: artist.name.clone().unwrap_or_default(),
             url: format!("dimple://artist/{}", artist.key),
         },
         sub_title: Link {
-            name: artist.disambiguation.clone(),
+            name: artist.disambiguation.clone().unwrap_or_default(),
             url: format!("dimple://artist/{}", artist.key),
         },
     }

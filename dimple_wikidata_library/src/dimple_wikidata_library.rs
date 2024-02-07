@@ -170,10 +170,8 @@ impl Collection for WikidataLibrary {
     fn fetch(&self, entity: &Model) -> Option<Model> {
         match entity.clone() {
             Model::Artist(mut artist) => {
-                artist.summary = self.get_summary(&artist.relations).unwrap_or_default();
-                if artist.summary.is_empty() {
-                    return None
-                }
+                artist.summary = self.get_summary(&artist.relations);
+                artist.summary.as_ref()?;
                 Some(Model::Artist(artist))
             },
 

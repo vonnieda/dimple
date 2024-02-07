@@ -183,7 +183,7 @@ impl From<&FileDetails> for Artist {
 
         Self {
             key: value.get_tag_value(StandardTagKey::MusicBrainzAlbumArtistId).unwrap_or_default(),
-            name: value.get_tag_value(StandardTagKey::AlbumArtist).unwrap_or_default(),
+            name: value.get_tag_value(StandardTagKey::AlbumArtist),
             ..Default::default()
         }
     }

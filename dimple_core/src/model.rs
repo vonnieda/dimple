@@ -15,12 +15,12 @@ use crate::collection::Collection;
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct Artist {
     pub key: String,
-    pub name: String,
+    pub name: Option<String>,
 
-    pub disambiguation: String,
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
     pub genres: Vec<Genre>,
     pub relations: Vec<Relation>,
-    pub summary: String,
 }
 
 

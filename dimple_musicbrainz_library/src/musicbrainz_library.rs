@@ -177,6 +177,21 @@ impl Collection for MusicBrainzLibrary {
     }
 }
 
+
+// Note that in the converters below ..Default is never used. If a Default
+// is temporarily needed it can be specified on the field itself, but not
+// the entire struct. This is to help avoid skipping fields when new ones
+// are added.
+
+fn none_if_empty(s: String) -> Option<String> {
+    if s.is_empty() {
+        None
+    }
+    else {
+        Some(s)
+    }
+}
+
 pub struct ArtistConverter(musicbrainz_rs::entity::artist::Artist);
 
 impl From<musicbrainz_rs::entity::artist::Artist> for ArtistConverter {
@@ -189,8 +204,8 @@ impl From<ArtistConverter> for dimple_core::model::Artist {
     fn from(value: ArtistConverter) -> Self {
         dimple_core::model::Artist {
             key: value.0.id,
-            name: value.0.name,
-            disambiguation: value.0.disambiguation,
+            name: none_if_empty(value.0.name),
+            disambiguation: none_if_empty(value.0.disambiguation),
             genres: value.0.genres.iter().flatten()
                 .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
                 .collect(),
@@ -283,11 +298,6 @@ impl From<ReleaseConverter> for dimple_core::model::Release {
         }
     }
 }
-
-// Note that in the converters below ..Default is never used. If a Default
-// is temporarily needed it can be specified on the field itself, but not
-// the entire struct. This is to help avoid skipping fields when new ones
-// are added.
 
 pub struct GenreConverter(musicbrainz_rs::entity::genre::Genre);
 

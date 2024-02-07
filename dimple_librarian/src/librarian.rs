@@ -6,34 +6,6 @@ use image::DynamicImage;
 use rayon::prelude::*;
 use dimple_core::model::Model;
 
-/// TODO need a favicon service
-/// TODO I think the assumption that DimpleEntity.id is an mbid needs to go
-/// away for the use cases of always offline, no access to musicbrainz, wants
-/// to use something else as a metadata authority, etc.
-
-/// So then, here's the goal and plan for today:
-/// Goal: Get Recordings from the file library matched and merged. In the end,
-/// nearly every track should have an MBID and there should be a list of tracks
-/// on the console that don't, along with errors. 
-/// Plan:
-/// - Add source_id to DimpleEntity
-/// - Add match_status to DimpleEntity
-/// - Add a new forever thread in Librarian that regularly scans all the
-///   libraries, reads their recordings, and submits them for matching.
-/// - Add another forever thread that monitors the match queue, performs
-///   matching and merges the records in. The goal is to either match the
-///   entity to an mbid or to merge it unmatched. Unmatched entities still
-///   need to be available because of the offline or simply unknown use case.
-///   The user should still get the best experience.
-/// Stretch Goals:
-/// - It may be easier, as part of this, to get rid of SledLibrary and pull its
-///   stuff into here.
-/// - I need to make images an entity so I can store attributions, and that
-///   might fit into all this work.
-/// - Consider the rename of Library to Source or something. I think the Librarian
-///   manages one library: your library. It pulls stuff in from sources, not other
-///   libraries. So I can live without a sqlite_library, because that's just
-///   going to happen here. 
 pub struct Librarian {
     local_library: SledLibrary,
     libraries: RwLock<Vec<Box<dyn Collection>>>,
@@ -185,24 +157,11 @@ fn merge_vec<T>(a: Vec<T>, b: Vec<T>) -> Vec<T> {
 
 impl Merge<Model> for Model {
     fn merge(left: Model, right: Model) -> Self {
-        match left {
-            Model::Artist(left) => match right {
-                Model::Artist(right) => Model::Artist(Artist::merge(left, right)),
-                _ => panic!("no")
+        match (left, right) {
+            (Model::Artist(left), Model::Artist(right)) => {
+                Artist::merge(left, right).entity()
             },
-            Model::ReleaseGroup(left) => match right {
-                Model::ReleaseGroup(right) => Model::ReleaseGroup(ReleaseGroup::merge(left, right)),
-                _ => panic!("no")
-            },
-            Model::Release(left) => match right {
-                Model::Release(right) => Model::Release(Release::merge(left, right)),
-                _ => panic!("no")
-            },
-            Model::Recording(left) => match right {
-                Model::Recording(right) => Model::Recording(Recording::merge(left, right)),
-                _ => panic!("no")
-            },
-            _ => panic!("no")
+            _ => todo!()
         }
     }
 }
@@ -210,13 +169,13 @@ impl Merge<Model> for Model {
 impl Merge<Self> for Artist {
     fn merge(base: Self, b: Self) -> Self {
         let mut base = base.clone();
-        base.disambiguation = longer(base.disambiguation, b.disambiguation);
-        base.genres = merge_vec(base.genres, b.genres);
+        base.disambiguation = base.disambiguation.or(b.disambiguation);
+        // base.genres = merge_vec(base.genres, b.genres);
         base.key = longer(base.key, b.key);
-        base.name = longer(base.name, b.name);
-        base.relations = merge_vec(base.relations, b.relations);
+        base.name = base.name.or(b.name);
+        // base.relations = merge_vec(base.relations, b.relations);
         // base.release_groups = merge_vec(base.release_groups, b.release_groups);
-        base.summary = longer(base.summary, b.summary);
+        base.summary = base.summary.or(b.summary);
         base
     }
 }
