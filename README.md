@@ -136,3 +136,6 @@ If you you'd like to support Dimple, please consider:
   open a PR or Issue and let me know! I'm still learning, and I appreciate the
   help!
 
+# Support
+https://ko-fi.com/vonnieda
+https://www.buymeacoffee.com/vonnieda

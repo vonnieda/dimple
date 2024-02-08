@@ -240,6 +240,15 @@ impl Artist {
         }); 
         Box::new(iter)    
     }
+
+    pub fn search(query: &str, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
+        let iter = lib.search(query)
+            .filter_map(|m| match m {
+                Model::Artist(a) => Some(a),
+                _ => None,
+            });
+        Box::new(iter)
+    }
 }
 
 

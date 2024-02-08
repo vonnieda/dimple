@@ -1,10 +1,12 @@
-use dimple_core::{collection::{Collection}, image_cache::ImageCache, model::{Artist, ReleaseGroup, Release, Recording}};
+use std::borrow::Borrow;
+
+use dimple_core::{collection::Collection, image_cache::ImageCache, model::Artist};
 use dimple_core::model::Model;
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
 
-use sled::Tree;
+use sled::{IVec, Tree};
 
 #[derive(Debug)]
 
@@ -29,7 +31,6 @@ pub struct SledLibraryConfig {
 
 impl SledLibrary {
     pub fn new(path: &str) -> Self {
-        // TODO magic root path, and remove ulid?
         let db = sled::open(path).unwrap();
         let release_groups = db.open_tree("release_groups").unwrap();
         let releases = db.open_tree("releases").unwrap();
@@ -48,100 +49,35 @@ impl SledLibrary {
         }
     }
 
-    // TODO for now assuming storing does not modify the object, so no need
-    // to return one. Might change. 
-    pub fn store(&self, entity: &Model) {
-        match entity {
-            Model::Artist(a) => {
-                self.set_artist(a)
-            }
-            Model::ReleaseGroup(r) => {
-                self.set_release_group(r)
-            }
-            Model::Release(r) => {
-                self.set_release(r)
-            }
-            Model::Recording(r) => {
-                self.set_recording(r)
-            }
+    /// Creates and/or updates the model in storage, along with relations. 
+    /// If the model already exists by key, the existing one is read, the new
+    /// one is merged into it, and the result is saved. If with_relations_to
+    /// is included, a relation is also created and/or updated between the two
+    /// models.
+    /// 
+    /// For instance, merge(ReleaseGroup, Artist) will merge the ReleaseGroup
+    /// into storage and create a relation between the ReleaseGroup and Artist
+    /// such that subsequently calling list(ReleaseGroup, Artist) will return
+    /// a Vec containing the merged ReleaseGroup.
+    pub fn merge(&self, model: &Model, with_relation_to: Option<&Model>) -> anyhow::Result<()> {
+        fn insert<T>(tree: &Tree, key: &str, value: T) -> anyhow::Result<()>
+            where T: Serialize {
+
+            // TODO lookup the old and merge it and return that instead
+            // let old = 
+
+            let json = serde_json::to_string(&value)?;
+            let _ = tree.insert(key, &*json)?;
+            Ok(())
+        }
+    
+        match model {
+            Model::Artist(a) => insert(&self.artists, &a.key, a),
+            Model::ReleaseGroup(a) => insert(&self.release_groups, &a.key, a),
+            Model::Release(a) => insert(&self.releases, &a.key, a),
+            Model::Recording(a) => insert(&self.recordings, &a.key, a),
             _ => todo!()
         }
-    }
-
-    fn get_artist(&self, mbid: &str) -> Option<Artist> {
-        assert!(!mbid.is_empty());
-        self.artists.get(mbid).ok()?
-            .and_then(|v| {
-                let bytes = v.as_bytes();
-                let json: String = String::from_utf8(bytes.into()).unwrap();
-                serde_json::from_str(&json).unwrap()
-            })
-    }
-
-    pub fn set_artist(&self, a: &Artist) {
-        assert!(!a.key.is_empty());
-        serde_json::to_string(a)
-            .map(|json| {
-                self.artists.insert(a.key.to_string(), &*json).unwrap()
-            })
-            .unwrap();
-    }
-
-    fn get_release_group(&self, mbid: &str) -> Option<ReleaseGroup> {
-        assert!(!mbid.is_empty());
-        self.release_groups.get(mbid).ok()?
-            .and_then(|v| {
-                let bytes = v.as_bytes();
-                let json: String = String::from_utf8(bytes.into()).unwrap();
-                serde_json::from_str(&json).unwrap()
-            })
-    }
-
-    fn get_release(&self, mbid: &str) -> Option<Release> {
-        assert!(!mbid.is_empty());
-        self.releases.get(mbid).ok()?
-            .and_then(|v| {
-                let bytes = v.as_bytes();
-                let json: String = String::from_utf8(bytes.into()).unwrap();
-                serde_json::from_str(&json).unwrap()
-            })
-    }
-
-    fn get_recording(&self, mbid: &str) -> Option<Recording> {
-        assert!(!mbid.is_empty());
-        self.recordings.get(mbid).ok()?
-            .and_then(|v| {
-                let bytes = v.as_bytes();
-                let json: String = String::from_utf8(bytes.into()).unwrap();
-                serde_json::from_str(&json).unwrap()
-            })
-    }
-
-    pub fn set_release_group(&self, a: &ReleaseGroup) {
-        assert!(!a.key.is_empty());
-        serde_json::to_string(a)
-            .map(|json| {
-                self.release_groups.insert(a.key.to_string(), &*json).unwrap()
-            })
-            .unwrap();
-    }
-
-    pub fn set_release(&self, a: &Release) {
-        assert!(!a.key.is_empty());
-        serde_json::to_string(a)
-            .map(|json| {
-                self.releases.insert(a.key.to_string(), &*json).unwrap()
-            })
-            .unwrap();
-    }
-
-    pub fn set_recording(&self, a: &Recording) {
-        assert!(!a.key.is_empty());
-        serde_json::to_string(a)
-            .map(|json| {
-                self.recordings.insert(a.key.to_string(), &*json).unwrap()
-            })
-            .unwrap();
     }
 
     pub fn set_image(&self, entity: &Model, dyn_image: &DynamicImage) {
@@ -160,42 +96,53 @@ impl Collection for SledLibrary {
     }    
 
     fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
-        // TODO drop the collect here and return the iter.
-        let entities = match (of_type, related_to) {
-            (Model::Artist(_), None) => {
-                self.artists.iter()
-                .map(|t| {
-                    let (_k, v) = t.unwrap();
-                    let bytes = v.as_bytes();
-                    let json: String = String::from_utf8(bytes.into()).unwrap();
-                    serde_json::from_str(&json).unwrap()
-                })
-                .map(Model::Artist)
-                .collect()
-            }
-            _ => vec![],
-        };
+        fn deserialize<'a, T>(v: &'a IVec) -> T where T: Deserialize<'a> {
+            serde_json::from_slice(v.borrow()).unwrap()
+        }
 
-        Box::new(entities.into_iter())
+        match (of_type, related_to) {
+            (Model::Artist(_), None) => {
+                let iter = self.artists.iter()
+                    .map(|t| deserialize(&t.unwrap().1))
+                    .map(Model::Artist);
+                Box::new(iter)
+            },
+            (Model::Recording(_), None) => {
+                let iter = self.recordings.iter()
+                    .map(|t| deserialize(&t.unwrap().1))
+                    .map(Model::Recording);
+                Box::new(iter)
+            },
+            (Model::ReleaseGroup(_), Some(Model::Artist(a))) => {
+                let iter = self.release_groups.iter()
+                    .map(|t| deserialize(&t.unwrap().1))
+                    .map(Model::ReleaseGroup);
+                Box::new(iter)
+            },
+            _ => todo!("{:?} {:?}", of_type, related_to),
+        }
     }
 
     fn fetch(&self, entity: &Model) -> Option<Model> {
+        fn get<T>(tree: &Tree, key: &str) -> Option<T> where T: for<'a> Deserialize<'a> {
+            let value = tree.get(key).ok()??;
+            let bytes = value.as_bytes();
+            let json = String::from_utf8(bytes.into()).ok()?;
+            serde_json::from_str(&json).ok()?
+        }
+    
         match entity {
             Model::Artist(a) => {
-                let a = self.get_artist(&a.key)?;
-                Some(Model::Artist(a))
+                get::<Artist>(&self.artists, &a.key).map(|a| a.entity())
             },
             Model::ReleaseGroup(r) => {
-                let r = self.get_release_group(&r.key)?;
-                Some(Model::ReleaseGroup(r))
+                get::<Artist>(&self.release_groups, &r.key).map(|a| a.entity())
             },
             Model::Release(r) => {
-                let r = self.get_release(&r.key)?;
-                Some(Model::Release(r))
+                get::<Artist>(&self.releases, &r.key).map(|a| a.entity())
             },
             Model::Recording(r) => {
-                let r = self.get_recording(&r.key)?;
-                Some(Model::Recording(r))
+                get::<Artist>(&self.recordings, &r.key).map(|a| a.entity())
             },
             Model::Genre(_) => todo!(),
         }        

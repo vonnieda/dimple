@@ -13,3 +13,4 @@ image = { version = "0.24.5", features = ["jpeg", "png"] }
 log = "0.4.17"
 threadpool = "1.8.1"
 dimple_core = { path = "../dimple_core" }
+anyhow = "1.0.79"

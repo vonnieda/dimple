@@ -1,6 +1,6 @@
 use std::{sync::{RwLock, Mutex}, collections::HashSet};
 
-use dimple_core::{collection::{Collection}, model::{Artist, ReleaseGroup, Release, Recording}};
+use dimple_core::{collection::Collection, model::{Artist, ReleaseGroup, Release, Recording}};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
 use rayon::prelude::*;
@@ -26,7 +26,7 @@ impl Librarian {
     /// Generate some kind of cool artwork for the entity to be used as a
     /// default. Being part of Librarian, it can use data from the library
     /// to create the image.
-    pub fn generate_masterpiece(&self, entity: &Model, width: u32, 
+    pub fn generate_masterpiece(&self, _entity: &Model, width: u32, 
         height: u32) -> DynamicImage {
 
 
@@ -85,7 +85,7 @@ impl Librarian {
 
         // Merge the results together, store it for later access, and return
         let result = Model::merge(first_result, second_result);
-        self.local_library.store(&result);
+        self.local_library.merge(&result, None);
 
         Some(result)
     }
@@ -160,6 +160,9 @@ impl Merge<Model> for Model {
         match (left, right) {
             (Model::Artist(left), Model::Artist(right)) => {
                 Artist::merge(left, right).entity()
+            },
+            (Model::ReleaseGroup(left), Model::ReleaseGroup(right)) => {
+                ReleaseGroup::merge(left, right).entity()
             },
             _ => todo!()
         }

@@ -6,9 +6,9 @@ use dimple_core::model::{Genre, Artist, ReleaseGroup, Relation, RelationContent,
 use musicbrainz_rs::entity::artist::{Artist as MBArtist, ArtistSearchQuery};
 use musicbrainz_rs::entity::recording::Recording as MBRecording;
 use musicbrainz_rs::entity::relations::RelationContent as MBRelationContent;
-use musicbrainz_rs::entity::release::{Release as MBRelease};
+use musicbrainz_rs::entity::release::Release as MBRelease;
 use musicbrainz_rs::entity::release_group::ReleaseGroup as MBReleaseGroup;
-use musicbrainz_rs::{prelude::*};
+use musicbrainz_rs::prelude::*;
 use dimple_core::model::Model;
 
 
@@ -77,6 +77,7 @@ impl Collection for MusicBrainzLibrary {
     fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
         match (of_type, related_to) {
             (Model::ReleaseGroup(_), Some(Model::Artist(a))) => {                
+                // TODO handle paging
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release-group/{}?fmt=json", a.key));
                 self.enforce_rate_limit();

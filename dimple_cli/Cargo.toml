@@ -21,3 +21,4 @@ dimple_lastfm_library = { path = "../dimple_lastfm_library" }
 dimple_fanart_tv_library = { path = "../dimple_fanart_tv_library" }
 dimple_theaudiodb_library = { path = "../dimple_theaudiodb_library" }
 directories = "5.0.1"
+anyhow = "1.0.79"

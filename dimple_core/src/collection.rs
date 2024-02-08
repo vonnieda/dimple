@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use colored::Colorize;
 
-use crate::model::{Artist, Genre, Model, Recording, RecordingSource, Release, ReleaseGroup};
+use crate::model::{Model, Recording, RecordingSource};
 
 
 pub trait Collection: Send + Sync {
@@ -38,7 +38,7 @@ pub trait Collection: Send + Sync {
 
     /// Returns an iterator over all of the objects of the type of the entity.
     /// This is used to list all artists, releases, release-groups, etc.
-    fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
+    fn list(&self, _of_type: &Model, _related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
         Box::new(vec![].into_iter())
     }
 }

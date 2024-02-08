@@ -1,8 +1,7 @@
 
-use std::{collections::{HashMap, HashSet}, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
+use std::{collections::HashMap, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
 use dimple_core::{collection::Collection, model::{Artist, Recording}};
 use dimple_core::model::Model;
-use log::Record;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
