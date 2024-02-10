@@ -1,10 +1,12 @@
 
 use std::{collections::HashMap, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::{collection::Collection, model::{Artist, Recording}};
+use dimple_core::{collection::Collection, model::{Artist, KnownId, Recording, RecordingSource}};
 use dimple_core::model::Model;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
+use fuzzy_matcher::FuzzyMatcher;
+use fuzzy_matcher::skim::SkimMatcherV2;
 
 pub struct FileLibrary {
     paths: Vec<String>,
@@ -124,12 +126,20 @@ impl Collection for FileLibrary {
                 Box::new(models.into_iter())
             }
             (Model::RecordingSource(_), Some(Model::Recording(r))) => {
-                // let files = self.files.lock().unwrap().clone();
-                // let recordings: Vec<Recording> = files.values().map(Into::into).collect();
-                // let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
-                // Box::new(models.into_iter())
-                log::info!("Recordings for {:?}", r);
-                Box::new(vec![].into_iter())
+                // TODO trash test code, will be using sourceid. 
+                let files = self.files.lock().unwrap().clone();
+                let recordings: Vec<Recording> = files.values().map(Into::into).collect();
+                let matcher = SkimMatcherV2::default();
+                let sources: Vec<Model> = recordings.iter()
+                    .filter(|r2| matcher.fuzzy_match(&r.title, &r2.title).is_some())
+                    .map(|r| RecordingSource {
+                        known_ids: r.known_ids.clone(),
+                        source_ids: r.source_ids.clone(),
+                        ..Default::default()
+                    })
+                    .map(|r| r.entity())
+                    .collect();
+                Box::new(sources.into_iter())
             }
             _ => {
                 Box::new(vec![].into_iter())
@@ -154,8 +164,10 @@ impl FileDetails {
 impl From<&FileDetails> for Recording {
     fn from(value: &FileDetails) -> Self {
         Self {
+            // TODO move key to mbid
             key: value.get_tag_value(StandardTagKey::MusicBrainzRecordingId).unwrap_or_default(),
             title: value.get_tag_value(StandardTagKey::TrackTitle).unwrap_or_default(),
+            source_ids: std::iter::once(value.path.clone()).collect(),
             ..Default::default()
         }
     }

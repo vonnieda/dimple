@@ -32,9 +32,9 @@ fn main() -> anyhow::Result<()> {
     let artist = Artist::search("we were heading north", &librarian).next().unwrap();
     log::info!("{:?}", &artist);
     let release = artist.releases(&librarian).next().unwrap();
-    log::info!("{:?}", &release.title);
+    log::info!("{:?}", &release);
     let recording = release.recordings(&librarian).next().unwrap();
-    log::info!("{:?}", &recording.title);
+    log::info!("{:?}", &recording);
     let source = recording.sources(&librarian).next();
     log::info!("{:?}", source);
 

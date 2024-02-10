@@ -4,7 +4,7 @@ use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
 use dimple_core::collection::{Collection, LibrarySupport};
-use dimple_core::model::{Genre, Artist, ReleaseGroup, Relation, RelationContent, UrlRelation, Release, Medium, Track, Recording};
+use dimple_core::model::{Artist, Genre, KnownId, Medium, Recording, Relation, RelationContent, Release, ReleaseGroup, Track, UrlRelation};
 use musicbrainz_rs::entity::artist::{Artist as MBArtist, ArtistSearchQuery};
 use musicbrainz_rs::entity::recording::Recording as MBRecording;
 use musicbrainz_rs::entity::relations::RelationContent as MBRelationContent;
@@ -79,30 +79,36 @@ impl Collection for MusicBrainzLibrary {
     fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
         match (of_type, related_to) {
             (Model::ReleaseGroup(_), Some(Model::Artist(a))) => {                
-                // TODO handle paging
-                let request_token = LibrarySupport::start_request(self, 
-                    &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", a.key));
-                self.enforce_rate_limit();
-                let results: Vec<_> = MBReleaseGroup::browse().by_artist(&a.key)
-                    .execute()
-                    .inspect(|_f| {
-                        LibrarySupport::end_request(request_token, None, None);
-                    })        
-                    .inspect_err(|f| log::error!("{}", f))
-                    .unwrap()
-                    .entities
-                    .iter()
-                    .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-                    .map(Model::ReleaseGroup)
-                    .collect();
-                Box::new(results.into_iter())
+                // // TODO handle paging
+                // let request_token = LibrarySupport::start_request(self, 
+                //     &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", a.key));
+                // self.enforce_rate_limit();
+                // let results: Vec<_> = MBReleaseGroup::browse().by_artist(&a.key)
+                //     .execute()
+                //     .inspect(|_f| {
+                //         LibrarySupport::end_request(request_token, None, None);
+                //     })        
+                //     .inspect_err(|f| log::error!("{}", f))
+                //     .unwrap()
+                //     .entities
+                //     .iter()
+                //     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
+                //     .map(Model::ReleaseGroup)
+                //     .collect();
+                // Box::new(results.into_iter())
+                todo!()
             },
             (Model::Release(_), Some(Model::Artist(a))) => {                
                 // TODO handle paging
+                let mbid = a.entity().mbid();
+                if mbid.is_none() {
+                    return Box::new(vec![].into_iter())
+                }
+                let mbid = mbid.unwrap();
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("https://musicbrainz.org/ws/2/release/TODO TODO{}?fmt=json", a.key));
+                    &format!("https://musicbrainz.org/ws/2/release/TODO TODO{}?fmt=json", &mbid));
                 self.enforce_rate_limit();
-                let results: Vec<_> = MBRelease::browse().by_artist(&a.key)
+                let results: Vec<_> = MBRelease::browse().by_artist(&mbid)
                     .execute()
                     .inspect(|_f| {
                         LibrarySupport::end_request(request_token, None, None);
@@ -118,10 +124,15 @@ impl Collection for MusicBrainzLibrary {
             },
             (Model::Recording(_), Some(Model::Release(a))) => {
                 // TODO handle paging
+                let mbid = a.entity().mbid();
+                if mbid.is_none() {
+                    return Box::new(vec![].into_iter())
+                }
+                let mbid = mbid.unwrap();
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("https://musicbrainz.org/ws/2/recording/TODO TODO{}?fmt=json", a.key));
+                    &format!("https://musicbrainz.org/ws/2/recording/TODO TODO{}?fmt=json", &mbid));
                 self.enforce_rate_limit();
-                let results: Vec<_> = MBRecording::browse().by_release(&a.key)
+                let results: Vec<_> = MBRecording::browse().by_release(&mbid)
                     .execute()
                     .inspect(|_f| {
                         LibrarySupport::end_request(request_token, None, None);
@@ -138,6 +149,9 @@ impl Collection for MusicBrainzLibrary {
             _ => Box::new(vec![].into_iter()),
         }
     }
+
+    // TODO every use of key in this file is wrong currently, needs to switch to
+    // mbid.
 
     fn fetch(&self, _entity: &Model) -> Option<Model> {
         match _entity {
@@ -247,7 +261,8 @@ impl From<ArtistConverter> for dimple_core::model::Artist {
         dimple_core::model::Artist {
             key: Default::default(),
             name: none_if_empty(value.0.name),
-            source_ids: iter::once(value.0.id).map(|mbid| format!("mbid:{}", mbid)).collect::<HashSet<_>>(),
+            source_ids: Default::default(),
+            known_ids: iter::once(&value.0.id).map(|mbid| KnownId::MusicBrainzId(mbid.to_string())).collect::<HashSet<_>>(),
             disambiguation: none_if_empty(value.0.disambiguation),
             genres: value.0.genres.iter().flatten()
                 .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
@@ -311,8 +326,10 @@ impl From<musicbrainz_rs::entity::release::Release> for ReleaseConverter {
 impl From<ReleaseConverter> for dimple_core::model::Release {
     fn from(value: ReleaseConverter) -> Self {
         dimple_core::model::Release {
-            key: value.0.id,
+            key: Default::default(),
             title: value.0.title,
+            source_ids: Default::default(),
+            known_ids: iter::once(&value.0.id).map(|mbid| KnownId::MusicBrainzId(mbid.to_string())).collect::<HashSet<_>>(),
 
             artists: value.0.artist_credit.iter().flatten()
                 .map(|f| Artist::from(ArtistCreditConverter::from(f.to_owned())))
@@ -469,8 +486,10 @@ impl From<musicbrainz_rs::entity::recording::Recording> for RecordingConverter {
 impl From<RecordingConverter> for dimple_core::model::Recording {
     fn from(value: RecordingConverter) -> Self {
         dimple_core::model::Recording {
-            key: value.0.id,
+            key: Default::default(),
             title: value.0.title,
+            source_ids: Default::default(),
+            known_ids: iter::once(&value.0.id).map(|mbid| KnownId::MusicBrainzId(mbid.to_string())).collect::<HashSet<_>>(),
 
             annotation: value.0.annotation.unwrap_or_default(),
             disambiguation: value.0.disambiguation.unwrap_or_default(),

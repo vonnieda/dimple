@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::mem::discriminant;
 
 use image::DynamicImage;
 use serde::Deserialize;
@@ -19,15 +20,14 @@ pub struct Artist {
     pub key: String,
     pub name: Option<String>,
     pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
 
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
     pub genres: Vec<Genre>,
     pub relations: Vec<Relation>,
+    // pub links: HashSet<UrlRelation>,
 }
-
-
-
 
 // https://musicbrainz.org/doc/ReleaseGroup
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
@@ -55,13 +55,15 @@ pub struct ReleaseGroup {
 pub struct Release {
     pub key: String,
     pub title: String,
+    pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
 
-    pub artists: Vec<Artist>,
+    pub artists: Vec<Artist>, // TODO rm
     pub barcode: String,
     pub country: String,
     pub date: String,
     pub disambiguation: String,
-    pub genres: Vec<Genre>,
+    pub genres: Vec<Genre>, // TODO rm
     pub media: Vec<Medium>, // TODO rm
     pub packaging: String,
     pub relations: Vec<Relation>,
@@ -108,6 +110,8 @@ pub struct Track {
 pub struct Recording {
     pub key: String,
     pub title: String,
+    pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
 
     pub annotation: String,
     pub disambiguation: String,
@@ -128,6 +132,8 @@ pub struct Recording {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct RecordingSource {
     pub key: String,
+    pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
 }
 
 
@@ -169,7 +175,7 @@ pub enum RelationContent {
 
 
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct UrlRelation {
     pub id: String,
     pub resource: String,
@@ -195,6 +201,37 @@ pub struct Attributed<T> {
     pub url: String,
     pub license: String,
     pub copyright_holder: String,
+}
+
+
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub enum KnownId {
+    MusicBrainzId(String),
+    DiscogsId,
+    LastFmId,
+    WikidataId,
+    SpotifyId,
+    DeezerId,
+    TidalId,
+    YouTubeId,
+    ItunesStoreId,
+    AppleMusicId, // TODO same as above?
+    QobuzId,
+    BandcampUrl,
+    SoundCloud,
+
+    // https://musicbrainz.org/doc/Barcode
+    Barcode,
+
+    // https://musicbrainz.org/doc/ISRC
+    ISRC,
+
+    // https://musicbrainz.org/doc/ASIN
+    ASIN,
+
+    AcoustId,
+    AcoustIdFingerprint,
 }
 
 
@@ -258,6 +295,15 @@ impl Artist {
             });
         Box::new(iter)
     }
+    
+    pub fn known_id(&self, of_type: &KnownId) -> Option<KnownId> {
+        for id in &self.known_ids {
+            if discriminant(id) == discriminant(of_type) {
+                return Some(id.clone())
+            }
+        }
+        None
+    }
 }
 
 
@@ -293,6 +339,15 @@ impl Release {
             _ => panic!(),
         }); 
         Box::new(iter)    
+    }
+
+    pub fn known_id(&self, of_type: &KnownId) -> Option<KnownId> {
+        for id in &self.known_ids {
+            if discriminant(id) == discriminant(of_type) {
+                return Some(id.clone())
+            }
+        }
+        None
     }
 }
 
@@ -370,6 +425,15 @@ impl Recording {
         }); 
         Box::new(iter)    
     }
+
+    pub fn known_id(&self, of_type: &KnownId) -> Option<KnownId> {
+        for id in &self.known_ids {
+            if discriminant(id) == discriminant(of_type) {
+                return Some(id.clone())
+            }
+        }
+        None
+    }
 }
 
 impl RecordingSource {
@@ -399,5 +463,20 @@ impl Model {
             Model::RecordingSource(r) => r.key.clone(),
             Model::Genre(g) => g.name.clone(),
         }
+    }
+
+    pub fn mbid(&self) -> Option<String> {
+        let known_ids = match self {
+            Model::Artist(a) => a.known_ids.clone(),
+            Model::Release(r) => r.known_ids.clone(),
+            Model::Recording(r) => r.known_ids.clone(),
+            _ => todo!(),
+        };
+        for id in known_ids {
+            if let KnownId::MusicBrainzId(mbid) = id {
+                return Some(mbid.to_string())
+            }
+        }
+        None
     }
 }
