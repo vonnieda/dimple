@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use image::DynamicImage;
 use serde::Deserialize;
 use serde::Serialize;
@@ -16,6 +18,7 @@ use crate::collection::Collection;
 pub struct Artist {
     pub key: String,
     pub name: Option<String>,
+    pub source_ids: HashSet<String>,
 
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
@@ -33,13 +36,13 @@ pub struct ReleaseGroup {
     pub key: String,
     pub title: String,
 
-    pub artists: Vec<Artist>,
+    pub artists: Vec<Artist>, // TODO rm
     pub disambiguation: String,
     pub first_release_date: String,
     pub genres: Vec<Genre>,
     pub primary_type: String,
     pub relations: Vec<Relation>,
-    pub releases: Vec<Release>,
+    pub releases: Vec<Release>, // TODO rm
     pub summary: String,
 }
 
@@ -59,10 +62,10 @@ pub struct Release {
     pub date: String,
     pub disambiguation: String,
     pub genres: Vec<Genre>,
-    pub media: Vec<Medium>,
+    pub media: Vec<Medium>, // TODO rm
     pub packaging: String,
     pub relations: Vec<Relation>,
-    pub release_group: ReleaseGroup,
+    pub release_group: ReleaseGroup, // TODO rm/id?
     pub status: String,
     pub summary: String,
 }

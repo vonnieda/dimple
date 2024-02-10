@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+use std::iter;
 use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
@@ -243,8 +245,9 @@ impl From<musicbrainz_rs::entity::artist::Artist> for ArtistConverter {
 impl From<ArtistConverter> for dimple_core::model::Artist {
     fn from(value: ArtistConverter) -> Self {
         dimple_core::model::Artist {
-            key: value.0.id,
+            key: Default::default(),
             name: none_if_empty(value.0.name),
+            source_ids: iter::once(value.0.id).map(|mbid| format!("mbid:{}", mbid)).collect::<HashSet<_>>(),
             disambiguation: none_if_empty(value.0.disambiguation),
             genres: value.0.genres.iter().flatten()
                 .map(|f| Genre::from(GenreConverter::from(f.to_owned())))

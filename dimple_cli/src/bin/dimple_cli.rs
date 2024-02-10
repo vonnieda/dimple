@@ -30,7 +30,7 @@ fn main() -> anyhow::Result<()> {
     librarian.add_library(Box::new(FileLibrary::new(&paths)));
 
     let artist = Artist::search("we were heading north", &librarian).next().unwrap();
-    log::info!("{:?}", &artist.name);
+    log::info!("{:?}", &artist);
     let release = artist.releases(&librarian).next().unwrap();
     log::info!("{:?}", &release.title);
     let recording = release.recordings(&librarian).next().unwrap();
