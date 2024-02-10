@@ -96,6 +96,8 @@ impl Collection for Librarian {
         "Librarian".to_string()
     }
 
+    /// TODO need to decide if this returns fetched objects or not. I think
+    /// it must, and they must be merged and such first.
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = Model>> {
         // TODO include local
         // TODO remove dupes

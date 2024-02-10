@@ -79,7 +79,7 @@ impl Collection for MusicBrainzLibrary {
             (Model::ReleaseGroup(_), Some(Model::Artist(a))) => {                
                 // TODO handle paging
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("https://musicbrainz.org/ws/2/release-group/{}?fmt=json", a.key));
+                    &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", a.key));
                 self.enforce_rate_limit();
                 let results: Vec<_> = MBReleaseGroup::browse().by_artist(&a.key)
                     .execute()
@@ -92,6 +92,44 @@ impl Collection for MusicBrainzLibrary {
                     .iter()
                     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
                     .map(Model::ReleaseGroup)
+                    .collect();
+                Box::new(results.into_iter())
+            },
+            (Model::Release(_), Some(Model::Artist(a))) => {                
+                // TODO handle paging
+                let request_token = LibrarySupport::start_request(self, 
+                    &format!("https://musicbrainz.org/ws/2/release/TODO TODO{}?fmt=json", a.key));
+                self.enforce_rate_limit();
+                let results: Vec<_> = MBRelease::browse().by_artist(&a.key)
+                    .execute()
+                    .inspect(|_f| {
+                        LibrarySupport::end_request(request_token, None, None);
+                    })        
+                    .inspect_err(|f| log::error!("{}", f))
+                    .unwrap()
+                    .entities
+                    .iter()
+                    .map(|src| Release::from(ReleaseConverter::from(src.clone())))
+                    .map(Model::Release)
+                    .collect();
+                Box::new(results.into_iter())
+            },
+            (Model::Recording(_), Some(Model::Release(a))) => {
+                // TODO handle paging
+                let request_token = LibrarySupport::start_request(self, 
+                    &format!("https://musicbrainz.org/ws/2/recording/TODO TODO{}?fmt=json", a.key));
+                self.enforce_rate_limit();
+                let results: Vec<_> = MBRecording::browse().by_release(&a.key)
+                    .execute()
+                    .inspect(|_f| {
+                        LibrarySupport::end_request(request_token, None, None);
+                    })        
+                    .inspect_err(|f| log::error!("{}", f))
+                    .unwrap()
+                    .entities
+                    .iter()
+                    .map(|src| Recording::from(RecordingConverter::from(src.clone())))
+                    .map(Model::Recording)
                     .collect();
                 Box::new(results.into_iter())
             },
@@ -174,6 +212,7 @@ impl Collection for MusicBrainzLibrary {
                     .map(Model::Recording)        
             },
             Model::Genre(_) => None,
+            Model::RecordingSource(_) => None,
         }        
     }
 }
@@ -315,7 +354,6 @@ impl From<GenreConverter> for dimple_core::model::Genre {
             name: value.0.name.clone(),
             count: value.0.count,
             summary: Default::default(),
-            fetched: Default::default(),
         }
     }
 }

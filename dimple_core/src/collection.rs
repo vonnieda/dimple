@@ -13,6 +13,7 @@ pub trait Collection: Send + Sync {
     /// search query is interpreted is left up to the implementation. In
     /// general it should return, at least, matching Artists, Releases,
     /// Genres, and Tracks.
+    /// TODO I think this will become model specific
     fn search(&self, _query: &str) -> Box<dyn Iterator<Item = Model>> {
         Box::new(vec![].into_iter())
     }
@@ -31,13 +32,32 @@ pub trait Collection: Send + Sync {
         None
     }
 
-    /// Return zero or more sources for the given recording. 
-    fn sources(&self, _recording: &Recording) -> Box<dyn Iterator<Item = RecordingSource>> {
-        Box::new(vec![].into_iter())
-    }
-
-    /// Returns an iterator over all of the objects of the type of the entity.
-    /// This is used to list all artists, releases, release-groups, etc.
+    /// List all of the entities of the given type, constrained by the specified
+    /// related_to object, if given. This can be used to list primary entities
+    /// as well as list entities that have a foreign key to an entity.
+    /// 
+    /// Examples:
+    /// All tracks:
+    /// let tracks = list(Model::Track, None);
+    /// 
+    /// Tracks in an album:
+    /// let album: Album;
+    /// let tracks = list(Model::Track, album);
+    /// 
+    /// Lyrics for a Track:
+    /// let track: Track;
+    /// let lyrics = list(Model::Lyrics, track);
+    /// 
+    /// Albums for an Artist:
+    /// let artist: Artist;
+    /// let albums = list(Model::Album, artist);
+    /// 
+    /// All artists:
+    /// let artists = list(Model::Artist, None);
+    /// 
+    /// Sources for a track:
+    /// let track: Track;
+    /// let sources = list(Model::TrackSource, track);
     fn list(&self, _of_type: &Model, _related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
         Box::new(vec![].into_iter())
     }

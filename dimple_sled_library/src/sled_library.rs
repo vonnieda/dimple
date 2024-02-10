@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 
 use dimple_core::{collection::Collection, image_cache::ImageCache, model::Artist};
-use dimple_core::model::Model;
+use dimple_core::model::{Model, Recording, RecordingSource, Release, ReleaseGroup};
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
@@ -21,6 +21,7 @@ pub struct SledLibrary {
     releases: Tree,
     pub images: ImageCache,
     recordings: Tree,
+    sources: Tree,
     _audio: Tree,
 }
 
@@ -38,6 +39,7 @@ impl SledLibrary {
         let audio = db.open_tree("audio").unwrap();
         let artists = db.open_tree("artists").unwrap();
         let recordings = db.open_tree("recordings").unwrap();
+        let sources = db.open_tree("sources").unwrap();
         Self { 
             path: path.to_string(),
             release_groups,
@@ -45,6 +47,7 @@ impl SledLibrary {
             artists,
             images: ImageCache::new(images),
             recordings,
+            sources,
             _audio: audio,
         }
     }
@@ -114,9 +117,31 @@ impl Collection for SledLibrary {
                 Box::new(iter)
             },
             (Model::ReleaseGroup(_), Some(Model::Artist(a))) => {
+                // TODO this is temp code that doesn't work cause it's not filtering.
                 let iter = self.release_groups.iter()
                     .map(|t| deserialize(&t.unwrap().1))
                     .map(Model::ReleaseGroup);
+                Box::new(iter)
+            },
+            (Model::Release(_), Some(Model::Artist(a))) => {
+                // TODO this is temp code that doesn't work cause it's not filtering.
+                let iter = self.releases.iter()
+                    .map(|t| deserialize(&t.unwrap().1))
+                    .map(Model::Release);
+                Box::new(iter)
+            },
+            (Model::Recording(_), Some(Model::Release(a))) => {
+                // TODO this is temp code that doesn't work cause it's not filtering.
+                let iter = self.recordings.iter()
+                    .map(|t| deserialize(&t.unwrap().1))
+                    .map(Model::Recording);
+                Box::new(iter)
+            },
+            (Model::RecordingSource(_), Some(Model::Recording(a))) => {
+                // TODO this is temp code that doesn't work cause it's not filtering.
+                let iter = self.sources.iter()
+                    .map(|t| deserialize(&t.unwrap().1))
+                    .map(Model::RecordingSource);
                 Box::new(iter)
             },
             _ => todo!("{:?} {:?}", of_type, related_to),
@@ -136,13 +161,16 @@ impl Collection for SledLibrary {
                 get::<Artist>(&self.artists, &a.key).map(|a| a.entity())
             },
             Model::ReleaseGroup(r) => {
-                get::<Artist>(&self.release_groups, &r.key).map(|a| a.entity())
+                get::<ReleaseGroup>(&self.release_groups, &r.key).map(|a| a.entity())
             },
             Model::Release(r) => {
-                get::<Artist>(&self.releases, &r.key).map(|a| a.entity())
+                get::<Release>(&self.releases, &r.key).map(|a| a.entity())
             },
             Model::Recording(r) => {
-                get::<Artist>(&self.recordings, &r.key).map(|a| a.entity())
+                get::<Recording>(&self.recordings, &r.key).map(|a| a.entity())
+            },
+            Model::RecordingSource(r) => {
+                get::<RecordingSource>(&self.sources, &r.key).map(|a| a.entity())
             },
             Model::Genre(_) => todo!(),
         }        

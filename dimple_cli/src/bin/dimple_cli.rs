@@ -1,6 +1,6 @@
-use std::time::Duration;
 
-use dimple_core::{collection::Collection, model::{Artist, Model, Recording}};
+
+use dimple_core::model::Artist;
 use dimple_coverartarchive_library::CoverArtArchiveLibrary;
 use dimple_deezer_library::DeezerLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
@@ -23,48 +23,34 @@ fn main() -> anyhow::Result<()> {
     builder.filter(Some("symphonia_format_isomp4"), log::LevelFilter::Off);
     builder.init();
 
+    let librarian = default_librarian();
+    let paths = vec![
+        "/Users/jason/Music/My Music/We Were Heading North".to_string(),
+    ];
+    librarian.add_library(Box::new(FileLibrary::new(&paths)));
 
+    let artist = Artist::search("we were heading north", &librarian).next().unwrap();
+    log::info!("{:?}", &artist.name);
+    let release = artist.releases(&librarian).next().unwrap();
+    log::info!("{:?}", &release.title);
+    let recording = release.recordings(&librarian).next().unwrap();
+    log::info!("{:?}", &recording.title);
+    let source = recording.sources(&librarian).next();
+    log::info!("{:?}", source);
+
+    Ok(())
+}
+
+fn default_librarian() -> Librarian {
     let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
     let dir = dirs.data_dir().to_str().unwrap();
     let librarian = Librarian::new(dir);
-
-    let paths = vec![
-        "/Users/jason/Music/My Music".to_string(),
-    ];
-    // librarian.add_library(Box::new(FileLibrary::new(&paths)));
     librarian.add_library(Box::<MusicBrainzLibrary>::default());
-    // librarian.add_library(Box::<TheAudioDbLibrary>::default());
-    // librarian.add_library(Box::<FanartTvLibrary>::default());
-    // librarian.add_library(Box::<DeezerLibrary>::default());
-    // librarian.add_library(Box::<WikidataLibrary>::default());
-    // librarian.add_library(Box::<LastFmLibrary>::default());
-    // librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
-
-    // std::thread::sleep(Duration::from_secs(5));
-
-    // for artist in Artist::list(&librarian) {
-    //     dbg!(artist.name);
-    // }
-    // for track in Recording::list(&librarian) {
-    //     dbg!(track.title);
-    // }
-
-    let artists: Vec<Artist> = Artist::search("we were heading north", &librarian).collect();
-    dbg!(&artists);
-
-    let artist = artists.first().unwrap();
-    dbg!(&artist);
-
-    let artist = artist.fetch(&librarian).unwrap();
-    dbg!(&artist);
-
-    // let release_groups: Vec<_> = artist.release_groups(&librarian).collect();
-    // dbg!(&release_groups);
-
-    // for r in release_groups {
-    //     let rg = r.fetch(&librarian).unwrap();
-    //     dbg!(&rg);
-    // }
-
-    Ok(())
+    librarian.add_library(Box::<TheAudioDbLibrary>::default());
+    librarian.add_library(Box::<FanartTvLibrary>::default());
+    librarian.add_library(Box::<DeezerLibrary>::default());
+    librarian.add_library(Box::<WikidataLibrary>::default());
+    librarian.add_library(Box::<LastFmLibrary>::default());
+    librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
+    librarian
 }

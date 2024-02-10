@@ -72,6 +72,7 @@ impl FileLibrary {
         // Get the instantiated format reader.
         let mut format = probed.format;
 
+        // Collect all of the tags from both the file and format metadata
         let mut tags: Vec<Tag> = vec![];
 
         if let Some(metadata) = probed.metadata.get() {
@@ -121,6 +122,14 @@ impl Collection for FileLibrary {
                 let recordings: Vec<Recording> = files.values().map(Into::into).collect();
                 let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
                 Box::new(models.into_iter())
+            }
+            (Model::RecordingSource(_), Some(Model::Recording(r))) => {
+                // let files = self.files.lock().unwrap().clone();
+                // let recordings: Vec<Recording> = files.values().map(Into::into).collect();
+                // let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
+                // Box::new(models.into_iter())
+                log::info!("Recordings for {:?}", r);
+                Box::new(vec![].into_iter())
             }
             _ => {
                 Box::new(vec![].into_iter())

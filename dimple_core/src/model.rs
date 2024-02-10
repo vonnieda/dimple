@@ -124,7 +124,7 @@ pub struct Recording {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct RecordingSource {
-    pub recording_id: String,
+    pub key: String,
 }
 
 
@@ -137,9 +137,6 @@ pub struct Genre {
     pub name: String,
     pub count: u32,
     pub summary: String,
-
-    #[serde(default)]
-    pub fetched: bool,
 }
 
 
@@ -241,6 +238,15 @@ impl Artist {
         Box::new(iter)    
     }
 
+    pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
+        let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Model::Release(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
     pub fn search(query: &str, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
         let iter = lib.search(query)
             .filter_map(|m| match m {
@@ -271,6 +277,19 @@ impl Release {
 
     pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
         Self::get(&self.key, lib)
+    }
+
+    pub fn entity(&self) -> Model {
+        Model::Release(self.clone())
+    }
+
+    pub fn recordings(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
+        let iter = lib.list(&Recording::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Model::Recording(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
     }
 }
 
@@ -339,8 +358,22 @@ impl Recording {
     pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
         Self::get(&self.key, lib)
     }
+
+    pub fn sources(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = RecordingSource>> {
+        let iter = lib.list(&RecordingSource::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Model::RecordingSource(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
 }
 
+impl RecordingSource {
+    pub fn entity(&self) -> Model {
+        Model::RecordingSource(self.clone())
+    }
+}
 
 #[derive(Clone, Debug)]
 pub enum Model {
@@ -349,6 +382,7 @@ pub enum Model {
     ReleaseGroup(ReleaseGroup),
     Release(Release),
     Recording(Recording),
+    RecordingSource(RecordingSource),
 }
 
 
@@ -359,6 +393,7 @@ impl Model {
             Model::ReleaseGroup(r) => r.key.clone(),
             Model::Release(r) => r.key.clone(),
             Model::Recording(r) => r.key.clone(),
+            Model::RecordingSource(r) => r.key.clone(),
             Model::Genre(g) => g.name.clone(),
         }
     }
