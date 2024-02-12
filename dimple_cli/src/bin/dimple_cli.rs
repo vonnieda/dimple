@@ -32,8 +32,8 @@ fn main() -> anyhow::Result<()> {
     librarian.add_library(Box::new(FileLibrary::new(&paths)));
     std::thread::sleep(Duration::from_secs(2));
 
-    // let artist = Artist::search("we were heading north", &librarian).next().expect("no search results");
-    let artist = Artist::list(&librarian).next().expect("no artists");
+    let artist = Artist::search("we were heading north", &librarian).next().expect("no search results");
+    // let artist = Artist::list(&librarian).next().expect("no artists");
     log::info!("{:?}", &artist);
     let release = artist.releases(&librarian).next().expect("no releases");
     log::info!("{:?}", &release);
@@ -49,7 +49,7 @@ fn default_librarian() -> Librarian {
     let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
     let dir = dirs.data_dir().to_str().unwrap();
     let librarian = Librarian::new(dir);
-    // librarian.add_library(Box::<MusicBrainzLibrary>::default());
+    librarian.add_library(Box::<MusicBrainzLibrary>::default());
     librarian.add_library(Box::<TheAudioDbLibrary>::default());
     librarian.add_library(Box::<FanartTvLibrary>::default());
     librarian.add_library(Box::<DeezerLibrary>::default());

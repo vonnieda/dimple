@@ -46,10 +46,11 @@ impl Collection for CoverArtArchiveLibrary {
     fn image(&self, _entity: &Model) -> Option<image::DynamicImage> {
         match _entity {
             Model::ReleaseGroup(r) => {
+                let mbid = r.entity().mbid()?;
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("http://coverartarchive.org/{}", r.key));                
+                    &format!("http://coverartarchive.org/{}", mbid));
                 let mb = ReleaseGroup {
-                    id: r.key.to_string(),
+                    id: mbid,
                     ..Default::default()
                 };
                 // TODO replace with reqwest
@@ -66,10 +67,11 @@ impl Collection for CoverArtArchiveLibrary {
                     ?
             },
             Model::Release(r) => {
+                let mbid = r.entity().mbid()?;
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("http://coverartarchive.org/{}", r.key));                
+                    &format!("http://coverartarchive.org/{}", mbid));                
                 let mb = Release {
-                    id: r.key.to_string(),
+                    id: mbid,
                     title: "".to_string(),
                     aliases: None,
                     annotation:  None,

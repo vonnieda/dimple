@@ -1,4 +1,6 @@
-use dimple_core::{collection::{Collection, LibrarySupport}, model::{RelationContent, Relation}};
+use std::collections::HashSet;
+
+use dimple_core::{collection::{Collection, LibrarySupport}, model::{Artist, Recording, Release, ReleaseGroup}};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
 use dimple_core::model::Model;
@@ -65,15 +67,12 @@ struct WpSummary {
 // TODO expand this to pull in all the alternate IDs and store them on objects.
 // https://www.wikidata.org/wiki/Q2549534
 impl WikidataLibrary {
-    fn get_summary(&self, relations: &[Relation]) -> Option<String> {
+    fn get_summary(&self, links: &HashSet<String>) -> Option<String> {
         // Find a Wikidata link if one exists.
-        let wikidata_url = relations
-            .iter()
-            .find_map(|rel| {
-                if let RelationContent::Url(url) = &rel.content {
-                    if url.resource.starts_with("https://www.wikidata.org/wiki/Q") || url.resource.starts_with("http://www.wikidata.org/wiki/Q") {
-                        return Some(url.resource.clone());
-                    }
+        let wikidata_url = links.iter()
+            .find_map(|link| {
+                if link.starts_with("https://www.wikidata.org/wiki/Q") || link.starts_with("http://www.wikidata.org/wiki/Q") {
+                    return Some(link.clone());
                 }
                 None
             })?;
@@ -169,36 +168,29 @@ impl Collection for WikidataLibrary {
 
     fn fetch(&self, entity: &Model) -> Option<Model> {
         match entity.clone() {
-            Model::Artist(mut artist) => {
-                artist.summary = self.get_summary(&artist.relations);
-                artist.summary.as_ref()?;
-                Some(Model::Artist(artist))
-            },
+            Model::Artist(artist) => self.get_summary(&artist.links)
+                .map(|summary| Artist {
+                    summary: Some(summary),
+                    ..Default::default()
+                }.entity()),
+                
+            Model::ReleaseGroup(rg) => self.get_summary(&rg.links)
+                .map(|summary| ReleaseGroup {
+                    summary: Some(summary),
+                    ..Default::default()
+                }.entity()),
 
-            Model::ReleaseGroup(mut release_group) => {
-                release_group.summary = self.get_summary(&release_group.relations)
-                    .unwrap_or_default();
-                if release_group.summary.is_empty() {
-                    return None
-                }
-                Some(Model::ReleaseGroup(release_group))
-            },
+            Model::Release(rg) => self.get_summary(&rg.links)
+                .map(|summary| Release {
+                    summary: Some(summary),
+                    ..Default::default()
+                }.entity()),
 
-            Model::Release(mut release) => {
-                release.summary = self.get_summary(&release.relations).unwrap_or_default();
-                if release.summary.is_empty() {
-                    return None
-                }
-                Some(Model::Release(release))
-            },
-
-            Model::Recording(mut rec) => {
-                rec.summary = self.get_summary(&rec.relations).unwrap_or_default();
-                if rec.summary.is_empty() {
-                    return None
-                }
-                Some(Model::Recording(rec))
-            },
+            Model::Recording(r) => self.get_summary(&r.links)
+                .map(|summary| Recording {
+                    summary: Some(summary),
+                    ..Default::default()
+                }.entity()),
 
             _ => None,
         }

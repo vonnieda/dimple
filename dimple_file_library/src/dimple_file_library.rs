@@ -125,35 +125,9 @@ impl Collection for FileLibrary {
                 let models: Vec<Model> = releases.iter().map(Release::entity).collect();
                 Box::new(models.into_iter())
             }
-            (Model::Release(_), Some(Model::Artist(artist))) => {
-                // TODO also trash, I think?
-                let files = self.files.lock().unwrap().clone();
-                let releases: Vec<Release> = files.values()
-                    .filter(|r| {
-                        let ra: Artist = (*r).into();
-                        ra == *artist
-                    })
-                    .map(Into::into)
-                    .collect();
-                let models: Vec<Model> = releases.iter().map(Release::entity).collect();
-                Box::new(models.into_iter())
-            }
             (Model::Recording(_), None) => {
                 let files = self.files.lock().unwrap().clone();
                 let recordings: Vec<Recording> = files.values().map(Into::into).collect();
-                let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
-                Box::new(models.into_iter())
-            }
-            (Model::Recording(_), Some(Model::Release(release))) => {
-                // TODO also trash, I think?
-                let files = self.files.lock().unwrap().clone();
-                let recordings: Vec<Recording> = files.values()
-                    .filter(|rec| {
-                        let rec_rel: Release = (*rec).into();
-                        rec_rel == *release
-                    })
-                    .map(Into::into)
-                    .collect();
                 let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
                 Box::new(models.into_iter())
             }
@@ -170,6 +144,32 @@ impl Collection for FileLibrary {
                 let models: Vec<Model> = sources.iter().map(RecordingSource::entity).collect();
                 Box::new(models.into_iter())
             }
+            // (Model::Release(_), Some(Model::Artist(artist))) => {
+            //     // TODO also trash, I think?
+            //     let files = self.files.lock().unwrap().clone();
+            //     let releases: Vec<Release> = files.values()
+            //         .filter(|r| {
+            //             let ra: Artist = (*r).into();
+            //             ra == *artist
+            //         })
+            //         .map(Into::into)
+            //         .collect();
+            //     let models: Vec<Model> = releases.iter().map(Release::entity).collect();
+            //     Box::new(models.into_iter())
+            // }
+            // (Model::Recording(_), Some(Model::Release(release))) => {
+            //     // TODO also trash, I think?
+            //     let files = self.files.lock().unwrap().clone();
+            //     let recordings: Vec<Recording> = files.values()
+            //         .filter(|rec| {
+            //             let rec_rel: Release = (*rec).into();
+            //             rec_rel == *release
+            //         })
+            //         .map(Into::into)
+            //         .collect();
+            //     let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
+            //     Box::new(models.into_iter())
+            // }
             _ => {
                 Box::new(vec![].into_iter())
             }
@@ -208,7 +208,7 @@ impl From<&FileDetails> for Artist {
 impl From<&FileDetails> for Release {
     fn from(value: &FileDetails) -> Self {
         Self {
-            title: value.get_tag_value(StandardTagKey::Album).unwrap_or_default(),
+            title: value.get_tag_value(StandardTagKey::Album),
             source_ids: std::iter::once(value.path.clone()).collect(),
             known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzAlbumId) {
                 Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
@@ -222,7 +222,7 @@ impl From<&FileDetails> for Release {
 impl From<&FileDetails> for Recording {
     fn from(value: &FileDetails) -> Self {
         Self {
-            title: value.get_tag_value(StandardTagKey::TrackTitle).unwrap_or_default(),
+            title: value.get_tag_value(StandardTagKey::TrackTitle),
             source_ids: std::iter::once(value.path.clone()).collect(),
             known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzRecordingId) {
                 Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),

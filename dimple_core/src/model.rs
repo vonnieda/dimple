@@ -11,127 +11,112 @@ use crate::collection::Collection;
 /// https://musicbrainz.org/doc/Artist
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
 
-
-
-
 // https://musicbrainz.org/doc/Artist
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct Artist {
-    pub key: String,
+    pub key: Option<String>,
     pub name: Option<String>,
     pub source_ids: HashSet<String>,
     pub known_ids: HashSet<KnownId>,
-
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
-    pub genres: Vec<Genre>,
-    pub relations: Vec<Relation>,
-    // pub links: HashSet<UrlRelation>,
+    pub links: HashSet<String>,
 }
 
 // https://musicbrainz.org/doc/ReleaseGroup
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(default)]
 pub struct ReleaseGroup {
-    pub key: String,
-    pub title: String,
+    pub key: Option<String>,
+    pub title: Option<String>,
+    pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
+    pub links: HashSet<String>,
 
-    pub artists: Vec<Artist>, // TODO rm
-    pub disambiguation: String,
-    pub first_release_date: String,
-    pub genres: Vec<Genre>,
-    pub primary_type: String,
-    pub relations: Vec<Relation>,
-    pub releases: Vec<Release>, // TODO rm
-    pub summary: String,
+    pub first_release_date: Option<String>,
+    pub primary_type: Option<String>,
 }
 
 
 
 
 // https://musicbrainz.org/doc/Release
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(default)]
 pub struct Release {
-    pub key: String,
-    pub title: String,
+    pub key: Option<String>,
+    pub title: Option<String>,
     pub source_ids: HashSet<String>,
     pub known_ids: HashSet<KnownId>,
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
+    pub links: HashSet<String>,
 
-    pub artists: Vec<Artist>, // TODO rm
-    pub barcode: String,
-    pub country: String,
-    pub date: String,
-    pub disambiguation: String,
-    pub genres: Vec<Genre>, // TODO rm
-    pub media: Vec<Medium>, // TODO rm
-    pub packaging: String,
-    pub relations: Vec<Relation>,
-    pub release_group: ReleaseGroup, // TODO rm/id?
-    pub status: String,
-    pub summary: String,
+    pub barcode: Option<String>,
+    pub country: Option<String>,
+    pub date: Option<String>, // TODO should be Instant but need to think about serialization
+    pub packaging: Option<String>,
+    pub status: Option<String>,
 }
 
 
 
 
-// https://musicbrainz.org/doc/Medium
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct Medium {
-    pub title: String,
+// // https://musicbrainz.org/doc/Medium
+// #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+// pub struct Medium {
+//     pub title: String,
 
-    pub disc_count: u32,
-    pub format: String,
-    pub position: u32,
-    pub track_count: u32,
-    pub tracks: Vec<Track>,
-}
-
-
+//     pub disc_count: u32,
+//     pub format: String,
+//     pub position: u32,
+//     pub track_count: u32,
+//     pub tracks: Vec<Track>,
+// }
 
 
-// https://musicbrainz.org/doc/Track
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct Track {
-    pub key: String,
-    pub title: String,
 
-    pub length: u32,
-    pub number: String,
-    pub position: u32,
-    pub recording: Recording,
-}
+
+// // https://musicbrainz.org/doc/Track
+// #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+// pub struct Track {
+//     pub key: String,
+//     pub title: String,
+
+//     pub length: u32,
+//     pub number: String,
+//     pub position: u32,
+//     pub recording: Recording,
+// }
 
 
 
 
 // https://musicbrainz.org/doc/Recording
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct Recording {
-    pub key: String,
-    pub title: String,
+    pub key: Option<String>,
+    pub title: Option<String>,
     pub source_ids: HashSet<String>,
     pub known_ids: HashSet<KnownId>,
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
+    pub links: HashSet<String>,
 
-    pub annotation: String,
-    pub disambiguation: String,
-    pub length: u32,
-    pub summary: String,
+    pub annotation: Option<String>,
+    pub length: Option<u32>,
 
-    pub isrcs: Vec<String>,
-    pub relations: Vec<Relation>,
-    pub releases: Vec<Release>,
-    pub artist_credits: Vec<Artist>,
-
-    pub genres: Vec<Genre>,
+    pub isrcs: HashSet<String>,
 }
 
 
 
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct RecordingSource {
-    pub key: String,
+    pub key: Option<String>,
     pub source_ids: HashSet<String>,
     pub known_ids: HashSet<KnownId>,
 }
@@ -139,9 +124,9 @@ pub struct RecordingSource {
 
 
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct Genre {
-    pub key: String,
+    pub key: Option<String>,
 
     pub name: String,
     pub count: u32,
@@ -151,7 +136,7 @@ pub struct Genre {
 
 
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct Playlist {
     pub name: String,
 }
@@ -159,23 +144,7 @@ pub struct Playlist {
 
 
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct Relation {
-    pub content: RelationContent,
-}
-
-
-
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub enum RelationContent {
-    Url(UrlRelation),
-}
-
-
-
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, Hash)]
 pub struct UrlRelation {
     pub id: String,
     pub resource: String,
@@ -238,13 +207,6 @@ pub enum KnownId {
 
 
 impl Artist {
-    pub fn from_id(id: &str) -> Self {
-        Self {
-            key: id.to_string(),
-            ..Default::default()
-        }
-    }
-
     pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
         let iter = col.list(&Artist::default().entity(), None)
             .map(|m| match m {
@@ -254,16 +216,16 @@ impl Artist {
         Box::new(iter)
     }
 
-    pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
-        match lib.fetch(&Model::Artist(Self::from_id(id))) {
-            Some(Model::Artist(o)) => Some(o),
-            _ => todo!()
-        }
-    }
+    // pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
+    //     match lib.fetch(&Model::Artist(Self::from_id(id))) {
+    //         Some(Model::Artist(o)) => Some(o),
+    //         _ => todo!()
+    //     }
+    // }
 
-    pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-        Self::get(&self.key, lib)
-    }
+    // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
+    //     Self::get(&self.key, lib)
+    // }
 
     pub fn entity(&self) -> Model {
         Model::Artist(self.clone())
@@ -310,23 +272,23 @@ impl Artist {
 
 
 impl Release {
-    pub fn from_id(id: &str) -> Self {
-        Self {
-            key: id.to_string(),
-            ..Default::default()
-        }
-    }
+    // pub fn from_id(id: &str) -> Self {
+    //     Self {
+    //         key: id.to_string(),
+    //         ..Default::default()
+    //     }
+    // }
 
-    pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
-        match lib.fetch(&Model::Release(Self::from_id(id))) {
-            Some(Model::Release(o)) => Some(o),
-            _ => todo!()
-        }
-    }
+    // pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
+    //     match lib.fetch(&Model::Release(Self::from_id(id))) {
+    //         Some(Model::Release(o)) => Some(o),
+    //         _ => todo!()
+    //     }
+    // }
 
-    pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-        Self::get(&self.key, lib)
-    }
+    // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
+    //     Self::get(&self.key, lib)
+    // }
 
     pub fn entity(&self) -> Model {
         Model::Release(self.clone())
@@ -355,23 +317,23 @@ impl Release {
 
 
 impl ReleaseGroup {
-    pub fn from_id(id: &str) -> Self {
-        Self {
-            key: id.to_string(),
-            ..Default::default()
-        }
-    }
+    // pub fn from_id(id: &str) -> Self {
+    //     Self {
+    //         key: id.to_string(),
+    //         ..Default::default()
+    //     }
+    // }
 
-    pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
-        match lib.fetch(&Model::ReleaseGroup(Self::from_id(id))) {
-            Some(Model::ReleaseGroup(o)) => Some(o),
-            _ => todo!()
-        }
-    }
+    // pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
+    //     match lib.fetch(&Model::ReleaseGroup(Self::from_id(id))) {
+    //         Some(Model::ReleaseGroup(o)) => Some(o),
+    //         _ => todo!()
+    //     }
+    // }
 
-    pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-        Self::get(&self.key, lib)
-    }
+    // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
+    //     Self::get(&self.key, lib)
+    // }
 
     pub fn entity(&self) -> Model {
         Model::ReleaseGroup(self.clone())
@@ -386,12 +348,12 @@ impl ReleaseGroup {
 
 
 impl Recording {
-    pub fn from_id(id: &str) -> Self {
-        Self {
-            key: id.to_string(),
-            ..Default::default()
-        }
-    }
+    // pub fn from_id(id: &str) -> Self {
+    //     Self {
+    //         key: id.to_string(),
+    //         ..Default::default()
+    //     }
+    // }
 
     pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
         let iter = col.list(&Recording::default().entity(), None)
@@ -402,20 +364,20 @@ impl Recording {
         Box::new(iter)
     }
 
-    pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
-        match lib.fetch(&Model::Recording(Self::from_id(id))) {
-            Some(Model::Recording(o)) => Some(o),
-            _ => todo!()
-        }
-    }
+    // pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
+    //     match lib.fetch(&Model::Recording(Self::from_id(id))) {
+    //         Some(Model::Recording(o)) => Some(o),
+    //         _ => todo!()
+    //     }
+    // }
 
     pub fn entity(&self) -> Model {
         Model::Recording(self.clone())
     }
 
-    pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-        Self::get(&self.key, lib)
-    }
+    // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
+    //     Self::get(&self.key, lib)
+    // }
 
     pub fn sources(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = RecordingSource>> {
         let iter = lib.list(&RecordingSource::default().entity(), Some(&self.entity()));
@@ -454,14 +416,14 @@ pub enum Model {
 
 
 impl Model {
-    pub fn key(&self) -> String {
+    pub fn key(&self) -> Option<String> {
         match self {
             Model::Artist(a) => a.key.clone(),
             Model::ReleaseGroup(r) => r.key.clone(),
             Model::Release(r) => r.key.clone(),
             Model::Recording(r) => r.key.clone(),
             Model::RecordingSource(r) => r.key.clone(),
-            Model::Genre(g) => g.name.clone(),
+            Model::Genre(g) => g.key.clone(),
         }
     }
 
@@ -469,6 +431,7 @@ impl Model {
         let known_ids = match self {
             Model::Artist(a) => a.known_ids.clone(),
             Model::Release(r) => r.known_ids.clone(),
+            Model::ReleaseGroup(r) => r.known_ids.clone(),
             Model::Recording(r) => r.known_ids.clone(),
             _ => todo!(),
         };

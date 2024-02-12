@@ -37,7 +37,7 @@ impl Librarian {
         DynamicImage::new_rgb8(width, height)
     }
 
-    /// Get or create a thumbmail image at the given size for the entity.
+    /// Get or create a thumbnail image at the given size for the entity.
     /// If no image can be loaded from the library one is generated. Results
     /// either from the library or generated are cached for future calls.
     pub fn thumbnail(&self, entity: &Model, width: u32, height: u32) -> DynamicImage {
@@ -166,13 +166,19 @@ impl Merge<Model> for Model {
             (Model::ReleaseGroup(left), Model::ReleaseGroup(right)) => {
                 ReleaseGroup::merge(left, right).entity()
             },
+            (Model::Release(left), Model::Release(right)) => {
+                Release::merge(left, right).entity()
+            },
+            (Model::Recording(left), Model::Recording(right)) => {
+                Recording::merge(left, right).entity()
+            },
             _ => todo!()
         }
     }
 }
 
 impl Merge<Self> for Artist {
-    fn merge(base: Self, b: Self) -> Self {
+    fn merge(a: Self, b: Self) -> Self {
         let mut base = base.clone();
         base.disambiguation = base.disambiguation.or(b.disambiguation);
         // base.genres = merge_vec(base.genres, b.genres);
@@ -188,16 +194,12 @@ impl Merge<Self> for Artist {
 impl Merge<Self> for ReleaseGroup {
     fn merge(base: Self, b: Self) -> Self {
         let mut base = base.clone();
-        base.disambiguation = longer(base.disambiguation, b.disambiguation);
-        base.first_release_date = longer(base.first_release_date, b.first_release_date);
-        base.genres = merge_vec(base.genres, b.genres);
+        base.disambiguation = base.disambiguation.or(b.disambiguation);
+        base.first_release_date = base.first_release_date.or(b.first_release_date);
         base.key = longer(base.key, b.key);
         base.primary_type = longer(base.primary_type, b.primary_type);
-        base.relations = merge_vec(base.relations, b.relations);
-        base.releases = merge_vec(base.releases, b.releases);
         base.summary = longer(base.summary, b.summary);
         base.title = longer(base.title, b.title);
-        base.artists = merge_vec(base.artists, b.artists);
         base
     }
 }
