@@ -1,5 +1,5 @@
 
-use std::{collections::{HashMap, HashSet}, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
+use std::{collections::{HashMap, HashSet}, error::Error, fs::File, ops::Deref, sync::{Arc, Mutex}, time::{Duration, Instant}};
 use dimple_core::{collection::Collection, model::{Artist, KnownId, Recording, RecordingSource, Release}};
 use dimple_core::model::Model;
 use rayon::iter::{ParallelBridge, ParallelIterator};
@@ -125,20 +125,18 @@ impl Collection for FileLibrary {
                 let models: Vec<Model> = releases.iter().map(Release::entity).collect();
                 Box::new(models.into_iter())
             }
-            (Model::Release(_), Model::Artist(a)) => {
+            (Model::Release(_), Some(Model::Artist(artist))) => {
+                // TODO also trash, I think?
                 let files = self.files.lock().unwrap().clone();
-                for id in a.source_ids {
-                    if let Some(f) = files.get(&id) {
-                        let a2: Artist = f.into();
-                        if 
-                    }
-                }
-                todo!()
-                // self.files.lock().unwrap().clone().values()
-                //     .filter(|f| )
-                // let releases: Vec<Release> = files.values().map(Into::into).collect();
-                // let models: Vec<Model> = releases.iter().map(Release::entity).collect();
-                // Box::new(models.into_iter())
+                let releases: Vec<Release> = files.values()
+                    .filter(|r| {
+                        let ra: Artist = (*r).into();
+                        ra == *artist
+                    })
+                    .map(Into::into)
+                    .collect();
+                let models: Vec<Model> = releases.iter().map(Release::entity).collect();
+                Box::new(models.into_iter())
             }
             (Model::Recording(_), None) => {
                 let files = self.files.lock().unwrap().clone();
@@ -146,21 +144,31 @@ impl Collection for FileLibrary {
                 let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
                 Box::new(models.into_iter())
             }
-            (Model::RecordingSource(_), Some(Model::Recording(r))) => {
-                // TODO trash test code, will be using sourceid. 
+            (Model::Recording(_), Some(Model::Release(release))) => {
+                // TODO also trash, I think?
                 let files = self.files.lock().unwrap().clone();
-                let recordings: Vec<Recording> = files.values().map(Into::into).collect();
-                let matcher = SkimMatcherV2::default();
-                let sources: Vec<Model> = recordings.iter()
-                    .filter(|r2| matcher.fuzzy_match(&r.title, &r2.title).is_some())
-                    .map(|r| RecordingSource {
-                        known_ids: r.known_ids.clone(),
-                        source_ids: r.source_ids.clone(),
-                        ..Default::default()
+                let recordings: Vec<Recording> = files.values()
+                    .filter(|rec| {
+                        let rec_rel: Release = (*rec).into();
+                        rec_rel == *release
                     })
-                    .map(|r| r.entity())
+                    .map(Into::into)
                     .collect();
-                Box::new(sources.into_iter())
+                let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
+                Box::new(models.into_iter())
+            }
+            (Model::RecordingSource(_), Some(Model::Recording(recording))) => {
+                // TODO trash test code, will be using sourceid??
+                let files = self.files.lock().unwrap().clone();
+                let sources: Vec<RecordingSource> = files.values()
+                    .filter(|source| {
+                        let source_rec: Recording = (*source).into();
+                        source_rec == *recording
+                    })
+                    .map(Into::into)
+                    .collect();
+                let models: Vec<Model> = sources.iter().map(RecordingSource::entity).collect();
+                Box::new(models.into_iter())
             }
             _ => {
                 Box::new(vec![].into_iter())
@@ -183,20 +191,6 @@ impl FileDetails {
 }
 
 // TODO none of these are complete
-impl From<&FileDetails> for Recording {
-    fn from(value: &FileDetails) -> Self {
-        Self {
-            title: value.get_tag_value(StandardTagKey::TrackTitle).unwrap_or_default(),
-            source_ids: std::iter::once(value.path.clone()).collect(),
-            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzRecordingId) {
-                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
-                _ => HashSet::default(),
-            },
-            ..Default::default()
-        }
-    }
-}
-
 impl From<&FileDetails> for Artist {
     fn from(value: &FileDetails) -> Self {
         Self {
@@ -217,6 +211,33 @@ impl From<&FileDetails> for Release {
             title: value.get_tag_value(StandardTagKey::Album).unwrap_or_default(),
             source_ids: std::iter::once(value.path.clone()).collect(),
             known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzAlbumId) {
+                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
+                _ => HashSet::default(),
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&FileDetails> for Recording {
+    fn from(value: &FileDetails) -> Self {
+        Self {
+            title: value.get_tag_value(StandardTagKey::TrackTitle).unwrap_or_default(),
+            source_ids: std::iter::once(value.path.clone()).collect(),
+            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzRecordingId) {
+                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
+                _ => HashSet::default(),
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&FileDetails> for RecordingSource {
+    fn from(value: &FileDetails) -> Self {
+        Self {
+            source_ids: std::iter::once(value.path.clone()).collect(),
+            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzRecordingId) {
                 Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
                 _ => HashSet::default(),
             },
@@ -250,12 +271,49 @@ impl From<&FileDetails> for Release {
 //     else if let Some(StandardTagKey::MusicBrainzTrackId) = tag.std_key {
 //         details.musicbrainz_track_id = Some(tag.value.to_string());
 
-pub trait Equivalent {
-    fn equivalent(&self, other: &Self) -> bool;
-}
+// pub trait Equivalent {
+//     fn equivalent(&self, other: &Self) -> bool;
+// }
 
-impl Equivalent for Artist {
-    fn equivalent(&self, other: &Self) -> bool {
-        false
-    }
-}
+// impl Equivalent for Artist {
+//     fn equivalent(&self, other: &Self) -> bool {
+//         let matcher = SkimMatcherV2::default();
+//         if let (Some(l), Some(r)) = (self.name, other.name) {
+//             if !l.is_empty() && !r.is_empty() {
+//                 let _ = ;
+
+//         }
+//         todo!()
+//     }
+// }
+
+// let matcher = SkimMatcherV2::default();
+// let sources: Vec<Model> = recordings.iter()
+//     .filter(|r2| matcher.fuzzy_match(&r.title, &r2.title).is_some())
+//     .map(|r| RecordingSource {
+//         known_ids: r.known_ids.clone(),
+//         source_ids: r.source_ids.clone(),
+//         ..Default::default()
+//     })
+//     .map(|r| r.entity())
+//     .collect();
+
+
+// fn compare(&self, other: &Self) -> f32 {
+//     if self.key.is_some() && self.key == other.key {
+//         1.0
+//     }
+//     else if !self.source_ids.is_disjoint(&other.source_ids) {
+//         return 1.0
+//     }
+
+//     else if has_common_entry(&self.known_ids, &other.known_ids) {
+//         return 1.0;
+//     }
+//     else if self.name == other.name {
+//         return 0.25;
+//     }
+//     else {
+//         return 0.0
+//     }
+// }
