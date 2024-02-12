@@ -1,6 +1,6 @@
 
-use std::{collections::HashMap, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::{collection::Collection, model::{Artist, KnownId, Recording, RecordingSource}};
+use std::{collections::{HashMap, HashSet}, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
+use dimple_core::{collection::Collection, model::{Artist, KnownId, Recording, RecordingSource, Release}};
 use dimple_core::model::Model;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag}, probe::Hint};
@@ -119,6 +119,27 @@ impl Collection for FileLibrary {
                 let models: Vec<Model> = artists.iter().map(Artist::entity).collect();
                 Box::new(models.into_iter())
             }
+            (Model::Release(_), None) => {
+                let files = self.files.lock().unwrap().clone();
+                let releases: Vec<Release> = files.values().map(Into::into).collect();
+                let models: Vec<Model> = releases.iter().map(Release::entity).collect();
+                Box::new(models.into_iter())
+            }
+            (Model::Release(_), Model::Artist(a)) => {
+                let files = self.files.lock().unwrap().clone();
+                for id in a.source_ids {
+                    if let Some(f) = files.get(&id) {
+                        let a2: Artist = f.into();
+                        if 
+                    }
+                }
+                todo!()
+                // self.files.lock().unwrap().clone().values()
+                //     .filter(|f| )
+                // let releases: Vec<Release> = files.values().map(Into::into).collect();
+                // let models: Vec<Model> = releases.iter().map(Release::entity).collect();
+                // Box::new(models.into_iter())
+            }
             (Model::Recording(_), None) => {
                 let files = self.files.lock().unwrap().clone();
                 let recordings: Vec<Recording> = files.values().map(Into::into).collect();
@@ -161,13 +182,16 @@ impl FileDetails {
     }
 }
 
+// TODO none of these are complete
 impl From<&FileDetails> for Recording {
     fn from(value: &FileDetails) -> Self {
         Self {
-            // TODO move key to mbid
-            key: value.get_tag_value(StandardTagKey::MusicBrainzRecordingId).unwrap_or_default(),
             title: value.get_tag_value(StandardTagKey::TrackTitle).unwrap_or_default(),
             source_ids: std::iter::once(value.path.clone()).collect(),
+            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzRecordingId) {
+                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
+                _ => HashSet::default(),
+            },
             ..Default::default()
         }
     }
@@ -175,36 +199,63 @@ impl From<&FileDetails> for Recording {
 
 impl From<&FileDetails> for Artist {
     fn from(value: &FileDetails) -> Self {
-        
-        // for tag in tags {
-        //     if let Some(StandardTagKey::TrackTitle) = tag.std_key {
-        //         details.title = Some(tag.value.to_string());
-        //     }
-        //     else if let Some(StandardTagKey::Album) = tag.std_key {
-        //         details.album = Some(tag.value.to_string());
-        //     }
-        //     else if let Some(StandardTagKey::Artist) = tag.std_key {
-        //         details.artist = Some(tag.value.to_string());
-        //     }
-        //     else if let Some(StandardTagKey::MusicBrainzAlbumId) = tag.std_key {
-        //         details.musicbrainz_release_id = Some(tag.value.to_string());
-        //     }
-        //     else if let Some(StandardTagKey::MusicBrainzArtistId) = tag.std_key {
-        //         details.musicbrainz_artist_id = Some(tag.value.to_string());
-        //     }
-        //     else if let Some(StandardTagKey::MusicBrainzRecordingId) = tag.std_key {
-        //         details.musicbrainz_recording_id = Some(tag.value.to_string());
-        //     }
-        //     else if let Some(StandardTagKey::MusicBrainzReleaseGroupId) = tag.std_key {
-        //         details.musicbrainz_release_group_id = Some(tag.value.to_string());
-        //     }
-        //     else if let Some(StandardTagKey::MusicBrainzTrackId) = tag.std_key {
-        //         details.musicbrainz_track_id = Some(tag.value.to_string());
-
         Self {
-            key: value.get_tag_value(StandardTagKey::MusicBrainzAlbumArtistId).unwrap_or_default(),
             name: value.get_tag_value(StandardTagKey::AlbumArtist),
+            source_ids: std::iter::once(value.path.clone()).collect(),
+            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzAlbumArtistId) {
+                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
+                _ => HashSet::default(),
+            },
             ..Default::default()
         }
+    }
+}
+
+impl From<&FileDetails> for Release {
+    fn from(value: &FileDetails) -> Self {
+        Self {
+            title: value.get_tag_value(StandardTagKey::Album).unwrap_or_default(),
+            source_ids: std::iter::once(value.path.clone()).collect(),
+            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzAlbumId) {
+                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
+                _ => HashSet::default(),
+            },
+            ..Default::default()
+        }
+    }
+}
+
+// for tag in tags {
+//     if let Some(StandardTagKey::TrackTitle) = tag.std_key {
+//         details.title = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::Album) = tag.std_key {
+//         details.album = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::Artist) = tag.std_key {
+//         details.artist = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::MusicBrainzAlbumId) = tag.std_key {
+//         details.musicbrainz_release_id = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::MusicBrainzArtistId) = tag.std_key {
+//         details.musicbrainz_artist_id = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::MusicBrainzRecordingId) = tag.std_key {
+//         details.musicbrainz_recording_id = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::MusicBrainzReleaseGroupId) = tag.std_key {
+//         details.musicbrainz_release_group_id = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::MusicBrainzTrackId) = tag.std_key {
+//         details.musicbrainz_track_id = Some(tag.value.to_string());
+
+pub trait Equivalent {
+    fn equivalent(&self, other: &Self) -> bool;
+}
+
+impl Equivalent for Artist {
+    fn equivalent(&self, other: &Self) -> bool {
+        false
     }
 }
