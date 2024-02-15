@@ -36,10 +36,11 @@ impl Librarian {
         DynamicImage::new_rgb8(width, height)
     }
 
-    /// Find a matching model in the local store by key, known_id, or source_id,
-    /// merge the value, and store it. If no match is found a new model is
-    /// stored and returned.
+    /// Find a matching model in the local store merge the value, and store it. 
+    /// If no match is found a new model is stored and returned.
     pub fn merge(&self, model: &Model, related_to: Option<&Model>) -> Model {
+        // TODO this needs to be atomic. When using par_iter it blows up cause
+        // we're saving out of date info.
         let matched = self.find_match(model);
         let merged = match matched {
             Some(matched) => Model::merge(matched, model.clone()),
@@ -56,32 +57,32 @@ impl Librarian {
     // 1. Attempt to find by key
     // 2. Attempt to find by source_id
     // 3. Attempt to find by known_id
-    // 4. Attempt to find by fuzzy? Maybe by search and then check how good of a match it is? Yea, I think local library search is the fuzzy.
-    // 5. Probably give up. 
+    // 4. Attempt to find by fuzzy?
+    // 5. Give up.
     fn find_match(&self, model: &Model) -> Option<Model> {
         // Find by key
         if let Some(model) = self.local_library.get(model) {
-            // log::info!("by key");
             return Some(model)
         }
+
         // Find by matching source_id
         if let Some(model) = self.local_library.list(model, None).find(|m| {
             let l = model.modelerrro();
             let r = m.modelerrro();
             !l.source_ids().is_disjoint(&r.source_ids())
         }) {
-            // log::info!("by source id");
             return Some(model)
         }
+
         // Find by matching known_id
         if let Some(model) = self.local_library.list(model, None).find(|m| {
             let l = model.modelerrro();
             let r = m.modelerrro();
             !l.known_ids().is_disjoint(&r.known_ids())
         }) {
-            // log::info!("by known id");
             return Some(model)
         }
+
         // Find by fuzzy 
         // TODO score, sort
         // TODO I think this becomes LocalLibrary.search or maybe a utility
@@ -100,9 +101,10 @@ impl Librarian {
             // log::info!("{}, {} -> {}", choice, pattern, score.unwrap_or(0));
             score.is_some()
         }) {
-            // log::info!("by fuzzy");
             return Some(model)
         }
+
+        // Give up
         None
     }
 }
@@ -113,27 +115,29 @@ impl Collection for Librarian {
     }
 
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = Model>> {
-        // TODO this and list are quick naive implementations. Ultimately, I
-        // think we probably wanna do the local search first and return those
-        // results, and then fill in the merged stuff? I guess keep track of
-        // the keys of what we've returned already and don't return dupes.
-        // But also, I think I decided to only do local results unless forced,
-        // right, cause I don't need to merging hundreds of thousands of objects
-        // on every request? We'll see. Merge first.
-        // self.libraries.read().unwrap().iter()
-        //     .flat_map(|lib| lib.search(query))
-        //     .for_each(|m| {
-        //         let _ = self.merge(&m);
-        //     });
+        self.libraries.read().unwrap().iter()
+            .flat_map(|lib| lib.search(query))
+            .for_each(|m| {
+                let _ = self.merge(&m, None);
+            });
         self.local_library.search(query)
     }    
 
     fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
+        // TODO parallel version is much faster but sled.merge is not atomic
+        // / thread safe, so it fucks up. see note on that function.
+        // self.libraries.read().unwrap().par_iter()
+        //     .flat_map(|lib| lib.list(of_type, related_to).collect::<Vec<_>>())
+        //     .for_each(|m| {
+        //         let _ = self.merge(&m, related_to);
+        //     });
+
         self.libraries.read().unwrap().iter()
             .flat_map(|lib| lib.list(of_type, related_to))
             .for_each(|m| {
                 let _ = self.merge(&m, related_to);
             });
+
         self.local_library.list(of_type, related_to)
     }
 
@@ -198,15 +202,19 @@ impl Merge<Self> for Artist {
 }
 
 impl Merge<Self> for ReleaseGroup {
-    fn merge(base: Self, b: Self) -> Self {
-        let mut base = base.clone();
-        // base.disambiguation = base.disambiguation.or(b.disambiguation);
-        // base.first_release_date = base.first_release_date.or(b.first_release_date);
-        // base.key = longer(base.key, b.key);
-        // base.primary_type = longer(base.primary_type, b.primary_type);
-        // base.summary = longer(base.summary, b.summary);
-        // base.title = longer(base.title, b.title);
-        base
+    fn merge(a: Self, b: Self) -> Self {
+        Self {
+            disambiguation: a.disambiguation.or(b.disambiguation),
+            key: a.key.or(b.key),
+            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
+            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+            links: a.links.union(&b.links).cloned().collect(),
+            title: a.title.or(b.title),
+            summary: a.summary.or(b.summary),
+
+            first_release_date: a.first_release_date.or(b.first_release_date),
+            primary_type: a.primary_type.or(b.primary_type),
+        }
     }
 }
 

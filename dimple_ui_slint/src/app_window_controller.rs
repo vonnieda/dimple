@@ -11,7 +11,7 @@ use url::Url;
 
 use std::{collections::VecDeque, env, sync::{Arc, Mutex}};
 
-use dimple_core::{collection::Collection, model::{Artist, Medium, Model, Recording, RelationContent, Release, ReleaseGroup, Track}};
+use dimple_core::{collection::Collection, model::{Artist, Model, Recording, Release, ReleaseGroup}};
 use dimple_librarian::librarian::{Librarian};
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, SharedString};
@@ -592,7 +592,7 @@ fn artist_links(artist: &Artist) -> Vec<Link> {
         .map(|rel| rel.to_owned())
         // TODO maybe can get name from rel?
         .filter_map(|rel| match rel.content {
-            RelationContent::Url(url) => Some(url),
+            // RelationContent::Url(url) => Some(url),
             _ => None,
         })
         .map(|url| Link {
@@ -679,31 +679,31 @@ fn length_to_string(length: u32) -> String {
         length % (60 * 1000) / 1000)
 }
 
-fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
-    let adapters: Vec<_> = tracks.iter()
-        .map(|t| TrackAdapter {
-            title: LinkAdapter {
-                name: t.title.clone().into(),
-                url: format!("dimple://recording/{}", t.recording.key).into(),
-            },
-            track_number: t.number.clone().into(),
-            length: length_to_string(t.length).into(),
-            artists: Default::default(),
-            plays: 0,
-        })
-        .collect();
-    ModelRc::from(adapters.as_slice())
-}
+// fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
+//     let adapters: Vec<_> = tracks.iter()
+//         .map(|t| TrackAdapter {
+//             title: LinkAdapter {
+//                 name: t.title.clone().into(),
+//                 url: format!("dimple://recording/{}", t.recording.key).into(),
+//             },
+//             track_number: t.number.clone().into(),
+//             length: length_to_string(t.length).into(),
+//             artists: Default::default(),
+//             plays: 0,
+//         })
+//         .collect();
+//     ModelRc::from(adapters.as_slice())
+// }
 
-fn media_adapters(media: Vec<Medium>) -> ModelRc<MediumAdapter> {
-    let adapters: Vec<_> = media.iter()
-        .map(|m| MediumAdapter {
-            title: format!("{} {} of {}", m.format, m.position, m.disc_count).into(),
-            tracks: track_adapters(m.tracks.clone()),
-        })
-        .collect();
-    ModelRc::from(adapters.as_slice())
-}
+// fn media_adapters(media: Vec<Medium>) -> ModelRc<MediumAdapter> {
+//     let adapters: Vec<_> = media.iter()
+//         .map(|m| MediumAdapter {
+//             title: format!("{} {} of {}", m.format, m.position, m.disc_count).into(),
+//             tracks: track_adapters(m.tracks.clone()),
+//         })
+//         .collect();
+//     ModelRc::from(adapters.as_slice())
+// }
 
 fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
     let rgba8_image = dynamic_image.clone().into_rgba8();

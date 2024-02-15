@@ -5,8 +5,6 @@ use dimple_core::model::Model;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
-use fuzzy_matcher::FuzzyMatcher;
-use fuzzy_matcher::skim::SkimMatcherV2;
 
 pub struct FileLibrary {
     paths: Vec<String>,
@@ -267,50 +265,3 @@ impl From<&FileDetails> for RecordingSource {
 //     }
 //     else if let Some(StandardTagKey::MusicBrainzTrackId) = tag.std_key {
 //         details.musicbrainz_track_id = Some(tag.value.to_string());
-
-// pub trait Equivalent {
-//     fn equivalent(&self, other: &Self) -> bool;
-// }
-
-// impl Equivalent for Artist {
-//     fn equivalent(&self, other: &Self) -> bool {
-//         let matcher = SkimMatcherV2::default();
-//         if let (Some(l), Some(r)) = (self.name, other.name) {
-//             if !l.is_empty() && !r.is_empty() {
-//                 let _ = ;
-
-//         }
-//         todo!()
-//     }
-// }
-
-// let matcher = SkimMatcherV2::default();
-// let sources: Vec<Model> = recordings.iter()
-//     .filter(|r2| matcher.fuzzy_match(&r.title, &r2.title).is_some())
-//     .map(|r| RecordingSource {
-//         known_ids: r.known_ids.clone(),
-//         source_ids: r.source_ids.clone(),
-//         ..Default::default()
-//     })
-//     .map(|r| r.entity())
-//     .collect();
-
-
-// fn compare(&self, other: &Self) -> f32 {
-//     if self.key.is_some() && self.key == other.key {
-//         1.0
-//     }
-//     else if !self.source_ids.is_disjoint(&other.source_ids) {
-//         return 1.0
-//     }
-
-//     else if has_common_entry(&self.known_ids, &other.known_ids) {
-//         return 1.0;
-//     }
-//     else if self.name == other.name {
-//         return 0.25;
-//     }
-//     else {
-//         return 0.0
-//     }
-// }

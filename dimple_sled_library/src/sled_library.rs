@@ -34,6 +34,37 @@ impl SledLibrary {
         }
     }
 
+    pub fn get(&self, model: &Model) -> Option<Model> {
+        model.key().as_deref()?;
+        let key = Self::vertex_key(model);
+        let value = self.db.get(key).ok()??;
+        let bytes = value.as_bytes();
+        let json = String::from_utf8(bytes.into()).ok()?;
+        serde_json::from_str(&json).ok()?
+    }
+
+    pub fn list_(&self, of_type: &Model) -> Box<dyn Iterator<Item = Model>> {
+        let prefix = Self::vertex_prefix(of_type);
+        let iter = self.db.scan_prefix(prefix).map(|t| {
+            let (k, v) = t.unwrap();
+            serde_json::from_slice(v.borrow()).unwrap()
+        });
+        Box::new(iter)
+    }
+
+    pub fn links(&self, a: &Model, b: &Model, relation: &str) -> Box<dyn Iterator<Item = Model>> {
+        let prefix = Self::edge_prefix(a, b, relation);
+        let b = b.clone();
+        let recs: Vec<_> = self.db.scan_prefix(prefix).filter_map(move |t| {
+            let (k, v) = t.unwrap();
+            let key = String::from_utf8(v.to_vec()).unwrap();
+            let mut b = b.clone();
+            b.set_key(Some(key));
+            self.get(&b)
+        }).collect();
+        Box::new(recs.into_iter())
+    }
+
     pub fn clear(&self) {
         let _ = self.db.clear();
     }
@@ -53,46 +84,14 @@ impl SledLibrary {
         Ok(model)
     }
 
-    pub fn get(&self, model: &Model) -> Option<Model> {
-        model.key().as_deref()?;
-        let key = Self::vertex_key(model);
-        let value = self.db.get(key).ok()??;
-        let bytes = value.as_bytes();
-        let json = String::from_utf8(bytes.into()).ok()?;
-        serde_json::from_str(&json).ok()?
-    }
-
-    pub fn list_(&self, of_type: &Model) -> Box<dyn Iterator<Item = Model>> {
-        let prefix = Self::vertex_prefix(of_type);
-        let iter = self.db.scan_prefix(prefix).map(|t| {
-            let (k, v) = t.unwrap();
-            serde_json::from_slice(v.borrow()).unwrap()
-        });
-        Box::new(iter)
-    }
-
     pub fn link(&self, a: &Model, b: &Model, relation: &str) -> anyhow::Result<()> {
-        // TODO think I may just wanna save both here?
-        let key_a = a.key().ok_or(Error::msg("a.key must be Some"))?;
-        let key_b = b.key().ok_or(Error::msg("b.key must be Some"))?;
+        let key_a = a.key().expect("a.key must be Some");
+        let key_b = b.key().expect("b.key must be Some");
         let key = Self::edge_key(a, b, relation);        
         let _ = self.db.insert(key, key_b.as_bytes())?;
         let key = Self::edge_key(b, a, relation);        
         let _ = self.db.insert(key, key_a.as_bytes())?;
         Ok(())
-    }
-
-    pub fn links(&self, a: &Model, b: &Model, relation: &str) -> Box<dyn Iterator<Item = Model>> {
-        let prefix = Self::edge_prefix(a, b, relation);
-        let b = b.clone();
-        let recs: Vec<_> = self.db.scan_prefix(prefix).filter_map(move |t| {
-            let (k, v) = t.unwrap();
-            let key = String::from_utf8(v.to_vec()).unwrap();
-            let mut b = b.clone();
-            b.set_key(Some(key));
-            self.get(&b)
-        }).collect();
-        Box::new(recs.into_iter())
     }
 
     fn vertex_key(model: &Model) -> String {

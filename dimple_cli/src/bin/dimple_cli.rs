@@ -27,23 +27,32 @@ fn main() -> anyhow::Result<()> {
 
     let librarian = default_librarian();
     let paths = vec![
-        "/Users/jason/Music/My Music/We Were Heading North".to_string(),
-        "/Users/jason/Music/My Music/Metallica".to_string(),
-        "/Users/jason/Music/My Music/Megadeth".to_string(),
-        "/Users/jason/Music/My Music/Opeth".to_string(),
-        "/Users/jason/Music/My Music/Fen".to_string(),
+        "/Users/jason/Music/Dimple Test Tracks".to_string(),
+        // "/Users/jason/Music/My Music/We Were Heading North".to_string(),
+        // "/Users/jason/Music/My Music/Metallica".to_string(),
+        // "/Users/jason/Music/My Music/Megadeth".to_string(),
+        // "/Users/jason/Music/My Music/Opeth".to_string(),
+        // "/Users/jason/Music/My Music/Fen".to_string(),
     ];
     librarian.add_library(Box::new(FileLibrary::new(&paths)));
-    std::thread::sleep(Duration::from_secs(1));
+    std::thread::sleep(Duration::from_secs(4));
 
-    let artist = Artist::list(&librarian).nth(2).expect("no artists");
-    log::info!("{:?}", &artist.name);
-    let release = artist.releases(&librarian).next().expect("no releases");
-    log::info!("{:?}", &release.title);
-    let recording = release.recordings(&librarian).next().expect("no recordings");
-    log::info!("{:?}", &recording.title);
-    let source = recording.sources(&librarian).next();
-    log::info!("{:?}", source);
+    let artist_count = Artist::list(&librarian).count();
+    for (i, artist) in Artist::list(&librarian).enumerate() {
+        log::info!("Artist {}/{}: {} (mbid:{:?})", 
+            i + 1, artist_count,
+            artist.name.clone().unwrap_or_default(),
+            artist.entity().mbid().unwrap_or_default());
+        for release in artist.releases(&librarian) {
+            log::info!("    Release: {}", release.title.clone().unwrap_or_default());
+            for recording in release.recordings(&librarian) {
+                log::info!("        Recording: {}", recording.title.clone().unwrap_or_default());
+                for source in recording.sources(&librarian) {
+                    log::info!("            Source: {}", source.key.unwrap_or_default());
+                }
+            }
+        }
+    }
 
     Ok(())
 }
@@ -52,12 +61,12 @@ fn default_librarian() -> Librarian {
     let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
     let dir = dirs.data_dir().to_str().unwrap();
     let librarian = Librarian::new(dir);
-    librarian.add_library(Box::<MusicBrainzLibrary>::default());
-    librarian.add_library(Box::<TheAudioDbLibrary>::default());
-    librarian.add_library(Box::<FanartTvLibrary>::default());
-    librarian.add_library(Box::<DeezerLibrary>::default());
-    librarian.add_library(Box::<WikidataLibrary>::default());
-    librarian.add_library(Box::<LastFmLibrary>::default());
-    librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
+    // librarian.add_library(Box::<MusicBrainzLibrary>::default());
+    // librarian.add_library(Box::<TheAudioDbLibrary>::default());
+    // librarian.add_library(Box::<FanartTvLibrary>::default());
+    // librarian.add_library(Box::<DeezerLibrary>::default());
+    // librarian.add_library(Box::<WikidataLibrary>::default());
+    // librarian.add_library(Box::<LastFmLibrary>::default());
+    // librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
     librarian
 }
