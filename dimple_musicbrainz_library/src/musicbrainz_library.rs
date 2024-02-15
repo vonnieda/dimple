@@ -80,23 +80,27 @@ impl Collection for MusicBrainzLibrary {
         match (of_type, related_to) {
             (Entities::ReleaseGroup(_), Some(Entities::Artist(a))) => {                
                 // // TODO handle paging
-                // let request_token = LibrarySupport::start_request(self, 
-                //     &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", a.key));
-                // self.enforce_rate_limit();
-                // let results: Vec<_> = MBReleaseGroup::browse().by_artist(&a.key)
-                //     .execute()
-                //     .inspect(|_f| {
-                //         LibrarySupport::end_request(request_token, None, None);
-                //     })        
-                //     .inspect_err(|f| log::error!("{}", f))
-                //     .unwrap()
-                //     .entities
-                //     .iter()
-                //     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-                //     .map(Model::ReleaseGroup)
-                //     .collect();
-                // Box::new(results.into_iter())
-                todo!()
+                let mbid = a.mbid();
+                if mbid.is_none() {
+                    return Box::new(vec![].into_iter())
+                }
+                let mbid = mbid.unwrap();
+                let request_token = LibrarySupport::start_request(self, 
+                    &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", mbid));
+                self.enforce_rate_limit();
+                let results: Vec<_> = MBReleaseGroup::browse().by_artist(&mbid)
+                    .execute()
+                    .inspect(|_f| {
+                        LibrarySupport::end_request(request_token, None, None);
+                    })        
+                    .inspect_err(|f| log::error!("{}", f))
+                    .unwrap()
+                    .entities
+                    .iter()
+                    .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
+                    .map(Entities::ReleaseGroup)
+                    .collect();
+                Box::new(results.into_iter())
             },
             (Entities::Release(_), Some(Entities::Artist(a))) => {                
                 // TODO handle paging

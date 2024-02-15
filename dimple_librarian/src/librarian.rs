@@ -10,18 +10,35 @@ use dimple_core::model::Entities;
 pub struct Librarian {
     local_library: SledLibrary,
     libraries: RwLock<Vec<Box<dyn Collection>>>,
+    access_mode: AccessMode,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AccessMode {
+    Online,
+    Offline,
+    Library,
 }
 
 impl Librarian {
     pub fn new(path: &str) -> Self {
         Self { 
             local_library: SledLibrary::new(path),
-            libraries: Default::default(), 
+            libraries: Default::default(),
+            access_mode: AccessMode::Online,
         }
     }
 
     pub fn add_library(&self, library: Box<dyn Collection>) {
         self.libraries.write().unwrap().push(library);
+    }
+
+    pub fn access_mode(&self) -> AccessMode {
+        self.access_mode.clone()
+    }
+
+    pub fn set_access_mode(&mut self, value: &AccessMode) {
+        self.access_mode = value.clone();
     }
 
     /// Generate some kind of cool artwork for the entity to be used as a
@@ -130,6 +147,8 @@ impl Librarian {
     fn local_library_search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
         let matcher = SkimMatcherV2::default();
         let pattern = query.to_string();
+        // TODO sort by score
+        // TODO other entities
         let iter = Artist::list(&self.local_library)
             .filter(move |a| matcher.fuzzy_match(&a.name.clone().unwrap_or_default(), &pattern).is_some())
             .map(Entities::Artist);
@@ -142,25 +161,24 @@ impl Collection for Librarian {
         "Librarian".to_string()
     }
 
+    /// Search the libraries, merge the results to local, and then search
+    /// local and return the results. This merge step ensures that the objects
+    /// returned are the sum of the sources.
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
         self.libraries.read().unwrap().iter()
             .flat_map(|lib| lib.search(query))
             .for_each(|m| {
                 let _ = self.merge(&m, None);
             });
-        // self.local_library.search(query)
         self.local_library_search(query)
     }    
 
+    /// List the libraries, merge the results to local, and then list
+    /// local and return the results. This merge step ensures that the objects
+    /// returned are the sum of the sources.
     fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
-        // TODO parallel version is much faster but sled.merge is not atomic
-        // / thread safe, so it fucks up. see note on that function.
-        // self.libraries.read().unwrap().par_iter()
-        //     .flat_map(|lib| lib.list(of_type, related_to).collect::<Vec<_>>())
-        //     .for_each(|m| {
-        //         let _ = self.merge(&m, related_to);
-        //     });
-
+        // TODO parallel version is much faster but self.merge is not atomic
+        // But note, the real problem is the "list" in the match function.
         self.libraries.read().unwrap().iter()
             .flat_map(|lib| lib.list(of_type, related_to))
             .for_each(|m| {
@@ -170,13 +188,46 @@ impl Collection for Librarian {
         self.local_library.list(of_type, related_to)
     }
 
+    /// First, merge the request entity as a side effect. Search the libraries, merge the results to local, and then search
+    /// local and return the results. This merge step ensures that the objects
+    /// returned are the sum of the sources.
     fn fetch(&self, entity: &Entities) -> Option<Entities> {
-        self.libraries.read().unwrap().iter()
-            .flat_map(|lib| lib.list(entity, None))
-            .for_each(|m| {
-                let _ = self.merge(&m, None);
-            });
-        self.local_library.fetch(entity)
+        // Merging the entity before searching ensures we have things like
+        // additional ids for querying. I'm not totally sure if this should
+        // merge (to disk) or if it should query and merge in memory for
+        // the query only. Since we're gonna save it at the end anyway I don't
+        // see any harm in saving it here too. This could be replaced with
+        // find_match and merge though.
+        let entity = self.merge(entity, None);
+
+        // Run the fetch on all of the libraries, keeping track of the ones
+        // that return a result. 
+        let skip_libs: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+        let first_result: Entities = self.libraries.read().ok()?.par_iter()
+            .filter_map(|lib| {
+                let result = lib.fetch(&entity);
+                if result.is_some() {
+                    skip_libs.lock().unwrap().insert(lib.name());
+                }
+                result
+            })
+            .reduce(|| entity.clone(), Entities::merge);
+        
+        // Run the fetch on the remaining libraries that did not return a result
+        // the first time. This allows libraries that need metadata from
+        // for instance, Musicbrainz to skip the first fetch and run on
+        // this one instead.
+        let second_result: Entities = self.libraries.read().ok()?.par_iter()
+            .filter(|f| !skip_libs.lock().unwrap().contains(&f.name()))
+            .filter_map(|lib| lib.fetch(&first_result))
+            .reduce(|| entity.clone(), Entities::merge);
+
+        // Merge the results together and store it for later access
+        let result = Entities::merge(first_result, second_result);
+        let _ = self.merge(&result, None);
+
+        // Return the results from the local library
+        self.local_library.fetch(&entity)
     }
 
     /// If there is an image stored in the local library for the entity return

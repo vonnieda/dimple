@@ -249,29 +249,29 @@ impl AppWindowController {
             let artist = Artist::get(id, librarian.as_ref()).unwrap();
             let card = entity_card(&Entities::Artist(artist.clone()), 
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
-            // let mut release_groups: Vec<_> = artist.release_groups(librarian.as_ref()).collect();
-            // release_groups.sort_by_key(|f| f.first_release_date.to_owned());
-            // release_groups.reverse();
-            // let release_group_cards: Vec<_> = release_groups.par_iter()
-            //     .map(|rg| (rg.primary_type.to_lowercase().clone(), 
-            //         release_group_card(rg, Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian)))
-            //     .collect();
-            // let album_cards: Vec<_> = release_group_cards.par_iter()
-            //     .filter(|(primary_type, _card)| primary_type == "album")
-            //     .map(|(_primary_type, card)| card.clone())
-            //     .collect();
-            // let single_cards: Vec<_> = release_group_cards.par_iter()
-            //     .filter(|(primary_type, _card)| primary_type == "single")
-            //     .map(|(_primary_type, card)| card.clone())
-            //     .collect();
-            // let ep_cards: Vec<_> = release_group_cards.par_iter()
-            //     .filter(|(primary_type, _card)| primary_type == "ep")
-            //     .map(|(_primary_type, card)| card.clone())
-            //     .collect();
-            // let other_release_group_cards: Vec<_> = release_group_cards.par_iter()
-            //     .filter(|(primary_type, _card)| primary_type != "album" && primary_type != "single" && primary_type != "ep")
-            //     .map(|(_primary_type, card)| card.clone())
-            //     .collect();
+            let mut release_groups: Vec<_> = artist.release_groups(librarian.as_ref()).collect();
+            release_groups.sort_by_key(|f| f.first_release_date.to_owned());
+            release_groups.reverse();
+            let release_group_cards: Vec<_> = release_groups.par_iter()
+                .map(|rg| (rg.primary_type.str().to_lowercase().clone(), 
+                    release_group_card(rg, Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian)))
+                .collect();
+            let album_cards: Vec<_> = release_group_cards.par_iter()
+                .filter(|(primary_type, _card)| primary_type == "album")
+                .map(|(_primary_type, card)| card.clone())
+                .collect();
+            let single_cards: Vec<_> = release_group_cards.par_iter()
+                .filter(|(primary_type, _card)| primary_type == "single")
+                .map(|(_primary_type, card)| card.clone())
+                .collect();
+            let ep_cards: Vec<_> = release_group_cards.par_iter()
+                .filter(|(primary_type, _card)| primary_type == "ep")
+                .map(|(_primary_type, card)| card.clone())
+                .collect();
+            let other_release_group_cards: Vec<_> = release_group_cards.par_iter()
+                .filter(|(primary_type, _card)| primary_type != "album" && primary_type != "single" && primary_type != "ep")
+                .map(|(_primary_type, card)| card.clone())
+                .collect();
             // let genres = artist.genres.iter()
             //     .map(|g| Link {
             //         name: g.name.clone(),
@@ -284,10 +284,10 @@ impl AppWindowController {
                     card: card_adapter(&card),
                     disambiguation: artist.disambiguation.clone().unwrap_or_default().into(),
                     summary: artist.summary.clone().unwrap_or_default().into(),
-                    // albums: card_adapters(album_cards),
-                    // singles: card_adapters(single_cards),
-                    // eps: card_adapters(ep_cards),
-                    // others: card_adapters(other_release_group_cards),
+                    albums: card_adapters(album_cards),
+                    singles: card_adapters(single_cards),
+                    eps: card_adapters(ep_cards),
+                    others: card_adapters(other_release_group_cards),
                     // genres: link_adapters(genres),
                     links: link_adapters(artist_links(&artist)),
                     ..Default::default()

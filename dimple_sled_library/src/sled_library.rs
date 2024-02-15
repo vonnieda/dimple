@@ -75,6 +75,7 @@ impl SledLibrary {
             None => {
                 let mut model = model.clone();
                 model.set_key(Some(Uuid::new_v4().to_string()));
+                log::info!("created key {} for {:?}", model.key().unwrap(), model);
                 model
             }
         };
@@ -131,9 +132,6 @@ impl Collection for SledLibrary {
 
     fn search(&self, _query: &str) -> Box<dyn Iterator<Item = Entities>> {
         todo!();
-        let artists = Artist::list(self).map(Entities::Artist);
-        let results = artists;
-        Box::new(results)
     }    
 
     fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
