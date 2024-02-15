@@ -86,8 +86,8 @@ impl Librarian {
 
         // Find by matching source_id
         if let Some(model) = self.local_library.list(model, None).find(|m| {
-            let l = model.entity();
-            let r = m.entity();
+            let l = model;
+            let r = m;
             !l.source_ids().is_disjoint(&r.source_ids())
         }) {
             return Some(model)
@@ -95,8 +95,8 @@ impl Librarian {
 
         // Find by matching known_id
         if let Some(model) = self.local_library.list(model, None).find(|m| {
-            let l = model.entity();
-            let r = m.entity();
+            let l = model;
+            let r = m;
             !l.known_ids().is_disjoint(&r.known_ids())
         }) {
             return Some(model)
@@ -107,8 +107,8 @@ impl Librarian {
         // TODO I think this becomes LocalLibrary.search or maybe a utility
         // for an iterator.
         if let Some(model) = self.local_library.list(model, None).find(|m| {
-            let l = model.entity();
-            let r = m.entity();
+            let l = model;
+            let r = m;
             let matcher = SkimMatcherV2::default();
             let pattern = format!("{}:{}", 
                 l.name().unwrap_or_default(),
@@ -171,12 +171,12 @@ impl Collection for Librarian {
     }
 
     fn fetch(&self, entity: &Entities) -> Option<Entities> {
-        // self.libraries.read().unwrap().iter()
-        //     .flat_map(|lib| lib.list(entity, None))
-        //     .for_each(|m| {
-        //         let _ = self.merge(&m);
-        //     });
-        todo!()
+        self.libraries.read().unwrap().iter()
+            .flat_map(|lib| lib.list(entity, None))
+            .for_each(|m| {
+                let _ = self.merge(&m, None);
+            });
+        self.local_library.fetch(entity)
     }
 
     /// If there is an image stored in the local library for the entity return

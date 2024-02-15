@@ -216,12 +216,16 @@ impl Artist {
         Box::new(iter)
     }
 
-    // pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
-    //     match lib.fetch(&Model::Artist(Self::from_id(id))) {
-    //         Some(Model::Artist(o)) => Some(o),
-    //         _ => todo!()
-    //     }
-    // }
+    pub fn get(key: &str, lib: &dyn Collection) -> Option<Self> {
+        let ent = Artist {
+            key: Some(key.to_string()),
+            ..Default::default()
+        }.entity();
+        match lib.fetch(&ent) {
+            Some(Entities::Artist(a)) => Some(a),
+            _ => todo!()
+        }
+    }
 
     // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
     //     Self::get(&self.key, lib)
@@ -467,15 +471,15 @@ impl Entities {
         }
     }
 
-    pub fn entity(&self) -> Box<dyn Entity> {
-        match self {
-            Entities::Artist(a) => Box::new(a.clone()),
-            Entities::Release(r) => Box::new(r.clone()),
-            Entities::Recording(r) => Box::new(r.clone()),
-            Entities::RecordingSource(r) => Box::new(r.clone()),
-            _ => todo!()
-        }
-    }
+    // pub fn entity(&self) -> Box<dyn Entity> {
+    //     match self {
+    //         Entities::Artist(a) => Box::new(a.clone()),
+    //         Entities::Release(r) => Box::new(r.clone()),
+    //         Entities::Recording(r) => Box::new(r.clone()),
+    //         Entities::RecordingSource(r) => Box::new(r.clone()),
+    //         _ => todo!()
+    //     }
+    // }
 
     pub fn known_ids(&self) -> HashSet<KnownId> {
         match self {
@@ -485,6 +489,39 @@ impl Entities {
             Entities::Genre(_) => todo!(),
             Entities::Recording(_) => todo!(),
             Entities::RecordingSource(_) => todo!(),
+        }
+    }
+
+    pub fn source_ids(&self) -> HashSet<String> {
+        match self {
+            Entities::Artist(a) => a.source_ids.clone(),
+            Entities::Release(a) => a.source_ids.clone(),
+            Entities::ReleaseGroup(a) => a.source_ids.clone(),
+            Entities::Genre(_) => todo!(),
+            Entities::Recording(_) => todo!(),
+            Entities::RecordingSource(_) => todo!(),
+        }
+    }
+
+    pub fn name(&self) -> Option<String> {
+        match self {
+            Entities::Artist(a) => a.name.clone(),
+            Entities::ReleaseGroup(r) => r.title.clone(),
+            Entities::Release(r) => r.title.clone(),
+            Entities::Recording(r) => r.title.clone(),
+            Entities::RecordingSource(r) => todo!(),
+            Entities::Genre(g) => todo!(),
+        }
+    }
+
+    pub fn disambiguation(&self) -> Option<String> {
+        match self {
+            Entities::Artist(a) => a.disambiguation.clone(),
+            Entities::ReleaseGroup(r) => r.disambiguation.clone(),
+            Entities::Release(r) => r.disambiguation.clone(),
+            Entities::Recording(r) => r.disambiguation.clone(),
+            Entities::RecordingSource(r) => todo!(),
+            Entities::Genre(g) => todo!(),
         }
     }
 }
