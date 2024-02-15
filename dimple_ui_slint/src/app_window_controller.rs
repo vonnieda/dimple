@@ -186,6 +186,7 @@ impl AppWindowController {
 
             let url = Url::parse(&url).unwrap();
             let query = url.path_segments()
+                // TODO is this pattern wrong? Shouldn't the or be an error?
                 .ok_or("missing path").unwrap()
                 .nth(0)
                 .ok_or("missing query").unwrap();

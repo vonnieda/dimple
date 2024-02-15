@@ -28,17 +28,20 @@ fn main() -> anyhow::Result<()> {
     let librarian = default_librarian();
     let paths = vec![
         "/Users/jason/Music/My Music/We Were Heading North".to_string(),
+        "/Users/jason/Music/My Music/Metallica".to_string(),
+        "/Users/jason/Music/My Music/Megadeth".to_string(),
+        "/Users/jason/Music/My Music/Opeth".to_string(),
+        "/Users/jason/Music/My Music/Fen".to_string(),
     ];
     librarian.add_library(Box::new(FileLibrary::new(&paths)));
-    std::thread::sleep(Duration::from_secs(2));
+    std::thread::sleep(Duration::from_secs(1));
 
-    let artist = Artist::search("we were heading north", &librarian).next().expect("no search results");
-    // let artist = Artist::list(&librarian).next().expect("no artists");
-    log::info!("{:?}", &artist);
+    let artist = Artist::list(&librarian).nth(2).expect("no artists");
+    log::info!("{:?}", &artist.name);
     let release = artist.releases(&librarian).next().expect("no releases");
-    log::info!("{:?}", &release);
+    log::info!("{:?}", &release.title);
     let recording = release.recordings(&librarian).next().expect("no recordings");
-    log::info!("{:?}", &recording);
+    log::info!("{:?}", &recording.title);
     let source = recording.sources(&librarian).next();
     log::info!("{:?}", source);
 

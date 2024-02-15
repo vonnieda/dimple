@@ -1,12 +1,16 @@
 use std::borrow::Borrow;
+use std::mem::discriminant;
 
-use dimple_core::{collection::Collection, image_cache::ImageCache, model::Artist};
-use dimple_core::model::{Model, Recording, RecordingSource, Release, ReleaseGroup};
+use anyhow::Error;
+use dimple_core::{collection::Collection, image_cache::ImageCache};
+use dimple_core::model::{Artist, Model};
 
 use image::{DynamicImage, EncodableLayout};
 use serde::{Deserialize, Serialize};
 
-use sled::{IVec, Tree};
+use sled::{Db, Tree};
+
+use uuid::Uuid;
 
 #[derive(Debug)]
 
@@ -14,77 +18,110 @@ use sled::{IVec, Tree};
 /// Faster than remote, but slower than memory. This is how the app stores
 /// the combined library from all the remotes. Object are serialized as JSON,
 /// media is stored raw.
+/// 
+/// Somewhere along the way this became a graph overlaid on a key/value store.
+/// Probably this can use any KV store now. 
 pub struct SledLibrary {
     path: String,
-    artists: Tree,
-    release_groups: Tree,
-    releases: Tree,
-    pub images: ImageCache,
-    recordings: Tree,
-    sources: Tree,
-    _audio: Tree,
-}
-
-#[derive(Deserialize, Debug, Serialize)]
-pub struct SledLibraryConfig {
-    pub path: String,
+    db: Db,
 }
 
 impl SledLibrary {
     pub fn new(path: &str) -> Self {
-        let db = sled::open(path).unwrap();
-        let release_groups = db.open_tree("release_groups").unwrap();
-        let releases = db.open_tree("releases").unwrap();
-        let images = db.open_tree("images").unwrap();
-        let audio = db.open_tree("audio").unwrap();
-        let artists = db.open_tree("artists").unwrap();
-        let recordings = db.open_tree("recordings").unwrap();
-        let sources = db.open_tree("sources").unwrap();
         Self { 
             path: path.to_string(),
-            release_groups,
-            releases,
-            artists,
-            images: ImageCache::new(images),
-            recordings,
-            sources,
-            _audio: audio,
+            db: sled::open(path).unwrap(),
         }
     }
 
-    /// Creates and/or updates the model in storage, along with relations. 
-    /// If the model already exists by key, the existing one is read, the new
-    /// one is merged into it, and the result is saved. If with_relations_to
-    /// is included, a relation is also created and/or updated between the two
-    /// models.
-    /// 
-    /// For instance, merge(ReleaseGroup, Artist) will merge the ReleaseGroup
-    /// into storage and create a relation between the ReleaseGroup and Artist
-    /// such that subsequently calling list(ReleaseGroup, Artist) will return
-    /// a Vec containing the merged ReleaseGroup.
-    pub fn merge(&self, model: &Model, with_relation_to: Option<&Model>) -> anyhow::Result<()> {
-        fn insert<T>(tree: &Tree, key: &str, value: T) -> anyhow::Result<()>
-            where T: Serialize {
-
-            // TODO lookup the old and merge it and return that instead
-            // let old = 
-
-            let json = serde_json::to_string(&value)?;
-            let _ = tree.insert(key, &*json)?;
-            Ok(())
-        }
-    
-        match model {
-            Model::Artist(a) => insert(&self.artists, &a.key, a),
-            Model::ReleaseGroup(a) => insert(&self.release_groups, &a.key, a),
-            Model::Release(a) => insert(&self.releases, &a.key, a),
-            Model::Recording(a) => insert(&self.recordings, &a.key, a),
-            _ => todo!()
-        }
+    pub fn clear(&self) {
+        let _ = self.db.clear();
     }
 
-    pub fn set_image(&self, entity: &Model, dyn_image: &DynamicImage) {
-        self.images.insert(&entity.key(), dyn_image);
+    pub fn set(&self, model: &Model) -> anyhow::Result<Model> {
+        let model = match model.key() {
+            Some(_) => model.clone(),
+            None => {
+                let mut model = model.clone();
+                model.set_key(Some(Uuid::new_v4().to_string()));
+                model
+            }
+        };
+        let json = serde_json::to_string(&model)?;
+        let key = Self::vertex_key(&model);
+        let _ = self.db.insert(key, &*json)?;
+        Ok(model)
+    }
+
+    pub fn get(&self, model: &Model) -> Option<Model> {
+        model.key().as_deref()?;
+        let key = Self::vertex_key(model);
+        let value = self.db.get(key).ok()??;
+        let bytes = value.as_bytes();
+        let json = String::from_utf8(bytes.into()).ok()?;
+        serde_json::from_str(&json).ok()?
+    }
+
+    pub fn list_(&self, of_type: &Model) -> Box<dyn Iterator<Item = Model>> {
+        let prefix = Self::vertex_prefix(of_type);
+        let iter = self.db.scan_prefix(prefix).map(|t| {
+            let (k, v) = t.unwrap();
+            serde_json::from_slice(v.borrow()).unwrap()
+        });
+        Box::new(iter)
+    }
+
+    pub fn link(&self, a: &Model, b: &Model, relation: &str) -> anyhow::Result<()> {
+        // TODO think I may just wanna save both here?
+        let key_a = a.key().ok_or(Error::msg("a.key must be Some"))?;
+        let key_b = b.key().ok_or(Error::msg("b.key must be Some"))?;
+        let key = Self::edge_key(a, b, relation);        
+        let _ = self.db.insert(key, key_b.as_bytes())?;
+        let key = Self::edge_key(b, a, relation);        
+        let _ = self.db.insert(key, key_a.as_bytes())?;
+        Ok(())
+    }
+
+    pub fn links(&self, a: &Model, b: &Model, relation: &str) -> Box<dyn Iterator<Item = Model>> {
+        let prefix = Self::edge_prefix(a, b, relation);
+        let b = b.clone();
+        let recs: Vec<_> = self.db.scan_prefix(prefix).filter_map(move |t| {
+            let (k, v) = t.unwrap();
+            let key = String::from_utf8(v.to_vec()).unwrap();
+            let mut b = b.clone();
+            b.set_key(Some(key));
+            self.get(&b)
+        }).collect();
+        Box::new(recs.into_iter())
+    }
+
+    fn vertex_key(model: &Model) -> String {
+        // type:key
+        format!("{}:{}", model.type_name(), model.key().unwrap())
+    }
+
+    fn vertex_prefix(model: &Model) -> String {
+        // type:
+        format!("{}:", model.type_name())
+    }
+
+    fn edge_key(a: &Model, b: &Model, relation: &str) -> String {
+        // edge_key(release, artist, "artist_credit") -> relation:atype:btype:akey:bkey
+        format!("{}:{}:{}:{}:{}",
+            relation, 
+            a.type_name(), 
+            b.type_name(), 
+            a.key().unwrap(),
+            b.key().unwrap())
+    }
+
+    fn edge_prefix(a: &Model, b: &Model, relation: &str) -> String {
+        // edge_prefix(release, artist, "artist_credit") -> relation:atype:btype:akey:
+        format!("{}:{}:{}:{}",
+            relation, 
+            a.type_name(), 
+            b.type_name(), 
+            a.key().unwrap())
     }
 }
 
@@ -94,89 +131,100 @@ impl Collection for SledLibrary {
     }
 
     fn search(&self, _query: &str) -> Box<dyn Iterator<Item = Model>> {
-        let v: Vec<Model> = vec![];
-        Box::new(v.into_iter())
+        let artists = Artist::list(self).map(Model::Artist);
+        let results = artists;
+        Box::new(results)
     }    
 
     fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
-        fn deserialize<'a, T>(v: &'a IVec) -> T where T: Deserialize<'a> {
-            serde_json::from_slice(v.borrow()).unwrap()
+        if let Some(related_to) = related_to {
+            // TODO this feels wrong
+            self.links(related_to, of_type, "by")
         }
-
-        match (of_type, related_to) {
-            (Model::Artist(_), None) => {
-                let iter = self.artists.iter()
-                    .map(|t| deserialize(&t.unwrap().1))
-                    .map(Model::Artist);
-                Box::new(iter)
-            },
-            (Model::Recording(_), None) => {
-                let iter = self.recordings.iter()
-                    .map(|t| deserialize(&t.unwrap().1))
-                    .map(Model::Recording);
-                Box::new(iter)
-            },
-            (Model::ReleaseGroup(_), Some(Model::Artist(a))) => {
-                // TODO this is temp code that doesn't work cause it's not filtering.
-                let iter = self.release_groups.iter()
-                    .map(|t| deserialize(&t.unwrap().1))
-                    .map(Model::ReleaseGroup);
-                Box::new(iter)
-            },
-            (Model::Release(_), Some(Model::Artist(a))) => {
-                // TODO this is temp code that doesn't work cause it's not filtering.
-                let iter = self.releases.iter()
-                    .map(|t| deserialize(&t.unwrap().1))
-                    .map(Model::Release);
-                Box::new(iter)
-            },
-            (Model::Recording(_), Some(Model::Release(a))) => {
-                // TODO this is temp code that doesn't work cause it's not filtering.
-                let iter = self.recordings.iter()
-                    .map(|t| deserialize(&t.unwrap().1))
-                    .map(Model::Recording);
-                Box::new(iter)
-            },
-            (Model::RecordingSource(_), Some(Model::Recording(a))) => {
-                // TODO this is temp code that doesn't work cause it's not filtering.
-                let iter = self.sources.iter()
-                    .map(|t| deserialize(&t.unwrap().1))
-                    .map(Model::RecordingSource);
-                Box::new(iter)
-            },
-            _ => todo!("{:?} {:?}", of_type, related_to),
+        else {
+            self.list_(of_type)
         }
     }
 
     fn fetch(&self, entity: &Model) -> Option<Model> {
-        fn get<T>(tree: &Tree, key: &str) -> Option<T> where T: for<'a> Deserialize<'a> {
-            let value = tree.get(key).ok()??;
-            let bytes = value.as_bytes();
-            let json = String::from_utf8(bytes.into()).ok()?;
-            serde_json::from_str(&json).ok()?
-        }
-    
-        match entity {
-            Model::Artist(a) => {
-                get::<Artist>(&self.artists, &a.key).map(|a| a.entity())
-            },
-            Model::ReleaseGroup(r) => {
-                get::<ReleaseGroup>(&self.release_groups, &r.key).map(|a| a.entity())
-            },
-            Model::Release(r) => {
-                get::<Release>(&self.releases, &r.key).map(|a| a.entity())
-            },
-            Model::Recording(r) => {
-                get::<Recording>(&self.recordings, &r.key).map(|a| a.entity())
-            },
-            Model::RecordingSource(r) => {
-                get::<RecordingSource>(&self.sources, &r.key).map(|a| a.entity())
-            },
-            Model::Genre(_) => todo!(),
-        }        
+        self.get(entity)
     }
 
     fn image(&self, entity: &Model) -> Option<DynamicImage> {
-        self.images.get_original(&entity.key())
+        // self.images.get_original(&entity.key())
+        todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use dimple_core::model::{Artist, Release};
+
+    use super::*;
+
+    #[test]
+    fn basics() {
+        let lib = SledLibrary::new(".sled");
+        lib.clear();
+        
+        let metallicurds = lib.set(&Artist {
+            name: Some("Metallicurds".to_string()),
+            ..Default::default()
+        }.entity()).unwrap();
+
+        let and_fresh_curds = lib.set(&Release {
+            title: Some("...And Fresh Curds For All".to_string()),
+            ..Default::default()
+        }.entity()).unwrap();
+        
+        let master_of_pasteurization = lib.set(&Release {
+            title: Some("Master of Pasteurization".to_string()),
+            ..Default::default()
+        }.entity()).unwrap();
+        
+        let ride_the_milkfat = lib.set(&Release {
+            title: Some("Ride the Milkfat".to_string()),
+            ..Default::default()
+        }.entity()).unwrap();
+        
+        lib.link(&metallicurds, &and_fresh_curds, "artist_credit").unwrap();
+        lib.link(&metallicurds, &master_of_pasteurization, "artist_credit").unwrap();
+        lib.link(&metallicurds, &ride_the_milkfat, "artist_credit").unwrap();
+
+        let moo_cheese = lib.set(&Artist {
+            name: Some("Moo Cheese".to_string()),
+            ..Default::default()
+        }.entity()).unwrap();
+
+        let transfonduer = lib.set(&Release {
+            title: Some("Transfonduer".to_string()),
+            ..Default::default()
+        }.entity()).unwrap();
+
+        lib.link(&moo_cheese, &transfonduer, "artist_credit").unwrap();
+
+        let mumu = lib.set(&Release {
+            title: Some("Mumu".to_string()),
+            ..Default::default()
+        }.entity()).unwrap();
+
+        lib.link(&metallicurds, &mumu, "artist_credit").unwrap();
+        lib.link(&moo_cheese, &mumu, "artist_credit").unwrap();
+
+        let artists = lib.list(&Artist::default().entity(), None);
+        for artist in artists {
+            let artist: Artist = (&artist).into();
+            println!("{}",artist.name.clone().unwrap());
+            let releases = lib.links(&artist.entity(), &Release::default().entity(), "artist_credit");
+            for release in releases {
+                let release: Release = (&release).into();
+                println!("    {}", release.title.clone().unwrap());
+                let artists = lib.links(&release.entity(), &Artist::default().entity(), "artist_credit");
+                for artist in artists {
+                    let artist: Artist = (&artist).into();
+                    println!("        {}",artist.name.clone().unwrap());
+                }
+            }
+        }
     }
 }

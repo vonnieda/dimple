@@ -105,8 +105,9 @@ impl Collection for MusicBrainzLibrary {
                     return Box::new(vec![].into_iter())
                 }
                 let mbid = mbid.unwrap();
+                // https://musicbrainz.org/artist/65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab/releases
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("https://musicbrainz.org/ws/2/release/TODO TODO{}?fmt=json", &mbid));
+                    &format!("https://musicbrainz.org/ws/2/release?artist={}&fmt=json", &mbid));
                 self.enforce_rate_limit();
                 let results: Vec<_> = MBRelease::browse().by_artist(&mbid)
                     .execute()

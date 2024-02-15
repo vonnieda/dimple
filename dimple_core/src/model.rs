@@ -404,7 +404,11 @@ impl RecordingSource {
     }
 }
 
-#[derive(Clone, Debug)]
+// TODO I wanna think through this becoming perhaps Models, and Model
+// becoming a trait that replaces the impl on this. Then I can make the
+// individual model objects as rich as I want.
+// That change will be pretty mechanical if I finish what I'm doing first.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Model {
     Artist(Artist),
     Genre(Genre),
@@ -414,7 +418,9 @@ pub enum Model {
     RecordingSource(RecordingSource),
 }
 
-
+/**
+ * All this repetition seems dumb. Save me, movie reference!
+ */
 impl Model {
     pub fn key(&self) -> Option<String> {
         match self {
@@ -424,6 +430,17 @@ impl Model {
             Model::Recording(r) => r.key.clone(),
             Model::RecordingSource(r) => r.key.clone(),
             Model::Genre(g) => g.key.clone(),
+        }
+    }
+
+    pub fn set_key(&mut self, key: Option<String>) {
+        match self {
+            Model::Artist(m) => m.key = key,
+            Model::ReleaseGroup(m) => m.key = key,
+            Model::Release(m) => m.key = key,
+            Model::Genre(m) => m.key = key,
+            Model::Recording(m) => m.key = key,
+            Model::RecordingSource(m) => m.key = key,
         }
     }
 
@@ -441,5 +458,219 @@ impl Model {
             }
         }
         None
+    }
+
+    pub fn type_name(&self) -> &str {
+        match self {
+            Model::Artist(_) => "artist",
+            Model::ReleaseGroup(_) => "release_group",
+            Model::Release(_) => "release",
+            Model::Recording(_) => "recording",
+            Model::RecordingSource(_) => "recording_source",
+            Model::Genre(_) => "genre",
+        }
+    }
+
+    pub fn modelerrro(&self) -> Box<dyn Modelerrro> {
+        match self {
+            Model::Artist(a) => Box::new(a.clone()),
+            Model::Release(r) => Box::new(r.clone()),
+            Model::Recording(r) => Box::new(r.clone()),
+            Model::RecordingSource(r) => Box::new(r.clone()),
+            _ => todo!()
+        }
+    }
+
+    // pub fn known_ids(&self) -> HashSet<KnownId> {
+    //     match self {
+    //         Model::Artist(a) => a.known_ids.clone(),
+    //         Model::Release(a) => a.known_ids.clone(),
+    //         Model::ReleaseGroup(a) => a.known_ids.clone(),
+    //         Model::(a) => a.known_ids.clone(),
+    //         Model::Artist(a) => a.known_ids.clone(),
+    //         Model::Artist(a) => a.known_ids.clone(),
+    //     }
+    // }
+}
+
+impl From<&Model> for Artist {
+    fn from(value: &Model) -> Self {
+        match value {
+            Model::Artist(a) => a.clone(),
+            _ => Artist::default(),
+        }
+    }
+}
+
+impl From<&Artist> for Model {
+    fn from(value: &Artist) -> Self {
+        Model::Artist(value.clone())
+    }
+}
+
+impl From<&Model> for Release {
+    fn from(value: &Model) -> Self {
+        match value {
+            Model::Release(a) => a.clone(),
+            _ => Release::default(),
+        }
+    }
+}
+
+impl From<&Release> for Model {
+    fn from(value: &Release) -> Self {
+        Model::Release(value.clone())
+    }
+}
+
+/// The goal is to replace the Model enum with this so that the consumers
+/// of the API can work more often with actual Model structs such as Artist
+/// and then use them as Modelerrro when needed. The constant unwrapping of
+/// the enum is uncomfortable. It's possible we could call this Entity, and the
+/// objects themselves Models.
+pub trait Modelerrro {
+    fn key(&self) -> Option<String>;
+    fn set_key(&mut self, key: Option<String>);
+    fn name(&self) -> Option<String>;
+    fn source_ids(&self) -> HashSet<String>;
+    fn known_ids(&self) -> HashSet<KnownId>;
+    fn disambiguation(&self) -> Option<String>;
+    fn summary(&self) -> Option<String>;
+    fn links(&self) -> HashSet<String>;
+} 
+
+impl Modelerrro for Artist {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        self.name.clone()
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        self.disambiguation.clone()
+    }
+
+    fn summary(&self) -> Option<String> {
+        self.summary.clone()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        self.links.clone()
+    }
+}
+
+impl Modelerrro for Release {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        self.title.clone()
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        self.disambiguation.clone()
+    }
+
+    fn summary(&self) -> Option<String> {
+        self.summary.clone()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        self.links.clone()
+    }
+}
+
+impl Modelerrro for Recording {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        self.title.clone()
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        self.disambiguation.clone()
+    }
+
+    fn summary(&self) -> Option<String> {
+        self.summary.clone()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        self.links.clone()
+    }
+}
+
+impl Modelerrro for RecordingSource {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        Default::default()
+    }
+
+    fn summary(&self) -> Option<String> {
+        Default::default()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        Default::default()
     }
 }

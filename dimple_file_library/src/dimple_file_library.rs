@@ -1,6 +1,6 @@
 
 use std::{collections::{HashMap, HashSet}, error::Error, fs::File, ops::Deref, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::{collection::Collection, model::{Artist, KnownId, Recording, RecordingSource, Release}};
+use dimple_core::{collection::Collection, model::{Artist, KnownId, Modelerrro, Recording, RecordingSource, Release}};
 use dimple_core::model::Model;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag}, probe::Hint};
@@ -131,45 +131,42 @@ impl Collection for FileLibrary {
                 let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
                 Box::new(models.into_iter())
             }
+            (Model::Release(_), Some(Model::Artist(artist))) => {
+                let files = self.files.lock().unwrap().clone();
+                let releases: Vec<Release> = files.values()
+                    .filter(|r| {
+                        let ra: Artist = (*r).into();
+                        !ra.source_ids.is_disjoint(&artist.source_ids)
+                    })
+                    .map(Into::into)
+                    .collect();
+                let models: Vec<Model> = releases.iter().map(Release::entity).collect();
+                Box::new(models.into_iter())
+            }
+            (Model::Recording(_), Some(Model::Release(release))) => {
+                let files = self.files.lock().unwrap().clone();
+                let recordings: Vec<Recording> = files.values()
+                    .filter(|r| {
+                        let ra: Release = (*r).into();
+                        !ra.source_ids.is_disjoint(&release.source_ids)
+                    })
+                    .map(Into::into)
+                    .collect();
+                let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
+                Box::new(models.into_iter())
+            }
             (Model::RecordingSource(_), Some(Model::Recording(recording))) => {
-                // TODO trash test code, will be using sourceid??
                 let files = self.files.lock().unwrap().clone();
                 let sources: Vec<RecordingSource> = files.values()
-                    .filter(|source| {
-                        let source_rec: Recording = (*source).into();
-                        source_rec == *recording
+                    .filter(|r| {
+                        let ra: Recording = (*r).into();
+                        !ra.source_ids.is_disjoint(&recording.source_ids)
                     })
                     .map(Into::into)
                     .collect();
                 let models: Vec<Model> = sources.iter().map(RecordingSource::entity).collect();
                 Box::new(models.into_iter())
             }
-            // (Model::Release(_), Some(Model::Artist(artist))) => {
-            //     // TODO also trash, I think?
-            //     let files = self.files.lock().unwrap().clone();
-            //     let releases: Vec<Release> = files.values()
-            //         .filter(|r| {
-            //             let ra: Artist = (*r).into();
-            //             ra == *artist
-            //         })
-            //         .map(Into::into)
-            //         .collect();
-            //     let models: Vec<Model> = releases.iter().map(Release::entity).collect();
-            //     Box::new(models.into_iter())
-            // }
-            // (Model::Recording(_), Some(Model::Release(release))) => {
-            //     // TODO also trash, I think?
-            //     let files = self.files.lock().unwrap().clone();
-            //     let recordings: Vec<Recording> = files.values()
-            //         .filter(|rec| {
-            //             let rec_rel: Release = (*rec).into();
-            //             rec_rel == *release
-            //         })
-            //         .map(Into::into)
-            //         .collect();
-            //     let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
-            //     Box::new(models.into_iter())
-            // }
             _ => {
                 Box::new(vec![].into_iter())
             }
