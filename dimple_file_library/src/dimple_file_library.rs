@@ -1,7 +1,7 @@
 
 use std::{collections::{HashMap, HashSet}, error::Error, fs::File, ops::Deref, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::{collection::Collection, model::{Artist, KnownId, Modelerrro, Recording, RecordingSource, Release}};
-use dimple_core::model::Model;
+use dimple_core::{collection::Collection, model::{Artist, KnownId, Entity, Recording, RecordingSource, Release}};
+use dimple_core::model::Entities;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
@@ -109,27 +109,27 @@ impl Collection for FileLibrary {
         format!("FileLibrary({:?})", self.paths)
     }
 
-    fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
+    fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
         match (of_type, related_to) {
-            (Model::Artist(_), None) => {
+            (Entities::Artist(_), None) => {
                 let files = self.files.lock().unwrap().clone();
                 let artists: Vec<Artist> = files.values().map(Into::into).collect();
-                let models: Vec<Model> = artists.iter().map(Artist::entity).collect();
+                let models: Vec<Entities> = artists.iter().map(Artist::entity).collect();
                 Box::new(models.into_iter())
             }
-            (Model::Release(_), None) => {
+            (Entities::Release(_), None) => {
                 let files = self.files.lock().unwrap().clone();
                 let releases: Vec<Release> = files.values().map(Into::into).collect();
-                let models: Vec<Model> = releases.iter().map(Release::entity).collect();
+                let models: Vec<Entities> = releases.iter().map(Release::entity).collect();
                 Box::new(models.into_iter())
             }
-            (Model::Recording(_), None) => {
+            (Entities::Recording(_), None) => {
                 let files = self.files.lock().unwrap().clone();
                 let recordings: Vec<Recording> = files.values().map(Into::into).collect();
-                let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
+                let models: Vec<Entities> = recordings.iter().map(Recording::entity).collect();
                 Box::new(models.into_iter())
             }
-            (Model::Release(_), Some(Model::Artist(artist))) => {
+            (Entities::Release(_), Some(Entities::Artist(artist))) => {
                 let files = self.files.lock().unwrap().clone();
                 let releases: Vec<Release> = files.values()
                     .filter(|r| {
@@ -138,10 +138,10 @@ impl Collection for FileLibrary {
                     })
                     .map(Into::into)
                     .collect();
-                let models: Vec<Model> = releases.iter().map(Release::entity).collect();
+                let models: Vec<Entities> = releases.iter().map(Release::entity).collect();
                 Box::new(models.into_iter())
             }
-            (Model::Recording(_), Some(Model::Release(release))) => {
+            (Entities::Recording(_), Some(Entities::Release(release))) => {
                 let files = self.files.lock().unwrap().clone();
                 let recordings: Vec<Recording> = files.values()
                     .filter(|r| {
@@ -150,10 +150,10 @@ impl Collection for FileLibrary {
                     })
                     .map(Into::into)
                     .collect();
-                let models: Vec<Model> = recordings.iter().map(Recording::entity).collect();
+                let models: Vec<Entities> = recordings.iter().map(Recording::entity).collect();
                 Box::new(models.into_iter())
             }
-            (Model::RecordingSource(_), Some(Model::Recording(recording))) => {
+            (Entities::RecordingSource(_), Some(Entities::Recording(recording))) => {
                 let files = self.files.lock().unwrap().clone();
                 let sources: Vec<RecordingSource> = files.values()
                     .filter(|r| {
@@ -162,7 +162,7 @@ impl Collection for FileLibrary {
                     })
                     .map(Into::into)
                     .collect();
-                let models: Vec<Model> = sources.iter().map(RecordingSource::entity).collect();
+                let models: Vec<Entities> = sources.iter().map(RecordingSource::entity).collect();
                 Box::new(models.into_iter())
             }
             _ => {

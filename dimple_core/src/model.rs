@@ -210,7 +210,7 @@ impl Artist {
     pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
         let iter = col.list(&Artist::default().entity(), None)
             .map(|m| match m {
-                Model::Artist(a) => a,
+                Entities::Artist(a) => a,
                 _ => panic!(),
             });
         Box::new(iter)
@@ -227,14 +227,14 @@ impl Artist {
     //     Self::get(&self.key, lib)
     // }
 
-    pub fn entity(&self) -> Model {
-        Model::Artist(self.clone())
+    pub fn entity(&self) -> Entities {
+        Entities::Artist(self.clone())
     }
 
     pub fn release_groups(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = ReleaseGroup>> {
         let iter = lib.list(&ReleaseGroup::default().entity(), Some(&self.entity()));
         let iter = iter.map(|r| match r {
-            Model::ReleaseGroup(r) => r,
+            Entities::ReleaseGroup(r) => r,
             _ => panic!(),
         }); 
         Box::new(iter)    
@@ -243,7 +243,7 @@ impl Artist {
     pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
         let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
         let iter = iter.map(|r| match r {
-            Model::Release(r) => r,
+            Entities::Release(r) => r,
             _ => panic!(),
         }); 
         Box::new(iter)    
@@ -252,7 +252,7 @@ impl Artist {
     pub fn search(query: &str, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
         let iter = lib.search(query)
             .filter_map(|m| match m {
-                Model::Artist(a) => Some(a),
+                Entities::Artist(a) => Some(a),
                 _ => None,
             });
         Box::new(iter)
@@ -290,14 +290,14 @@ impl Release {
     //     Self::get(&self.key, lib)
     // }
 
-    pub fn entity(&self) -> Model {
-        Model::Release(self.clone())
+    pub fn entity(&self) -> Entities {
+        Entities::Release(self.clone())
     }
 
     pub fn recordings(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
         let iter = lib.list(&Recording::default().entity(), Some(&self.entity()));
         let iter = iter.map(|r| match r {
-            Model::Recording(r) => r,
+            Entities::Recording(r) => r,
             _ => panic!(),
         }); 
         Box::new(iter)    
@@ -335,8 +335,8 @@ impl ReleaseGroup {
     //     Self::get(&self.key, lib)
     // }
 
-    pub fn entity(&self) -> Model {
-        Model::ReleaseGroup(self.clone())
+    pub fn entity(&self) -> Entities {
+        Entities::ReleaseGroup(self.clone())
     }
 
     pub fn image(&self, lib: &dyn Collection) -> Option<DynamicImage> {
@@ -358,7 +358,7 @@ impl Recording {
     pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
         let iter = col.list(&Recording::default().entity(), None)
             .map(|m| match m {
-                Model::Recording(a) => a,
+                Entities::Recording(a) => a,
                 _ => panic!(),
             });
         Box::new(iter)
@@ -371,8 +371,8 @@ impl Recording {
     //     }
     // }
 
-    pub fn entity(&self) -> Model {
-        Model::Recording(self.clone())
+    pub fn entity(&self) -> Entities {
+        Entities::Recording(self.clone())
     }
 
     // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
@@ -382,7 +382,7 @@ impl Recording {
     pub fn sources(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = RecordingSource>> {
         let iter = lib.list(&RecordingSource::default().entity(), Some(&self.entity()));
         let iter = iter.map(|r| match r {
-            Model::RecordingSource(r) => r,
+            Entities::RecordingSource(r) => r,
             _ => panic!(),
         }); 
         Box::new(iter)    
@@ -399,17 +399,13 @@ impl Recording {
 }
 
 impl RecordingSource {
-    pub fn entity(&self) -> Model {
-        Model::RecordingSource(self.clone())
+    pub fn entity(&self) -> Entities {
+        Entities::RecordingSource(self.clone())
     }
 }
 
-// TODO I wanna think through this becoming perhaps Models, and Model
-// becoming a trait that replaces the impl on this. Then I can make the
-// individual model objects as rich as I want.
-// That change will be pretty mechanical if I finish what I'm doing first.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum Model {
+pub enum Entities {
     Artist(Artist),
     Genre(Genre),
     ReleaseGroup(ReleaseGroup),
@@ -421,35 +417,35 @@ pub enum Model {
 /**
  * All this repetition seems dumb. Save me, movie reference!
  */
-impl Model {
+impl Entities {
     pub fn key(&self) -> Option<String> {
         match self {
-            Model::Artist(a) => a.key.clone(),
-            Model::ReleaseGroup(r) => r.key.clone(),
-            Model::Release(r) => r.key.clone(),
-            Model::Recording(r) => r.key.clone(),
-            Model::RecordingSource(r) => r.key.clone(),
-            Model::Genre(g) => g.key.clone(),
+            Entities::Artist(a) => a.key.clone(),
+            Entities::ReleaseGroup(r) => r.key.clone(),
+            Entities::Release(r) => r.key.clone(),
+            Entities::Recording(r) => r.key.clone(),
+            Entities::RecordingSource(r) => r.key.clone(),
+            Entities::Genre(g) => g.key.clone(),
         }
     }
 
     pub fn set_key(&mut self, key: Option<String>) {
         match self {
-            Model::Artist(m) => m.key = key,
-            Model::ReleaseGroup(m) => m.key = key,
-            Model::Release(m) => m.key = key,
-            Model::Genre(m) => m.key = key,
-            Model::Recording(m) => m.key = key,
-            Model::RecordingSource(m) => m.key = key,
+            Entities::Artist(m) => m.key = key,
+            Entities::ReleaseGroup(m) => m.key = key,
+            Entities::Release(m) => m.key = key,
+            Entities::Genre(m) => m.key = key,
+            Entities::Recording(m) => m.key = key,
+            Entities::RecordingSource(m) => m.key = key,
         }
     }
 
     pub fn mbid(&self) -> Option<String> {
         let known_ids = match self {
-            Model::Artist(a) => a.known_ids.clone(),
-            Model::Release(r) => r.known_ids.clone(),
-            Model::ReleaseGroup(r) => r.known_ids.clone(),
-            Model::Recording(r) => r.known_ids.clone(),
+            Entities::Artist(a) => a.known_ids.clone(),
+            Entities::Release(r) => r.known_ids.clone(),
+            Entities::ReleaseGroup(r) => r.known_ids.clone(),
+            Entities::Recording(r) => r.known_ids.clone(),
             _ => todo!(),
         };
         for id in known_ids {
@@ -462,73 +458,38 @@ impl Model {
 
     pub fn type_name(&self) -> &str {
         match self {
-            Model::Artist(_) => "artist",
-            Model::ReleaseGroup(_) => "release_group",
-            Model::Release(_) => "release",
-            Model::Recording(_) => "recording",
-            Model::RecordingSource(_) => "recording_source",
-            Model::Genre(_) => "genre",
+            Entities::Artist(_) => "artist",
+            Entities::ReleaseGroup(_) => "release_group",
+            Entities::Release(_) => "release",
+            Entities::Recording(_) => "recording",
+            Entities::RecordingSource(_) => "recording_source",
+            Entities::Genre(_) => "genre",
         }
     }
 
-    pub fn modelerrro(&self) -> Box<dyn Modelerrro> {
+    pub fn entity(&self) -> Box<dyn Entity> {
         match self {
-            Model::Artist(a) => Box::new(a.clone()),
-            Model::Release(r) => Box::new(r.clone()),
-            Model::Recording(r) => Box::new(r.clone()),
-            Model::RecordingSource(r) => Box::new(r.clone()),
+            Entities::Artist(a) => Box::new(a.clone()),
+            Entities::Release(r) => Box::new(r.clone()),
+            Entities::Recording(r) => Box::new(r.clone()),
+            Entities::RecordingSource(r) => Box::new(r.clone()),
             _ => todo!()
         }
     }
 
-    // pub fn known_ids(&self) -> HashSet<KnownId> {
-    //     match self {
-    //         Model::Artist(a) => a.known_ids.clone(),
-    //         Model::Release(a) => a.known_ids.clone(),
-    //         Model::ReleaseGroup(a) => a.known_ids.clone(),
-    //         Model::(a) => a.known_ids.clone(),
-    //         Model::Artist(a) => a.known_ids.clone(),
-    //         Model::Artist(a) => a.known_ids.clone(),
-    //     }
-    // }
-}
-
-impl From<&Model> for Artist {
-    fn from(value: &Model) -> Self {
-        match value {
-            Model::Artist(a) => a.clone(),
-            _ => Artist::default(),
+    pub fn known_ids(&self) -> HashSet<KnownId> {
+        match self {
+            Entities::Artist(a) => a.known_ids.clone(),
+            Entities::Release(a) => a.known_ids.clone(),
+            Entities::ReleaseGroup(a) => a.known_ids.clone(),
+            Entities::Genre(_) => todo!(),
+            Entities::Recording(_) => todo!(),
+            Entities::RecordingSource(_) => todo!(),
         }
     }
 }
 
-impl From<&Artist> for Model {
-    fn from(value: &Artist) -> Self {
-        Model::Artist(value.clone())
-    }
-}
-
-impl From<&Model> for Release {
-    fn from(value: &Model) -> Self {
-        match value {
-            Model::Release(a) => a.clone(),
-            _ => Release::default(),
-        }
-    }
-}
-
-impl From<&Release> for Model {
-    fn from(value: &Release) -> Self {
-        Model::Release(value.clone())
-    }
-}
-
-/// The goal is to replace the Model enum with this so that the consumers
-/// of the API can work more often with actual Model structs such as Artist
-/// and then use them as Modelerrro when needed. The constant unwrapping of
-/// the enum is uncomfortable. It's possible we could call this Entity, and the
-/// objects themselves Models.
-pub trait Modelerrro {
+pub trait Entity {
     fn key(&self) -> Option<String>;
     fn set_key(&mut self, key: Option<String>);
     fn name(&self) -> Option<String>;
@@ -537,9 +498,16 @@ pub trait Modelerrro {
     fn disambiguation(&self) -> Option<String>;
     fn summary(&self) -> Option<String>;
     fn links(&self) -> HashSet<String>;
+
+    fn mbid(&self) -> Option<String> {
+        self.known_ids().iter().find_map(|id| match id {
+            KnownId::MusicBrainzId(mbid) => Some(mbid.to_string()),
+            _ => None,
+        })
+    }
 } 
 
-impl Modelerrro for Artist {
+impl Entity for Artist {
     fn key(&self) -> Option<String> {
         self.key.clone()
     }
@@ -573,7 +541,7 @@ impl Modelerrro for Artist {
     }
 }
 
-impl Modelerrro for Release {
+impl Entity for Release {
     fn key(&self) -> Option<String> {
         self.key.clone()
     }
@@ -607,7 +575,7 @@ impl Modelerrro for Release {
     }
 }
 
-impl Modelerrro for Recording {
+impl Entity for ReleaseGroup {
     fn key(&self) -> Option<String> {
         self.key.clone()
     }
@@ -641,7 +609,41 @@ impl Modelerrro for Recording {
     }
 }
 
-impl Modelerrro for RecordingSource {
+impl Entity for Recording {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        self.title.clone()
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        self.disambiguation.clone()
+    }
+
+    fn summary(&self) -> Option<String> {
+        self.summary.clone()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        self.links.clone()
+    }
+}
+
+impl Entity for RecordingSource {
     fn key(&self) -> Option<String> {
         self.key.clone()
     }

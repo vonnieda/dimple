@@ -1,11 +1,11 @@
 use std::{sync::{RwLock, Mutex}, collections::HashSet};
 
-use dimple_core::{collection::Collection, model::{Artist, Modelerrro, Recording, RecordingSource, Release, ReleaseGroup}};
+use dimple_core::{collection::Collection, model::{Artist, Entity, Recording, RecordingSource, Release, ReleaseGroup}};
 use dimple_sled_library::sled_library::SledLibrary;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use image::DynamicImage;
 use rayon::prelude::*;
-use dimple_core::model::Model;
+use dimple_core::model::Entities;
 
 pub struct Librarian {
     local_library: SledLibrary,
@@ -27,7 +27,7 @@ impl Librarian {
     /// Generate some kind of cool artwork for the entity to be used as a
     /// default. Being part of Librarian, it can use data from the library
     /// to create the image.
-    pub fn generate_masterpiece(&self, _entity: &Model, width: u32, 
+    pub fn generate_masterpiece(&self, _entity: &Entities, width: u32, 
         height: u32) -> DynamicImage {
 
         // https://stackoverflow.com/questions/76741218/in-slint-how-do-i-render-a-self-drawn-image
@@ -36,14 +36,33 @@ impl Librarian {
         DynamicImage::new_rgb8(width, height)
     }
 
+    /// Get or create a thumbnail image at the given size for the entity.
+    /// If no image can be loaded from the library one is generated. Results
+    /// either from the library or generated are cached for future calls.
+    pub fn thumbnail(&self, entity: &Entities, width: u32, height: u32) -> DynamicImage {
+        // let cached = self.local_library.images.get(&entity.key(), width, height);
+        // if let Some(dyn_image) = cached {
+        //     return dyn_image;
+        // }
+        // else if let Some(dyn_image) = self.image(entity) {
+        //     self.local_library.set_image(entity, &dyn_image);
+        //     return self.local_library.images.get(&entity.key(), width, height).unwrap();
+        // }
+        // let generated = &self.generate_masterpiece(entity, width, height);
+        // self.local_library.set_image(entity, generated);
+        // self.local_library.images.get(&entity.key(), width, height).unwrap()
+
+        DynamicImage::new_rgb8(32, 32)
+    }
+
     /// Find a matching model in the local store merge the value, and store it. 
     /// If no match is found a new model is stored and returned.
-    pub fn merge(&self, model: &Model, related_to: Option<&Model>) -> Model {
+    pub fn merge(&self, model: &Entities, related_to: Option<&Entities>) -> Entities {
         // TODO this needs to be atomic. When using par_iter it blows up cause
         // we're saving out of date info.
         let matched = self.find_match(model);
         let merged = match matched {
-            Some(matched) => Model::merge(matched, model.clone()),
+            Some(matched) => Entities::merge(matched, model.clone()),
             None => model.clone(),
         };
         let saved = self.local_library.set(&merged).unwrap();
@@ -59,7 +78,7 @@ impl Librarian {
     // 3. Attempt to find by known_id
     // 4. Attempt to find by fuzzy?
     // 5. Give up.
-    fn find_match(&self, model: &Model) -> Option<Model> {
+    fn find_match(&self, model: &Entities) -> Option<Entities> {
         // Find by key
         if let Some(model) = self.local_library.get(model) {
             return Some(model)
@@ -67,8 +86,8 @@ impl Librarian {
 
         // Find by matching source_id
         if let Some(model) = self.local_library.list(model, None).find(|m| {
-            let l = model.modelerrro();
-            let r = m.modelerrro();
+            let l = model.entity();
+            let r = m.entity();
             !l.source_ids().is_disjoint(&r.source_ids())
         }) {
             return Some(model)
@@ -76,8 +95,8 @@ impl Librarian {
 
         // Find by matching known_id
         if let Some(model) = self.local_library.list(model, None).find(|m| {
-            let l = model.modelerrro();
-            let r = m.modelerrro();
+            let l = model.entity();
+            let r = m.entity();
             !l.known_ids().is_disjoint(&r.known_ids())
         }) {
             return Some(model)
@@ -88,8 +107,8 @@ impl Librarian {
         // TODO I think this becomes LocalLibrary.search or maybe a utility
         // for an iterator.
         if let Some(model) = self.local_library.list(model, None).find(|m| {
-            let l = model.modelerrro();
-            let r = m.modelerrro();
+            let l = model.entity();
+            let r = m.entity();
             let matcher = SkimMatcherV2::default();
             let pattern = format!("{}:{}", 
                 l.name().unwrap_or_default(),
@@ -107,6 +126,15 @@ impl Librarian {
         // Give up
         None
     }
+
+    fn local_library_search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
+        let matcher = SkimMatcherV2::default();
+        let pattern = query.to_string();
+        let iter = Artist::list(&self.local_library)
+            .filter(move |a| matcher.fuzzy_match(&a.name.clone().unwrap_or_default(), &pattern).is_some())
+            .map(Entities::Artist);
+        Box::new(iter)
+    }
 }
 
 impl Collection for Librarian {
@@ -114,16 +142,17 @@ impl Collection for Librarian {
         "Librarian".to_string()
     }
 
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = Model>> {
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
         self.libraries.read().unwrap().iter()
             .flat_map(|lib| lib.search(query))
             .for_each(|m| {
                 let _ = self.merge(&m, None);
             });
-        self.local_library.search(query)
+        // self.local_library.search(query)
+        self.local_library_search(query)
     }    
 
-    fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
+    fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
         // TODO parallel version is much faster but sled.merge is not atomic
         // / thread safe, so it fucks up. see note on that function.
         // self.libraries.read().unwrap().par_iter()
@@ -141,7 +170,7 @@ impl Collection for Librarian {
         self.local_library.list(of_type, related_to)
     }
 
-    fn fetch(&self, entity: &Model) -> Option<Model> {
+    fn fetch(&self, entity: &Entities) -> Option<Entities> {
         // self.libraries.read().unwrap().iter()
         //     .flat_map(|lib| lib.list(entity, None))
         //     .for_each(|m| {
@@ -154,7 +183,7 @@ impl Collection for Librarian {
     /// it, otherwise search the attached libraries for one. If one is found,
     /// cache it in the local library and return it. Future requests will be
     /// served from the cache.
-    fn image(&self, entity: &Model) -> Option<DynamicImage> {
+    fn image(&self, entity: &Entities) -> Option<DynamicImage> {
         todo!()
     }
 }
@@ -164,22 +193,22 @@ trait Merge<T> {
     fn merge(a: T, b: T) -> T;
 }
 
-impl Merge<Model> for Model {
-    fn merge(left: Model, right: Model) -> Self {
+impl Merge<Entities> for Entities {
+    fn merge(left: Entities, right: Entities) -> Self {
         match (left, right) {
-            (Model::Artist(left), Model::Artist(right)) => {
+            (Entities::Artist(left), Entities::Artist(right)) => {
                 Artist::merge(left, right).entity()
             },
-            (Model::ReleaseGroup(left), Model::ReleaseGroup(right)) => {
+            (Entities::ReleaseGroup(left), Entities::ReleaseGroup(right)) => {
                 ReleaseGroup::merge(left, right).entity()
             },
-            (Model::Release(left), Model::Release(right)) => {
+            (Entities::Release(left), Entities::Release(right)) => {
                 Release::merge(left, right).entity()
             },
-            (Model::Recording(left), Model::Recording(right)) => {
+            (Entities::Recording(left), Entities::Recording(right)) => {
                 Recording::merge(left, right).entity()
             },
-            (Model::RecordingSource(left), Model::RecordingSource(right)) => {
+            (Entities::RecordingSource(left), Entities::RecordingSource(right)) => {
                 RecordingSource::merge(left, right).entity()
             },
             _ => todo!()

@@ -1,5 +1,5 @@
 use dimple_core::collection::{Collection, LibrarySupport};
-use dimple_core::model::Model;
+use dimple_core::model::{Entities, Entity};
 use image::DynamicImage;
 use musicbrainz_rs::entity::{CoverartResponse, release_group::ReleaseGroup, release::Release};
 use musicbrainz_rs::FetchCoverart;
@@ -43,10 +43,10 @@ impl Collection for CoverArtArchiveLibrary {
         "CoverArtArchive".to_string()
     }
 
-    fn image(&self, _entity: &Model) -> Option<image::DynamicImage> {
+    fn image(&self, _entity: &Entities) -> Option<image::DynamicImage> {
         match _entity {
-            Model::ReleaseGroup(r) => {
-                let mbid = r.entity().mbid()?;
+            Entities::ReleaseGroup(r) => {
+                let mbid = r.mbid()?;
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("http://coverartarchive.org/{}", mbid));
                 let mb = ReleaseGroup {
@@ -66,8 +66,8 @@ impl Collection for CoverArtArchiveLibrary {
                     })
                     ?
             },
-            Model::Release(r) => {
-                let mbid = r.entity().mbid()?;
+            Entities::Release(r) => {
+                let mbid = r.mbid()?;
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("http://coverartarchive.org/{}", mbid));                
                 let mb = Release {

@@ -1,6 +1,6 @@
 use std::env;
 
-use dimple_core::{collection::{Collection, LibrarySupport}, model::Model};
+use dimple_core::{collection::{Collection, LibrarySupport}, model::{Entities, Entity}};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
@@ -54,14 +54,14 @@ impl Collection for FanartTvLibrary {
         "fanart.tv".to_string()
     }
 
-    fn image(&self, entity: &Model) -> Option<image::DynamicImage> {
+    fn image(&self, entity: &Entities) -> Option<image::DynamicImage> {
         match entity {
-            Model::Artist(a) => {
+            Entities::Artist(a) => {
                 let client = Client::builder()
                     .https_only(true)
                     .user_agent(dimple_core::USER_AGENT)
                     .build().ok()?;
-                let mbid = a.entity().mbid()?;
+                let mbid = a.mbid()?;
                 let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", 
                     mbid, self.api_key);
                 let request_token = LibrarySupport::start_request(self, &url);

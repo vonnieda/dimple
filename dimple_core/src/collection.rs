@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use colored::Colorize;
 
-use crate::model::{Model, Recording, RecordingSource};
+use crate::model::{Entities, Recording, RecordingSource};
 
 
 pub trait Collection: Send + Sync {
@@ -14,7 +14,7 @@ pub trait Collection: Send + Sync {
     /// general it should return, at least, matching Artists, Releases,
     /// Genres, and Tracks.
     /// TODO I think this will become model specific
-    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = Model>> {
+    fn search(&self, _query: &str) -> Box<dyn Iterator<Item = Entities>> {
         Box::new(vec![].into_iter())
     }
 
@@ -23,12 +23,12 @@ pub trait Collection: Send + Sync {
     /// criteria. Typically mbid or another id will be used. The Library should
     /// return only those fields that are fetched, it should not return fields
     /// that come from the source entity.
-    fn fetch(&self, _entity: &Model) -> Option<Model> {
+    fn fetch(&self, _entity: &Entities) -> Option<Entities> {
         None
     }
 
     // TODO Eventually this will allow access to more image types.
-    fn image(&self, _entity: &Model) -> Option<image::DynamicImage> {
+    fn image(&self, _entity: &Entities) -> Option<image::DynamicImage> {
         None
     }
 
@@ -58,7 +58,7 @@ pub trait Collection: Send + Sync {
     /// Sources for a track:
     /// let track: Track;
     /// let sources = list(Model::TrackSource, track);
-    fn list(&self, _of_type: &Model, _related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
+    fn list(&self, _of_type: &Entities, _related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
         Box::new(vec![].into_iter())
     }
 }

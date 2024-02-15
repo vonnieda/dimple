@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use dimple_core::model::Artist;
+use dimple_core::model::{Artist, Entity};
 use dimple_coverartarchive_library::CoverArtArchiveLibrary;
 use dimple_deezer_library::DeezerLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
@@ -42,7 +42,7 @@ fn main() -> anyhow::Result<()> {
         log::info!("Artist {}/{}: {} (mbid:{:?})", 
             i + 1, artist_count,
             artist.name.clone().unwrap_or_default(),
-            artist.entity().mbid().unwrap_or_default());
+            artist.mbid().unwrap_or_default());
         for release in artist.releases(&librarian) {
             log::info!("    Release: {}", release.title.clone().unwrap_or_default());
             for recording in release.recordings(&librarian) {

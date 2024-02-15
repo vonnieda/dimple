@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use dimple_core::{collection::{Collection, LibrarySupport}, model::{Artist, Recording, Release, ReleaseGroup}};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
-use dimple_core::model::Model;
+use dimple_core::model::Entities;
 
 #[derive(Debug, Default)]
 pub struct WikidataLibrary {
@@ -166,27 +166,27 @@ impl Collection for WikidataLibrary {
         "Wikidata".to_string()
     }
 
-    fn fetch(&self, entity: &Model) -> Option<Model> {
+    fn fetch(&self, entity: &Entities) -> Option<Entities> {
         match entity.clone() {
-            Model::Artist(artist) => self.get_summary(&artist.links)
+            Entities::Artist(artist) => self.get_summary(&artist.links)
                 .map(|summary| Artist {
                     summary: Some(summary),
                     ..Default::default()
                 }.entity()),
                 
-            Model::ReleaseGroup(rg) => self.get_summary(&rg.links)
+            Entities::ReleaseGroup(rg) => self.get_summary(&rg.links)
                 .map(|summary| ReleaseGroup {
                     summary: Some(summary),
                     ..Default::default()
                 }.entity()),
 
-            Model::Release(rg) => self.get_summary(&rg.links)
+            Entities::Release(rg) => self.get_summary(&rg.links)
                 .map(|summary| Release {
                     summary: Some(summary),
                     ..Default::default()
                 }.entity()),
 
-            Model::Recording(r) => self.get_summary(&r.links)
+            Entities::Recording(r) => self.get_summary(&r.links)
                 .map(|summary| Recording {
                     summary: Some(summary),
                     ..Default::default()

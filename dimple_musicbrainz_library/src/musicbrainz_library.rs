@@ -4,14 +4,14 @@ use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
 use dimple_core::collection::{Collection, LibrarySupport};
-use dimple_core::model::{Artist, KnownId, Recording, Release, ReleaseGroup};
+use dimple_core::model::{Artist, Entity, KnownId, Recording, Release, ReleaseGroup};
 use musicbrainz_rs::entity::artist::{Artist as MBArtist, ArtistSearchQuery};
 use musicbrainz_rs::entity::recording::Recording as MBRecording;
 use musicbrainz_rs::entity::relations::RelationContent;
 use musicbrainz_rs::entity::release::Release as MBRelease;
 use musicbrainz_rs::entity::release_group::ReleaseGroup as MBReleaseGroup;
 use musicbrainz_rs::prelude::*;
-use dimple_core::model::Model;
+use dimple_core::model::Entities;
 
 
 #[derive(Debug)]
@@ -50,7 +50,7 @@ impl Collection for MusicBrainzLibrary {
         "MusicBrainz".to_string()
     }
 
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = Model>> {
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
         let query = query.to_string();
 
         self.enforce_rate_limit();
@@ -61,7 +61,7 @@ impl Collection for MusicBrainzLibrary {
         let search_query = ArtistSearchQuery::query_builder()
             .artist(&query)
             .build();
-        let results: Vec<Model> = MBArtist::search(search_query)
+        let results: Vec<Entities> = MBArtist::search(search_query)
             .execute()
             .inspect(|_f| {
                 LibrarySupport::end_request(request_token, None, None);
@@ -71,14 +71,14 @@ impl Collection for MusicBrainzLibrary {
             .entities
             .iter()
             .map(|src| dimple_core::model::Artist::from(ArtistConverter::from(src.clone())))
-            .map(Model::Artist)
+            .map(Entities::Artist)
             .collect();
         Box::new(results.into_iter())
     }
 
-    fn list(&self, of_type: &Model, related_to: Option<&Model>) -> Box<dyn Iterator<Item = Model>> {
+    fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
         match (of_type, related_to) {
-            (Model::ReleaseGroup(_), Some(Model::Artist(a))) => {                
+            (Entities::ReleaseGroup(_), Some(Entities::Artist(a))) => {                
                 // // TODO handle paging
                 // let request_token = LibrarySupport::start_request(self, 
                 //     &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", a.key));
@@ -98,9 +98,9 @@ impl Collection for MusicBrainzLibrary {
                 // Box::new(results.into_iter())
                 todo!()
             },
-            (Model::Release(_), Some(Model::Artist(a))) => {                
+            (Entities::Release(_), Some(Entities::Artist(a))) => {                
                 // TODO handle paging
-                let mbid = a.entity().mbid();
+                let mbid = a.mbid();
                 if mbid.is_none() {
                     return Box::new(vec![].into_iter())
                 }
@@ -119,13 +119,13 @@ impl Collection for MusicBrainzLibrary {
                     .entities
                     .iter()
                     .map(|src| Release::from(ReleaseConverter::from(src.clone())))
-                    .map(Model::Release)
+                    .map(Entities::Release)
                     .collect();
                 Box::new(results.into_iter())
             },
-            (Model::Recording(_), Some(Model::Release(a))) => {
+            (Entities::Recording(_), Some(Entities::Release(a))) => {
                 // TODO handle paging
-                let mbid = a.entity().mbid();
+                let mbid = a.mbid();
                 if mbid.is_none() {
                     return Box::new(vec![].into_iter())
                 }
@@ -143,7 +143,7 @@ impl Collection for MusicBrainzLibrary {
                     .entities
                     .iter()
                     .map(|src| Recording::from(RecordingConverter::from(src.clone())))
-                    .map(Model::Recording)
+                    .map(Entities::Recording)
                     .collect();
                 Box::new(results.into_iter())
             },
@@ -151,10 +151,10 @@ impl Collection for MusicBrainzLibrary {
         }
     }
 
-    fn fetch(&self, entity: &Model) -> Option<Model> {
+    fn fetch(&self, entity: &Entities) -> Option<Entities> {
         let mbid = entity.mbid()?;
         match entity {
-            Model::Artist(a) => {
+            Entities::Artist(a) => {
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", mbid));
                 self.enforce_rate_limit();
@@ -169,9 +169,9 @@ impl Collection for MusicBrainzLibrary {
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| Artist::from(ArtistConverter::from(src.clone())))
-                    .map(Model::Artist)        
+                    .map(Entities::Artist)        
             },
-            Model::ReleaseGroup(r) => {
+            Entities::ReleaseGroup(r) => {
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", mbid));
                 self.enforce_rate_limit();
@@ -187,9 +187,9 @@ impl Collection for MusicBrainzLibrary {
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-                    .map(Model::ReleaseGroup)        
+                    .map(Entities::ReleaseGroup)        
             },
-            Model::Release(r) => {
+            Entities::Release(r) => {
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", mbid));
                 self.enforce_rate_limit();
@@ -206,9 +206,9 @@ impl Collection for MusicBrainzLibrary {
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| Release::from(ReleaseConverter::from(src.clone())))
-                    .map(Model::Release)        
+                    .map(Entities::Release)        
             },
-            Model::Recording(r) => {
+            Entities::Recording(r) => {
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/recording/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", mbid));
                 self.enforce_rate_limit();
@@ -224,10 +224,10 @@ impl Collection for MusicBrainzLibrary {
                     .ok()
                     .inspect(|src| log::debug!("{:?}", src))
                     .map(|src| Recording::from(RecordingConverter::from(src.clone())))
-                    .map(Model::Recording)        
+                    .map(Entities::Recording)        
             },
-            Model::Genre(_) => None,
-            Model::RecordingSource(_) => None,
+            Entities::Genre(_) => None,
+            Entities::RecordingSource(_) => None,
         }        
     }
 }
