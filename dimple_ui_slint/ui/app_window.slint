@@ -7,7 +7,7 @@ import { ReleaseGroupDetails, ReleaseGroupDetailsAdapter } from "release_group_d
 import { Palette, Navigator, LinkAdapter, ImageLinkAdapter , Tag} from "common.slint";
 import { StyleMetrics , HorizontalBox} from "std-widgets.slint";
 import { ReleaseGroupDetails } from "release_group_details.slint";
-import { ReleaseDetails, ReleaseDetailsModel } from "release_details.slint";
+import { ReleaseDetails, ReleaseDetailsAdapter } from "release_details.slint";
 import { RecordingDetails, RecordingDetailsAdapter } from "recording_details.slint";
 import { SideBar } from "side_bar.slint";
 import { Home } from "home.slint";
@@ -43,7 +43,7 @@ export component AppWindow inherits Window {
     in-out property <CardGridAdapter> card-grid-adapter;
     in-out property <ArtistDetailsAdapter> artist-details;
     in-out property <ReleaseGroupDetailsAdapter> release-group-details;
-    in-out property <ReleaseDetailsModel> release-details;
+    in-out property <ReleaseDetailsAdapter> release-details;
     in-out property <RecordingDetailsAdapter> recording-details;
     in-out property <SettingsAdapter> settings-adapter;
     

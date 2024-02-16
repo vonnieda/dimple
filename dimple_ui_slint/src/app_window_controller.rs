@@ -386,7 +386,7 @@ impl AppWindowController {
             // let release_cards = release_cards(releases, &librarian, Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT);
 
             ui.upgrade_in_event_loop(move |ui| {
-                let model = ReleaseGroupDetailsAdapter {                    
+                let model = ReleaseDetailsAdapter {                    
                     card: card_adapter(&card),
                     disambiguation: release.disambiguation.str().into(),
                     // genres: link_adapters(genres),
@@ -398,7 +398,7 @@ impl AppWindowController {
                     // releases: card_adapters(release_cards),
                     ..Default::default()
                 };
-                ui.set_release_group_details(model);
+                ui.set_release_details(model);
                 ui.set_page(3);
                 ui.global::<Navigator>().set_busy(false);
             }).unwrap();
@@ -558,8 +558,10 @@ fn release_card(release: &Release, width: u32, height: u32, lib: &Librarian) -> 
             name: release.title.clone().str(),
             url: format!("dimple://release/{}", release.key.str()),
         },
-        // TODO
-        // sub_title: 
+        sub_title: Link { 
+            name: format!("{:.4} {}", release.date.str(), release.country.str()),
+            url: format!("dimple://release/{}", release.key.str()),
+        },
         ..Default::default()
     }
 }
