@@ -1,13 +1,8 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette, LinkAdapter, Navigator, Links , Link, TrackList, TrackAdapter} from "common.slint";
+import { Palette, LinkAdapter, Navigator, Links , Link, TrackList, TrackAdapter, MediumAdapter} from "common.slint";
 import { CardAdapter } from "card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { CardGrid } from "card_grid.slint";
-
-export struct MediumAdapter {
-    title: string,
-    tracks: [TrackAdapter],
-}
 
 export struct ReleaseGroupDetailsAdapter {
     card: CardAdapter,

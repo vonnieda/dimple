@@ -235,6 +235,15 @@ impl Artist {
         Entities::Artist(self.clone())
     }
 
+    pub fn search(query: &str, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
+        let iter = lib.search(query)
+            .filter_map(|m| match m {
+                Entities::Artist(a) => Some(a),
+                _ => None,
+            });
+        Box::new(iter)
+    }
+
     pub fn release_groups(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = ReleaseGroup>> {
         let iter = lib.list(&ReleaseGroup::default().entity(), Some(&self.entity()));
         let iter = iter.map(|r| match r {
@@ -253,13 +262,22 @@ impl Artist {
         Box::new(iter)    
     }
 
-    pub fn search(query: &str, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
-        let iter = lib.search(query)
-            .filter_map(|m| match m {
-                Entities::Artist(a) => Some(a),
-                _ => None,
-            });
-        Box::new(iter)
+    pub fn recordings(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
+        let iter = lib.list(&Recording::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Recording(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn genres(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Genre>> {
+        let iter = lib.list(&Genre::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Genre(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
     }
 }
 
@@ -267,6 +285,10 @@ impl Artist {
 
 
 impl ReleaseGroup {
+    pub fn entity(&self) -> Entities {
+        Entities::ReleaseGroup(self.clone())
+    }
+
     pub fn get(key: &str, lib: &dyn Collection) -> Option<Self> {
         let ent = ReleaseGroup {
             key: Some(key.to_string()),
@@ -296,8 +318,22 @@ impl ReleaseGroup {
         Box::new(iter)    
     }
 
-    pub fn entity(&self) -> Entities {
-        Entities::ReleaseGroup(self.clone())
+    pub fn genres(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Genre>> {
+        let iter = lib.list(&Genre::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Genre(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn artists(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
+        let iter = lib.list(&Artist::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Artist(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
     }
 }
 
@@ -328,13 +364,22 @@ impl Release {
         Box::new(iter)    
     }
 
-    pub fn known_id(&self, of_type: &KnownId) -> Option<KnownId> {
-        for id in &self.known_ids {
-            if discriminant(id) == discriminant(of_type) {
-                return Some(id.clone())
-            }
-        }
-        None
+    pub fn genres(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Genre>> {
+        let iter = lib.list(&Genre::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Genre(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn artists(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
+        let iter = lib.list(&Artist::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Artist(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
     }
 }
 
@@ -369,6 +414,56 @@ impl RecordingSource {
         Entities::RecordingSource(self.clone())
     }
 }
+
+
+
+impl Genre {
+    pub fn get(key: &str, lib: &dyn Collection) -> Option<Self> {
+        let ent = Self {
+            key: Some(key.to_string()),
+            ..Default::default()
+        }.entity();
+        match lib.fetch(&ent) {
+            Some(Entities::Genre(g)) => Some(g),
+            _ => todo!()
+        }
+    }
+
+    pub fn entity(&self) -> Entities {
+        Entities::Genre(self.clone())
+    }
+
+    pub fn recordings(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
+        let iter = lib.list(&Recording::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Recording(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
+        let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Release(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn artists(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
+        let iter = lib.list(&Artist::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Artist(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+}
+
+
+
+
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Entities {
@@ -497,6 +592,40 @@ pub trait Entity {
 } 
 
 impl Entity for Artist {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        self.name.clone()
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        self.disambiguation.clone()
+    }
+
+    fn summary(&self) -> Option<String> {
+        self.summary.clone()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        self.links.clone()
+    }
+}
+
+impl Entity for Genre {
     fn key(&self) -> Option<String> {
         self.key.clone()
     }

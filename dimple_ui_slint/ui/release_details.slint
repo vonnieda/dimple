@@ -1,26 +1,19 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette, LinkAdapter, Navigator, Links , Link, TrackList, TrackAdapter} from "common.slint";
+import { Palette, LinkAdapter, Navigator, Links , Link, TrackList, TrackAdapter, MediumAdapter} from "common.slint";
 import { CardAdapter } from "card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { CardGrid } from "card_grid.slint";
-
-// export struct MediumAdapter {
-//     title: string,
-//     tracks: [TrackAdapter],
-// }
 
 export struct ReleaseDetailsAdapter {
     card: CardAdapter,
     disambiguation: string,
     summary: string,
     genres: [LinkAdapter],
-    // releases: [CardAdapter],
     links: [LinkAdapter],
     primary_type: string,
     artists: [LinkAdapter],
 
-    // From the default and/or selected release.
-    // media: [MediumAdapter],
+    media: [MediumAdapter],
 }
 
 export component ReleaseDetails inherits ScrollView {
@@ -93,34 +86,20 @@ export component ReleaseDetails inherits ScrollView {
             }
         }
 
-        // // Media and Tracks
-        // if model.media.length > 0: VerticalBox {
-        //     for medium in model.media: VerticalBox {
-        //         // Text {
-        //         //     text: medium.title;
-        //         //     font-weight: Palette.font-weight-bold;
-        //         //     font-size: 2rem;
-        //         // }
-        //         // https://github.com/slint-ui/slint/blob/master/internal/compiler/widgets/cupertino-base/tableview.slint
-        //         TrackList {
-        //             tracks: medium.tracks;
-        //         }
-        //     }
-        // }
-
-        // // Releases
-        // if model.releases.length > 0: VerticalLayout {
-        //     spacing: StyleMetrics.layout-spacing * 0.50;
-        //     Text {
-        //         text: "Releases";
-        //         font-weight: Palette.font-weight-bold;
-        //         font-size: 2rem;
-        //     }
-        //     CardGrid {
-        //         cards: model.releases;
-        //         parent-width: root.width;
-        //     }
-        // }
+        // Media and Tracks
+        if model.media.length > 0: VerticalBox {
+            for medium in model.media: VerticalBox {
+                // Text {
+                //     text: medium.title;
+                //     font-weight: Palette.font-weight-bold;
+                //     font-size: 2rem;
+                // }
+                // https://github.com/slint-ui/slint/blob/master/internal/compiler/widgets/cupertino-base/tableview.slint
+                TrackList {
+                    tracks: medium.tracks;
+                }
+            }
+        }
 
         // Links
         if model.links.length > 0: VerticalLayout {

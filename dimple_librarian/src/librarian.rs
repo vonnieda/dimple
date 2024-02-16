@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::{Mutex, RwLock}, time::Instant};
+use std::{collections::HashSet, ops::Deref, sync::{Mutex, RwLock}, time::Instant};
 
 use dimple_core::{collection::Collection, model::{Artist, Entity, Recording, RecordingSource, Release, ReleaseGroup}};
 use dimple_sled_library::sled_library::SledLibrary;
@@ -10,14 +10,13 @@ use dimple_core::model::Entities;
 pub struct Librarian {
     local_library: SledLibrary,
     libraries: RwLock<Vec<Box<dyn Collection>>>,
-    access_mode: AccessMode,
+    access_mode: Mutex<AccessMode>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AccessMode {
     Online,
     Offline,
-    Library,
 }
 
 // TODO calling it here:
@@ -31,7 +30,7 @@ impl Librarian {
         Self { 
             local_library: SledLibrary::new(path),
             libraries: Default::default(),
-            access_mode: AccessMode::Online,
+            access_mode: Mutex::new(AccessMode::Online),
         }
     }
 
@@ -40,11 +39,11 @@ impl Librarian {
     }
 
     pub fn access_mode(&self) -> AccessMode {
-        self.access_mode.clone()
+        self.access_mode.lock().unwrap().clone()
     }
 
-    pub fn set_access_mode(&mut self, value: &AccessMode) {
-        self.access_mode = value.clone();
+    pub fn set_access_mode(&self, value: &AccessMode) {
+        *self.access_mode.lock().unwrap() = value.clone();
     }
 
     /// Generate some kind of cool artwork for the entity to be used as a
@@ -136,6 +135,8 @@ impl Librarian {
             // TODO this has to be smarter - it should only match disambiguation
             // for those that have it,and it probably should only apply in cases
             // where no source_ids or known_ids exist yet for at least one object
+            // And I suspect this is where I might wanna do additional weighting for
+            // like having the same album or something.
             let pattern = format!("{}:{}", 
                 l.name().unwrap_or_default(),
                 l.disambiguation().unwrap_or_default());
@@ -154,6 +155,7 @@ impl Librarian {
     }
 
     fn local_library_search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
+        const MAX_RESULTS_PER_TYPE: usize = 10;
         // TODO sort by score
         // TODO other entities
         let pattern = query.to_string();
@@ -161,13 +163,13 @@ impl Librarian {
         let artists = Artist::list(&self.local_library)
             .filter(move |a| matcher.fuzzy_match(&a.name.clone().unwrap_or_default(), &pattern).is_some())
             .map(Entities::Artist)
-            .take(10);
+            .take(MAX_RESULTS_PER_TYPE);
         let pattern = query.to_string();
         let matcher = SkimMatcherV2::default();
         let release_groups = ReleaseGroup::list(&self.local_library)
             .filter(move |a| matcher.fuzzy_match(&a.title.clone().unwrap_or_default(), &pattern).is_some())
             .map(Entities::ReleaseGroup)
-            .take(10);
+            .take(MAX_RESULTS_PER_TYPE);
         Box::new(artists.chain(release_groups))
     }
 }
@@ -181,11 +183,13 @@ impl Collection for Librarian {
     /// local and return the results. This merge step ensures that the objects
     /// returned are the sum of the sources.
     fn search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
-        self.libraries.read().unwrap().iter()
-            .flat_map(|lib| lib.search(query))
-            .for_each(|m| {
-                let _ = self.merge(&m, None);
-            });
+        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+            self.libraries.read().unwrap().iter()
+                .flat_map(|lib| lib.search(query))
+                .for_each(|m| {
+                    let _ = self.merge(&m, None);
+                });
+        }
         self.local_library_search(query)
     }    
 
@@ -195,18 +199,20 @@ impl Collection for Librarian {
     fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
         // TODO parallel version is much faster but self.merge is not atomic
         // But note, the real problem is the "list" in the match function.
-        self.libraries.read().unwrap().iter()
-            .flat_map(|lib| lib.list(of_type, related_to))
-            .for_each(|m| {
-                let _ = self.merge(&m, related_to);
-            });
-
+        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+            self.libraries.read().unwrap().iter()
+                .flat_map(|lib| lib.list(of_type, related_to))
+                .for_each(|m| {
+                    let _ = self.merge(&m, related_to);
+                });
+        }
         self.local_library.list(of_type, related_to)
     }
 
-    /// First, merge the request entity as a side effect. Search the libraries, merge the results to local, and then search
-    /// local and return the results. This merge step ensures that the objects
-    /// returned are the sum of the sources.
+    /// First, merge the request entity as a side effect. Search the libraries, 
+    /// merge the results to local, and then search local and return the 
+    /// results. This merge step ensures that the objects returned are the 
+    /// sum of the sources.
     fn fetch(&self, entity: &Entities) -> Option<Entities> {
         // Merging the entity before searching ensures we have things like
         // additional ids for querying. I'm not totally sure if this should
@@ -216,31 +222,33 @@ impl Collection for Librarian {
         // find_match and merge though.
         let entity = self.merge(entity, None);
 
-        // Run the fetch on all of the libraries, keeping track of the ones
-        // that return a result. 
-        let skip_libs: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
-        let first_result: Entities = self.libraries.read().ok()?.par_iter()
-            .filter_map(|lib| {
-                let result = lib.fetch(&entity);
-                if result.is_some() {
-                    skip_libs.lock().unwrap().insert(lib.name());
-                }
-                result
-            })
-            .reduce(|| entity.clone(), Entities::merge);
-        
-        // Run the fetch on the remaining libraries that did not return a result
-        // the first time. This allows libraries that need metadata from
-        // for instance, Musicbrainz to skip the first fetch and run on
-        // this one instead.
-        let second_result: Entities = self.libraries.read().ok()?.par_iter()
-            .filter(|f| !skip_libs.lock().unwrap().contains(&f.name()))
-            .filter_map(|lib| lib.fetch(&first_result))
-            .reduce(|| entity.clone(), Entities::merge);
+        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+            // Run the fetch on all of the libraries, keeping track of the ones
+            // that return a result. 
+            let skip_libs: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+            let first_result: Entities = self.libraries.read().ok()?.par_iter()
+                .filter_map(|lib| {
+                    let result = lib.fetch(&entity);
+                    if result.is_some() {
+                        skip_libs.lock().unwrap().insert(lib.name());
+                    }
+                    result
+                })
+                .reduce(|| entity.clone(), Entities::merge);
+            
+            // Run the fetch on the remaining libraries that did not return a result
+            // the first time. This allows libraries that need metadata from
+            // for instance, Musicbrainz to skip the first fetch and run on
+            // this one instead.
+            let second_result: Entities = self.libraries.read().ok()?.par_iter()
+                .filter(|f| !skip_libs.lock().unwrap().contains(&f.name()))
+                .filter_map(|lib| lib.fetch(&first_result))
+                .reduce(|| entity.clone(), Entities::merge);
 
-        // Merge the results together and store it for later access
-        let result = Entities::merge(first_result, second_result);
-        let _ = self.merge(&result, None);
+            // Merge the results together and store it for later access
+            let result = Entities::merge(first_result, second_result);
+            let _ = self.merge(&result, None);
+        }
 
         // Return the results from the local library
         self.local_library.fetch(&entity)

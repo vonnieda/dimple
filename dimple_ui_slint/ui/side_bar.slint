@@ -1,8 +1,8 @@
 import { Button , LineEdit, HorizontalBox, GroupBox} from "std-widgets.slint";
 import { Navigator } from "common.slint";
 import {CardAdapter } from "card.slint";
-import { Palette, Navigator } from "common.slint";
-import {StyleMetrics, VerticalBox, TextEdit, Spinner} from "std-widgets.slint";
+import { Palette, Navigator, AppState } from "common.slint";
+import {StyleMetrics, VerticalBox, TextEdit, Spinner, Slider, CheckBox} from "std-widgets.slint";
 import { ImageLinkAdapter, LinkAdapter, Links, Link } from "./common.slint";
 
 component SideBarImageItem inherits Rectangle {
@@ -207,6 +207,11 @@ export component SideBar inherits VerticalBox {
     // Fills the space between the last normal item and the settings, at the bottom.
     Rectangle {
         
+    }
+    CheckBox {
+        text: "Online?";
+        checked: AppState.online;
+        toggled => { AppState.set_online(self.checked); }
     }
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/light/gear-light.svg");

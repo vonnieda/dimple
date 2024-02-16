@@ -12,7 +12,7 @@ use url::Url;
 use std::{collections::VecDeque, env, path::Display, sync::{Arc, Mutex}};
 
 use dimple_core::{collection::Collection, model::{Artist, Entities, Entity, Recording, Release, ReleaseGroup}};
-use dimple_librarian::librarian::{Librarian};
+use dimple_librarian::librarian::{AccessMode, Librarian};
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, SharedString};
 
@@ -54,10 +54,25 @@ impl AppWindowController {
         let ui = self.ui.as_weak();
         let librarian = self.librarian.clone();
         let history = self.history.clone();
-        
         self.ui.global::<Navigator>().on_navigate(move |url| 
             Self::navigate(url, history.clone(), librarian.clone(), ui.clone()));
 
+        let ui = self.ui.as_weak();
+        let librarian = self.librarian.clone();
+        self.ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
+
+        let ui = self.ui.as_weak();
+        let librarian = self.librarian.clone();
+        self.ui.global::<AppState>().on_set_online(move |online| {
+            let librarian = librarian.clone();
+            ui.upgrade_in_event_loop(move |ui| {
+                let online = online.clone();
+                let librarian = librarian.clone();
+                librarian.set_access_mode(if online { &AccessMode::Online } else { &AccessMode::Offline });
+                ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
+            }).unwrap();
+        });
+           
         let paths = vec![
             // "/Users/jason/Music/My Music".to_string(),
             "/Users/jason/Music/Dimple Test Tracks".to_string(),
@@ -272,12 +287,12 @@ impl AppWindowController {
                 .filter(|(primary_type, _card)| primary_type != "album" && primary_type != "single" && primary_type != "ep")
                 .map(|(_primary_type, card)| card.clone())
                 .collect();
-            // let genres = artist.genres.iter()
-            //     .map(|g| Link {
-            //         name: g.name.clone(),
-            //         url: format!("dimple://genre/{}", g.name),
-            //     })
-            //     .collect();
+            let genres: Vec<_> = artist.genres(librarian.as_ref())
+                .map(|g| Link {
+                    name: g.name.unwrap_or_default(),
+                    url: format!("dimple://genre/{}", g.key.unwrap_or_default()),
+                })
+                .collect();
 
             ui.upgrade_in_event_loop(move |ui| {
                 let adapter = ArtistDetailsAdapter {
@@ -288,7 +303,7 @@ impl AppWindowController {
                     singles: card_adapters(single_cards),
                     eps: card_adapters(ep_cards),
                     others: card_adapters(other_release_group_cards),
-                    // genres: link_adapters(genres),
+                    genres: link_adapters(genres),
                     links: link_adapters(artist_links(&artist)),
                     ..Default::default()
                 };
@@ -315,20 +330,20 @@ impl AppWindowController {
                 .ok_or("release group not found").unwrap();
             let card = entity_card(&Entities::ReleaseGroup(release_group.clone()), 
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
-            // let mut genres: Vec<_> = release_group.genres.iter()
-            //     .map(|g| Link {
-            //         name: g.name.clone(),
-            //         url: format!("dimple://genre/{}", g.name),
-            //     })
-            //     .collect();
-            // genres.sort_by_key(|g| g.name.to_owned());
-            // let mut artists: Vec<_> = release_group.artists.iter()
-            //     .map(|a| Link {
-            //         name: a.name.clone().unwrap_or_default(),
-            //         url: format!("dimple://artist/{}", a.key),
-            //     })
-            //     .collect();
-            // artists.sort_by_key(|a| a.name.to_owned());
+            let mut genres: Vec<_> = release_group.genres(librarian.as_ref())
+                .map(|g| Link {
+                    name: g.name.unwrap_or_default(),
+                    url: format!("dimple://genre/{}", g.key.unwrap_or_default()),
+                })
+                .collect();
+            genres.sort_by_key(|g| g.name.to_owned());
+            let mut artists: Vec<_> = release_group.artists(librarian.as_ref())
+                .map(|a| Link {
+                    name: a.name.clone().unwrap_or_default(),
+                    url: format!("dimple://artist/{}", a.key.unwrap_or_default()),
+                })
+                .collect();
+            artists.sort_by_key(|a| a.name.to_owned());
             let releases: Vec<_> = release_group.releases(librarian.as_ref()).collect();
             let release_cards = release_cards(releases, &librarian, Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT);
 
@@ -336,10 +351,10 @@ impl AppWindowController {
                 let model = ReleaseGroupDetailsAdapter {                    
                     card: card_adapter(&card),
                     disambiguation: release_group.disambiguation.str().into(),
-                    // genres: link_adapters(genres),
+                    genres: link_adapters(genres),
                     summary: release_group.summary.str().into(),
                     primary_type: release_group.primary_type.str().into(),
-                    // artists: link_adapters(artists),
+                    artists: link_adapters(artists),
                     links: link_adapters(release_group_links(&release_group)),
                     // media: media_adapters(release.media),
                     releases: card_adapters(release_cards),
@@ -369,34 +384,31 @@ impl AppWindowController {
             let card = entity_card(&Entities::Release(release.clone()), 
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
             let recordings = release.recordings(librarian.as_ref());
-            // let mut genres: Vec<_> = release_group.genres.iter()
-            //     .map(|g| Link {
-            //         name: g.name.clone(),
-            //         url: format!("dimple://genre/{}", g.name),
-            //     })
-            //     .collect();
-            // genres.sort_by_key(|g| g.name.to_owned());
-            // let mut artists: Vec<_> = release_group.artists.iter()
-            //     .map(|a| Link {
-            //         name: a.name.clone().unwrap_or_default(),
-            //         url: format!("dimple://artist/{}", a.key),
-            //     })
-            //     .collect();
-            // artists.sort_by_key(|a| a.name.to_owned());
-            // let releases: Vec<_> = release_group.releases(librarian.as_ref()).collect();
-            // let release_cards = release_cards(releases, &librarian, Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT);
+            let mut genres: Vec<_> = release.genres(librarian.as_ref())
+                .map(|g| Link {
+                    name: g.name.unwrap_or_default(),
+                    url: format!("dimple://genre/{}", g.key.unwrap_or_default()),
+                })
+                .collect();
+            genres.sort_by_key(|g| g.name.to_owned());
+            let mut artists: Vec<_> = release.artists(librarian.as_ref())
+                .map(|a| Link {
+                    name: a.name.clone().unwrap_or_default(),
+                    url: format!("dimple://artist/{}", a.key.unwrap_or_default()),
+                })
+                .collect();
+            artists.sort_by_key(|a| a.name.to_owned());
 
             ui.upgrade_in_event_loop(move |ui| {
                 let model = ReleaseDetailsAdapter {                    
                     card: card_adapter(&card),
                     disambiguation: release.disambiguation.str().into(),
-                    // genres: link_adapters(genres),
+                    genres: link_adapters(genres),
                     summary: release.summary.str().into(),
                     // primary_type: release.primary_type.str().into(),
-                    // artists: link_adapters(artists),
+                    artists: link_adapters(artists),
                     links: link_adapters(release_links(&release)),
                     // media: media_adapters(release.media),
-                    // releases: card_adapters(release_cards),
                     ..Default::default()
                 };
                 ui.set_release_details(model);

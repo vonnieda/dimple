@@ -23,6 +23,11 @@ export global Navigator {
     in-out property <bool> busy;
 }
 
+export global AppState {
+    in-out property <bool> online;
+    callback set_online(bool);
+}
+
 export struct LinkAdapter {
     name: string,
     url: string,
@@ -40,6 +45,11 @@ export struct TrackAdapter {
     length: string, // 5:03
     artists: [LinkAdapter],
     plays: int,
+}
+
+export struct MediumAdapter {
+    title: string,
+    tracks: [TrackAdapter],
 }
 
 export component Tag inherits TouchArea {
