@@ -244,14 +244,14 @@ impl Artist {
         Box::new(iter)    
     }
 
-    // pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
-    //     let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
-    //     let iter = iter.map(|r| match r {
-    //         Entities::Release(r) => r,
-    //         _ => panic!(),
-    //     }); 
-    //     Box::new(iter)    
-    // }
+    pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
+        let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Release(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
 
     pub fn search(query: &str, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
         let iter = lib.search(query)
@@ -276,13 +276,6 @@ impl Artist {
 
 
 impl ReleaseGroup {
-    // pub fn from_id(id: &str) -> Self {
-    //     Self {
-    //         key: id.to_string(),
-    //         ..Default::default()
-    //     }
-    // }
-
     pub fn get(key: &str, lib: &dyn Collection) -> Option<Self> {
         let ent = ReleaseGroup {
             key: Some(key.to_string()),
@@ -292,6 +285,15 @@ impl ReleaseGroup {
             Some(Entities::ReleaseGroup(r)) => Some(r),
             _ => todo!()
         }
+    }
+
+    pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = ReleaseGroup>> {
+        let iter = col.list(&ReleaseGroup::default().entity(), None)
+            .map(|m| match m {
+                Entities::ReleaseGroup(a) => a,
+                _ => panic!(),
+            });
+        Box::new(iter)
     }
 
     // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {

@@ -20,6 +20,12 @@ pub enum AccessMode {
     Library,
 }
 
+// TODO calling it here:
+// - Show recordings on release details as track list
+// - WITH SOURCES?!
+// - Need to get images working again. 
+// - and then merge, and then green fields.
+
 impl Librarian {
     pub fn new(path: &str) -> Self {
         Self { 
@@ -145,14 +151,21 @@ impl Librarian {
     }
 
     fn local_library_search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
-        let matcher = SkimMatcherV2::default();
-        let pattern = query.to_string();
         // TODO sort by score
         // TODO other entities
-        let iter = Artist::list(&self.local_library)
+        let pattern = query.to_string();
+        let matcher = SkimMatcherV2::default();
+        let artists = Artist::list(&self.local_library)
             .filter(move |a| matcher.fuzzy_match(&a.name.clone().unwrap_or_default(), &pattern).is_some())
-            .map(Entities::Artist);
-        Box::new(iter)
+            .map(Entities::Artist)
+            .take(10);
+        let pattern = query.to_string();
+        let matcher = SkimMatcherV2::default();
+        let release_groups = ReleaseGroup::list(&self.local_library)
+            .filter(move |a| matcher.fuzzy_match(&a.title.clone().unwrap_or_default(), &pattern).is_some())
+            .map(Entities::ReleaseGroup)
+            .take(10);
+        Box::new(artists.chain(release_groups))
     }
 }
 
