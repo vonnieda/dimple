@@ -75,7 +75,6 @@ impl SledLibrary {
             None => {
                 let mut model = model.clone();
                 model.set_key(Some(Uuid::new_v4().to_string()));
-                log::info!("created key {} for {:?}", model.key().unwrap(), model);
                 model
             }
         };

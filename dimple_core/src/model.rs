@@ -244,14 +244,14 @@ impl Artist {
         Box::new(iter)    
     }
 
-    pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
-        let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
-        let iter = iter.map(|r| match r {
-            Entities::Release(r) => r,
-            _ => panic!(),
-        }); 
-        Box::new(iter)    
-    }
+    // pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
+    //     let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
+    //     let iter = iter.map(|r| match r {
+    //         Entities::Release(r) => r,
+    //         _ => panic!(),
+    //     }); 
+    //     Box::new(iter)    
+    // }
 
     pub fn search(query: &str, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
         let iter = lib.search(query)
@@ -272,6 +272,49 @@ impl Artist {
     }
 }
 
+
+
+
+impl ReleaseGroup {
+    // pub fn from_id(id: &str) -> Self {
+    //     Self {
+    //         key: id.to_string(),
+    //         ..Default::default()
+    //     }
+    // }
+
+    pub fn get(key: &str, lib: &dyn Collection) -> Option<Self> {
+        let ent = ReleaseGroup {
+            key: Some(key.to_string()),
+            ..Default::default()
+        }.entity();
+        match lib.fetch(&ent) {
+            Some(Entities::ReleaseGroup(r)) => Some(r),
+            _ => todo!()
+        }
+    }
+
+    // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
+    //     Self::get(&self.key, lib)
+    // }
+
+    pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
+        let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Release(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn entity(&self) -> Entities {
+        Entities::ReleaseGroup(self.clone())
+    }
+
+    pub fn image(&self, lib: &dyn Collection) -> Option<DynamicImage> {
+        lib.image(&self.entity())
+    }
+}
 
 
 
@@ -316,38 +359,6 @@ impl Release {
         None
     }
 }
-
-
-
-
-impl ReleaseGroup {
-    // pub fn from_id(id: &str) -> Self {
-    //     Self {
-    //         key: id.to_string(),
-    //         ..Default::default()
-    //     }
-    // }
-
-    // pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
-    //     match lib.fetch(&Model::ReleaseGroup(Self::from_id(id))) {
-    //         Some(Model::ReleaseGroup(o)) => Some(o),
-    //         _ => todo!()
-    //     }
-    // }
-
-    // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-    //     Self::get(&self.key, lib)
-    // }
-
-    pub fn entity(&self) -> Entities {
-        Entities::ReleaseGroup(self.clone())
-    }
-
-    pub fn image(&self, lib: &dyn Collection) -> Option<DynamicImage> {
-        lib.image(&self.entity())
-    }
-}
-
 
 
 

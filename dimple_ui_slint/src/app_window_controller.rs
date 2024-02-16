@@ -300,86 +300,56 @@ impl AppWindowController {
     }
 
     fn release_group_details(url: &str, librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
-        // let url = url.to_owned();
-        // std::thread::spawn(move || {
-        //     ui.upgrade_in_event_loop(move |ui| {
-        //         ui.global::<Navigator>().set_busy(true);
-        //     }).unwrap();
+        let url = url.to_owned();
+        std::thread::spawn(move || {
+            ui.upgrade_in_event_loop(move |ui| {
+                ui.global::<Navigator>().set_busy(true);
+            }).unwrap();
 
-        //     let url = Url::parse(&url).unwrap();
-        //     let id = url.path_segments()
-        //         .ok_or("missing path").unwrap()
-        //         .nth(0)
-        //         .ok_or("missing id").unwrap();
-        //     let release_group = ReleaseGroup::get(id, librarian.as_ref())
-        //         .ok_or("release group not found").unwrap();
-        //     let card = entity_card(&Entities::ReleaseGroup(release_group.clone()), 
-        //         Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
-        //     let mut genres: Vec<_> = release_group.genres.iter()
-        //         .map(|g| Link {
-        //             name: g.name.clone(),
-        //             url: format!("dimple://genre/{}", g.name),
-        //         })
-        //         .collect();
-        //     genres.sort_by_key(|g| g.name.to_owned());
-        //     let mut artists: Vec<_> = release_group.artists.iter()
-        //         .map(|a| Link {
-        //             name: a.name.clone().unwrap_or_default(),
-        //             url: format!("dimple://artist/{}", a.key),
-        //         })
-        //         .collect();
-        //     artists.sort_by_key(|a| a.name.to_owned());
-        //     let mut releases: Vec<_> = release_group.releases.iter()
-        //         // .filter_map(|f| f.fetch(librarian.as_ref()))
-        //         .collect();
-        //     releases.sort_by(|a, b| {
-        //         let a_score = score_release(a);
-        //         let b_score = score_release(b);
-        //         a_score.partial_cmp(&b_score).unwrap()
-        //     });
-        //     releases.reverse();
-        //     for release in releases.clone() {
-        //         log::info!("{} {} {} {} {} {}", score_release(&release), 
-        //             release.country, release.status, release.packaging, 
-        //             release.disambiguation, release.key);
-        //         for media in release.media.clone() {
-        //             log::info!("  {} {}", media.format, media.disc_count);
-        //         }
-        //     }
-        //     // TODO error handling
-        //     let release = releases.first()
-        //         .ok_or("no releases")
-        //         .unwrap();
-        //     let release = release.fetch(librarian.as_ref())
-        //         .ok_or("release not found")
-        //         .unwrap();
+            let url = Url::parse(&url).unwrap();
+            let id = url.path_segments()
+                .ok_or("missing path").unwrap()
+                .nth(0)
+                .ok_or("missing id").unwrap();
+            let release_group = ReleaseGroup::get(id, librarian.as_ref())
+                .ok_or("release group not found").unwrap();
+            let card = entity_card(&Entities::ReleaseGroup(release_group.clone()), 
+                Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
+            // let mut genres: Vec<_> = release_group.genres.iter()
+            //     .map(|g| Link {
+            //         name: g.name.clone(),
+            //         url: format!("dimple://genre/{}", g.name),
+            //     })
+            //     .collect();
+            // genres.sort_by_key(|g| g.name.to_owned());
+            // let mut artists: Vec<_> = release_group.artists.iter()
+            //     .map(|a| Link {
+            //         name: a.name.clone().unwrap_or_default(),
+            //         url: format!("dimple://artist/{}", a.key),
+            //     })
+            //     .collect();
+            // artists.sort_by_key(|a| a.name.to_owned());
+            let releases: Vec<_> = release_group.releases(librarian.as_ref()).collect();
+            let release_cards = release_cards(releases, &librarian, Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT);
 
-        //     let mut combined_links = vec![];
-        //     combined_links.extend_from_slice(&release_group_links(&release_group));
-        //     for release in releases {
-        //         let release_links = release_links(&release);
-        //         combined_links.extend_from_slice(&release_links);
-        //     }
-
-
-        //     ui.upgrade_in_event_loop(move |ui| {
-        //         let model = ReleaseGroupDetailsAdapter {                    
-        //             card: card_adapter(&card),
-        //             disambiguation: release_group.disambiguation.clone().into(),
-        //             genres: link_adapters(genres),
-        //             summary: release_group.summary.clone().into(),
-        //             primary_type: release_group.primary_type.clone().into(),
-        //             artists: link_adapters(artists),
-        //             links: link_adapters(combined_links),
-        //             media: media_adapters(release.media),
-        //             // releases: card_adapters(release_cards),
-        //             releases: Default::default()
-        //         };
-        //         ui.set_release_group_details(model);
-        //         ui.set_page(2);
-        //         ui.global::<Navigator>().set_busy(false);
-        //     }).unwrap();
-        // });
+            ui.upgrade_in_event_loop(move |ui| {
+                let model = ReleaseGroupDetailsAdapter {                    
+                    card: card_adapter(&card),
+                    disambiguation: release_group.disambiguation.str().into(),
+                    // genres: link_adapters(genres),
+                    summary: release_group.summary.str().into(),
+                    primary_type: release_group.primary_type.str().into(),
+                    // artists: link_adapters(artists),
+                    // links: link_adapters(combined_links),
+                    // media: media_adapters(release.media),
+                    releases: card_adapters(release_cards),
+                    ..Default::default()
+                };
+                ui.set_release_group_details(model);
+                ui.set_page(2);
+                ui.global::<Navigator>().set_busy(false);
+            }).unwrap();
+        });
     }
 
     fn release_details(_url: &str, _librarian: LibrarianHandle, _ui: slint::Weak<AppWindow>) {

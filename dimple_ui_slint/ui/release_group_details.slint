@@ -108,19 +108,19 @@ export component ReleaseGroupDetails inherits ScrollView {
             }
         }
 
-        // // Releases
-        // if model.releases.length > 0: VerticalLayout {
-        //     spacing: StyleMetrics.layout-spacing * 0.50;
-        //     Text {
-        //         text: "Other Releases";
-        //         font-weight: Palette.font-weight-bold;
-        //         font-size: 2rem;
-        //     }
-        //     CardGrid {
-        //         cards: model.releases;
-        //         parent-width: root.width;
-        //     }
-        // }
+        // Releases
+        if model.releases.length > 0: VerticalLayout {
+            spacing: StyleMetrics.layout-spacing * 0.50;
+            Text {
+                text: "Other Releases";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.releases;
+                parent-width: root.width;
+            }
+        }
 
         // Links
         if model.links.length > 0: VerticalLayout {

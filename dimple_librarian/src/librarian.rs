@@ -1,4 +1,4 @@
-use std::{sync::{RwLock, Mutex}, collections::HashSet};
+use std::{collections::HashSet, sync::{Mutex, RwLock}, time::Instant};
 
 use dimple_core::{collection::Collection, model::{Artist, Entity, Recording, RecordingSource, Release, ReleaseGroup}};
 use dimple_sled_library::sled_library::SledLibrary;
@@ -354,58 +354,3 @@ impl Merge<Self> for RecordingSource {
         }
     }
 }
-
-
-    // /// Get or create a thumbnail image at the given size for the entity.
-    // /// If no image can be loaded from the library one is generated. Results
-    // /// either from the library or generated are cached for future calls.
-    // pub fn thumbnail(&self, entity: &Model, width: u32, height: u32) -> DynamicImage {
-    //     let cached = self.local_library.images.get(&entity.key(), width, height);
-    //     if let Some(dyn_image) = cached {
-    //         return dyn_image;
-    //     }
-    //     else if let Some(dyn_image) = self.image(entity) {
-    //         self.local_library.set_image(entity, &dyn_image);
-    //         return self.local_library.images.get(&entity.key(), width, height).unwrap();
-    //     }
-    //     let generated = &self.generate_masterpiece(entity, width, height);
-    //     self.local_library.set_image(entity, generated);
-    //     self.local_library.images.get(&entity.key(), width, height).unwrap()
-    // }
-
-    // fn fetch_with_force(&self, entity: &Model, force: bool) -> Option<Model> {
-    //     if !force {
-    //         let local_result = self.local_library.fetch(entity);
-    //         if local_result.is_some() {
-    //             return local_result;
-    //         }
-    //     } 
-
-    //     // Run the fetch on all of the libraries, keeping track of the ones
-    //     // that return a good result. 
-    //     let skip_libs: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
-    //     let first_result: Model = self.libraries.read().ok()?.par_iter()
-    //         .filter_map(|lib| {
-    //             let result = lib.fetch(entity);
-    //             if result.is_some() {
-    //                 skip_libs.lock().unwrap().insert(lib.name());
-    //             }
-    //             result
-    //         })
-    //         .reduce(|| entity.clone(), Model::merge);
-        
-    //     // Run the fetch on the remaining libraries that did not return a result
-    //     // the first time. This allows libraries that need metadata from
-    //     // Musicbrainz to skip the first fetch and run on this one.
-    //     let second_result: Model = self.libraries.read().ok()?.par_iter()
-    //         .filter(|f| !skip_libs.lock().unwrap().contains(&f.name()))
-    //         .filter_map(|lib| lib.fetch(&first_result))
-    //         .reduce(|| entity.clone(), Model::merge);
-
-    //     // Merge the results together, store it for later access, and return
-    //     let result = Model::merge(first_result, second_result);
-    //     self.local_library.merge(&result, None);
-
-    //     Some(result)
-    // }
-

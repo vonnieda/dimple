@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use colored::Colorize;
 
-use crate::model::{Entities, Recording, RecordingSource};
+use crate::model::Entities;
 
 
 pub trait Collection: Send + Sync {

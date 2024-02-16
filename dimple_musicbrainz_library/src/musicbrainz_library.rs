@@ -151,6 +151,30 @@ impl Collection for MusicBrainzLibrary {
                     .collect();
                 Box::new(results.into_iter())
             },
+            (Entities::Release(_), Some(Entities::ReleaseGroup(r))) => {
+                // TODO handle paging
+                let mbid = r.mbid();
+                if mbid.is_none() {
+                    return Box::new(vec![].into_iter())
+                }
+                let mbid = mbid.unwrap();
+                let request_token = LibrarySupport::start_request(self, 
+                    &format!("https://musicbrainz.org/ws/2/release/TODO TODO{}?fmt=json", &mbid));
+                self.enforce_rate_limit();
+                let results: Vec<_> = MBRelease::browse().by_release_group(&mbid)
+                    .execute()
+                    .inspect(|_f| {
+                        LibrarySupport::end_request(request_token, None, None);
+                    })        
+                    .inspect_err(|f| log::error!("{}", f))
+                    .unwrap()
+                    .entities
+                    .iter()
+                    .map(|src| Release::from(ReleaseConverter::from(src.clone())))
+                    .map(Entities::Release)
+                    .collect();
+                Box::new(results.into_iter())
+            },
             _ => Box::new(vec![].into_iter()),
         }
     }
