@@ -340,7 +340,7 @@ impl AppWindowController {
                     summary: release_group.summary.str().into(),
                     primary_type: release_group.primary_type.str().into(),
                     // artists: link_adapters(artists),
-                    // links: link_adapters(combined_links),
+                    links: link_adapters(release_group_links(&release_group)),
                     // media: media_adapters(release.media),
                     releases: card_adapters(release_cards),
                     ..Default::default()
@@ -368,6 +368,7 @@ impl AppWindowController {
                 .ok_or("release not found").unwrap();
             let card = entity_card(&Entities::Release(release.clone()), 
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
+            let recordings = release.recordings(librarian.as_ref());
             // let mut genres: Vec<_> = release_group.genres.iter()
             //     .map(|g| Link {
             //         name: g.name.clone(),
@@ -391,9 +392,9 @@ impl AppWindowController {
                     disambiguation: release.disambiguation.str().into(),
                     // genres: link_adapters(genres),
                     summary: release.summary.str().into(),
-                    // primary_type: release_group.primary_type.str().into(),
+                    // primary_type: release.primary_type.str().into(),
                     // artists: link_adapters(artists),
-                    // links: link_adapters(combined_links),
+                    links: link_adapters(release_links(&release)),
                     // media: media_adapters(release.media),
                     // releases: card_adapters(release_cards),
                     ..Default::default()

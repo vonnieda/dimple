@@ -67,36 +67,6 @@ export component AppWindow inherits Window {
                 horizontal-stretch: 1;
                 Rectangle {
                     if page == 0: VerticalLayout {
-                        // TODO playing around with tags
-                        // HorizontalBox {
-                        //     padding-top: 0;
-                        //     padding-left: 0;
-                        //     alignment: start;
-                        //     Tag {
-                        //         color: #bd6b3f;
-                        //         name: "Artists";
-                        //         font-color: StyleMetrics.default-text-color;
-                        //         font-weight: 700;
-                        //     }
-                        //     Tag {
-                        //         color: #3c9c8a;
-                        //         name: "Albums";
-                        //         font-color: StyleMetrics.default-text-color;
-                        //         font-weight: 700;
-                        //     }
-                        //     Tag {
-                        //         color: #4e4cd9;
-                        //         name: "Genres";
-                        //         font-color: StyleMetrics.default-text-color;
-                        //         font-weight: 700;
-                        //     }
-                        //     Tag {
-                        //         color: #963fc5;
-                        //         name: "Playlists";
-                        //         font-color: StyleMetrics.default-text-color;
-                        //         font-weight: 700;
-                        //     }
-                        // }
                         ScrollView {                        
                             card-grid := CardGrid {
                                 cards: root.card-grid-adapter.cards;

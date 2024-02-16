@@ -133,6 +133,9 @@ impl Librarian {
             let l = model;
             let r = m;
             let matcher = SkimMatcherV2::default();
+            // TODO this has to be smarter - it should only match disambiguation
+            // for those that have it,and it probably should only apply in cases
+            // where no source_ids or known_ids exist yet for at least one object
             let pattern = format!("{}:{}", 
                 l.name().unwrap_or_default(),
                 l.disambiguation().unwrap_or_default());

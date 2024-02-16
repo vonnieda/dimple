@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 use std::mem::discriminant;
+use std::time::Instant;
+use std::time::SystemTime;
 
 use image::DynamicImage;
 use serde::Deserialize;
@@ -127,10 +129,12 @@ pub struct RecordingSource {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct Genre {
     pub key: Option<String>,
-
-    pub name: String,
-    pub count: u32,
-    pub summary: String,
+    pub name: Option<String>,
+    pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
+    pub links: HashSet<String>,
 }
 
 
@@ -227,10 +231,6 @@ impl Artist {
         }
     }
 
-    // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-    //     Self::get(&self.key, lib)
-    // }
-
     pub fn entity(&self) -> Entities {
         Entities::Artist(self.clone())
     }
@@ -261,15 +261,6 @@ impl Artist {
             });
         Box::new(iter)
     }
-    
-    pub fn known_id(&self, of_type: &KnownId) -> Option<KnownId> {
-        for id in &self.known_ids {
-            if discriminant(id) == discriminant(of_type) {
-                return Some(id.clone())
-            }
-        }
-        None
-    }
 }
 
 
@@ -296,10 +287,6 @@ impl ReleaseGroup {
         Box::new(iter)
     }
 
-    // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-    //     Self::get(&self.key, lib)
-    // }
-
     pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
         let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
         let iter = iter.map(|r| match r {
@@ -312,22 +299,11 @@ impl ReleaseGroup {
     pub fn entity(&self) -> Entities {
         Entities::ReleaseGroup(self.clone())
     }
-
-    pub fn image(&self, lib: &dyn Collection) -> Option<DynamicImage> {
-        lib.image(&self.entity())
-    }
 }
 
 
 
 impl Release {
-    // pub fn from_id(id: &str) -> Self {
-    //     Self {
-    //         key: id.to_string(),
-    //         ..Default::default()
-    //     }
-    // }
-
     pub fn get(key: &str, lib: &dyn Collection) -> Option<Self> {
         let ent = Release {
             key: Some(key.to_string()),
@@ -338,10 +314,6 @@ impl Release {
             _ => todo!()
         }
     }
-
-    // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-    //     Self::get(&self.key, lib)
-    // }
 
     pub fn entity(&self) -> Entities {
         Entities::Release(self.clone())
@@ -369,13 +341,6 @@ impl Release {
 
 
 impl Recording {
-    // pub fn from_id(id: &str) -> Self {
-    //     Self {
-    //         key: id.to_string(),
-    //         ..Default::default()
-    //     }
-    // }
-
     pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
         let iter = col.list(&Recording::default().entity(), None)
             .map(|m| match m {
@@ -385,20 +350,9 @@ impl Recording {
         Box::new(iter)
     }
 
-    // pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
-    //     match lib.fetch(&Model::Recording(Self::from_id(id))) {
-    //         Some(Model::Recording(o)) => Some(o),
-    //         _ => todo!()
-    //     }
-    // }
-
     pub fn entity(&self) -> Entities {
         Entities::Recording(self.clone())
     }
-
-    // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
-    //     Self::get(&self.key, lib)
-    // }
 
     pub fn sources(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = RecordingSource>> {
         let iter = lib.list(&RecordingSource::default().entity(), Some(&self.entity()));
@@ -407,15 +361,6 @@ impl Recording {
             _ => panic!(),
         }); 
         Box::new(iter)    
-    }
-
-    pub fn known_id(&self, of_type: &KnownId) -> Option<KnownId> {
-        for id in &self.known_ids {
-            if discriminant(id) == discriminant(of_type) {
-                return Some(id.clone())
-            }
-        }
-        None
     }
 }
 
@@ -488,24 +433,14 @@ impl Entities {
         }
     }
 
-    // pub fn entity(&self) -> Box<dyn Entity> {
-    //     match self {
-    //         Entities::Artist(a) => Box::new(a.clone()),
-    //         Entities::Release(r) => Box::new(r.clone()),
-    //         Entities::Recording(r) => Box::new(r.clone()),
-    //         Entities::RecordingSource(r) => Box::new(r.clone()),
-    //         _ => todo!()
-    //     }
-    // }
-
     pub fn known_ids(&self) -> HashSet<KnownId> {
         match self {
             Entities::Artist(a) => a.known_ids.clone(),
             Entities::Release(a) => a.known_ids.clone(),
             Entities::ReleaseGroup(a) => a.known_ids.clone(),
-            Entities::Genre(_) => todo!(),
-            Entities::Recording(_) => todo!(),
-            Entities::RecordingSource(_) => todo!(),
+            Entities::Genre(g) => g.known_ids.clone(),
+            Entities::Recording(r) => r.known_ids.clone(),
+            Entities::RecordingSource(r) => r.known_ids.clone(),
         }
     }
 
@@ -514,9 +449,9 @@ impl Entities {
             Entities::Artist(a) => a.source_ids.clone(),
             Entities::Release(a) => a.source_ids.clone(),
             Entities::ReleaseGroup(a) => a.source_ids.clone(),
-            Entities::Genre(_) => todo!(),
-            Entities::Recording(_) => todo!(),
-            Entities::RecordingSource(_) => todo!(),
+            Entities::Genre(g) => g.source_ids.clone(),
+            Entities::Recording(r) => r.source_ids.clone(),
+            Entities::RecordingSource(r) => r.source_ids.clone(),
         }
     }
 
@@ -526,8 +461,8 @@ impl Entities {
             Entities::ReleaseGroup(r) => r.title.clone(),
             Entities::Release(r) => r.title.clone(),
             Entities::Recording(r) => r.title.clone(),
-            Entities::RecordingSource(r) => todo!(),
-            Entities::Genre(g) => todo!(),
+            Entities::RecordingSource(r) => r.name().clone(),
+            Entities::Genre(g) => g.name.clone(),
         }
     }
 
@@ -537,8 +472,8 @@ impl Entities {
             Entities::ReleaseGroup(r) => r.disambiguation.clone(),
             Entities::Release(r) => r.disambiguation.clone(),
             Entities::Recording(r) => r.disambiguation.clone(),
-            Entities::RecordingSource(r) => todo!(),
-            Entities::Genre(g) => todo!(),
+            Entities::RecordingSource(r) => r.disambiguation().clone(),
+            Entities::Genre(g) => g.disambiguation.clone(),
         }
     }
 }
