@@ -326,12 +326,16 @@ impl Release {
     //     }
     // }
 
-    // pub fn get(id: &str, lib: &dyn Collection) -> Option<Self> {
-    //     match lib.fetch(&Model::Release(Self::from_id(id))) {
-    //         Some(Model::Release(o)) => Some(o),
-    //         _ => todo!()
-    //     }
-    // }
+    pub fn get(key: &str, lib: &dyn Collection) -> Option<Self> {
+        let ent = Release {
+            key: Some(key.to_string()),
+            ..Default::default()
+        }.entity();
+        match lib.fetch(&ent) {
+            Some(Entities::Release(r)) => Some(r),
+            _ => todo!()
+        }
+    }
 
     // pub fn fetch(&self, lib: &dyn Collection) -> Option<Self> {
     //     Self::get(&self.key, lib)
