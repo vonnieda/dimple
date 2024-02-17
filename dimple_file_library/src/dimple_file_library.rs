@@ -1,6 +1,6 @@
 
 use std::{collections::{HashMap, HashSet}, error::Error, fs::File, ops::Deref, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::{collection::Collection, model::{Artist, KnownId, Entity, Recording, RecordingSource, Release}};
+use dimple_core::{collection::Collection, model::{Artist, Entity, KnownId, Recording, RecordingSource, Release, ReleaseGroup}};
 use dimple_core::model::Entities;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag}, probe::Hint};
@@ -129,12 +129,24 @@ impl Collection for FileLibrary {
                 let models: Vec<Entities> = recordings.iter().map(Recording::entity).collect();
                 Box::new(models.into_iter())
             }
-            (Entities::Release(_), Some(Entities::Artist(artist))) => {
+            (Entities::ReleaseGroup(_), Some(Entities::Artist(artist))) => {
                 let files = self.files.lock().unwrap().clone();
-                let releases: Vec<Release> = files.values()
+                let release_groups: Vec<ReleaseGroup> = files.values()
                     .filter(|r| {
                         let ra: Artist = (*r).into();
                         !ra.source_ids.is_disjoint(&artist.source_ids)
+                    })
+                    .map(Into::into)
+                    .collect();
+                let models: Vec<Entities> = release_groups.iter().map(ReleaseGroup::entity).collect();
+                Box::new(models.into_iter())
+            }
+            (Entities::Release(_), Some(Entities::ReleaseGroup(release_group))) => {
+                let files = self.files.lock().unwrap().clone();
+                let releases: Vec<Release> = files.values()
+                    .filter(|file| {
+                        let file_release_group: ReleaseGroup = (*file).into();
+                        !file_release_group.source_ids.is_disjoint(&release_group.source_ids)
                     })
                     .map(Into::into)
                     .collect();
@@ -192,6 +204,20 @@ impl From<&FileDetails> for Artist {
             name: value.get_tag_value(StandardTagKey::AlbumArtist),
             source_ids: std::iter::once(value.path.clone()).collect(),
             known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzAlbumArtistId) {
+                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
+                _ => HashSet::default(),
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&FileDetails> for ReleaseGroup {
+    fn from(value: &FileDetails) -> Self {
+        Self {
+            title: value.get_tag_value(StandardTagKey::Album),
+            source_ids: std::iter::once(value.path.clone()).collect(),
+            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzReleaseGroupId) {
                 Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
                 _ => HashSet::default(),
             },

@@ -1,9 +1,5 @@
 use std::collections::HashSet;
-use std::mem::discriminant;
-use std::time::Instant;
-use std::time::SystemTime;
 
-use image::DynamicImage;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -66,32 +62,32 @@ pub struct Release {
 
 
 
-// // https://musicbrainz.org/doc/Medium
-// #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
-// pub struct Medium {
-//     pub title: String,
+// https://musicbrainz.org/doc/Medium
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct Medium {
+    pub title: String,
 
-//     pub disc_count: u32,
-//     pub format: String,
-//     pub position: u32,
-//     pub track_count: u32,
-//     pub tracks: Vec<Track>,
-// }
-
-
+    pub disc_count: u32,
+    pub format: String,
+    pub position: u32,
+    pub track_count: u32,
+    pub tracks: Vec<Track>,
+}
 
 
-// // https://musicbrainz.org/doc/Track
-// #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
-// pub struct Track {
-//     pub key: String,
-//     pub title: String,
 
-//     pub length: u32,
-//     pub number: String,
-//     pub position: u32,
-//     pub recording: Recording,
-// }
+
+// https://musicbrainz.org/doc/Track
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct Track {
+    pub title: String,
+
+    pub length: u32,
+    pub number: String,
+    pub position: u32,
+    pub recording: Recording,
+    pub sources:  Vec<RecordingSource>,
+}
 
 
 

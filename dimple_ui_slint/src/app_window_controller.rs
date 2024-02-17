@@ -6,12 +6,12 @@ use dimple_fanart_tv_library::FanartTvLibrary;
 use dimple_deezer_library::DeezerLibrary;
 use dimple_theaudiodb_library::TheAudioDbLibrary;
 use dimple_wikidata_library::WikidataLibrary;
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Serialize};
 use url::Url;
 
 use std::{collections::VecDeque, env, path::Display, sync::{Arc, Mutex}};
 
-use dimple_core::{collection::Collection, model::{Artist, Entities, Entity, Recording, Release, ReleaseGroup}};
+use dimple_core::{collection::Collection, model::{Artist, Entities, Entity, Medium, Recording, Release, ReleaseGroup, Track}};
 use dimple_librarian::librarian::{AccessMode, Librarian};
 use image::DynamicImage;
 use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, SharedString};
@@ -379,11 +379,12 @@ impl AppWindowController {
                 .ok_or("missing path").unwrap()
                 .nth(0)
                 .ok_or("missing id").unwrap();
+
             let release = Release::get(id, librarian.as_ref())
                 .ok_or("release not found").unwrap();
             let card = entity_card(&Entities::Release(release.clone()), 
                 Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
-            let recordings = release.recordings(librarian.as_ref());
+
             let mut genres: Vec<_> = release.genres(librarian.as_ref())
                 .map(|g| Link {
                     name: g.name.unwrap_or_default(),
@@ -391,6 +392,7 @@ impl AppWindowController {
                 })
                 .collect();
             genres.sort_by_key(|g| g.name.to_owned());
+
             let mut artists: Vec<_> = release.artists(librarian.as_ref())
                 .map(|a| Link {
                     name: a.name.clone().unwrap_or_default(),
@@ -398,6 +400,24 @@ impl AppWindowController {
                 })
                 .collect();
             artists.sort_by_key(|a| a.name.to_owned());
+
+            let recordings: Vec<_> = release.recordings(librarian.as_ref()).collect();
+            // TODO hmmmmm
+            let medium = Medium {
+                tracks: recordings.iter().map(|r| {
+                    let sources = r.sources(librarian.as_ref()).collect();
+                    dbg!(&r, &sources);
+                    Track {
+                        title: r.title.str(),
+                        length: r.length.unwrap_or_default(),
+                        recording: r.clone(),
+                        sources: sources,
+                        ..Default::default()
+                    }
+                }).collect(),
+                ..Default::default()
+            };
+            let media = vec![medium];
 
             ui.upgrade_in_event_loop(move |ui| {
                 let model = ReleaseDetailsAdapter {                    
@@ -408,7 +428,7 @@ impl AppWindowController {
                     // primary_type: release.primary_type.str().into(),
                     artists: link_adapters(artists),
                     links: link_adapters(release_links(&release)),
-                    // media: media_adapters(release.media),
+                    media: media_adapters(media),
                     ..Default::default()
                 };
                 ui.set_release_details(model);
@@ -680,31 +700,48 @@ fn length_to_string(length: u32) -> String {
         length % (60 * 1000) / 1000)
 }
 
-// fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
-//     let adapters: Vec<_> = tracks.iter()
-//         .map(|t| TrackAdapter {
+// fn recording_adapters(recordings: Vec<Recording>) -> ModelRc<TrackAdapter> {
+//     let adapters: Vec<_> = recordings.iter()
+//         .map(|r| TrackAdapter {
 //             title: LinkAdapter {
-//                 name: t.title.clone().into(),
-//                 url: format!("dimple://recording/{}", t.recording.key).into(),
+//                 name: r.title.str(),
+//                 url: format!("dimple://recording/{}", r.key.str()).into(),
 //             },
-//             track_number: t.number.clone().into(),
-//             length: length_to_string(t.length).into(),
+//             // track_number: t.number.clone().into(),
+//             // length: length_to_string(t.length).into(),
 //             artists: Default::default(),
 //             plays: 0,
+//             ..Default::default()
 //         })
 //         .collect();
 //     ModelRc::from(adapters.as_slice())
 // }
 
-// fn media_adapters(media: Vec<Medium>) -> ModelRc<MediumAdapter> {
-//     let adapters: Vec<_> = media.iter()
-//         .map(|m| MediumAdapter {
-//             title: format!("{} {} of {}", m.format, m.position, m.disc_count).into(),
-//             tracks: track_adapters(m.tracks.clone()),
-//         })
-//         .collect();
-//     ModelRc::from(adapters.as_slice())
-// }
+fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
+    let adapters: Vec<_> = tracks.iter()
+        .map(|t| TrackAdapter {
+            title: LinkAdapter {
+                name: t.title.clone().into(),
+                url: format!("dimple://recording/{}", t.recording.key.str()).into(),
+            },
+            track_number: t.number.clone().into(),
+            length: length_to_string(t.length).into(),
+            artists: Default::default(),
+            plays: t.sources.len() as i32,
+        })
+        .collect();
+    ModelRc::from(adapters.as_slice())
+}
+
+fn media_adapters(media: Vec<Medium>) -> ModelRc<MediumAdapter> {
+    let adapters: Vec<_> = media.iter()
+        .map(|m| MediumAdapter {
+            title: format!("{} {} of {}", m.format, m.position, m.disc_count).into(),
+            tracks: track_adapters(m.tracks.clone()),
+        })
+        .collect();
+    ModelRc::from(adapters.as_slice())
+}
 
 fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
     let rgba8_image = dynamic_image.clone().into_rgba8();

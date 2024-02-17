@@ -208,11 +208,24 @@ export component SideBar inherits VerticalBox {
     Rectangle {
         
     }
-    CheckBox {
-        text: "Online?";
-        checked: AppState.online;
-        toggled => { AppState.set_online(self.checked); }
+
+    HorizontalLayout {
+        spacing: 8px;
+        CheckBox {
+            checked: AppState.online;
+            toggled => { AppState.set_online(self.checked); }
+            horizontal-stretch: 0;
+        }
+        VerticalLayout {
+            alignment: center;
+            Text {
+                font-size: 1.4rem;
+                text: "Online?";
+                font-weight: Palette.font-weight-bold;
+            }
+        }
     }
+
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/light/gear-light.svg");
         text: "Settings";
