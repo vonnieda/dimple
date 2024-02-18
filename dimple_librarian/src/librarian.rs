@@ -276,7 +276,18 @@ impl Collection for Librarian {
     /// TODO I think this goes away and becomes fetch(Dimage), maybe Dimage
     /// so it's not constantly overlapping with Image.
     fn image(&self, entity: &Entities) -> Option<DynamicImage> {
-        todo!()
+        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+            self.libraries.read().unwrap().iter()
+                .flat_map(|lib| lib.image(entity))
+                // TODO when images become an entity with media we can store
+                // them all here, instead of just the first, and let the user
+                // select and browse.
+                .find(|image| )
+                .for_each(|image| {
+                    let _ = self.merge(&m, related_to);
+                });
+        }
+        self.local_library.image(entity)
     }
 }
 

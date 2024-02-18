@@ -1,6 +1,6 @@
 use std::borrow::Borrow;
 
-use dimple_core::collection::Collection;
+use dimple_core::{collection::Collection, image_cache::ImageCache};
 use dimple_core::model::Entities;
 
 use image::{DynamicImage, EncodableLayout};
@@ -21,13 +21,17 @@ use uuid::Uuid;
 pub struct SledLibrary {
     path: String,
     db: Db,
+    images: ImageCache,
 }
 
 impl SledLibrary {
     pub fn new(path: &str) -> Self {
+        let db = sled::open(path).unwrap();
+        let images = ImageCache::new(db.open_tree("images").unwrap());
         Self { 
             path: path.to_string(),
-            db: sled::open(path).unwrap(),
+            db,
+            images,
         }
     }
 
@@ -119,6 +123,10 @@ impl SledLibrary {
             b.type_name(), 
             a.key().unwrap())
     }
+
+    pub fn set_image(&self, image: &DynamicImage, for_entity: &Entities) {
+        self.images.insert(&for_entity.key().unwrap(), image);
+    }
 }
 
 impl Collection for SledLibrary {
@@ -145,8 +153,7 @@ impl Collection for SledLibrary {
     }
 
     fn image(&self, entity: &Entities) -> Option<DynamicImage> {
-        // self.images.get_original(&entity.key())
-        todo!()
+        self.images.get_original(&entity.key().unwrap())
     }
 }
 
