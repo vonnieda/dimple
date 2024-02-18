@@ -257,6 +257,7 @@ impl From<&FileDetails> for Recording {
 impl From<&FileDetails> for RecordingSource {
     fn from(value: &FileDetails) -> Self {
         Self {
+            
             source_ids: std::iter::once(value.path.clone()).collect(),
             known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzRecordingId) {
                 Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),

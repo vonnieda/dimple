@@ -14,6 +14,7 @@ export struct ArtistDetailsAdapter {
     eps: [CardAdapter],
     others: [CardAdapter],
     links: [LinkAdapter],
+    dump: string,
 }
 
 export component ArtistDetails inherits ScrollView {
@@ -138,6 +139,16 @@ export component ArtistDetails inherits ScrollView {
                 url: link.url;
                 name: link.name;
             }
+        }
+
+        // Debug Dump
+        Text {
+            text: "Debug";
+            font-weight: Palette.font-weight-bold;
+            font-size: 2rem;
+        }
+        Text {
+            text: model.dump;
         }
     }
 

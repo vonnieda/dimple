@@ -14,6 +14,7 @@ export struct ReleaseDetailsAdapter {
     artists: [LinkAdapter],
 
     media: [MediumAdapter],
+    dump: string,
 }
 
 export component ReleaseDetails inherits ScrollView {
@@ -112,6 +113,16 @@ export component ReleaseDetails inherits ScrollView {
                 url: link.url;
                 name: link.name;
             }
+        }
+
+        // Debug Dump
+        Text {
+            text: "Debug";
+            font-weight: Palette.font-weight-bold;
+            font-size: 2rem;
+        }
+        Text {
+            text: model.dump;
         }
     }
 

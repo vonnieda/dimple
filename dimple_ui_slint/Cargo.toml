@@ -26,6 +26,7 @@ dimple_theaudiodb_library = { path = "../dimple_theaudiodb_library" }
 dimple_wikidata_library = { path = "../dimple_wikidata_library" }
 dimple_librarian = { path = "../dimple_librarian" }
 serde = "1.0.175"
+serde_json = "1.0.94"
 image = "0.24.6"
 url = "2.5.0"
 opener = "0.6.1"

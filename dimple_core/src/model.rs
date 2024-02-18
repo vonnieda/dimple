@@ -19,6 +19,8 @@ pub struct Artist {
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
     pub links: HashSet<String>,
+
+    pub country: Option<String>,
 }
 
 // https://musicbrainz.org/doc/ReleaseGroup
@@ -767,7 +769,7 @@ impl Entity for RecordingSource {
     }
 
     fn name(&self) -> Option<String> {
-        self.key.clone()
+        Some(format!("{:?}", self))
     }
 
     fn source_ids(&self) -> HashSet<String> {

@@ -66,7 +66,6 @@ impl AppWindowController {
         self.ui.global::<AppState>().on_set_online(move |online| {
             let librarian = librarian.clone();
             ui.upgrade_in_event_loop(move |ui| {
-                let online = online.clone();
                 let librarian = librarian.clone();
                 librarian.set_access_mode(if online { &AccessMode::Online } else { &AccessMode::Offline });
                 ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
@@ -305,6 +304,7 @@ impl AppWindowController {
                     others: card_adapters(other_release_group_cards),
                     genres: link_adapters(genres),
                     links: link_adapters(artist_links(&artist)),
+                    dump: serde_json::to_string_pretty(&artist).unwrap().into(),
                     ..Default::default()
                 };
                 ui.set_artist_details(adapter);
@@ -358,6 +358,7 @@ impl AppWindowController {
                     links: link_adapters(release_group_links(&release_group)),
                     // media: media_adapters(release.media),
                     releases: card_adapters(release_cards),
+                    dump: serde_json::to_string_pretty(&release_group).unwrap().into(),
                     ..Default::default()
                 };
                 ui.set_release_group_details(model);
@@ -406,12 +407,11 @@ impl AppWindowController {
             let medium = Medium {
                 tracks: recordings.iter().map(|r| {
                     let sources = r.sources(librarian.as_ref()).collect();
-                    dbg!(&r, &sources);
                     Track {
                         title: r.title.str(),
                         length: r.length.unwrap_or_default(),
                         recording: r.clone(),
-                        sources: sources,
+                        sources,
                         ..Default::default()
                     }
                 }).collect(),
@@ -429,6 +429,7 @@ impl AppWindowController {
                     artists: link_adapters(artists),
                     links: link_adapters(release_links(&release)),
                     media: media_adapters(media),
+                    dump: serde_json::to_string_pretty(&release).unwrap().into(),
                     ..Default::default()
                 };
                 ui.set_release_details(model);
@@ -727,7 +728,8 @@ fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
             track_number: t.number.clone().into(),
             length: length_to_string(t.length).into(),
             artists: Default::default(),
-            plays: t.sources.len() as i32,
+            plays: 0,
+            source_count: t.sources.len() as i32,
         })
         .collect();
     ModelRc::from(adapters.as_slice())

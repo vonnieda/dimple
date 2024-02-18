@@ -16,6 +16,7 @@ export struct ReleaseGroupDetailsAdapter {
 
     // From the default and/or selected release.
     media: [MediumAdapter],
+    dump: string,
 }
 
 export component ReleaseGroupDetails inherits ScrollView {
@@ -128,6 +129,16 @@ export component ReleaseGroupDetails inherits ScrollView {
                 url: link.url;
                 name: link.name;
             }
+        }
+
+        // Debug Dump
+        Text {
+            text: "Debug";
+            font-weight: Palette.font-weight-bold;
+            font-size: 2rem;
+        }
+        Text {
+            text: model.dump;
         }
     }
 

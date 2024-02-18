@@ -1,12 +1,9 @@
 use std::borrow::Borrow;
-use std::mem::discriminant;
 
-use anyhow::Error;
-use dimple_core::{collection::Collection, image_cache::ImageCache};
-use dimple_core::model::{Artist, Entities, Entity};
+use dimple_core::collection::Collection;
+use dimple_core::model::Entities;
 
 use image::{DynamicImage, EncodableLayout};
-use serde::{Deserialize, Serialize};
 
 use sled::{Db, Tree};
 

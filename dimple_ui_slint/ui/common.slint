@@ -45,6 +45,7 @@ export struct TrackAdapter {
     length: string, // 5:03
     artists: [LinkAdapter],
     plays: int,
+    source_count: int,
 }
 
 export struct MediumAdapter {
@@ -153,10 +154,16 @@ export component TrackList inherits VerticalLayout {
             text: "Title";
             font-size: root.font-size;
             font-weight: Palette.font-weight-bold;
-            width: 70%;
+            width: 60%;
         }
         Text {
             text: "Plays";
+            font-size: root.font-size;
+            font-weight: Palette.font-weight-bold;
+            width: 10%;
+        }
+        Text {
+            text: "Sources";
             font-size: root.font-size;
             font-weight: Palette.font-weight-bold;
             width: 10%;
@@ -182,7 +189,7 @@ export component TrackList inherits VerticalLayout {
                 width: 10%;
             }
             VerticalLayout {
-                width: 70%;
+                width: 60%;
                 spacing: 4px;
                 Link {
                     name: track.title.name;
@@ -195,6 +202,12 @@ export component TrackList inherits VerticalLayout {
             Text {
                 vertical-alignment: center;
                 text: track.plays;
+                font-size: root.font-size;
+                width: 10%;
+            }
+            Text {
+                vertical-alignment: center;
+                text: track.source-count;
                 font-size: root.font-size;
                 width: 10%;
             }

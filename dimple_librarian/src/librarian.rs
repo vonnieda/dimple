@@ -20,8 +20,8 @@ pub enum AccessMode {
 }
 
 // TODO calling it here:
-// - Show recordings on release details as track list
-// - WITH SOURCES?!
+// - x Show recordings on release details as track list
+// - / WITH SOURCES?! Showing number of, but would like to show data.
 // - Need to get images working again. 
 // - and then merge, and then green fields.
 
@@ -79,6 +79,9 @@ impl Librarian {
 
     /// Find a matching model in the local store merge the value, and store it. 
     /// If no match is found a new model is stored and returned.
+    /// TODO need to think about how this merges after an offline session, and
+    /// I think that moves it more towards a reusable component that happens
+    /// in the foreground when needed but mostly in the background.
     pub fn merge(&self, model: &Entities, related_to: Option<&Entities>) -> Entities {
         // TODO this needs to be atomic. When using par_iter it blows up cause
         // we're saving out of date info.
@@ -137,6 +140,14 @@ impl Librarian {
             // where no source_ids or known_ids exist yet for at least one object
             // And I suspect this is where I might wanna do additional weighting for
             // like having the same album or something.
+            // This is actually trash. I think it needs to be entity type specific.
+            // And it needs to take into consideration things like having the same
+            // albums and such. It needs to be way smarter. I think I might go back
+            // to the concept of search with scoring, but the scoring is going
+            // to need to be able to access the librarian for other objects.
+            // But to start with, I think it will be fine if I just get rid of
+            // non-id merging entirely.
+            
             let pattern = format!("{}:{}", 
                 l.name().unwrap_or_default(),
                 l.disambiguation().unwrap_or_default());
@@ -155,21 +166,21 @@ impl Librarian {
     }
 
     fn local_library_search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
-        const MAX_RESULTS_PER_TYPE: usize = 10;
+        // const MAX_RESULTS_PER_TYPE: usize = 10;
         // TODO sort by score
         // TODO other entities
         let pattern = query.to_string();
         let matcher = SkimMatcherV2::default();
         let artists = Artist::list(&self.local_library)
             .filter(move |a| matcher.fuzzy_match(&a.name.clone().unwrap_or_default(), &pattern).is_some())
-            .map(Entities::Artist)
-            .take(MAX_RESULTS_PER_TYPE);
+            .map(Entities::Artist);
+            // .take(MAX_RESULTS_PER_TYPE);
         let pattern = query.to_string();
         let matcher = SkimMatcherV2::default();
         let release_groups = ReleaseGroup::list(&self.local_library)
             .filter(move |a| matcher.fuzzy_match(&a.title.clone().unwrap_or_default(), &pattern).is_some())
-            .map(Entities::ReleaseGroup)
-            .take(MAX_RESULTS_PER_TYPE);
+            .map(Entities::ReleaseGroup);
+            // .take(MAX_RESULTS_PER_TYPE);
         Box::new(artists.chain(release_groups))
     }
 }
@@ -219,7 +230,11 @@ impl Collection for Librarian {
         // merge (to disk) or if it should query and merge in memory for
         // the query only. Since we're gonna save it at the end anyway I don't
         // see any harm in saving it here too. This could be replaced with
-        // find_match and merge though.
+        // find_match and merge in memory though.
+
+        // TODO I don't think this logic is totally sound. At the end we fetch
+        // using this entity, but what if we've merged something? I think we
+        // need to replace the query with the _ at the end of the sub-block.
         let entity = self.merge(entity, None);
 
         if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
@@ -258,6 +273,8 @@ impl Collection for Librarian {
     /// it, otherwise search the attached libraries for one. If one is found,
     /// cache it in the local library and return it. Future requests will be
     /// served from the cache.
+    /// TODO I think this goes away and becomes fetch(Dimage), maybe Dimage
+    /// so it's not constantly overlapping with Image.
     fn image(&self, entity: &Entities) -> Option<DynamicImage> {
         todo!()
     }
@@ -301,6 +318,7 @@ impl Merge<Self> for Artist {
             links: a.links.union(&b.links).cloned().collect(),
             name: a.name.or(b.name),
             summary: a.summary.or(b.summary),
+            country: a.country.or(b.country),
         }
     }
 }

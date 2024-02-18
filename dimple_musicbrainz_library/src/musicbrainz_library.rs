@@ -298,6 +298,7 @@ impl From<ArtistConverter> for dimple_core::model::Artist {
                 })
                 .collect(),
             summary: Default::default(),
+            country: value.0.country,
         }
     }
 }
