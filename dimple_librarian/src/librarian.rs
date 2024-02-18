@@ -1,279 +1,409 @@
-use std::{sync::{RwLock, Mutex}, collections::HashSet};
+use std::{collections::HashSet, ops::Deref, sync::{Mutex, RwLock}, time::Instant};
 
-use dimple_core::{library::{Library, DimpleEntity}, model::{DimpleArtist, DimpleReleaseGroup, DimpleRelease, DimpleRecording}};
+use dimple_core::{collection::Collection, model::{Artist, Entity, Recording, RecordingSource, Release, ReleaseGroup}};
 use dimple_sled_library::sled_library::SledLibrary;
+use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use image::DynamicImage;
 use rayon::prelude::*;
+use dimple_core::model::Entities;
 
-/// TODO need a favicon service
-/// TODO I think the assumption that DimpleEntity.id is an mbid needs to go
-/// away for the use cases of always offline, no access to musicbrainz, wants
-/// to use something else as a metadata authority, etc.
-
-/// So then, here's the goal and plan for today:
-/// Goal: Get Recordings from the file library matched and merged. In the end,
-/// nearly every track should have an MBID and there should be a list of tracks
-/// on the console that don't, along with errors. 
-/// Plan:
-/// - Add source_id to DimpleEntity
-/// - Add match_status to DimpleEntity
-/// - Add a new forever thread in Librarian that regularly scans all the
-///   libraries, reads their recordings, and submits them for matching.
-/// - Add another forever thread that monitors the match queue, performs
-///   matching and merges the records in. The goal is to either match the
-///   entity to an mbid or to merge it unmatched. Unmatched entities still
-///   need to be available because of the offline or simply unknown use case.
-///   The user should still get the best experience.
-/// Stretch Goals:
-/// - It may be easier, as part of this, to get rid of SledLibrary and pull its
-///   stuff into here.
-/// - I need to make images an entity so I can store attributions, and that
-///   might fit into all this work.
-/// - Consider the rename of Library to Source or something. I think the Librarian
-///   manages one library: your library. It pulls stuff in from sources, not other
-///   libraries. So I can live without a sqlite_library, because that's just
-///   going to happen here. 
 pub struct Librarian {
     local_library: SledLibrary,
-    libraries: RwLock<Vec<Box<dyn Library>>>,
+    libraries: RwLock<Vec<Box<dyn Collection>>>,
+    access_mode: Mutex<AccessMode>,
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AccessMode {
+    Online,
+    Offline,
+}
+
+// TODO calling it here:
+// - x Show recordings on release details as track list
+// - / WITH SOURCES?! Showing number of, but would like to show data.
+// - Need to get images working again. 
+// - and then merge, and then green fields.
 
 impl Librarian {
     pub fn new(path: &str) -> Self {
         Self { 
             local_library: SledLibrary::new(path),
-            libraries: Default::default(), 
+            libraries: Default::default(),
+            access_mode: Mutex::new(AccessMode::Online),
         }
     }
 
-    pub fn add_library(&self, library: Box<dyn Library>) {
+    pub fn add_library(&self, library: Box<dyn Collection>) {
         self.libraries.write().unwrap().push(library);
+    }
+
+    pub fn access_mode(&self) -> AccessMode {
+        self.access_mode.lock().unwrap().clone()
+    }
+
+    pub fn set_access_mode(&self, value: &AccessMode) {
+        *self.access_mode.lock().unwrap() = value.clone();
     }
 
     /// Generate some kind of cool artwork for the entity to be used as a
     /// default. Being part of Librarian, it can use data from the library
     /// to create the image.
-    pub fn generate_masterpiece(&self, entity: &DimpleEntity, width: u32, 
+    pub fn generate_masterpiece(&self, _entity: &Entities, width: u32, 
         height: u32) -> DynamicImage {
-
 
         // https://stackoverflow.com/questions/76741218/in-slint-how-do-i-render-a-self-drawn-image
         // http://ia802908.us.archive.org/35/items/mbid-8d4a5efd-7c87-487d-97e7-30e5fc6b9a8c/mbid-8d4a5efd-7c87-487d-97e7-30e5fc6b9a8c-25647975198.jpg
 
-
         DynamicImage::new_rgb8(width, height)
     }
 
-    /// Get or create a thumbmail image at the given size for the entity.
+    /// Get or create a thumbnail image at the given size for the entity.
     /// If no image can be loaded from the library one is generated. Results
     /// either from the library or generated are cached for future calls.
-    pub fn thumbnail(&self, entity: &DimpleEntity, width: u32, height: u32) -> DynamicImage {
-        let cached = self.local_library.images.get(&entity.id(), width, height);
+    pub fn thumbnail(&self, entity: &Entities, width: u32, height: u32) -> DynamicImage {
+        let cached = self.local_library.images.get(&entity.key().unwrap(), width, height);
         if let Some(dyn_image) = cached {
             return dyn_image;
         }
         else if let Some(dyn_image) = self.image(entity) {
             self.local_library.set_image(entity, &dyn_image);
-            return self.local_library.images.get(&entity.id(), width, height).unwrap();
+            return self.local_library.images.get(&entity.key().unwrap(), width, height).unwrap();
         }
         let generated = &self.generate_masterpiece(entity, width, height);
         self.local_library.set_image(entity, generated);
-        self.local_library.images.get(&entity.id(), width, height).unwrap()
+        self.local_library.images.get(&entity.key().unwrap(), width, height).unwrap()
     }
 
-    fn fetch_with_force(&self, entity: &DimpleEntity, force: bool) -> Option<DimpleEntity> {
-        if !force {
-            let local_result = self.local_library.fetch(entity);
-            if local_result.is_some() {
-                return local_result;
-            }
-        } 
+    /// Find a matching model in the local store merge the value, and store it. 
+    /// If no match is found a new model is stored and returned.
+    /// TODO need to think about how this merges after an offline session, and
+    /// I think that moves it more towards a reusable component that happens
+    /// in the foreground when needed but mostly in the background.
+    pub fn merge(&self, model: &Entities, related_to: Option<&Entities>) -> Entities {
+        // TODO this needs to be atomic. When using par_iter it blows up cause
+        // we're saving out of date info.
+        let matched = self.find_match(model);
+        let merged = match matched {
+            Some(matched) => Entities::merge(matched, model.clone()),
+            None => model.clone(),
+        };
+        let saved = self.local_library.set(&merged).unwrap();
+        if let Some(related_to) = related_to {
+            let related_to = self.merge(related_to, None);
+            let _ = self.local_library.link(&saved, &related_to, "by");
+        }
+        saved
+    }
 
-        // Run the fetch on all of the libraries, keeping track of the ones
-        // that return a good result. 
-        let skip_libs: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
-        let first_result: DimpleEntity = self.libraries.read().ok()?.par_iter()
-            .filter_map(|lib| {
-                let result = lib.fetch(entity);
-                if result.is_some() {
-                    skip_libs.lock().unwrap().insert(lib.name());
-                }
-                result
-            })
-            .reduce(|| entity.clone(), DimpleEntity::merge);
-        
-        // Run the fetch on the remaining libraries that did not return a result
-        // the first time. This allows libraries that need metadata from
-        // Musicbrainz to skip the first fetch and run on this one.
-        let second_result: DimpleEntity = self.libraries.read().ok()?.par_iter()
-            .filter(|f| !skip_libs.lock().unwrap().contains(&f.name()))
-            .filter_map(|lib| lib.fetch(&first_result))
-            .reduce(|| entity.clone(), DimpleEntity::merge);
+    // 1. Attempt to find by key
+    // 2. Attempt to find by source_id
+    // 3. Attempt to find by known_id
+    // 4. Attempt to find by fuzzy?
+    // 5. Give up.
+    fn find_match(&self, model: &Entities) -> Option<Entities> {
+        // Find by key
+        if let Some(model) = self.local_library.get(model) {
+            return Some(model)
+        }
 
-        // Merge the results together, store it for later access, and return
-        let result = DimpleEntity::merge(first_result, second_result);
-        self.local_library.store(&result);
+        // Find by matching source_id
+        if let Some(model) = self.local_library.list(model, None).find(|m| {
+            let l = model;
+            let r = m;
+            !l.source_ids().is_disjoint(&r.source_ids())
+        }) {
+            return Some(model)
+        }
 
-        Some(result)
+        // Find by matching known_id
+        if let Some(model) = self.local_library.list(model, None).find(|m| {
+            let l = model;
+            let r = m;
+            !l.known_ids().is_disjoint(&r.known_ids())
+        }) {
+            return Some(model)
+        }
+
+        // Find by fuzzy 
+        // TODO score, sort
+        // TODO I think this becomes LocalLibrary.search or maybe a utility
+        // for an iterator.
+        if let Some(model) = self.local_library.list(model, None).find(|m| {
+            let l = model;
+            let r = m;
+            let matcher = SkimMatcherV2::default();
+            // TODO this has to be smarter - it should only match disambiguation
+            // for those that have it,and it probably should only apply in cases
+            // where no source_ids or known_ids exist yet for at least one object
+            // And I suspect this is where I might wanna do additional weighting for
+            // like having the same album or something.
+            // This is actually trash. I think it needs to be entity type specific.
+            // And it needs to take into consideration things like having the same
+            // albums and such. It needs to be way smarter. I think I might go back
+            // to the concept of search with scoring, but the scoring is going
+            // to need to be able to access the librarian for other objects.
+            // But to start with, I think it will be fine if I just get rid of
+            // non-id merging entirely.
+            // Maybe one thing to try is match against the incoming (least specific, presumably)
+            // object's fields only that exist. So, if it has a name, compare the name. If it has a dimambiguation, compare it, but otherwise don't.
+            
+            let pattern = format!("{}:{}", 
+                l.name().unwrap_or_default(),
+                l.disambiguation().unwrap_or_default());
+            let choice = format!("{}:{}", 
+                r.name().unwrap_or_default(),
+                r.disambiguation().unwrap_or_default());
+            let score = matcher.fuzzy_match(&choice, &pattern);
+            // log::info!("{}, {} -> {}", choice, pattern, score.unwrap_or(0));
+            score.is_some()
+        }) {
+            return Some(model)
+        }
+
+        // Give up
+        None
+    }
+
+    fn local_library_search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
+        // const MAX_RESULTS_PER_TYPE: usize = 10;
+        // TODO sort by score
+        // TODO other entities
+        let pattern = query.to_string();
+        let matcher = SkimMatcherV2::default();
+        let artists = Artist::list(&self.local_library)
+            .filter(move |a| matcher.fuzzy_match(&a.name.clone().unwrap_or_default(), &pattern).is_some())
+            .map(Entities::Artist);
+            // .take(MAX_RESULTS_PER_TYPE);
+        let pattern = query.to_string();
+        let matcher = SkimMatcherV2::default();
+        let release_groups = ReleaseGroup::list(&self.local_library)
+            .filter(move |a| matcher.fuzzy_match(&a.title.clone().unwrap_or_default(), &pattern).is_some())
+            .map(Entities::ReleaseGroup);
+            // .take(MAX_RESULTS_PER_TYPE);
+        Box::new(artists.chain(release_groups))
     }
 }
 
-impl Library for Librarian {
+impl Collection for Librarian {
     fn name(&self) -> String {
         "Librarian".to_string()
     }
 
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = dimple_core::library::DimpleEntity>> {
-        // TODO include local
-        // TODO remove dupes
-        let merged: Vec<DimpleEntity> = self.libraries.read().unwrap().iter()
-            .flat_map(|lib| {
-                lib.search(query)
-            })
-            .collect();
-        Box::new(merged.into_iter())
+    /// Search the libraries, merge the results to local, and then search
+    /// local and return the results. This merge step ensures that the objects
+    /// returned are the sum of the sources.
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
+        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+            self.libraries.read().unwrap().iter()
+                .flat_map(|lib| lib.search(query))
+                .for_each(|m| {
+                    let _ = self.merge(&m, None);
+                });
+        }
+        self.local_library_search(query)
     }    
 
-    fn list(&self, entity: &DimpleEntity) -> Box<dyn Iterator<Item = DimpleEntity>> {
-        let local_results: Vec<_> = self.local_library.list(entity).collect();
-        let lib_results: Vec<_> = self.libraries.read().unwrap().iter()
-            .flat_map(|lib| lib.list(entity))
-            .collect();
-
-        let mut merged = vec![];
-        merged.extend_from_slice(&local_results);
-        merged.extend_from_slice(&lib_results);
-        Box::new(merged.into_iter())
+    /// List the libraries, merge the results to local, and then list
+    /// local and return the results. This merge step ensures that the objects
+    /// returned are the sum of the sources.
+    fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
+        // TODO parallel version is much faster but self.merge is not atomic
+        // But note, the real problem is the "list" in the match function.
+        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+            self.libraries.read().unwrap().iter()
+                .flat_map(|lib| lib.list(of_type, related_to))
+                .for_each(|m| {
+                    let _ = self.merge(&m, related_to);
+                });
+        }
+        self.local_library.list(of_type, related_to)
     }
 
-    fn fetch(&self, entity: &DimpleEntity) -> Option<DimpleEntity> {
-        self.fetch_with_force(entity, false)
+    /// First, merge the request entity as a side effect. Search the libraries, 
+    /// merge the results to local, and then search local and return the 
+    /// results. This merge step ensures that the objects returned are the 
+    /// sum of the sources.
+    fn fetch(&self, entity: &Entities) -> Option<Entities> {
+        // Merging the entity before searching ensures we have things like
+        // additional ids for querying. I'm not totally sure if this should
+        // merge (to disk) or if it should query and merge in memory for
+        // the query only. Since we're gonna save it at the end anyway I don't
+        // see any harm in saving it here too. This could be replaced with
+        // find_match and merge in memory though.
+
+        // TODO I don't think this logic is totally sound. At the end we fetch
+        // using this entity, but what if we've merged something? I think we
+        // need to replace the query with the _ at the end of the sub-block.
+        let entity = self.merge(entity, None);
+
+        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+            // Run the fetch on all of the libraries, keeping track of the ones
+            // that return a result. 
+            let skip_libs: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+            let first_result: Entities = self.libraries.read().ok()?.par_iter()
+                .filter_map(|lib| {
+                    let result = lib.fetch(&entity);
+                    if result.is_some() {
+                        skip_libs.lock().unwrap().insert(lib.name());
+                    }
+                    result
+                })
+                .reduce(|| entity.clone(), Entities::merge);
+            
+            // Run the fetch on the remaining libraries that did not return a result
+            // the first time. This allows libraries that need metadata from
+            // for instance, Musicbrainz to skip the first fetch and run on
+            // this one instead.
+            let second_result: Entities = self.libraries.read().ok()?.par_iter()
+                .filter(|f| !skip_libs.lock().unwrap().contains(&f.name()))
+                .filter_map(|lib| lib.fetch(&first_result))
+                .reduce(|| entity.clone(), Entities::merge);
+
+            // Merge the results together and store it for later access
+            let result = Entities::merge(first_result, second_result);
+            let _ = self.merge(&result, None);
+        }
+
+        // Return the results from the local library
+        self.local_library.fetch(&entity)
     }
 
     /// If there is an image stored in the local library for the entity return
     /// it, otherwise search the attached libraries for one. If one is found,
     /// cache it in the local library and return it. Future requests will be
     /// served from the cache.
-    fn image(&self, entity: &DimpleEntity) -> Option<DynamicImage> {
+    /// TODO I think this goes away and becomes fetch(Dimage), maybe Dimage
+    /// so it's not constantly overlapping with Image.
+    fn image(&self, entity: &Entities) -> Option<DynamicImage> {
         let image = self.local_library.image(entity);
         if image.is_some() {
             return image;
         }
 
-        self.libraries.read().ok()?.par_iter()
-            .find_map_first(|lib| lib.image(entity))
-            .map(|dyn_image| {
-                self.local_library.set_image(entity, &dyn_image);
-                dyn_image
-            })
+        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+            if let Some(dyn_image) = self.libraries.read().unwrap().iter().find_map(|lib| lib.image(entity)) {
+                self.local_library.set_image(&entity, &dyn_image);
+                return Some(dyn_image)
+            }
+        }
+        None
     }
 }
 
 trait Merge<T> {
+    // TODO should probably be references.
     fn merge(a: T, b: T) -> T;
 }
 
-fn longer(a: String, b: String) -> String {
-    if a.len() > b.len() { a }
-    else { b }
-}
-
-fn merge_vec<T>(a: Vec<T>, b: Vec<T>) -> Vec<T> {
-    if a.len() > b.len() { a } else { b }
-}
-
-impl Merge<DimpleEntity> for DimpleEntity {
-    fn merge(left: DimpleEntity, right: DimpleEntity) -> Self {
-        match left {
-            DimpleEntity::Artist(left) => match right {
-                DimpleEntity::Artist(right) => DimpleEntity::Artist(DimpleArtist::merge(left, right)),
-                _ => panic!("no")
+impl Merge<Entities> for Entities {
+    fn merge(left: Entities, right: Entities) -> Self {
+        match (left, right) {
+            (Entities::Artist(left), Entities::Artist(right)) => {
+                Artist::merge(left, right).entity()
             },
-            DimpleEntity::ReleaseGroup(left) => match right {
-                DimpleEntity::ReleaseGroup(right) => DimpleEntity::ReleaseGroup(DimpleReleaseGroup::merge(left, right)),
-                _ => panic!("no")
+            (Entities::ReleaseGroup(left), Entities::ReleaseGroup(right)) => {
+                ReleaseGroup::merge(left, right).entity()
             },
-            DimpleEntity::Release(left) => match right {
-                DimpleEntity::Release(right) => DimpleEntity::Release(DimpleRelease::merge(left, right)),
-                _ => panic!("no")
+            (Entities::Release(left), Entities::Release(right)) => {
+                Release::merge(left, right).entity()
             },
-            DimpleEntity::Recording(left) => match right {
-                DimpleEntity::Recording(right) => DimpleEntity::Recording(DimpleRecording::merge(left, right)),
-                _ => panic!("no")
+            (Entities::Recording(left), Entities::Recording(right)) => {
+                Recording::merge(left, right).entity()
             },
-            _ => panic!("no")
+            (Entities::RecordingSource(left), Entities::RecordingSource(right)) => {
+                RecordingSource::merge(left, right).entity()
+            },
+            _ => todo!()
         }
     }
 }
 
-impl Merge<Self> for DimpleArtist {
-    fn merge(base: Self, b: Self) -> Self {
-        let mut base = base.clone();
-        base.disambiguation = longer(base.disambiguation, b.disambiguation);
-        base.genres = merge_vec(base.genres, b.genres);
-        base.id = longer(base.id, b.id);
-        base.name = longer(base.name, b.name);
-        base.relations = merge_vec(base.relations, b.relations);
-        base.release_groups = merge_vec(base.release_groups, b.release_groups);
-        base.summary = longer(base.summary, b.summary);
-        base
+impl Merge<Self> for Artist {
+    fn merge(a: Self, b: Self) -> Self {
+        Self {
+            disambiguation: a.disambiguation.or(b.disambiguation),
+            key: a.key.or(b.key),
+            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
+            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+            links: a.links.union(&b.links).cloned().collect(),
+            name: a.name.or(b.name),
+            summary: a.summary.or(b.summary),
+            country: a.country.or(b.country),
+        }
     }
 }
 
-impl Merge<Self> for DimpleReleaseGroup {
-    fn merge(base: Self, b: Self) -> Self {
-        let mut base = base.clone();
-        base.disambiguation = longer(base.disambiguation, b.disambiguation);
-        base.first_release_date = longer(base.first_release_date, b.first_release_date);
-        base.genres = merge_vec(base.genres, b.genres);
-        base.id = longer(base.id, b.id);
-        base.primary_type = longer(base.primary_type, b.primary_type);
-        base.relations = merge_vec(base.relations, b.relations);
-        base.releases = merge_vec(base.releases, b.releases);
-        base.summary = longer(base.summary, b.summary);
-        base.title = longer(base.title, b.title);
-        base.artists = merge_vec(base.artists, b.artists);
-        base
+impl Merge<Self> for ReleaseGroup {
+    fn merge(a: Self, b: Self) -> Self {
+        Self {
+            disambiguation: a.disambiguation.or(b.disambiguation),
+            key: a.key.or(b.key),
+            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
+            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+            links: a.links.union(&b.links).cloned().collect(),
+            title: a.title.or(b.title),
+            summary: a.summary.or(b.summary),
+
+            first_release_date: a.first_release_date.or(b.first_release_date),
+            primary_type: a.primary_type.or(b.primary_type),
+        }
     }
 }
 
-impl Merge<Self> for DimpleRelease {
-    fn merge(base: Self, b: Self) -> Self {
-        let mut base = base.clone();
-        base.artists = merge_vec(base.artists, b.artists);
-        base.barcode = longer(base.barcode, b.barcode);
-        base.country = longer(base.country, b.country);
-        base.date = longer(base.date, b.date);
-        base.disambiguation = longer(base.disambiguation, b.disambiguation);
-        base.genres = merge_vec(base.genres, b.genres);
-        base.media = merge_vec(base.media, b.media);
-        base.id = longer(base.id, b.id);
-        base.relations = merge_vec(base.relations, b.relations);
-        base.status = longer(base.status, b.status);
-        base.summary = longer(base.summary, b.summary);
-        base.title = longer(base.title, b.title);
-        base
+impl Merge<Self> for Release {
+    fn merge(a: Self, b: Self) -> Self {
+        Self {
+            disambiguation: a.disambiguation.or(b.disambiguation),
+            key: a.key.or(b.key),
+            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
+            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+            links: a.links.union(&b.links).cloned().collect(),
+            title: a.title.or(b.title),
+            summary: a.summary.or(b.summary),
+
+
+            barcode: a.barcode.or(b.barcode),
+            country: a.country.or(b.country),
+            date: a.date.or(b.date),
+            packaging: a.packaging.or(b.packaging),
+            status: a.status.or(b.status),
+        }
     }
 }
 
-impl Merge<Self> for DimpleRecording {
-    fn merge(base: Self, b: Self) -> Self {
-        let mut base = base.clone();
-        base.annotation = longer(base.annotation, b.annotation);
-        base.artist_credits = merge_vec(base.artist_credits, b.artist_credits);
-        // base.asin = longer(base.asin, b.asin);
-        // base.country = longer(base.country, b.country);
-        // base.date = longer(base.date, b.date);
-        // base.barcode = longer(base.barcode, b.barcode);
-        base.disambiguation = longer(base.disambiguation, b.disambiguation);
-        // base.genres = merge_vec(base.genres, b.genres);
-        // base.media = merge_vec(base.media, b.media);
-        base.id = longer(base.id, b.id);
-        // base.length = 
-        // base.relations = merge_vec(base.relations, b.relations);
-        // base.status = longer(base.status, b.status);
-        base.summary = longer(base.summary, b.summary);
-        base.title = longer(base.title, b.title);
-        base
+impl Merge<Self> for Recording {
+    fn merge(a: Self, b: Self) -> Self {
+        Self {
+            disambiguation: a.disambiguation.or(b.disambiguation),
+            key: a.key.or(b.key),
+            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
+            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+            links: a.links.union(&b.links).cloned().collect(),
+            title: a.title.or(b.title),
+            summary: a.summary.or(b.summary),
+
+            annotation: a.annotation.or(b.annotation),
+            isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
+            length: a.length.or(b.length)
+        }
+    }
+}
+
+impl Merge<Self> for RecordingSource {
+    fn merge(a: Self, b: Self) -> Self {
+        Self {
+            // disambiguation: a.disambiguation.or(b.disambiguation),
+            key: a.key.or(b.key),
+            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
+            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+            // links: a.links.union(&b.links).cloned().collect(),
+            // title: a.title.or(b.title),
+            // summary: a.summary.or(b.summary),
+
+            // annotation: a.annotation.or(b.annotation),
+            // isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
+            // length: a.length.or(b.length)
+        }
     }
 }

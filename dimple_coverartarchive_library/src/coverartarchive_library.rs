@@ -1,4 +1,5 @@
-use dimple_core::library::{Library, DimpleEntity, LibrarySupport};
+use dimple_core::collection::{Collection, LibrarySupport};
+use dimple_core::model::{Entities, Entity};
 use image::DynamicImage;
 use musicbrainz_rs::entity::{CoverartResponse, release_group::ReleaseGroup, release::Release};
 use musicbrainz_rs::FetchCoverart;
@@ -37,18 +38,19 @@ impl CoverArtArchiveLibrary {
     }
 }
 
-impl Library for CoverArtArchiveLibrary {
+impl Collection for CoverArtArchiveLibrary {
     fn name(&self) -> String {
         "CoverArtArchive".to_string()
     }
 
-    fn image(&self, _entity: &DimpleEntity) -> Option<image::DynamicImage> {
+    fn image(&self, _entity: &Entities) -> Option<image::DynamicImage> {
         match _entity {
-            DimpleEntity::ReleaseGroup(r) => {
+            Entities::ReleaseGroup(r) => {
+                let mbid = r.mbid()?;
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("http://coverartarchive.org/{}", r.id));                
+                    &format!("http://coverartarchive.org/{}", mbid));
                 let mb = ReleaseGroup {
-                    id: r.id.to_string(),
+                    id: mbid,
                     ..Default::default()
                 };
                 // TODO replace with reqwest
@@ -64,11 +66,12 @@ impl Library for CoverArtArchiveLibrary {
                     })
                     ?
             },
-            DimpleEntity::Release(r) => {
+            Entities::Release(r) => {
+                let mbid = r.mbid()?;
                 let request_token = LibrarySupport::start_request(self, 
-                    &format!("http://coverartarchive.org/{}", r.id));                
+                    &format!("http://coverartarchive.org/{}", mbid));                
                 let mb = Release {
-                    id: r.id.to_string(),
+                    id: mbid,
                     title: "".to_string(),
                     aliases: None,
                     annotation:  None,

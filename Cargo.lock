@@ -175,6 +175,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.79"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "080e9890a082662b09c1ad45f567faeeb47f22b5fb23895fbe1e651e718e25ca"
+
+[[package]]
 name = "arrayref"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -733,9 +739,9 @@ dependencies = [
 
 [[package]]
 name = "chrono"
-version = "0.4.31"
+version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f2c685bad3eb3d45a01354cedb7d5faa66194d1d58ba6e267a8de788f79db38"
+checksum = "5bc015644b92d5890fab7489e49d21f879d5c990186827d42ec511919404f38b"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -743,7 +749,7 @@ dependencies = [
  "num-traits",
  "serde",
  "wasm-bindgen",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.0",
 ]
 
 [[package]]
@@ -1203,11 +1209,18 @@ dependencies = [
 name = "dimple_cli"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "dimple_core",
+ "dimple_coverartarchive_library",
  "dimple_deezer_library",
+ "dimple_fanart_tv_library",
+ "dimple_file_library",
+ "dimple_lastfm_library",
  "dimple_librarian",
  "dimple_musicbrainz_library",
+ "dimple_theaudiodb_library",
  "dimple_wikidata_library",
+ "directories",
  "env_logger",
  "log",
 ]
@@ -1264,8 +1277,10 @@ name = "dimple_file_library"
 version = "0.1.0"
 dependencies = [
  "dimple_core",
+ "fuzzy-matcher",
  "image",
  "log",
+ "rayon",
  "serde",
  "symphonia",
  "walkdir",
@@ -1285,17 +1300,15 @@ dependencies = [
 name = "dimple_librarian"
 version = "0.1.0"
 dependencies = [
- "colored",
  "dimple_core",
  "dimple_sled_library",
+ "fuzzy-matcher",
  "image",
  "log",
  "rayon",
  "serde",
  "serde_json",
  "sled",
- "threadpool",
- "ulid",
 ]
 
 [[package]]
@@ -1315,6 +1328,7 @@ dependencies = [
 name = "dimple_sled_library"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "dimple_core",
  "image",
  "log",
@@ -1322,6 +1336,7 @@ dependencies = [
  "serde_json",
  "sled",
  "threadpool",
+ "uuid",
 ]
 
 [[package]]
@@ -1357,6 +1372,7 @@ dependencies = [
  "rayon",
  "rfd",
  "serde",
+ "serde_json",
  "slint",
  "slint-build",
  "souvlaki",
@@ -1863,6 +1879,15 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
+]
+
+[[package]]
+name = "fuzzy-matcher"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54614a3312934d066701a80f20f15fa3b56d67ac7722b39eea5b4c9dd1d66c94"
+dependencies = [
+ "thread_local",
 ]
 
 [[package]]
@@ -4885,6 +4910,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "thread_local"
+version = "1.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fdd6f064ccff2d6567adcb3873ca630700f00b5ad3f060c25b5dcfd9a4ce152"
+dependencies = [
+ "cfg-if",
+ "once_cell",
+]
+
+[[package]]
 name = "threadpool"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5306,6 +5341,28 @@ dependencies = [
  "strict-num",
  "svgtypes",
  "tiny-skia-path",
+]
+
+[[package]]
+name = "uuid"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f00cc9702ca12d3c81455259621e676d0f7251cec66a21e98fe2e9a37db93b2a"
+dependencies = [
+ "getrandom",
+ "rand",
+ "uuid-macro-internal",
+]
+
+[[package]]
+name = "uuid-macro-internal"
+version = "1.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7abb14ae1a50dad63eaa768a458ef43d298cd1bd44951677bd10b732a9ba2a2d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.46",
 ]
 
 [[package]]

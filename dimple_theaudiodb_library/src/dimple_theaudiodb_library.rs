@@ -1,8 +1,9 @@
 use std::env;
 
-use dimple_core::library::{Library, DimpleEntity, LibrarySupport};
+use dimple_core::collection::{Collection, LibrarySupport};
 use reqwest::blocking::Client;
 use serde::Deserialize;
+use dimple_core::model::Entities;
 
 #[derive(Debug)]
 pub struct TheAudioDbLibrary {
@@ -49,23 +50,23 @@ struct ImageResponse {
 }
 
 // https://www.theaudiodb.com/free_music_api
-impl Library for TheAudioDbLibrary {
+impl Collection for TheAudioDbLibrary {
     fn name(&self) -> String {
         "TheAudioDB".to_string()
     }
 
     // TODO add bio
+    // TODO add release groups (albums)
 
-    fn image(&self, entity: &DimpleEntity) -> Option<image::DynamicImage> {
+    fn image(&self, entity: &Entities) -> Option<image::DynamicImage> {
+        let mbid = entity.mbid()?;
         match entity {
             // https://www.theaudiodb.com/api/v1/json/api_key/artist-mb.php?i=1d86a19b-8ddd-448c-a815-4f41350bea53
-            DimpleEntity::Artist(a) => {
+            Entities::Artist(a) => {
                 let client = Client::builder()
                     .https_only(true)
                     .user_agent(dimple_core::USER_AGENT)
                     .build().ok()?;
-
-                let mbid = a.id.to_string();
 
                 let url = format!("https://www.theaudiodb.com/api/v1/json/{}/artist-mb.php?i={}", 
                     self.api_key, mbid);

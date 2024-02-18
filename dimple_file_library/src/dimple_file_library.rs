@@ -1,25 +1,14 @@
 
-use std::{collections::{HashMap, HashSet}, error::Error, fs::File, sync::{Arc, Mutex}, time::{Duration, Instant}};
-use dimple_core::{library::{Library, DimpleEntity}, model::DimpleArtist};
-use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey}, probe::Hint};
+use std::{collections::{HashMap, HashSet}, error::Error, fs::File, ops::Deref, sync::{Arc, Mutex}, time::{Duration, Instant}};
+use dimple_core::{collection::Collection, model::{Artist, Entity, KnownId, Recording, RecordingSource, Release, ReleaseGroup}};
+use dimple_core::model::Entities;
+use rayon::iter::{ParallelBridge, ParallelIterator};
+use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag}, probe::Hint};
 use walkdir::{WalkDir, DirEntry};
 
 pub struct FileLibrary {
     paths: Vec<String>,
     files: Arc<Mutex<HashMap<String, FileDetails>>>,
-}
-
-#[derive(Clone, Debug, Default)]
-struct FileDetails {
-    path: String,
-    artist: Option<String>,
-    album: Option<String>,
-    title: Option<String>,
-    musicbrainz_track_id: Option<String>,
-    musicbrainz_recording_id: Option<String>,
-    musicbrainz_release_id: Option<String>,
-    musicbrainz_release_group_id: Option<String>,
-    musicbrainz_artist_id: Option<String>,
 }
 
 impl FileLibrary {
@@ -39,23 +28,21 @@ impl FileLibrary {
     fn scanner(path: &str, files: Arc<Mutex<HashMap<String, FileDetails>>>) {
         loop {
             let now = Instant::now();
-            let file_details: Vec<_> = WalkDir::new(path)
+            WalkDir::new(path)
                 .into_iter()
-                .filter_map(|e| e.ok())
+                .par_bridge()
+                .filter(|e| e.is_ok())
+                .map(|e| e.unwrap())
                 .filter(|e| e.file_type().is_file())
                 .filter(|e| e.path().extension().is_some())
-                .map(|e| (e.clone(), Self::read(&e)))
-                .filter_map(|(_e, tag)| tag.ok())
-                .collect();
-            log::info!("Scanned {} files in {}ms", file_details.len(), now.elapsed().as_millis());
+                .map(|e| Self::read(&e).ok())
+                .filter(|e| e.is_some())
+                .map(|e| e.unwrap())
+                .for_each(|f| {
+                    files.lock().unwrap().insert(f.path.clone(), f.clone());
+                });
 
-            let now = Instant::now();
-            if let Ok(mut files) = files.lock() {
-                for file in file_details {
-                    files.insert(file.path.clone(), file);
-                }
-            }
-            log::info!("Inserted files in {}ms", now.elapsed().as_millis());
+            log::info!("Scanned {} files in {}ms", files.lock().unwrap().len(), now.elapsed().as_millis());
 
             std::thread::sleep(Duration::from_secs(60 * 60));
         }
@@ -79,76 +66,116 @@ impl FileLibrary {
         let fmt_opts: FormatOptions = Default::default();
 
         // Probe the media source.
-        let probed = symphonia::default::get_probe()
+        let mut probed = symphonia::default::get_probe()
             .format(&hint, media_source_stream, &fmt_opts, &meta_opts)?;
 
         // Get the instantiated format reader.
         let mut format = probed.format;
 
-        let metadata = format.metadata();
+        // Collect all of the tags from both the file and format metadata
+        let mut tags: Vec<Tag> = vec![];
 
-        let mut details = FileDetails {
-            path: path.clone(),
-            ..Default::default()
-        };
-
-        if let Some(metadata) = metadata.current() {
-            let tags = metadata.tags();
-            // https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
-            for tag in tags {
-                if let Some(StandardTagKey::TrackTitle) = tag.std_key {
-                    details.title = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::Album) = tag.std_key {
-                    details.album = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::Artist) = tag.std_key {
-                    details.artist = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::MusicBrainzAlbumId) = tag.std_key {
-                    details.musicbrainz_release_id = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::MusicBrainzArtistId) = tag.std_key {
-                    details.musicbrainz_artist_id = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::MusicBrainzRecordingId) = tag.std_key {
-                    details.musicbrainz_recording_id = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::MusicBrainzReleaseGroupId) = tag.std_key {
-                    details.musicbrainz_release_group_id = Some(tag.value.to_string());
-                }
-                else if let Some(StandardTagKey::MusicBrainzTrackId) = tag.std_key {
-                    details.musicbrainz_track_id = Some(tag.value.to_string());
-                }
+        if let Some(metadata) = probed.metadata.get() {
+            if let Some(metadata) = metadata.current() {
+                tags.extend(metadata.tags().to_owned());
             }
         }
+
+        let metadata = format.metadata();
+
+        if let Some(metadata) = metadata.current() {
+            tags.extend(metadata.tags().to_owned());
+        }
+
+        let details = FileDetails {
+            path: path.clone(),
+            tags,
+        };
+
+        // log::info!("read {:?}", details);
 
         Ok(details)
     }
 }
 
-impl Library for FileLibrary {
+#[derive(Clone, Debug, Default)]
+struct FileDetails {
+    path: String,
+    tags: Vec<Tag>,
+}
+
+impl Collection for FileLibrary {
     fn name(&self) -> String {
-        format!("FolderLibrary({:?})", self.paths)
+        format!("FileLibrary({:?})", self.paths)
     }
 
-    fn list(&self, _entity: &DimpleEntity) -> Box<dyn Iterator<Item = DimpleEntity>> {
-        match _entity {
-            DimpleEntity::Artist(_) => {
-                if let Ok(files) = self.files.lock() {
-                    // Collect into a HashSet to deduplicate.
-                    let artist_ids: HashSet<String> = files.values()
-                        .filter_map(|f| f.musicbrainz_artist_id.clone())
-                        .collect();
-
-                    let results: Vec<_> = artist_ids.iter()
-                        .map(|id| DimpleEntity::Artist(DimpleArtist::from_id(id)))
-                        .collect();
-
-                    log::info!("list {} artists", results.len());
-                    return Box::new(results.into_iter());
-                }
-                Box::new(vec![].into_iter())
+    fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
+        match (of_type, related_to) {
+            (Entities::Artist(_), None) => {
+                let files = self.files.lock().unwrap().clone();
+                let artists: Vec<Artist> = files.values().map(Into::into).collect();
+                let models: Vec<Entities> = artists.iter().map(Artist::entity).collect();
+                Box::new(models.into_iter())
+            }
+            (Entities::Release(_), None) => {
+                let files = self.files.lock().unwrap().clone();
+                let releases: Vec<Release> = files.values().map(Into::into).collect();
+                let models: Vec<Entities> = releases.iter().map(Release::entity).collect();
+                Box::new(models.into_iter())
+            }
+            (Entities::Recording(_), None) => {
+                let files = self.files.lock().unwrap().clone();
+                let recordings: Vec<Recording> = files.values().map(Into::into).collect();
+                let models: Vec<Entities> = recordings.iter().map(Recording::entity).collect();
+                Box::new(models.into_iter())
+            }
+            (Entities::ReleaseGroup(_), Some(Entities::Artist(artist))) => {
+                let files = self.files.lock().unwrap().clone();
+                let release_groups: Vec<ReleaseGroup> = files.values()
+                    .filter(|r| {
+                        let ra: Artist = (*r).into();
+                        !ra.source_ids.is_disjoint(&artist.source_ids)
+                    })
+                    .map(Into::into)
+                    .collect();
+                let models: Vec<Entities> = release_groups.iter().map(ReleaseGroup::entity).collect();
+                Box::new(models.into_iter())
+            }
+            (Entities::Release(_), Some(Entities::ReleaseGroup(release_group))) => {
+                let files = self.files.lock().unwrap().clone();
+                let releases: Vec<Release> = files.values()
+                    .filter(|file| {
+                        let file_release_group: ReleaseGroup = (*file).into();
+                        !file_release_group.source_ids.is_disjoint(&release_group.source_ids)
+                    })
+                    .map(Into::into)
+                    .collect();
+                let models: Vec<Entities> = releases.iter().map(Release::entity).collect();
+                Box::new(models.into_iter())
+            }
+            (Entities::Recording(_), Some(Entities::Release(release))) => {
+                let files = self.files.lock().unwrap().clone();
+                let recordings: Vec<Recording> = files.values()
+                    .filter(|r| {
+                        let ra: Release = (*r).into();
+                        !ra.source_ids.is_disjoint(&release.source_ids)
+                    })
+                    .map(Into::into)
+                    .collect();
+                let models: Vec<Entities> = recordings.iter().map(Recording::entity).collect();
+                Box::new(models.into_iter())
+            }
+            (Entities::RecordingSource(_), Some(Entities::Recording(recording))) => {
+                let files = self.files.lock().unwrap().clone();
+                let sources: Vec<RecordingSource> = files.values()
+                    .filter(|r| {
+                        let ra: Recording = (*r).into();
+                        !ra.source_ids.is_disjoint(&recording.source_ids)
+                    })
+                    .map(Into::into)
+                    .collect();
+                let models: Vec<Entities> = sources.iter().map(RecordingSource::entity).collect();
+                Box::new(models.into_iter())
             }
             _ => {
                 Box::new(vec![].into_iter())
@@ -157,3 +184,111 @@ impl Library for FileLibrary {
     }
 }
 
+impl FileDetails {
+    pub fn get_tag_value(&self, key: StandardTagKey) -> Option<String> {
+        self.tags.iter().find_map(|t| {
+            if let Some(std_key) = t.std_key {
+                if std_key == key {
+                    return Some(t.value.to_string())
+                }
+            }
+            None
+        })
+    }
+}
+
+// TODO none of these are complete
+impl From<&FileDetails> for Artist {
+    fn from(value: &FileDetails) -> Self {
+        Self {
+            name: value.get_tag_value(StandardTagKey::AlbumArtist),
+            source_ids: std::iter::once(value.path.clone()).collect(),
+            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzAlbumArtistId) {
+                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
+                _ => HashSet::default(),
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&FileDetails> for ReleaseGroup {
+    fn from(value: &FileDetails) -> Self {
+        Self {
+            title: value.get_tag_value(StandardTagKey::Album),
+            source_ids: std::iter::once(value.path.clone()).collect(),
+            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzReleaseGroupId) {
+                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
+                _ => HashSet::default(),
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&FileDetails> for Release {
+    fn from(value: &FileDetails) -> Self {
+        Self {
+            title: value.get_tag_value(StandardTagKey::Album),
+            source_ids: std::iter::once(value.path.clone()).collect(),
+            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzAlbumId) {
+                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
+                _ => HashSet::default(),
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&FileDetails> for Recording {
+    fn from(value: &FileDetails) -> Self {
+        Self {
+            title: value.get_tag_value(StandardTagKey::TrackTitle),
+            source_ids: std::iter::once(value.path.clone()).collect(),
+            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzRecordingId) {
+                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
+                _ => HashSet::default(),
+            },
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&FileDetails> for RecordingSource {
+    fn from(value: &FileDetails) -> Self {
+        Self {
+            
+            source_ids: std::iter::once(value.path.clone()).collect(),
+            known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzRecordingId) {
+                Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
+                _ => HashSet::default(),
+            },
+            ..Default::default()
+        }
+    }
+}
+
+// for tag in tags {
+//     if let Some(StandardTagKey::TrackTitle) = tag.std_key {
+//         details.title = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::Album) = tag.std_key {
+//         details.album = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::Artist) = tag.std_key {
+//         details.artist = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::MusicBrainzAlbumId) = tag.std_key {
+//         details.musicbrainz_release_id = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::MusicBrainzArtistId) = tag.std_key {
+//         details.musicbrainz_artist_id = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::MusicBrainzRecordingId) = tag.std_key {
+//         details.musicbrainz_recording_id = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::MusicBrainzReleaseGroupId) = tag.std_key {
+//         details.musicbrainz_release_group_id = Some(tag.value.to_string());
+//     }
+//     else if let Some(StandardTagKey::MusicBrainzTrackId) = tag.std_key {
+//         details.musicbrainz_track_id = Some(tag.value.to_string());

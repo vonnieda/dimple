@@ -1,154 +1,159 @@
-use image::DynamicImage;
+use std::collections::HashSet;
+
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::library::Library;
-use crate::library::DimpleEntity;
-
-// TODO feels more like attributed things are their own objects and not fields
-// on structs that may also be attributed.
+use crate::collection::Collection;
 
 /// References
 /// https://musicbrainz.org/doc/Artist
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
-/// These objects all closely map Musicbrainz objects and were heavily
-/// lifted from musicbrainz_rs. 
-
-// ReleseGroup -> Release -> Media -> Track -> Recording
-
 
 // https://musicbrainz.org/doc/Artist
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleArtist {
-    pub id: String,
-    pub name: String,
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct Artist {
+    pub key: Option<String>,
+    pub name: Option<String>,
+    pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
+    pub links: HashSet<String>,
 
-    pub disambiguation: String,
-    pub genres: Vec<DimpleGenre>,
-    pub release_groups: Vec<DimpleReleaseGroup>,
-    pub relations: Vec<DimpleRelation>,
-    pub summary: String,
+    pub country: Option<String>,
 }
 
 // https://musicbrainz.org/doc/ReleaseGroup
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(default)]
-pub struct DimpleReleaseGroup {
-    pub id: String,
-    pub title: String,
+pub struct ReleaseGroup {
+    pub key: Option<String>,
+    pub title: Option<String>,
+    pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
+    pub links: HashSet<String>,
 
-    pub artists: Vec<DimpleArtist>,
-    pub disambiguation: String,
-    pub first_release_date: String,
-    pub genres: Vec<DimpleGenre>,
-    pub primary_type: String,
-    pub relations: Vec<DimpleRelation>,
-    pub releases: Vec<DimpleRelease>,
-    pub summary: String,
+    pub first_release_date: Option<String>,
+    pub primary_type: Option<String>,
 }
+
+
+
 
 // https://musicbrainz.org/doc/Release
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(default)]
-pub struct DimpleRelease {
-    pub id: String,
-    pub title: String,
+pub struct Release {
+    pub key: Option<String>,
+    pub title: Option<String>,
+    pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
+    pub links: HashSet<String>,
 
-    pub artists: Vec<DimpleArtist>,
-    pub barcode: String,
-    pub country: String,
-    pub date: String,
-    pub disambiguation: String,
-    pub genres: Vec<DimpleGenre>,
-    pub media: Vec<DimpleMedium>,
-    pub packaging: String,
-    pub relations: Vec<DimpleRelation>,
-    pub release_group: DimpleReleaseGroup,
-    pub status: String,
-    pub summary: String,
+    pub barcode: Option<String>,
+    pub country: Option<String>,
+    pub date: Option<String>, // TODO should be Instant but need to think about serialization
+    pub packaging: Option<String>,
+    pub status: Option<String>,
 }
 
+
+
+
 // https://musicbrainz.org/doc/Medium
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleMedium {
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct Medium {
     pub title: String,
 
     pub disc_count: u32,
     pub format: String,
     pub position: u32,
     pub track_count: u32,
-    pub tracks: Vec<DimpleTrack>,
+    pub tracks: Vec<Track>,
 }
 
+
+
+
 // https://musicbrainz.org/doc/Track
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleTrack {
-    pub id: String,
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct Track {
     pub title: String,
 
     pub length: u32,
     pub number: String,
     pub position: u32,
-    pub recording: DimpleRecording,
+    pub recording: Recording,
+    pub sources:  Vec<RecordingSource>,
 }
+
+
+
 
 // https://musicbrainz.org/doc/Recording
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleRecording {
-    pub id: String,
-    pub title: String,
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct Recording {
+    pub key: Option<String>,
+    pub title: Option<String>,
+    pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
+    pub links: HashSet<String>,
 
-    pub annotation: String,
-    pub disambiguation: String,
-    pub length: u32,
-    pub summary: String,
+    pub annotation: Option<String>,
+    pub length: Option<u32>,
 
-    pub isrcs: Vec<String>,
-    pub relations: Vec<DimpleRelation>,
-    pub releases: Vec<DimpleRelease>,
-    pub artist_credits: Vec<DimpleArtist>,
-    // pub aliases: Vec<DimpleAlias>,
-    // pub tags Vec<Tag>
-    // pub rating: Rating,
-
-    pub genres: Vec<DimpleGenre>,
+    pub isrcs: HashSet<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleRecordingSource {
-    pub recording_id: String,
+
+
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct RecordingSource {
+    pub key: Option<String>,
+    pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleGenre {
+
+
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct Genre {
+    pub key: Option<String>,
+    pub name: Option<String>,
+    pub source_ids: HashSet<String>,
+    pub known_ids: HashSet<KnownId>,
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
+    pub links: HashSet<String>,
+}
+
+
+
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct Playlist {
     pub name: String,
-    pub count: u32,
-    pub summary: String,
-
-    #[serde(default)]
-    pub fetched: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimplePlaylist {
-    pub name: String,
-}
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct DimpleRelation {
-    pub content: DimpleRelationContent,
-}
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub enum DimpleRelationContent {
-    Url(DimpleUrl),
-}
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-pub struct DimpleUrl {
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, Hash)]
+pub struct UrlRelation {
     pub id: String,
     pub resource: String,
 }
+
+
+
 
 /// An attribution for a piece of data. Indicates where the data was sourced,
 /// who owns it, and under what license it is being used.
@@ -169,91 +174,621 @@ pub struct Attributed<T> {
     pub copyright_holder: String,
 }
 
-impl DimpleArtist {
-    pub fn from_id(id: &str) -> Self {
-        Self {
-            id: id.to_string(),
-            ..Default::default()
-        }
+
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub enum KnownId {
+    MusicBrainzId(String),
+    DiscogsId,
+    LastFmId,
+    WikidataId,
+    SpotifyId,
+    DeezerId,
+    TidalId,
+    YouTubeId,
+    ItunesStoreId,
+    AppleMusicId, // TODO same as above?
+    QobuzId,
+    BandcampUrl,
+    SoundCloud,
+
+    // https://musicbrainz.org/doc/Barcode
+    Barcode,
+
+    // https://musicbrainz.org/doc/ISRC
+    ISRC,
+
+    // https://musicbrainz.org/doc/ASIN
+    ASIN,
+
+    AcoustId,
+    AcoustIdFingerprint,
+}
+
+
+
+
+impl Artist {
+    pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
+        let iter = col.list(&Artist::default().entity(), None)
+            .map(|m| match m {
+                Entities::Artist(a) => a,
+                _ => panic!(),
+            });
+        Box::new(iter)
     }
 
-    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
-        match lib.fetch(&DimpleEntity::Artist(Self::from_id(id))) {
-            Some(DimpleEntity::Artist(o)) => Some(o),
+    pub fn get(key: &str, lib: &dyn Collection) -> Option<Self> {
+        let ent = Artist {
+            key: Some(key.to_string()),
+            ..Default::default()
+        }.entity();
+        match lib.fetch(&ent) {
+            Some(Entities::Artist(a)) => Some(a),
             _ => todo!()
         }
     }
 
-    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
-        Self::get(&self.id, lib)
+    pub fn entity(&self) -> Entities {
+        Entities::Artist(self.clone())
+    }
+
+    pub fn search(query: &str, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
+        let iter = lib.search(query)
+            .filter_map(|m| match m {
+                Entities::Artist(a) => Some(a),
+                _ => None,
+            });
+        Box::new(iter)
+    }
+
+    pub fn release_groups(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = ReleaseGroup>> {
+        let iter = lib.list(&ReleaseGroup::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::ReleaseGroup(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
+        let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Release(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn recordings(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
+        let iter = lib.list(&Recording::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Recording(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn genres(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Genre>> {
+        let iter = lib.list(&Genre::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Genre(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
     }
 }
 
-impl DimpleRelease {
-    pub fn from_id(id: &str) -> Self {
-        Self {
-            id: id.to_string(),
-            ..Default::default()
-        }
+
+
+
+impl ReleaseGroup {
+    pub fn entity(&self) -> Entities {
+        Entities::ReleaseGroup(self.clone())
     }
 
-    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
-        match lib.fetch(&DimpleEntity::Release(Self::from_id(id))) {
-            Some(DimpleEntity::Release(o)) => Some(o),
+    pub fn get(key: &str, lib: &dyn Collection) -> Option<Self> {
+        let ent = ReleaseGroup {
+            key: Some(key.to_string()),
+            ..Default::default()
+        }.entity();
+        match lib.fetch(&ent) {
+            Some(Entities::ReleaseGroup(r)) => Some(r),
             _ => todo!()
         }
     }
 
-    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
-        Self::get(&self.id, lib)
+    pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = ReleaseGroup>> {
+        let iter = col.list(&ReleaseGroup::default().entity(), None)
+            .map(|m| match m {
+                Entities::ReleaseGroup(a) => a,
+                _ => panic!(),
+            });
+        Box::new(iter)
+    }
+
+    pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
+        let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Release(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn genres(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Genre>> {
+        let iter = lib.list(&Genre::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Genre(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn artists(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
+        let iter = lib.list(&Artist::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Artist(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
     }
 }
 
-impl DimpleReleaseGroup {
-    pub fn from_id(id: &str) -> Self {
-        Self {
-            id: id.to_string(),
-            ..Default::default()
-        }
-    }
 
-    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
-        match lib.fetch(&DimpleEntity::ReleaseGroup(Self::from_id(id))) {
-            Some(DimpleEntity::ReleaseGroup(o)) => Some(o),
+
+impl Release {
+    pub fn get(key: &str, lib: &dyn Collection) -> Option<Self> {
+        let ent = Release {
+            key: Some(key.to_string()),
+            ..Default::default()
+        }.entity();
+        match lib.fetch(&ent) {
+            Some(Entities::Release(r)) => Some(r),
             _ => todo!()
         }
     }
 
-    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
-        Self::get(&self.id, lib)
+    pub fn entity(&self) -> Entities {
+        Entities::Release(self.clone())
     }
 
-    pub fn entity(&self) -> DimpleEntity {
-        DimpleEntity::ReleaseGroup(self.clone())
+    pub fn recordings(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
+        let iter = lib.list(&Recording::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Recording(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
     }
 
-    pub fn image(&self, lib: &dyn Library) -> Option<DynamicImage> {
-        lib.image(&self.entity())
+    pub fn genres(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Genre>> {
+        let iter = lib.list(&Genre::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Genre(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn artists(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
+        let iter = lib.list(&Artist::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Artist(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
     }
 }
 
-impl DimpleRecording {
-    pub fn from_id(id: &str) -> Self {
-        Self {
-            id: id.to_string(),
-            ..Default::default()
-        }
+
+
+impl Recording {
+    pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
+        let iter = col.list(&Recording::default().entity(), None)
+            .map(|m| match m {
+                Entities::Recording(a) => a,
+                _ => panic!(),
+            });
+        Box::new(iter)
     }
 
-    pub fn get(id: &str, lib: &dyn Library) -> Option<Self> {
-        match lib.fetch(&DimpleEntity::Recording(Self::from_id(id))) {
-            Some(DimpleEntity::Recording(o)) => Some(o),
+    pub fn entity(&self) -> Entities {
+        Entities::Recording(self.clone())
+    }
+
+    pub fn sources(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = RecordingSource>> {
+        let iter = lib.list(&RecordingSource::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::RecordingSource(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+}
+
+impl RecordingSource {
+    pub fn entity(&self) -> Entities {
+        Entities::RecordingSource(self.clone())
+    }
+}
+
+
+
+impl Genre {
+    pub fn get(key: &str, lib: &dyn Collection) -> Option<Self> {
+        let ent = Self {
+            key: Some(key.to_string()),
+            ..Default::default()
+        }.entity();
+        match lib.fetch(&ent) {
+            Some(Entities::Genre(g)) => Some(g),
             _ => todo!()
         }
     }
 
-    pub fn fetch(&self, lib: &dyn Library) -> Option<Self> {
-        Self::get(&self.id, lib)
+    pub fn entity(&self) -> Entities {
+        Entities::Genre(self.clone())
+    }
+
+    pub fn recordings(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
+        let iter = lib.list(&Recording::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Recording(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn releases(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
+        let iter = lib.list(&Release::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Release(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
+    }
+
+    pub fn artists(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Artist>> {
+        let iter = lib.list(&Artist::default().entity(), Some(&self.entity()));
+        let iter = iter.map(|r| match r {
+            Entities::Artist(r) => r,
+            _ => panic!(),
+        }); 
+        Box::new(iter)    
     }
 }
 
+
+
+
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum Entities {
+    Artist(Artist),
+    Genre(Genre),
+    ReleaseGroup(ReleaseGroup),
+    Release(Release),
+    Recording(Recording),
+    RecordingSource(RecordingSource),
+}
+
+/**
+ * All this repetition seems dumb. Save me, movie reference!
+ */
+impl Entities {
+    pub fn key(&self) -> Option<String> {
+        match self {
+            Entities::Artist(a) => a.key.clone(),
+            Entities::ReleaseGroup(r) => r.key.clone(),
+            Entities::Release(r) => r.key.clone(),
+            Entities::Recording(r) => r.key.clone(),
+            Entities::RecordingSource(r) => r.key.clone(),
+            Entities::Genre(g) => g.key.clone(),
+        }
+    }
+
+    pub fn set_key(&mut self, key: Option<String>) {
+        match self {
+            Entities::Artist(m) => m.key = key,
+            Entities::ReleaseGroup(m) => m.key = key,
+            Entities::Release(m) => m.key = key,
+            Entities::Genre(m) => m.key = key,
+            Entities::Recording(m) => m.key = key,
+            Entities::RecordingSource(m) => m.key = key,
+        }
+    }
+
+    pub fn mbid(&self) -> Option<String> {
+        let known_ids = match self {
+            Entities::Artist(a) => a.known_ids.clone(),
+            Entities::Release(r) => r.known_ids.clone(),
+            Entities::ReleaseGroup(r) => r.known_ids.clone(),
+            Entities::Recording(r) => r.known_ids.clone(),
+            _ => todo!(),
+        };
+        for id in known_ids {
+            if let KnownId::MusicBrainzId(mbid) = id {
+                return Some(mbid.to_string())
+            }
+        }
+        None
+    }
+
+    pub fn type_name(&self) -> &str {
+        match self {
+            Entities::Artist(_) => "artist",
+            Entities::ReleaseGroup(_) => "release_group",
+            Entities::Release(_) => "release",
+            Entities::Recording(_) => "recording",
+            Entities::RecordingSource(_) => "recording_source",
+            Entities::Genre(_) => "genre",
+        }
+    }
+
+    pub fn known_ids(&self) -> HashSet<KnownId> {
+        match self {
+            Entities::Artist(a) => a.known_ids.clone(),
+            Entities::Release(a) => a.known_ids.clone(),
+            Entities::ReleaseGroup(a) => a.known_ids.clone(),
+            Entities::Genre(g) => g.known_ids.clone(),
+            Entities::Recording(r) => r.known_ids.clone(),
+            Entities::RecordingSource(r) => r.known_ids.clone(),
+        }
+    }
+
+    pub fn source_ids(&self) -> HashSet<String> {
+        match self {
+            Entities::Artist(a) => a.source_ids.clone(),
+            Entities::Release(a) => a.source_ids.clone(),
+            Entities::ReleaseGroup(a) => a.source_ids.clone(),
+            Entities::Genre(g) => g.source_ids.clone(),
+            Entities::Recording(r) => r.source_ids.clone(),
+            Entities::RecordingSource(r) => r.source_ids.clone(),
+        }
+    }
+
+    pub fn name(&self) -> Option<String> {
+        match self {
+            Entities::Artist(a) => a.name.clone(),
+            Entities::ReleaseGroup(r) => r.title.clone(),
+            Entities::Release(r) => r.title.clone(),
+            Entities::Recording(r) => r.title.clone(),
+            Entities::RecordingSource(r) => r.name().clone(),
+            Entities::Genre(g) => g.name.clone(),
+        }
+    }
+
+    pub fn disambiguation(&self) -> Option<String> {
+        match self {
+            Entities::Artist(a) => a.disambiguation.clone(),
+            Entities::ReleaseGroup(r) => r.disambiguation.clone(),
+            Entities::Release(r) => r.disambiguation.clone(),
+            Entities::Recording(r) => r.disambiguation.clone(),
+            Entities::RecordingSource(r) => r.disambiguation().clone(),
+            Entities::Genre(g) => g.disambiguation.clone(),
+        }
+    }
+}
+
+pub trait Entity {
+    fn key(&self) -> Option<String>;
+    fn set_key(&mut self, key: Option<String>);
+    fn name(&self) -> Option<String>;
+    fn source_ids(&self) -> HashSet<String>;
+    fn known_ids(&self) -> HashSet<KnownId>;
+    fn disambiguation(&self) -> Option<String>;
+    fn summary(&self) -> Option<String>;
+    fn links(&self) -> HashSet<String>;
+
+    fn mbid(&self) -> Option<String> {
+        self.known_ids().iter().find_map(|id| match id {
+            KnownId::MusicBrainzId(mbid) => Some(mbid.to_string()),
+            _ => None,
+        })
+    }
+} 
+
+impl Entity for Artist {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        self.name.clone()
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        self.disambiguation.clone()
+    }
+
+    fn summary(&self) -> Option<String> {
+        self.summary.clone()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        self.links.clone()
+    }
+}
+
+impl Entity for Genre {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        self.name.clone()
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        self.disambiguation.clone()
+    }
+
+    fn summary(&self) -> Option<String> {
+        self.summary.clone()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        self.links.clone()
+    }
+}
+
+impl Entity for Release {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        self.title.clone()
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        self.disambiguation.clone()
+    }
+
+    fn summary(&self) -> Option<String> {
+        self.summary.clone()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        self.links.clone()
+    }
+}
+
+impl Entity for ReleaseGroup {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        self.title.clone()
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        self.disambiguation.clone()
+    }
+
+    fn summary(&self) -> Option<String> {
+        self.summary.clone()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        self.links.clone()
+    }
+}
+
+impl Entity for Recording {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        self.title.clone()
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        self.disambiguation.clone()
+    }
+
+    fn summary(&self) -> Option<String> {
+        self.summary.clone()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        self.links.clone()
+    }
+}
+
+impl Entity for RecordingSource {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key;
+    }
+
+    fn name(&self) -> Option<String> {
+        Some(format!("{:?}", self))
+    }
+
+    fn source_ids(&self) -> HashSet<String> {
+        self.source_ids.clone()
+    }
+
+    fn known_ids(&self) -> HashSet<KnownId> {
+        self.known_ids.clone()
+    }
+
+    fn disambiguation(&self) -> Option<String> {
+        Default::default()
+    }
+
+    fn summary(&self) -> Option<String> {
+        Default::default()
+    }
+
+    fn links(&self) -> HashSet<String> {
+        Default::default()
+    }
+}

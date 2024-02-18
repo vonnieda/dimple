@@ -4,16 +4,16 @@ import { Card, CardAdapter } from "card.slint";
 import { PlayerBar } from "player_bar.slint";
 import { ArtistDetails, ArtistDetailsAdapter } from "artist_details.slint";
 import { ReleaseGroupDetails, ReleaseGroupDetailsAdapter } from "release_group_details.slint";
-import { Palette, Navigator, LinkAdapter, ImageLinkAdapter , Tag} from "common.slint";
+import { Palette, Navigator, LinkAdapter, ImageLinkAdapter , Tag, AppState} from "common.slint";
 import { StyleMetrics , HorizontalBox} from "std-widgets.slint";
 import { ReleaseGroupDetails } from "release_group_details.slint";
-import { ReleaseDetails, ReleaseDetailsModel } from "release_details.slint";
+import { ReleaseDetails, ReleaseDetailsAdapter } from "release_details.slint";
 import { RecordingDetails, RecordingDetailsAdapter } from "recording_details.slint";
 import { SideBar } from "side_bar.slint";
 import { Home } from "home.slint";
 import { Settings, SettingsAdapter } from "settings.slint";
 
-export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter, Palette }
+export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter, Palette, AppState }
 
 // import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
 // import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
@@ -43,7 +43,7 @@ export component AppWindow inherits Window {
     in-out property <CardGridAdapter> card-grid-adapter;
     in-out property <ArtistDetailsAdapter> artist-details;
     in-out property <ReleaseGroupDetailsAdapter> release-group-details;
-    in-out property <ReleaseDetailsModel> release-details;
+    in-out property <ReleaseDetailsAdapter> release-details;
     in-out property <RecordingDetailsAdapter> recording-details;
     in-out property <SettingsAdapter> settings-adapter;
     
@@ -67,36 +67,6 @@ export component AppWindow inherits Window {
                 horizontal-stretch: 1;
                 Rectangle {
                     if page == 0: VerticalLayout {
-                        // TODO playing around with tags
-                        // HorizontalBox {
-                        //     padding-top: 0;
-                        //     padding-left: 0;
-                        //     alignment: start;
-                        //     Tag {
-                        //         color: #bd6b3f;
-                        //         name: "Artists";
-                        //         font-color: StyleMetrics.default-text-color;
-                        //         font-weight: 700;
-                        //     }
-                        //     Tag {
-                        //         color: #3c9c8a;
-                        //         name: "Albums";
-                        //         font-color: StyleMetrics.default-text-color;
-                        //         font-weight: 700;
-                        //     }
-                        //     Tag {
-                        //         color: #4e4cd9;
-                        //         name: "Genres";
-                        //         font-color: StyleMetrics.default-text-color;
-                        //         font-weight: 700;
-                        //     }
-                        //     Tag {
-                        //         color: #963fc5;
-                        //         name: "Playlists";
-                        //         font-color: StyleMetrics.default-text-color;
-                        //         font-weight: 700;
-                        //     }
-                        // }
                         ScrollView {                        
                             card-grid := CardGrid {
                                 cards: root.card-grid-adapter.cards;

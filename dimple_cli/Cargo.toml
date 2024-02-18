@@ -13,3 +13,12 @@ dimple_librarian = { path = "../dimple_librarian" }
 dimple_deezer_library = { path = "../dimple_deezer_library" }
 dimple_musicbrainz_library = { path = "../dimple_musicbrainz_library" }
 dimple_wikidata_library = { path = "../dimple_wikidata_library" }
+dimple_file_library = { path = "../dimple_file_library" }
+# dimple_navidrome_library = { path = "../dimple_navidrome_library" }
+# dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
+dimple_coverartarchive_library = { path = "../dimple_coverartarchive_library" }
+dimple_lastfm_library = { path = "../dimple_lastfm_library" }
+dimple_fanart_tv_library = { path = "../dimple_fanart_tv_library" }
+dimple_theaudiodb_library = { path = "../dimple_theaudiodb_library" }
+directories = "5.0.1"
+anyhow = "1.0.79"

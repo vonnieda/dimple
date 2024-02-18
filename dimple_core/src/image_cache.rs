@@ -1,4 +1,4 @@
-use std::{io::Cursor, time::Instant};
+use std::io::Cursor;
 
 use image::{imageops::FilterType, DynamicImage, ImageOutputFormat};
 use sled::Tree;

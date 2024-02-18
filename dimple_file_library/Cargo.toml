@@ -12,4 +12,6 @@ image = { version = "0.24.5", features = ["jpeg", "png"] }
 serde = { version = "1.0.158", features = ["derive"] }
 log = "0.4.17"
 symphonia = { version = "0.5.3", features = ["all"] }
+rayon = "1.8.0"
+fuzzy-matcher = "0.3.7"
 
