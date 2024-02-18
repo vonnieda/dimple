@@ -62,19 +62,17 @@ impl Librarian {
     /// If no image can be loaded from the library one is generated. Results
     /// either from the library or generated are cached for future calls.
     pub fn thumbnail(&self, entity: &Entities, width: u32, height: u32) -> DynamicImage {
-        // let cached = self.local_library.images.get(&entity.key(), width, height);
-        // if let Some(dyn_image) = cached {
-        //     return dyn_image;
-        // }
-        // else if let Some(dyn_image) = self.image(entity) {
-        //     self.local_library.set_image(entity, &dyn_image);
-        //     return self.local_library.images.get(&entity.key(), width, height).unwrap();
-        // }
-        // let generated = &self.generate_masterpiece(entity, width, height);
-        // self.local_library.set_image(entity, generated);
-        // self.local_library.images.get(&entity.key(), width, height).unwrap()
-
-        DynamicImage::new_rgb8(32, 32)
+        let cached = self.local_library.images.get(&entity.key().unwrap(), width, height);
+        if let Some(dyn_image) = cached {
+            return dyn_image;
+        }
+        else if let Some(dyn_image) = self.image(entity) {
+            self.local_library.set_image(entity, &dyn_image);
+            return self.local_library.images.get(&entity.key().unwrap(), width, height).unwrap();
+        }
+        let generated = &self.generate_masterpiece(entity, width, height);
+        self.local_library.set_image(entity, generated);
+        self.local_library.images.get(&entity.key().unwrap(), width, height).unwrap()
     }
 
     /// Find a matching model in the local store merge the value, and store it. 
@@ -147,6 +145,8 @@ impl Librarian {
             // to need to be able to access the librarian for other objects.
             // But to start with, I think it will be fine if I just get rid of
             // non-id merging entirely.
+            // Maybe one thing to try is match against the incoming (least specific, presumably)
+            // object's fields only that exist. So, if it has a name, compare the name. If it has a dimambiguation, compare it, but otherwise don't.
             
             let pattern = format!("{}:{}", 
                 l.name().unwrap_or_default(),
@@ -276,18 +276,18 @@ impl Collection for Librarian {
     /// TODO I think this goes away and becomes fetch(Dimage), maybe Dimage
     /// so it's not constantly overlapping with Image.
     fn image(&self, entity: &Entities) -> Option<DynamicImage> {
-        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
-            self.libraries.read().unwrap().iter()
-                .flat_map(|lib| lib.image(entity))
-                // TODO when images become an entity with media we can store
-                // them all here, instead of just the first, and let the user
-                // select and browse.
-                .find(|image| )
-                .for_each(|image| {
-                    let _ = self.merge(&m, related_to);
-                });
+        let image = self.local_library.image(entity);
+        if image.is_some() {
+            return image;
         }
-        self.local_library.image(entity)
+
+        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+            if let Some(dyn_image) = self.libraries.read().unwrap().iter().find_map(|lib| lib.image(entity)) {
+                self.local_library.set_image(&entity, &dyn_image);
+                return Some(dyn_image)
+            }
+        }
+        None
     }
 }
 

@@ -21,7 +21,7 @@ use uuid::Uuid;
 pub struct SledLibrary {
     path: String,
     db: Db,
-    images: ImageCache,
+    pub images: ImageCache,
 }
 
 impl SledLibrary {
@@ -124,7 +124,7 @@ impl SledLibrary {
             a.key().unwrap())
     }
 
-    pub fn set_image(&self, image: &DynamicImage, for_entity: &Entities) {
+    pub fn set_image(&self, for_entity: &Entities, image: &DynamicImage) {
         self.images.insert(&for_entity.key().unwrap(), image);
     }
 }
