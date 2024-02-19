@@ -344,7 +344,8 @@ impl AppWindowController {
                 })
                 .collect();
             artists.sort_by_key(|a| a.name.to_owned());
-            let releases: Vec<_> = release_group.releases(librarian.as_ref()).collect();
+            let mut releases: Vec<_> = release_group.releases(librarian.as_ref()).collect();
+            releases.sort_by_key(|r| r.date.clone());
             let release_cards = release_cards(releases, &librarian, Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT);
 
             ui.upgrade_in_event_loop(move |ui| {
@@ -580,6 +581,8 @@ fn release_group_card(release_group: &ReleaseGroup, width: u32, height: u32, lib
 }
 
 fn release_card(release: &Release, width: u32, height: u32, lib: &Librarian) -> Card {
+    // TODO want to include disambiguation as the title, but also country,
+    // label, and date?
     Card {
         image: ImageLink {
             image: lib.thumbnail(&Entities::Release(release.clone()), width, height),
@@ -589,14 +592,13 @@ fn release_card(release: &Release, width: u32, height: u32, lib: &Librarian) -> 
             },
         },
         title: Link {
-            name: release.title.clone().str(),
+            name: release.disambiguation.clone().str(),
             url: format!("dimple://release/{}", release.key.str()),
         },
         sub_title: Link { 
-            name: format!("{:.4} {}", release.date.str(), release.country.str()),
+            name: format!("{} {}", release.date.str(), release.country.str()),
             url: format!("dimple://release/{}", release.key.str()),
         },
-        ..Default::default()
     }
 }
 

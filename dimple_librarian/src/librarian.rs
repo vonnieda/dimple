@@ -1,11 +1,13 @@
-use std::{collections::HashSet, ops::Deref, sync::{Mutex, RwLock}, time::Instant};
+use std::{collections::HashSet, sync::{Mutex, RwLock}};
 
-use dimple_core::{collection::Collection, model::{Artist, Entity, Recording, RecordingSource, Release, ReleaseGroup}};
+use dimple_core::{collection::Collection, model::{Artist, Recording, RecordingSource, Release, ReleaseGroup}};
 use dimple_sled_library::sled_library::SledLibrary;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use image::DynamicImage;
 use rayon::prelude::*;
 use dimple_core::model::Entities;
+
+use crate::{art_gen, matching};
 
 pub struct Librarian {
     local_library: SledLibrary,
@@ -18,12 +20,6 @@ pub enum AccessMode {
     Online,
     Offline,
 }
-
-// TODO calling it here:
-// - x Show recordings on release details as track list
-// - / WITH SOURCES?! Showing number of, but would like to show data.
-// - Need to get images working again. 
-// - and then merge, and then green fields.
 
 impl Librarian {
     pub fn new(path: &str) -> Self {
@@ -46,18 +42,6 @@ impl Librarian {
         *self.access_mode.lock().unwrap() = value.clone();
     }
 
-    /// Generate some kind of cool artwork for the entity to be used as a
-    /// default. Being part of Librarian, it can use data from the library
-    /// to create the image.
-    pub fn generate_masterpiece(&self, _entity: &Entities, width: u32, 
-        height: u32) -> DynamicImage {
-
-        // https://stackoverflow.com/questions/76741218/in-slint-how-do-i-render-a-self-drawn-image
-        // http://ia802908.us.archive.org/35/items/mbid-8d4a5efd-7c87-487d-97e7-30e5fc6b9a8c/mbid-8d4a5efd-7c87-487d-97e7-30e5fc6b9a8c-25647975198.jpg
-
-        DynamicImage::new_rgb8(width, height)
-    }
-
     /// Get or create a thumbnail image at the given size for the entity.
     /// If no image can be loaded from the library one is generated. Results
     /// either from the library or generated are cached for future calls.
@@ -70,8 +54,8 @@ impl Librarian {
             self.local_library.set_image(entity, &dyn_image);
             return self.local_library.images.get(&entity.key().unwrap(), width, height).unwrap();
         }
-        let generated = &self.generate_masterpiece(entity, width, height);
-        self.local_library.set_image(entity, generated);
+        let generated = art_gen::generate_masterpiece(self, entity, width, height);
+        self.local_library.set_image(entity, &generated);
         self.local_library.images.get(&entity.key().unwrap(), width, height).unwrap()
     }
 
@@ -80,10 +64,16 @@ impl Librarian {
     /// TODO need to think about how this merges after an offline session, and
     /// I think that moves it more towards a reusable component that happens
     /// in the foreground when needed but mostly in the background.
+    /// TODO Okay, I think this is going to start storing every entity, matching
+    /// maybe only on source id, and then what the UI will get will be merged in
+    /// real time? Or also merged at the same time, but primarily gonna start
+    /// storing and being able to reference all the source objects.
+    /// Oh wow, and then I could just have the queries run on the dimple source
+    /// ids. Or even librarian.
     pub fn merge(&self, model: &Entities, related_to: Option<&Entities>) -> Entities {
         // TODO this needs to be atomic. When using par_iter it blows up cause
         // we're saving out of date info.
-        let matched = self.find_match(model);
+        let matched = matching::find_match(self, &self.local_library, model);
         let merged = match matched {
             Some(matched) => Entities::merge(matched, model.clone()),
             None => model.clone(),
@@ -94,75 +84,6 @@ impl Librarian {
             let _ = self.local_library.link(&saved, &related_to, "by");
         }
         saved
-    }
-
-    // 1. Attempt to find by key
-    // 2. Attempt to find by source_id
-    // 3. Attempt to find by known_id
-    // 4. Attempt to find by fuzzy?
-    // 5. Give up.
-    fn find_match(&self, model: &Entities) -> Option<Entities> {
-        // Find by key
-        if let Some(model) = self.local_library.get(model) {
-            return Some(model)
-        }
-
-        // Find by matching source_id
-        if let Some(model) = self.local_library.list(model, None).find(|m| {
-            let l = model;
-            let r = m;
-            !l.source_ids().is_disjoint(&r.source_ids())
-        }) {
-            return Some(model)
-        }
-
-        // Find by matching known_id
-        if let Some(model) = self.local_library.list(model, None).find(|m| {
-            let l = model;
-            let r = m;
-            !l.known_ids().is_disjoint(&r.known_ids())
-        }) {
-            return Some(model)
-        }
-
-        // Find by fuzzy 
-        // TODO score, sort
-        // TODO I think this becomes LocalLibrary.search or maybe a utility
-        // for an iterator.
-        if let Some(model) = self.local_library.list(model, None).find(|m| {
-            let l = model;
-            let r = m;
-            let matcher = SkimMatcherV2::default();
-            // TODO this has to be smarter - it should only match disambiguation
-            // for those that have it,and it probably should only apply in cases
-            // where no source_ids or known_ids exist yet for at least one object
-            // And I suspect this is where I might wanna do additional weighting for
-            // like having the same album or something.
-            // This is actually trash. I think it needs to be entity type specific.
-            // And it needs to take into consideration things like having the same
-            // albums and such. It needs to be way smarter. I think I might go back
-            // to the concept of search with scoring, but the scoring is going
-            // to need to be able to access the librarian for other objects.
-            // But to start with, I think it will be fine if I just get rid of
-            // non-id merging entirely.
-            // Maybe one thing to try is match against the incoming (least specific, presumably)
-            // object's fields only that exist. So, if it has a name, compare the name. If it has a dimambiguation, compare it, but otherwise don't.
-            
-            let pattern = format!("{}:{}", 
-                l.name().unwrap_or_default(),
-                l.disambiguation().unwrap_or_default());
-            let choice = format!("{}:{}", 
-                r.name().unwrap_or_default(),
-                r.disambiguation().unwrap_or_default());
-            let score = matcher.fuzzy_match(&choice, &pattern);
-            // log::info!("{}, {} -> {}", choice, pattern, score.unwrap_or(0));
-            score.is_some()
-        }) {
-            return Some(model)
-        }
-
-        // Give up
-        None
     }
 
     fn local_library_search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
@@ -235,6 +156,9 @@ impl Collection for Librarian {
         // TODO I don't think this logic is totally sound. At the end we fetch
         // using this entity, but what if we've merged something? I think we
         // need to replace the query with the _ at the end of the sub-block.
+        // This may possibly explain the weird bug where Spidergawd shows up in
+        // Opeth
+
         let entity = self.merge(entity, None);
 
         if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
@@ -283,7 +207,7 @@ impl Collection for Librarian {
 
         if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
             if let Some(dyn_image) = self.libraries.read().unwrap().iter().find_map(|lib| lib.image(entity)) {
-                self.local_library.set_image(&entity, &dyn_image);
+                self.local_library.set_image(entity, &dyn_image);
                 return Some(dyn_image)
             }
         }
