@@ -56,7 +56,7 @@ pub struct Release {
 
     pub barcode: Option<String>,
     pub country: Option<String>,
-    pub date: Option<String>, // TODO should be Instant but need to think about serialization
+    pub date: Option<String>, // TODO should be chronos, probably.
     pub packaging: Option<String>,
     pub status: Option<String>,
 }
@@ -112,13 +112,20 @@ pub struct Recording {
 }
 
 
-
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum RecordingFormat {
+    MP3,
+    FLAC,
+    M4A,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct RecordingSource {
     pub key: Option<String>,
     pub source_ids: HashSet<String>,
     pub known_ids: HashSet<KnownId>,
+    pub format: Option<RecordingFormat>,
+    pub extension: Option<String>,
 }
 
 

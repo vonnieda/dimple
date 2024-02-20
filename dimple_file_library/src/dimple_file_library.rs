@@ -1,5 +1,5 @@
 
-use std::{collections::{HashMap, HashSet}, error::Error, fs::File, ops::Deref, sync::{Arc, Mutex}, time::{Duration, Instant}};
+use std::{collections::{HashMap, HashSet}, error::Error, fs::File, ops::Deref, path::Path, sync::{Arc, Mutex}, time::{Duration, Instant}};
 use dimple_core::{collection::Collection, model::{Artist, Entity, KnownId, Recording, RecordingSource, Release, ReleaseGroup}};
 use dimple_core::model::Entities;
 use rayon::iter::{ParallelBridge, ParallelIterator};
@@ -141,6 +141,18 @@ impl Collection for FileLibrary {
                 let models: Vec<Entities> = release_groups.iter().map(ReleaseGroup::entity).collect();
                 Box::new(models.into_iter())
             }
+            (Entities::Release(_), Some(Entities::Artist(artist))) => {
+                let files = self.files.lock().unwrap().clone();
+                let releases: Vec<Release> = files.values()
+                    .filter(|r| {
+                        let ra: Artist = (*r).into();
+                        !ra.source_ids.is_disjoint(&artist.source_ids)
+                    })
+                    .map(Into::into)
+                    .collect();
+                let models: Vec<Entities> = releases.iter().map(Release::entity).collect();
+                Box::new(models.into_iter())
+            }
             (Entities::Release(_), Some(Entities::ReleaseGroup(release_group))) => {
                 let files = self.files.lock().unwrap().clone();
                 let releases: Vec<Release> = files.values()
@@ -256,13 +268,15 @@ impl From<&FileDetails> for Recording {
 
 impl From<&FileDetails> for RecordingSource {
     fn from(value: &FileDetails) -> Self {
+        let path: &Path = Path::new(&value.path);
+        let extension: Option<String> = path.extension().map(|e| e.to_string_lossy().to_uppercase());
         Self {
-            
             source_ids: std::iter::once(value.path.clone()).collect(),
             known_ids: match value.get_tag_value(StandardTagKey::MusicBrainzRecordingId) {
                 Some(mbid) => std::iter::once(KnownId::MusicBrainzId(mbid)).collect(),
                 _ => HashSet::default(),
             },
+            extension,
             ..Default::default()
         }
     }

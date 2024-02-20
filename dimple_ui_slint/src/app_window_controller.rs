@@ -9,12 +9,12 @@ use dimple_wikidata_library::WikidataLibrary;
 use serde::{de, Deserialize, Serialize};
 use url::Url;
 
-use std::{collections::VecDeque, env, path::Display, sync::{Arc, Mutex}};
+use std::{collections::VecDeque, default, env, path::Display, rc::Rc, sync::{Arc, Mutex}, time::Instant};
 
-use dimple_core::{collection::Collection, model::{Artist, Entities, Entity, Medium, Recording, Release, ReleaseGroup, Track}};
+use dimple_core::{collection::Collection, model::{Artist, Entities, Entity, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track}};
 use dimple_librarian::librarian::{AccessMode, Librarian};
 use image::DynamicImage;
-use slint::{ModelRc, SharedPixelBuffer, Rgba8Pixel, ComponentHandle, SharedString};
+use slint::{ComponentHandle, Model, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, StandardListViewItem, TableColumn, VecModel};
 
 slint::include_modules!();
 use rayon::prelude::*;
@@ -73,17 +73,17 @@ impl AppWindowController {
         });
            
         let paths = vec![
-            // "/Users/jason/Music/My Music".to_string(),
-            "/Users/jason/Music/Dimple Test Tracks".to_string(),
+            "/Users/jason/Music/My Music".to_string(),
+            // "/Users/jason/Music/Dimple Test Tracks".to_string(),
         ];
         self.librarian.add_library(Box::new(FileLibrary::new(&paths)));
-        self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
-        self.librarian.add_library(Box::new(TheAudioDbLibrary::default()));
-        self.librarian.add_library(Box::new(FanartTvLibrary::default()));
-        self.librarian.add_library(Box::<DeezerLibrary>::default());
-        self.librarian.add_library(Box::<WikidataLibrary>::default());
-        self.librarian.add_library(Box::<LastFmLibrary>::default());
-        self.librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
+        // self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
+        // self.librarian.add_library(Box::new(TheAudioDbLibrary::default()));
+        // self.librarian.add_library(Box::new(FanartTvLibrary::default()));
+        // self.librarian.add_library(Box::<DeezerLibrary>::default());
+        // self.librarian.add_library(Box::<WikidataLibrary>::default());
+        // self.librarian.add_library(Box::<LastFmLibrary>::default());
+        // self.librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
@@ -99,7 +99,7 @@ impl AppWindowController {
             let _ = opener::open_browser(url.to_string());
         }
         else if url.starts_with("dimple://home") {
-            Self::home(ui);
+            Self::home(librarian, ui);
         } 
         else if url.starts_with("dimple://search") {
             Self::search(&url, librarian, ui);
@@ -162,21 +162,77 @@ impl AppWindowController {
             }).unwrap();
     }
 
-    fn home(ui: slint::Weak<AppWindow>) {
-        ui.upgrade_in_event_loop(move |ui| {
-            // let adapter = CardGridAdapter::default();
-            // ui.set_card_grid_adapter(adapter);
-            ui.set_page(5)
-        }).unwrap();
+    fn home(librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+        std::thread::spawn(move || {
+            let i = Instant::now();
+            let mut tracks: Vec<(Artist, Release, Recording, RecordingSource)> = Vec::new();
+            for artist in Artist::list(librarian.as_ref()) {
+                for release in artist.releases(librarian.as_ref()) {
+                    for recording in release.recordings(librarian.as_ref()) {
+                        for source in recording.sources(librarian.as_ref()) {
+                            tracks.push((artist.clone(), release.clone(), recording.clone(), source.clone()));
+                        }
+                    }
+                }
+            }
+            log::info!("{}ms for {} rows", i.elapsed().as_millis(), tracks.len());
+
+            ui.upgrade_in_event_loop(move |ui| {
+                let rows: VecModel<ModelRc<StandardListViewItem>> = VecModel::default();
+                for (artist, release, recording, source) in tracks {
+                    let row = Rc::new(VecModel::default());
+                    row.push(recording.title.listview_item());
+                    row.push(release.title.listview_item());
+                    row.push(artist.name.listview_item());
+                    row.push(source.extension.listview_item());
+                    row.push(format!("{:?}", source.source_ids).listview_item());
+                    row.push("".listview_item());
+                    rows.push(row.into());
+                }
+                let adapter = HomeAdapter {
+                    rows: ModelRc::new(rows),
+                };
+                log::info!("adapter ready");
+                ui.set_home_adapter(adapter);
+                log::info!("set adapter");
+                ui.set_page(5);
+                log::info!("set page");
+            }).unwrap();
+        });
     }
+
+    // fn home(librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
+    //     std::thread::spawn(move || {
+    //         ui.upgrade_in_event_loop(move |ui| {
+    //             let i = Instant::now();
+    //             let rows: VecModel<ModelRc<StandardListViewItem>> = VecModel::default();
+    //             for i in 1..100000 {
+    //                 let row = Rc::new(VecModel::default());
+    //                 row.push(format!("title {}", i).listview_item());
+    //                 row.push(format!("album {}", i).listview_item());
+    //                 row.push(format!("artist {}", i).listview_item());
+    //                 row.push(format!("what {}", i).listview_item());
+    //                 row.push(format!("ever {}", i).listview_item());
+    //                 row.push(format!("man {}", i).listview_item());
+    //                 rows.push(row.into());
+    //             }
+    //             let adapter = HomeAdapter {
+    //                 rows: ModelRc::new(rows),
+    //             };
+    //             ui.set_home_adapter(adapter);
+    //             ui.set_page(5);
+    //             log::info!("{}", i.elapsed().as_millis());
+    //         }).unwrap();
+    //     });
+    // }
 
     fn settings(ui: slint::Weak<AppWindow>) {
         std::thread::spawn(move || {
             // TODO just playing around
             let cache_stats = vec![
-                "Metadata Objects: 5276 / 27.3MB",
+                "Metadata Items: 5276 / 27.3MB",
+                "Tracks: 986 / 36.2GB",
                 "Images: 1286 / 12.6GB",
-                "Audio Files: 986 / 36.2GB",
             ];
             
             ui.upgrade_in_event_loop(move |ui| {
@@ -841,3 +897,48 @@ impl OptStr for Option<String> {
         self.clone().unwrap_or_default()
     }
 }
+
+trait AsSharedString {
+    fn shared(&self) -> SharedString; 
+}
+
+impl AsSharedString for Option<String> {
+    fn shared(&self) -> SharedString {
+        SharedString::from(self.str())        
+    }
+}
+
+impl AsSharedString for &str {
+    fn shared(&self) -> SharedString {
+        SharedString::from(self.to_string())
+    }
+}
+
+impl AsSharedString for String {
+    fn shared(&self) -> SharedString {
+        SharedString::from(self)        
+    }
+}
+
+trait AsListViewItem {
+    fn listview_item(&self) -> StandardListViewItem;
+}
+
+impl AsListViewItem for Option<String> {
+    fn listview_item(&self) -> StandardListViewItem {
+        StandardListViewItem::from(self.shared())
+    }
+}
+
+impl AsListViewItem for &str {
+    fn listview_item(&self) -> StandardListViewItem {
+        StandardListViewItem::from(self.shared())
+    }
+}
+
+impl AsListViewItem for String {
+    fn listview_item(&self) -> StandardListViewItem {
+        StandardListViewItem::from(self.shared())
+    }
+}
+

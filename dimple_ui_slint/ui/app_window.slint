@@ -10,7 +10,7 @@ import { ReleaseGroupDetails } from "release_group_details.slint";
 import { ReleaseDetails, ReleaseDetailsAdapter } from "release_details.slint";
 import { RecordingDetails, RecordingDetailsAdapter } from "recording_details.slint";
 import { SideBar } from "side_bar.slint";
-import { Home } from "home.slint";
+import { Home, HomeAdapter } from "home.slint";
 import { Settings, SettingsAdapter } from "settings.slint";
 
 export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter, Palette, AppState }
@@ -46,6 +46,7 @@ export component AppWindow inherits Window {
     in-out property <ReleaseDetailsAdapter> release-details;
     in-out property <RecordingDetailsAdapter> recording-details;
     in-out property <SettingsAdapter> settings-adapter;
+    in-out property <HomeAdapter> home-adapter;
     
     title: "Dimple";
     icon: @image-url("../images/icon_512x512.png");
@@ -90,8 +91,14 @@ export component AppWindow inherits Window {
                     if page == 4: RecordingDetails {  
                         model: root.recording-details;
                     }
-                    if page == 5: Home {  
-                        // model: root.recording-details;
+                    if page == 5: VerticalLayout {
+                        Home {  
+                            adapter: root.home-adapter;
+                        }
+                        Text {
+                            horizontal-alignment: right;
+                            text: root.home-adapter.rows.length + " items";
+                        }
                     }
                     if page == 6: Settings {  
                         adapter: root.settings-adapter;

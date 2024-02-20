@@ -321,6 +321,8 @@ impl Merge<Self> for RecordingSource {
             key: a.key.or(b.key),
             known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
             source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+            format: a.format.or(b.format),
+            extension: a.extension.or(b.extension),
             // links: a.links.union(&b.links).cloned().collect(),
             // title: a.title.or(b.title),
             // summary: a.summary.or(b.summary),
