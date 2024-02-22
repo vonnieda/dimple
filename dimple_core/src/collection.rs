@@ -15,7 +15,7 @@ pub trait Collection: Send + Sync {
     /// Genres, and Tracks.
     /// TODO I think this will become model specific
     fn search(&self, _query: &str) -> Box<dyn Iterator<Item = Entities>> {
-        Box::new(vec![].into_iter())
+        Box::new(std::iter::empty())
     }
 
     /// Fetch a complete record for the given entity. The Library implementation
@@ -28,7 +28,14 @@ pub trait Collection: Send + Sync {
     }
 
     // TODO Eventually this will allow access to more image types.
+    // TODO add preferred_width, preferred_height
     fn image(&self, _entity: &Entities) -> Option<image::DynamicImage> {
+        None
+    }
+
+    // TODO really only meant for RecordingSource. Maybe that's all it needs to
+    // be for?
+    fn stream(&self, _entity: &Entities) -> Option<Box<dyn Iterator<Item = u8>>> {
         None
     }
 
@@ -59,7 +66,7 @@ pub trait Collection: Send + Sync {
     /// let track: Track;
     /// let sources = list(Model::TrackSource, track);
     fn list(&self, _of_type: &Entities, _related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
-        Box::new(vec![].into_iter())
+        Box::new(std::iter::empty())
     }
 }
 

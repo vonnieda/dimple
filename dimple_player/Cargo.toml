@@ -6,6 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-playback-rs = "0.4.2"
 dimple_core = { path = "../dimple_core" }
+dimple_librarian = { path = "../dimple_librarian" }
 log = "0.4.17"
+# symphonia = { version = "0.5.3", features = ["all"] }
+rayon = "1.8.0"
+# cpal = "0.15.2"
+playback-rs = "0.4.3"
+

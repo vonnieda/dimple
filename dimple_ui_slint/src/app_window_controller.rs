@@ -4,6 +4,7 @@ use dimple_musicbrainz_library::MusicBrainzLibrary;
 use dimple_lastfm_library::LastFmLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
 use dimple_deezer_library::DeezerLibrary;
+use dimple_player::player::Player;
 use dimple_theaudiodb_library::TheAudioDbLibrary;
 use dimple_wikidata_library::WikidataLibrary;
 use serde::{de, Deserialize, Serialize};
@@ -25,7 +26,7 @@ pub struct AppWindowController {
     ui: AppWindow,
     librarian: LibrarianHandle,
     history: Arc<Mutex<VecDeque<String>>>,
-    // player: PlayerHandle,
+    player: Player,
 }
 
 use directories::ProjectDirs;
@@ -36,12 +37,12 @@ impl Default for AppWindowController {
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
         let dir = dirs.data_dir().to_str().unwrap();
         let librarian = Arc::new(Librarian::new(dir));
-        // let player = Player::new(librarian.clone());
+        let player = Player::new(librarian.clone());
         Self {
             ui,
             librarian,
             history: Arc::new(Mutex::new(VecDeque::new())),
-            // player,
+            player,
         }
     }
 }
@@ -77,13 +78,13 @@ impl AppWindowController {
             // "/Users/jason/Music/Dimple Test Tracks".to_string(),
         ];
         self.librarian.add_library(Box::new(FileLibrary::new(&paths)));
-        // self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
-        // self.librarian.add_library(Box::new(TheAudioDbLibrary::default()));
-        // self.librarian.add_library(Box::new(FanartTvLibrary::default()));
-        // self.librarian.add_library(Box::<DeezerLibrary>::default());
-        // self.librarian.add_library(Box::<WikidataLibrary>::default());
-        // self.librarian.add_library(Box::<LastFmLibrary>::default());
-        // self.librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
+        self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
+        self.librarian.add_library(Box::new(TheAudioDbLibrary::default()));
+        self.librarian.add_library(Box::new(FanartTvLibrary::default()));
+        self.librarian.add_library(Box::<DeezerLibrary>::default());
+        self.librarian.add_library(Box::<WikidataLibrary>::default());
+        self.librarian.add_library(Box::<LastFmLibrary>::default());
+        self.librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 

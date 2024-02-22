@@ -109,6 +109,7 @@ impl Collection for FileLibrary {
         format!("FileLibrary({:?})", self.paths)
     }
 
+    // TODO DRY
     fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
         match (of_type, related_to) {
             (Entities::Artist(_), None) => {
@@ -193,6 +194,17 @@ impl Collection for FileLibrary {
                 Box::new(vec![].into_iter())
             }
         }
+    }
+
+    fn stream(&self, _entity: &Entities) -> Option<Box<dyn Iterator<Item = u8>>> {
+        let files = self.files.lock().unwrap().clone();
+        let file = files.values()
+            .find(|f| {
+                let ra: RecordingSource = (*f).into();
+                !ra.source_ids.is_disjoint(&_entity.source_ids())
+            })?;
+        log::info!("found {}", &file.path);
+        Some(Box::new(std::fs::read(file.path.clone()).ok()?.into_iter()))
     }
 }
 

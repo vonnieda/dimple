@@ -213,10 +213,27 @@ impl Collection for Librarian {
         }
         None
     }
+
+    fn stream(&self, entity: &Entities) -> Option<Box<dyn Iterator<Item = u8>>> {
+        let iter = self.local_library.stream(entity);
+        if iter.is_some() {
+            log::info!("found local");
+            return iter;
+        }
+
+        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+            if let Some(iter) = self.libraries.read().unwrap().iter().find_map(|lib| lib.stream(entity)) {
+                log::info!("found in lib");
+                return Some(iter)
+            }
+        }
+        None
+    }    
 }
 
 trait Merge<T> {
     // TODO should probably be references.
+    // 
     fn merge(a: T, b: T) -> T;
 }
 
@@ -243,6 +260,8 @@ impl Merge<Entities> for Entities {
     }
 }
 
+// TODO leaning towards making all these use longer instead of or, which will
+// help with a move towards CRDT.
 impl Merge<Self> for Artist {
     fn merge(a: Self, b: Self) -> Self {
         Self {
