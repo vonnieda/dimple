@@ -224,6 +224,7 @@ impl Collection for Librarian {
         if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
             if let Some(iter) = self.libraries.read().unwrap().iter().find_map(|lib| lib.stream(entity)) {
                 log::info!("found in lib");
+                // self.local_library.set_image(entity, &dyn_image);
                 return Some(iter)
             }
         }

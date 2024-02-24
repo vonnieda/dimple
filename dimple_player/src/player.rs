@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, io::Cursor, sync::{mpsc::{channel, Receiver, Sender}, Arc, RwLock}, thread, time::Duration};
+use std::{collections::{BTreeMap, HashMap, VecDeque}, hash::Hash, io::{Cursor, Error}, ops::Add, sync::{mpsc::{channel, Receiver, Sender}, Arc, Mutex, RwLock}, thread, time::Duration};
 
 use dimple_core::{collection::Collection, model::{Entities, Recording, RecordingSource}};
 use dimple_librarian::librarian::Librarian;
@@ -9,12 +9,21 @@ pub struct Player {
     librarian: Arc<Librarian>,
     sender: Sender<PlayerCommand>,
     shared_state: Arc<RwLock<SharedState>>,
-    // play_queue: Arc<RwLock<VecDeque<QueuedItem>>>,
-    // play_queue_index: Arc<RwLock<usize>>,
-    // index: usize,
-    // duration: f32,
-    // position: f32,
-    // is_playing: bool,
+    songs: Arc<RwLock<HashMap<String, MediaStatus>>>,
+}
+
+#[derive(Clone)]
+enum MediaStatus {
+    Queued,
+    Downloading,
+    Ready(Song),
+    Error(PlayerError),
+}
+
+#[derive(Clone, Debug)]
+pub struct QueuedItem {
+    pub entity: Entities,
+    pub source: Option<RecordingSource>,
 }
 
 #[derive(Default)]
@@ -26,6 +35,32 @@ struct SharedState {
     pub state: PlayerState,
 }
 
+#[derive(Clone, Debug, Default)]
+pub enum PlayerState {
+    #[default]
+    Stopped,
+    Playing,
+    Paused,
+}
+
+#[derive(Clone)]
+enum PlayerCommand {
+    Play,
+    Pause,
+    Next,
+    Previous,
+    Stop,
+    Seek(Duration),
+    // DownloadComplete(Vec<u8>),
+}
+
+#[derive(Clone)]
+enum PlayerError {
+    NoSources,
+    DownloadFailed,
+    UnsupportedFormat,
+}
+
 impl Player {
     pub fn new(librarian: Arc<Librarian>) -> Player {
         let (sender, receiver) = channel();
@@ -33,10 +68,15 @@ impl Player {
             librarian,
             sender,
             shared_state: Arc::new(RwLock::new(SharedState::default())),
+            songs: Default::default(),
         };
         {
             let player = player.clone();
-            thread::spawn(move || player.worker(receiver));
+            thread::spawn(move || player.player_worker(receiver));
+        }
+        {
+            let player = player.clone();
+            thread::spawn(move || player.download_worker());
         }
         player
     }
@@ -45,9 +85,14 @@ impl Player {
         match entity {
             Entities::Recording(r) => {
                 self.shared_state.write().unwrap().queue.push(QueuedItem {
-                    recording: r.clone(),
+                    entity: entity.clone(),
                     source: None,
-                    song: None,
+                })
+            },
+            Entities::RecordingSource(r) => {
+                self.shared_state.write().unwrap().queue.push(QueuedItem {
+                    entity: entity.clone(),
+                    source: Some(r.clone()),
                 })
             },
             _ => todo!()
@@ -56,6 +101,10 @@ impl Player {
 
     pub fn queue(&self) -> Vec<QueuedItem> {
         self.shared_state.read().unwrap().queue.clone()
+    }
+
+    pub fn current_queue_index(&self) -> usize {
+        self.shared_state.read().unwrap().index
     }
 
     pub fn current_queue_item(&self) -> Option<QueuedItem> {
@@ -103,13 +152,11 @@ impl Player {
     }
 
     pub fn duration(&self) -> Duration {
-        // self.player_state.read().unwrap().duration
-        todo!()
+        self.shared_state.read().unwrap().duration
     }
 
     pub fn position(&self) -> Duration {
-        // self.player_state.read().unwrap().position
-        todo!()
+        self.shared_state.read().unwrap().position
     }
 
     pub fn seek(&self, position: Duration) {
@@ -120,32 +167,19 @@ impl Player {
         self.shared_state.read().unwrap().state.clone()
     }
 
-    /**
-     * The playback_rs player is either playing, paused, or stopped, but that
-     * is spread across a few properties. This combines them.
-     */
-    // fn inner_player_state(inner: &playback_rs::Player) -> PlayerState {
-    //     match (inner.has_current_song(), inner.is_playing()) {
-    //         (true, true) => PlayerState::Playing,
-    //         (true, false) => PlayerState::Paused,
-    //         (false, true) => panic!("invalid state"), 
-    //         (false, false) => PlayerState::Stopped,
-    //     }
-    // }
+    fn advance_queue(&self) {
+        let mut shared_state = self.shared_state.write().unwrap();
+        shared_state.index = (shared_state.index + 1) % shared_state.queue.len();
+    }
 
-    fn worker(&self, receiver: Receiver<PlayerCommand>) {
-        // TODO I think that eventually to do all the equalizing and
-        // mixing and such I'll need to drop playback_rs and go with the
-        // components it's made up of, but for now it works.
+    fn player_worker(&self, receiver: Receiver<PlayerCommand>) {
         let inner = playback_rs::Player::new(None).unwrap();
-        // let mut td = TrackDownloader::new(library);
-        // let _current_queue_item:Option<QueueItem> = None;
-        // let next_queue_item:Option<QueueItem> = None;
+        let mut next_song_loaded = false;
         loop {
-            // Process incoming commands, waiting for 100ms for one to arrive.
-            // This also limits the speed that this loop loops.
+            // Process incoming commands, waiting up to 100ms for one to arrive.
+            // This also limits the speed that this loop loops, and the speed
+            // at which shared state updates.
             while let Ok(command) = receiver.recv_timeout(Duration::from_millis(100)) {
-                log::info!("a command!");
                 match command {
                     PlayerCommand::Play => self.shared_state.write().unwrap().state = PlayerState::Playing,
                     PlayerCommand::Pause => self.shared_state.write().unwrap().state = PlayerState::Paused,
@@ -162,6 +196,7 @@ impl Player {
                 PlayerState::Stopped => {
                     if inner.is_playing() {
                         inner.stop();
+                        next_song_loaded = false;
                     }
                 },
                 PlayerState::Paused => {
@@ -172,30 +207,10 @@ impl Player {
                 PlayerState::Playing => {
                     if !inner.has_current_song() {
                         if let Some(current_item) = self.current_queue_item() {
-                            if let Some(song) = current_item.song {
+                            if let Ok(Some(song)) = self.resolve_song(&current_item.entity) {
+                                log::info!("loaded current track {}", current_item.entity.name().unwrap());
                                 inner.play_song_now(&song, None).unwrap();
                             }
-                            else {
-                                // TODO Prioritize the download
-                                if let Some(stream) = self.librarian.stream(&current_item.recording.entity()) {
-                                    let bytes: Vec<_> = stream.collect();
-                                    log::info!("downloaded {} bytes", bytes.len());
-                                    let song = Song::new(Box::new(Cursor::new(bytes)), 
-                                        &Hint::new(), 
-                                        None).unwrap();
-                                    if let Ok(mut shared_state) = self.shared_state.write() {
-                                        let index = shared_state.index;
-                                        if let Some(item) = shared_state.queue.get_mut(index) {
-                                            item.song = Some(song);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else {
-                            // If there is nothing in the queue we can't play.
-                            // TODO stuff below fucks this.
-                            self.stop();
                         }
                     }
 
@@ -205,178 +220,95 @@ impl Player {
 
                     if !inner.has_next_song() {
                         if let Some(next_item) = self.next_queue_item() {
-                            if let Some(song) = next_item.song {
-                                log::info!(
-                                    "Queueing next song with {:?} left in current song...",
-                                    inner.get_playback_position());
+                            if let Ok(Some(song)) = self.resolve_song(&next_item.entity) {
+                                log::info!("loaded next track {}", next_item.entity.name().unwrap());
                                 inner.play_song_next(&song, None).unwrap();
+                                if next_song_loaded {
+                                    self.advance_queue();
+                                }
+                                else {
+                                    next_song_loaded = true;
+                                }
                             }
                         }
                     }
                 },
             }
 
-
-            // // TODO this one and the next block can get out of sync with what's
-            // // playing  when skipping quickly. Need to keep track of which
-            // // track is actually loaded and change it whenever it is wrong.
-            // // If the current song is not loaded, load it
-            // if !inner.has_current_song() {
-            //     if let Some(item) = player_state.read().unwrap().current_queue_item() {
-            //         let track = item.track;
-            //         match td.get(&track) {
-            //             TrackDownloadProgress::Error => todo!(),
-            //             TrackDownloadProgress::Downloading => {},
-            //             TrackDownloadProgress::Ready(_, song) => inner.play_song_now(&song, None).unwrap(),
-            //         }
-            //     }
-            // }
-
             // Update shared state
-            // if let Some((position, duration)) = inner.get_playback_position() {
-            //     self.player_state.write().unwrap().position = position.as_secs_f32();
-            //     self.player_state.write().unwrap().duration = duration.as_secs_f32();
-            // }
-            // else {
-            //     self.player_state.write().unwrap().position = 0.0;
-            //     self.player_state.write().unwrap().duration = 0.1;
-            // }
-            // self.player_state.write().unwrap().is_playing = inner.is_playing();
+            if let Some((position, duration)) = inner.get_playback_position() {
+                self.shared_state.write().unwrap().position = position;
+                self.shared_state.write().unwrap().duration = duration;
+            }
+            else {
+                self.shared_state.write().unwrap().position = Duration::ZERO;
+                self.shared_state.write().unwrap().duration = Duration::ZERO;
+            }
+        }
+    }
 
-            // Refresh the context
-            // TODO this is a hack - UI stuff doesn't belong here, but didn't
-            // yet come up with a better way to do it.
-            // ctx.request_repaint();
+    // If I do this right I should be able to launch 2 or 3 of these.
+    fn download_worker(&self) {
+        loop {
+            // Grab a copy of the queue and sort it by distance from the
+            // current item. This will fill in the downloads "middle out".
+            // This helps ensure that if the user decides to go to the next
+            // or previous song we'll likely already have it ready.
+            let index = self.current_queue_index();
+            let play_queue: Vec<_> = self.queue();
+            let mut enumerated: Vec<_> = play_queue.iter().enumerate().collect();
+            enumerated.sort_by_key(|(i, _item)| index.abs_diff(*i));
+            for (_i, item) in enumerated.iter().take(6) {
+                let entity = item.entity.clone();
+                let key = entity.key().unwrap();
+                // TODO this needs to be reworked to use downloading, so there is
+                // and the write lock needs to be maintained until we start
+                // downloading or another thread could pick up the queued item.
+                // So, get a write lock, check or insert downloading, start the download, release the write lock, when download is complete swap the value to done or error
+                let status = self.songs.write().unwrap().entry(key.clone()).or_insert(MediaStatus::Queued).clone();
+                match status {
+                    MediaStatus::Downloading => {},
+                    MediaStatus::Ready(_) => {},
+                    MediaStatus::Queued => {
+                        match self.download(&entity) {
+                            Ok(song) => {
+                                self.songs.write().unwrap().insert(key, MediaStatus::Ready(song));
+                            },
+                            Err(e) => {
+                                self.songs.write().unwrap().insert(key, MediaStatus::Error(e));
+                            },
+                        }
+                    },
+                    MediaStatus::Error(_) => {},
+                }
+            }
+            thread::sleep(Duration::from_millis(100));
+        }
+    }
+
+    fn resolve_song(&self, entity: &Entities) -> Result<Option<Song>, PlayerError> {
+        match self.songs.read().unwrap().get(&entity.key().unwrap()) {
+            Some(MediaStatus::Ready(song)) => Ok(Some(song.clone())),
+            Some(MediaStatus::Downloading) => Ok(None),
+            Some(MediaStatus::Queued) => Ok(None),
+            Some(MediaStatus::Error(e)) => Err(e.clone()),
+            None => Ok(None),
+        }
+    }
+
+    fn download(&self, entity: &Entities) -> Result<Song, PlayerError> {
+        log::info!("Downloading {}", entity.key().unwrap());
+        if let Some(stream) = self.librarian.stream(&entity) {
+            let bytes: Vec<_> = stream.collect();
+            log::info!("Downloaded {} bytes", bytes.len());
+            let song = Song::new(Box::new(Cursor::new(bytes)), 
+                &Hint::new(), 
+                None).unwrap();
+            log::info!("Converted to song");
+            Ok(song)
+        }
+        else {
+            Err(PlayerError::NoSources)
         }
     }
 }
-
-#[derive(Clone, Debug, Default)]
-pub enum PlayerState {
-    #[default]
-    Stopped,
-    Playing,
-    Paused,
-}
-
-#[derive(Clone, Debug)]
-pub struct QueuedItem {
-    pub recording: Recording,
-    pub source: Option<RecordingSource>,
-    pub song: Option<Song>,
-}
-
-#[derive(Clone)]
-pub enum PlayerCommand {
-    Play,
-    Pause,
-    Next,
-    Previous,
-    Stop,
-    Seek(Duration),
-    // DownloadComplete(Vec<u8>),
-}
-
-// TODO will prioritize making sure songs are loaded for the N songs in the
-// window around the current one, handling flushing songs when needed.
-struct SongLoader {
-
-}
-
-// impl PlayerState {
-//     pub fn queue_release(&mut self, release: &Release) {
-//         for track in &release.tracks {
-//             self.queue_track(release, track);
-//         }
-//     }
-
-//     pub fn queue_track(&mut self, release: &Release, track: &Track) {
-//         self.queue.push(QueueItem {
-//             release: release.clone(),
-//             track: track.clone()
-//         });
-//     }
-
-//     pub fn current_queue_item(&self) -> Option<QueueItem> {
-//         if self.index >= self.queue.len() {
-//             return None;
-//         }
-//         Some(self.queue[self.index].clone())
-//     }
-
-//     pub fn next_queue_item(&self) -> Option<QueueItem> {
-//         if self.index + 1 >= self.queue.len() {
-//             return None;
-//         }
-//         Some(self.queue[self.index + 1].clone())
-//     }
-
-//     pub fn is_empty(&self) -> bool {
-//         self.queue.is_empty()
-//     }
-
-//     pub fn next(&mut self) {
-//         // Increment or restart the queue
-//         self.index = (self.index + 1) % self.queue.len();
-//     }
-
-//     pub fn previous(&mut self) {
-//         // Decrement or restart the queue
-//         if self.index == 0 {
-//             self.index = self.queue.len() - 1;
-//         }
-//         else {
-//             self.index -= 1;
-//         }
-//     }
-// }
-
-// pub enum TrackDownloadProgress {
-//     Error,
-//     Downloading,
-//     Ready(Track, Song)
-// }
-
-// TODO pre-load other songs in the queue
-// struct TrackDownloader {
-//     downloads: Arc<RwLock<HashSet<Track>>>,
-//     songs: Arc<RwLock<HashMap<Track, Song>>>,
-//     library: LibraryHandle,
-// }
-
-// impl TrackDownloader {
-//     pub fn new(library: LibraryHandle) -> Self {
-//         Self {
-//             downloads: Arc::new(RwLock::new(HashSet::new())),
-//             songs: Arc::new(RwLock::new(HashMap::new())),
-//             library,
-//         }
-//     }
-
-//     pub fn get(&mut self, track: &Track) -> TrackDownloadProgress {
-//         if let Some(song) = self.songs.read().unwrap().get(track) {
-//             TrackDownloadProgress::Ready(track.clone(), song.clone())
-//         }
-//         else if self.downloads.read().unwrap().contains(track) {
-//             TrackDownloadProgress::Downloading
-//         }
-//         else {
-//             log::info!("downloading {}", track.title);
-//             self.downloads.write().unwrap().insert(track.clone());
-//             let library = self.library.clone();
-//             let track = track.clone();
-//             let songs = self.songs.clone();
-//             std::thread::spawn(move || {
-//                 let stream = library.stream(&track).unwrap();
-//                 log::info!("downloaded {} bytes", stream.len());
-//                 let song = Song::new(Box::new(Cursor::new(stream)), 
-//                     &Hint::new(), 
-//                     None).unwrap();
-//                 log::info!("converted to song");
-//                 songs.write().unwrap().insert(track.clone(), song);
-//             });    
-//             // TODO remove the download
-//             TrackDownloadProgress::Downloading
-//         }
-//     }
-// }
