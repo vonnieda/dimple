@@ -1,7 +1,7 @@
 import { Button, VerticalBox , ScrollView, TextEdit, LineEdit, GroupBox} from "std-widgets.slint";
 import { CardGrid, CardGridAdapter } from "card_grid.slint";
 import { Card, CardAdapter } from "card.slint";
-import { PlayerBar } from "player_bar.slint";
+import { PlayerBar, PlayerBarAdapter } from "player_bar.slint";
 import { ArtistDetails, ArtistDetailsAdapter } from "artist_details.slint";
 import { ReleaseGroupDetails, ReleaseGroupDetailsAdapter } from "release_group_details.slint";
 import { Palette, Navigator, LinkAdapter, ImageLinkAdapter , Tag, AppState} from "common.slint";
@@ -14,14 +14,6 @@ import { Home, HomeAdapter } from "home.slint";
 import { Settings, SettingsAdapter } from "settings.slint";
 
 export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter, Palette, AppState }
-
-// import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-ExtraLight.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-Light.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-Medium.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-Regular.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-SemiBold.ttf";
 
 import "../fonts/Roboto/Roboto-Black.ttf";
 import "../fonts/Roboto/Roboto-BlackItalic.ttf";
@@ -47,6 +39,7 @@ export component AppWindow inherits Window {
     in-out property <RecordingDetailsAdapter> recording-details;
     in-out property <SettingsAdapter> settings-adapter;
     in-out property <HomeAdapter> home-adapter;
+    in-out property <PlayerBarAdapter> player-bar-adapter;
     
     title: "Dimple";
     icon: @image-url("../images/icon_512x512.png");
@@ -109,6 +102,7 @@ export component AppWindow inherits Window {
         GroupBox {
             vertical-stretch: 0;
             PlayerBar {
+                adapter: player-bar-adapter;
             }
         }
     }

@@ -84,12 +84,13 @@ export component Link inherits TouchArea {
     in property <string> name;
     in property <length> font-size: 1.2rem;
     in property <int> font-weight;
+    in property <TextVerticalAlignment> vertical-alignment: bottom;
     padding: 0;
 
     mouse-cursor: pointer;
     clicked => { Navigator.navigate(url); }
     title := Text {
-        vertical-alignment: bottom;
+        vertical-alignment: vertical-alignment;
         width: root.width;
         text: name;
         // wrap: word-wrap;

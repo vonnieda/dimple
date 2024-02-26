@@ -57,19 +57,14 @@ fn main() -> anyhow::Result<()> {
     // }
 
     let player = Player::new(librarian.clone());
-    let recording = librarian.list(&Recording::default().entity(), None).next().unwrap();
-    dbg!(&recording);
-    player.enqueue(&recording);
-    player.play();
-    thread::sleep(Duration::from_secs(5));
-    player.pause();
-    thread::sleep(Duration::from_secs(5));
-    player.play();
-    thread::sleep(Duration::from_secs(5));
-    player.stop();
-
+    let recordings: Vec<_> = librarian.list(&Recording::default().entity(), None).collect();
+    for recording in &recordings[0..10] {
+        player.enqueue(recording);
+    }
+    // player.play();
     loop {
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(Duration::from_secs(10));
+        player.seek(player.duration() - Duration::from_secs(5));
     }
 
     Ok(())

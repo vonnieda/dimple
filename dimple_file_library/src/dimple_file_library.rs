@@ -109,6 +109,10 @@ impl Collection for FileLibrary {
         format!("FileLibrary({:?})", self.paths)
     }
 
+    fn available_offline(&self) -> bool {
+        true
+    }
+
     // TODO DRY
     fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
         match (of_type, related_to) {
@@ -203,7 +207,7 @@ impl Collection for FileLibrary {
                 let ra: RecordingSource = (*f).into();
                 !ra.source_ids.is_disjoint(&_entity.source_ids())
             })?;
-        log::info!("found {}", &file.path);
+        log::debug!("found {}", &file.path);
         Some(Box::new(std::fs::read(file.path.clone()).ok()?.into_iter()))
     }
 }

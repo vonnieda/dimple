@@ -1,13 +1,29 @@
 import { Slider , GroupBox, HorizontalBox} from "std-widgets.slint";
-import { Palette } from "common.slint";
+import { Palette, LinkAdapter, Link } from "common.slint";
 import { StyleMetrics } from "std-widgets.slint";
+import { CardAdapter } from "card.slint";
+
+export struct PlayerBarAdapter {
+    now_playing_artist: CardAdapter,
+    now_playing_release: CardAdapter,
+    now_playing_recording: CardAdapter,
+    up_next_artist: CardAdapter,
+    up_next_release: CardAdapter,
+    up_next_recording: CardAdapter,
+    position_seconds: int,
+    duration_seconds: int,
+    position_label: string,
+    duration_label: string,
+}
 
 component InfoAreaLabel inherits HorizontalLayout {
     spacing: 4px;
 
     in property <image> icon;
-    in property <string> text;
+    // in property <string> text;
+    // in property <string> url;
     in property <float> font-weight;
+    in property <LinkAdapter> link;
 
     Image {
         source: icon;
@@ -15,8 +31,9 @@ component InfoAreaLabel inherits HorizontalLayout {
         width: 1.5rem;
         colorize: StyleMetrics.default-text-color;
     }
-    Text {
-        text: text;
+    Link {
+        url: link.url;
+        name: link.name;
         vertical-alignment: top;
         font-size: 1.5rem;
         font-weight: font-weight;
@@ -24,10 +41,7 @@ component InfoAreaLabel inherits HorizontalLayout {
 }
 
 export component PlayerBar {
-    in-out property <image> current-image;
-    in-out property <string> current-title;
-    in-out property <string> current-release;
-    in-out property <string> current-artist;
+    in-out property <PlayerBarAdapter> adapter;
 
     HorizontalLayout {
         spacing: StyleMetrics.layout-spacing * 2;
@@ -38,8 +52,9 @@ export component PlayerBar {
             border-width: Palette.thumbnail-border-width;
             border-color: Palette.thumbnail-border-color;
             clip: true;
+            // TODO needs imagelink
             img := Image {
-                source: @image-url("../images/dark.png");
+                source: adapter.now-playing-recording.image.image;
                 width: Palette.thumbnail-width-medium;
                 height: Palette.thumbnail-width-medium;
             }    
@@ -51,32 +66,33 @@ export component PlayerBar {
                 spacing: 2px;
                 InfoAreaLabel {
                     icon: @image-url("../icons/phosphor/SVGs/bold/music-notes-bold.svg");
-                    text: "Trap Party in the Trap House";
+                    link: adapter.now-playing-artist.title;
                     font-weight: Palette.font-weight-bold;
                 }
                 InfoAreaLabel {
                     icon: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
-                    text: "Trappin' in Kawaii 2023";
+                    link: adapter.now-playing-release.title;
                 }
                 InfoAreaLabel {
                     icon: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
-                    text: "Grid of Benjamins";
+                    link: adapter.now-playing-recording.title;
                 }
                 Rectangle {
                     vertical-stretch: 1;
                 }
                 Slider { 
-                    value: 42;
+                    value: adapter.position-seconds;
+                    maximum: adapter.duration-seconds;
                     vertical-stretch: 0;
                 }
                 HorizontalLayout {
                     Text {
-                        text: "09:30";
+                        text: adapter.position-label;
                         font-size: 0.9rem;
                     }
                     Text {
                         horizontal-alignment: right;
-                        text: "09:30";
+                        text: adapter.duration-label;
                         font-size: 0.9rem;
                     }
                 }

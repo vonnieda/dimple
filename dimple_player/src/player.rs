@@ -174,16 +174,23 @@ impl Player {
 
     fn player_worker(&self, receiver: Receiver<PlayerCommand>) {
         let inner = playback_rs::Player::new(None).unwrap();
-        let mut next_song_loaded = false;
+        let mut preloaded = false;
         loop {
             // Process incoming commands, waiting up to 100ms for one to arrive.
             // This also limits the speed that this loop loops, and the speed
             // at which shared state updates.
+            // All the state checking below is complex. I think I should try
+            // to either boil all the state down to "a" state, or get rid of
+            // the reactive stuff and do more in each of these command handlers.
+            // And probably add a "Download complete" message.
             while let Ok(command) = receiver.recv_timeout(Duration::from_millis(100)) {
                 match command {
-                    PlayerCommand::Play => self.shared_state.write().unwrap().state = PlayerState::Playing,
-                    PlayerCommand::Pause => self.shared_state.write().unwrap().state = PlayerState::Paused,
-                    PlayerCommand::Stop => self.shared_state.write().unwrap().state = PlayerState::Stopped,
+                    PlayerCommand::Play => inner.set_playing(true),
+                    PlayerCommand::Pause => inner.set_playing(false),
+                    PlayerCommand::Stop => {
+                        inner.stop();
+                        preloaded = false;
+                    },
                     PlayerCommand::Next => todo!(),
                     PlayerCommand::Previous => todo!(),
                     PlayerCommand::Seek(position) => {
@@ -192,50 +199,46 @@ impl Player {
                 }
             }
 
-            match self.state() {
-                PlayerState::Stopped => {
-                    if inner.is_playing() {
-                        inner.stop();
-                        next_song_loaded = false;
-                    }
-                },
-                PlayerState::Paused => {
-                    if inner.is_playing() {
-                        inner.set_playing(false);
-                    }
-                },
-                PlayerState::Playing => {
-                    if !inner.has_current_song() {
-                        if let Some(current_item) = self.current_queue_item() {
-                            if let Ok(Some(song)) = self.resolve_song(&current_item.entity) {
-                                log::info!("loaded current track {}", current_item.entity.name().unwrap());
-                                inner.play_song_now(&song, None).unwrap();
-                            }
+            // TODO might be better to lock the state for the duration here
+            if inner.is_playing() {
+                if !inner.has_current_song() {
+                    if let Some(current_item) = self.current_queue_item() {
+                        if let Ok(Some(song)) = self.resolve_song(&current_item.entity) {
+                            log::info!("Now playing {}", current_item.entity.name().unwrap());
+                            inner.play_song_now(&song, None).unwrap();
                         }
                     }
+                }
 
-                    if !inner.is_playing() {
-                        inner.set_playing(true);
+                if inner.has_current_song() && !inner.has_next_song() {
+                    // TODO woops, tired,  but this runs repeatedly while the
+                    // song is downloading. Boo. This is all poop, but it's nearly
+                    // finished poop.
+                    if preloaded {
+                        self.advance_queue();
+                        log::info!("Now playing {}", self.current_queue_item().unwrap().entity.name().unwrap());
                     }
 
-                    if !inner.has_next_song() {
-                        if let Some(next_item) = self.next_queue_item() {
-                            if let Ok(Some(song)) = self.resolve_song(&next_item.entity) {
-                                log::info!("loaded next track {}", next_item.entity.name().unwrap());
-                                inner.play_song_next(&song, None).unwrap();
-                                if next_song_loaded {
-                                    self.advance_queue();
-                                }
-                                else {
-                                    next_song_loaded = true;
-                                }
-                            }
+                    if let Some(next_item) = self.next_queue_item() {
+                        if let Ok(Some(song)) = self.resolve_song(&next_item.entity) {
+                            log::info!("Next up {}", next_item.entity.name().unwrap());
+                            inner.play_song_next(&song, None).unwrap();
                         }
                     }
-                },
+                }
+
+                if inner.has_current_song() && inner.has_next_song() {
+                    preloaded = true;
+                }
             }
 
             // Update shared state
+            self.shared_state.write().unwrap().state = match (inner.is_playing(), inner.has_current_song()) {
+                (true, true) => PlayerState::Playing,
+                (true, false) => PlayerState::Stopped,
+                (false, true) => PlayerState::Paused,
+                (false, false) => PlayerState::Stopped,
+            };
             if let Some((position, duration)) = inner.get_playback_position() {
                 self.shared_state.write().unwrap().position = position;
                 self.shared_state.write().unwrap().duration = duration;
@@ -297,14 +300,14 @@ impl Player {
     }
 
     fn download(&self, entity: &Entities) -> Result<Song, PlayerError> {
-        log::info!("Downloading {}", entity.key().unwrap());
-        if let Some(stream) = self.librarian.stream(&entity) {
+        log::debug!("Downloading {}", entity.name().unwrap());
+        if let Some(stream) = self.librarian.stream(entity) {
             let bytes: Vec<_> = stream.collect();
-            log::info!("Downloaded {} bytes", bytes.len());
+            log::debug!("Downloaded {} bytes for {}", bytes.len(), entity.name().unwrap());
             let song = Song::new(Box::new(Cursor::new(bytes)), 
                 &Hint::new(), 
                 None).unwrap();
-            log::info!("Converted to song");
+            log::debug!("Converted {} to song", entity.name().unwrap());
             Ok(song)
         }
         else {

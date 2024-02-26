@@ -9,11 +9,22 @@ pub trait Collection: Send + Sync {
     /// Get a user friendly display name for the Library.
     fn name(&self) -> String;
 
+    /// The Collection should return true if it can be used offline. If it
+    /// returns true it should never attempt any network access.
+    /// TODO For now. This will probably get folded in to each function call
+    /// so the access type can be specified each time. Otherwise we can't
+    /// support things like local only. But for now, this will help with
+    /// testing.
+    fn available_offline(&self) -> bool {
+        false
+    }
+
     /// Search the library for entities that match the query string. How the
     /// search query is interpreted is left up to the implementation. In
     /// general it should return, at least, matching Artists, Releases,
     /// Genres, and Tracks.
     /// TODO I think this will become model specific
+    /// TODO I think also go to Option or Result on all these. Obviously.
     fn search(&self, _query: &str) -> Box<dyn Iterator<Item = Entities>> {
         Box::new(std::iter::empty())
     }

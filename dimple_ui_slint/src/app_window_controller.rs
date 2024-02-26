@@ -10,7 +10,7 @@ use dimple_wikidata_library::WikidataLibrary;
 use serde::{de, Deserialize, Serialize};
 use url::Url;
 
-use std::{collections::VecDeque, default, env, path::Display, rc::Rc, sync::{Arc, Mutex}, time::Instant};
+use std::{collections::VecDeque, default, env, path::Display, rc::Rc, sync::{Arc, Mutex}, thread, time::{Duration, Instant}};
 
 use dimple_core::{collection::Collection, model::{Artist, Entities, Entity, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track}};
 use dimple_librarian::librarian::{AccessMode, Librarian};
@@ -58,9 +58,21 @@ impl AppWindowController {
         self.ui.global::<Navigator>().on_navigate(move |url| 
             Self::navigate(url, history.clone(), librarian.clone(), ui.clone()));
 
-        let ui = self.ui.as_weak();
+        // let ui = self.ui.as_weak();
         let librarian = self.librarian.clone();
         self.ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
+        let paths = vec![
+            "/Users/jason/Music/My Music".to_string(),
+            // "/Users/jason/Music/Dimple Test Tracks".to_string(),
+        ];
+        self.librarian.add_library(Box::new(FileLibrary::new(&paths)));
+        self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
+        self.librarian.add_library(Box::<TheAudioDbLibrary>::default());
+        self.librarian.add_library(Box::<FanartTvLibrary>::default());
+        self.librarian.add_library(Box::<DeezerLibrary>::default());
+        self.librarian.add_library(Box::<WikidataLibrary>::default());
+        self.librarian.add_library(Box::<LastFmLibrary>::default());
+        self.librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
 
         let ui = self.ui.as_weak();
         let librarian = self.librarian.clone();
@@ -72,20 +84,24 @@ impl AppWindowController {
                 ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
             }).unwrap();
         });
-           
-        let paths = vec![
-            "/Users/jason/Music/My Music".to_string(),
-            // "/Users/jason/Music/Dimple Test Tracks".to_string(),
-        ];
-        self.librarian.add_library(Box::new(FileLibrary::new(&paths)));
-        self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
-        self.librarian.add_library(Box::new(TheAudioDbLibrary::default()));
-        self.librarian.add_library(Box::new(FanartTvLibrary::default()));
-        self.librarian.add_library(Box::<DeezerLibrary>::default());
-        self.librarian.add_library(Box::<WikidataLibrary>::default());
-        self.librarian.add_library(Box::<LastFmLibrary>::default());
-        self.librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
 
+        // Updates player state
+        let ui = self.ui.as_weak();
+        let player = self.player.clone();
+        thread::spawn(move || {
+            ui.upgrade_in_event_loop(move |ui| {
+                let adapter = PlayerBarAdapter {
+                    duration_seconds: player.duration().as_secs() as i32,
+                    duration_label: length_to_string(player.duration().as_secs() as u32).into(),
+                    position_seconds: player.position().as_secs() as i32,
+                    position_label: length_to_string(player.position().as_secs() as u32).into(),
+                    ..Default::default()
+                };
+                ui.set_player_bar_adapter(adapter);
+            }).unwrap();
+            thread::sleep(Duration::from_millis(100));
+        });
+           
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
         self.ui.run()
@@ -165,39 +181,35 @@ impl AppWindowController {
 
     fn home(librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
         std::thread::spawn(move || {
-            let i = Instant::now();
-            let mut tracks: Vec<(Artist, Release, Recording, RecordingSource)> = Vec::new();
-            for artist in Artist::list(librarian.as_ref()) {
-                for release in artist.releases(librarian.as_ref()) {
-                    for recording in release.recordings(librarian.as_ref()) {
-                        for source in recording.sources(librarian.as_ref()) {
-                            tracks.push((artist.clone(), release.clone(), recording.clone(), source.clone()));
-                        }
-                    }
-                }
-            }
-            log::info!("{}ms for {} rows", i.elapsed().as_millis(), tracks.len());
+            // let i = Instant::now();
+            // let mut tracks: Vec<(Artist, Release, Recording, RecordingSource)> = Vec::new();
+            // for artist in Artist::list(librarian.as_ref()) {
+            //     for release in artist.releases(librarian.as_ref()) {
+            //         for recording in release.recordings(librarian.as_ref()) {
+            //             for source in recording.sources(librarian.as_ref()) {
+            //                 tracks.push((artist.clone(), release.clone(), recording.clone(), source.clone()));
+            //             }
+            //         }
+            //     }
+            // }
 
             ui.upgrade_in_event_loop(move |ui| {
-                let rows: VecModel<ModelRc<StandardListViewItem>> = VecModel::default();
-                for (artist, release, recording, source) in tracks {
-                    let row = Rc::new(VecModel::default());
-                    row.push(recording.title.listview_item());
-                    row.push(release.title.listview_item());
-                    row.push(artist.name.listview_item());
-                    row.push(source.extension.listview_item());
-                    row.push(format!("{:?}", source.source_ids).listview_item());
-                    row.push("".listview_item());
-                    rows.push(row.into());
-                }
-                let adapter = HomeAdapter {
-                    rows: ModelRc::new(rows),
-                };
-                log::info!("adapter ready");
-                ui.set_home_adapter(adapter);
-                log::info!("set adapter");
+                // let rows: VecModel<ModelRc<StandardListViewItem>> = VecModel::default();
+                // for (artist, release, recording, source) in tracks {
+                //     let row = Rc::new(VecModel::default());
+                //     row.push(recording.title.listview_item());
+                //     row.push(release.title.listview_item());
+                //     row.push(artist.name.listview_item());
+                //     row.push(source.extension.listview_item());
+                //     row.push(format!("{:?}", source.source_ids).listview_item());
+                //     row.push("".listview_item());
+                //     rows.push(row.into());
+                // }
+                // let adapter = HomeAdapter {
+                //     rows: ModelRc::new(rows),
+                // };
+                // ui.set_home_adapter(adapter);
                 ui.set_page(5);
-                log::info!("set page");
             }).unwrap();
         });
     }

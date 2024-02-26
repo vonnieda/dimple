@@ -106,250 +106,165 @@ impl Librarian {
     }
 }
 
-impl Collection for Librarian {
-    fn name(&self) -> String {
-        "Librarian".to_string()
-    }
+// struct MergingLibrarian(Librarian);
+// impl Collection for MergingLibrarian {
+//     fn name(&self) -> String {
+//         "Librarian".to_string()
+//     }
 
-    /// Search the libraries, merge the results to local, and then search
-    /// local and return the results. This merge step ensures that the objects
-    /// returned are the sum of the sources.
-    fn search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
-        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
-            self.libraries.read().unwrap().iter()
-                .flat_map(|lib| lib.search(query))
-                .for_each(|m| {
-                    let _ = self.merge(&m, None);
-                });
-        }
-        self.local_library_search(query)
-    }    
+    
+//     /// Search the libraries, merge the results to local, and then search
+//     /// local and return the results. This merge step ensures that the objects
+//     /// returned are the sum of the sources.
+//     fn search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
+//         let access_mode = self.access_mode();
+//         self.libraries.read().unwrap().iter()
+//             .filter(|lib| access_mode == AccessMode::Online || lib.available_offline())
+//             .flat_map(|lib| lib.search(query))
+//             .for_each(|m| {
+//                 let _ = self.merge(&m, None);
+//             });
+//         self.local_library_search(query)
+//     }    
 
-    /// List the libraries, merge the results to local, and then list
-    /// local and return the results. This merge step ensures that the objects
-    /// returned are the sum of the sources.
-    fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
-        // TODO parallel version is much faster but self.merge is not atomic
-        // But note, the real problem is the "list" in the match function.
-        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
-            self.libraries.read().unwrap().iter()
-                .flat_map(|lib| lib.list(of_type, related_to))
-                .for_each(|m| {
-                    let _ = self.merge(&m, related_to);
-                });
-        }
-        self.local_library.list(of_type, related_to)
-    }
+//     /// List the libraries, merge the results to local, and then list
+//     /// local and return the results. This merge step ensures that the objects
+//     /// returned are the sum of the sources.
+//     /// TODO parallel version is much faster but self.merge is not atomic
+//     /// But note, the real problem is the "list" in the match function.
+//     fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
+//         let access_mode = self.access_mode();
+//         self.libraries.read().unwrap().iter()
+//             .filter(|lib| access_mode == AccessMode::Online || lib.available_offline())
+//             .flat_map(|lib| lib.list(of_type, related_to))
+//             .for_each(|m| {
+//                 let _ = self.merge(&m, related_to);
+//             });
+//         self.local_library.list(of_type, related_to)
+//     }
 
-    /// First, merge the request entity as a side effect. Search the libraries, 
-    /// merge the results to local, and then search local and return the 
-    /// results. This merge step ensures that the objects returned are the 
-    /// sum of the sources.
-    fn fetch(&self, entity: &Entities) -> Option<Entities> {
-        // Merging the entity before searching ensures we have things like
-        // additional ids for querying. I'm not totally sure if this should
-        // merge (to disk) or if it should query and merge in memory for
-        // the query only. Since we're gonna save it at the end anyway I don't
-        // see any harm in saving it here too. This could be replaced with
-        // find_match and merge in memory though.
+//     /// First, merge the request entity as a side effect. Search the libraries, 
+//     /// merge the results to local, and then search local and return the 
+//     /// results. This merge step ensures that the objects returned are the 
+//     /// sum of the sources.
+//     fn fetch(&self, entity: &Entities) -> Option<Entities> {
+//         // Merging the entity before searching ensures we have things like
+//         // additional ids for querying. I'm not totally sure if this should
+//         // merge (to disk) or if it should query and merge in memory for
+//         // the query only. Since we're gonna save it at the end anyway I don't
+//         // see any harm in saving it here too. This could be replaced with
+//         // find_match and merge in memory though.
 
-        // TODO I don't think this logic is totally sound. At the end we fetch
-        // using this entity, but what if we've merged something? I think we
-        // need to replace the query with the _ at the end of the sub-block.
-        // This may possibly explain the weird bug where Spidergawd shows up in
-        // Opeth
+//         // TODO I don't think this logic is totally sound. At the end we fetch
+//         // using this entity, but what if we've merged something? I think we
+//         // need to replace the query with the _ at the end of the sub-block.
+//         // This may possibly explain the weird bug where Spidergawd shows up in
+//         // Opeth
 
-        let entity = self.merge(entity, None);
+//         let entity = self.merge(entity, None);
 
-        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
-            // Run the fetch on all of the libraries, keeping track of the ones
-            // that return a result. 
-            let skip_libs: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
-            let first_result: Entities = self.libraries.read().ok()?.par_iter()
-                .filter_map(|lib| {
-                    let result = lib.fetch(&entity);
-                    if result.is_some() {
-                        skip_libs.lock().unwrap().insert(lib.name());
-                    }
-                    result
-                })
-                .reduce(|| entity.clone(), Entities::merge);
+//         let access_mode = self.access_mode();
+
+//         // Run the fetch on all of the libraries, keeping track of the ones
+//         // that return a result. 
+//         let skip_libs: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
+//         let first_result: Entities = self.libraries.read().ok()?.par_iter()
+//             .filter(|lib| access_mode == AccessMode::Online || lib.available_offline())
+//             .filter_map(|lib| {
+//                 let result = lib.fetch(&entity);
+//                 if result.is_some() {
+//                     skip_libs.lock().unwrap().insert(lib.name());
+//                 }
+//                 result
+//             })
+//             .reduce(|| entity.clone(), Entities::merge);
             
-            // Run the fetch on the remaining libraries that did not return a result
-            // the first time. This allows libraries that need metadata from
-            // for instance, Musicbrainz to skip the first fetch and run on
-            // this one instead.
-            let second_result: Entities = self.libraries.read().ok()?.par_iter()
-                .filter(|f| !skip_libs.lock().unwrap().contains(&f.name()))
-                .filter_map(|lib| lib.fetch(&first_result))
-                .reduce(|| entity.clone(), Entities::merge);
+//         // Run the fetch on the remaining libraries that did not return a result
+//         // the first time. This allows libraries that need metadata from
+//         // for instance, Musicbrainz to skip the first fetch and run on
+//         // this one instead.
+//         let second_result: Entities = self.libraries.read().ok()?.par_iter()
+//             .filter(|lib| !skip_libs.lock().unwrap().contains(&lib.name()))
+//             .filter(|lib| access_mode == AccessMode::Online || lib.available_offline())
+//             .filter_map(|lib| lib.fetch(&first_result))
+//             .reduce(|| entity.clone(), Entities::merge);
 
-            // Merge the results together and store it for later access
-            let result = Entities::merge(first_result, second_result);
-            let _ = self.merge(&result, None);
-        }
+//         // Merge the results together and store it for later access
+//         let result = Entities::merge(first_result, second_result);
+//         let _ = self.merge(&result, None);
 
-        // Return the results from the local library
-        self.local_library.fetch(&entity)
-    }
+//         // Return the results from the local library
+//         self.local_library.fetch(&entity)
+//     }
 
-    /// If there is an image stored in the local library for the entity return
-    /// it, otherwise search the attached libraries for one. If one is found,
-    /// cache it in the local library and return it. Future requests will be
-    /// served from the cache.
-    /// TODO I think this goes away and becomes fetch(Dimage), maybe Dimage
-    /// so it's not constantly overlapping with Image.
-    fn image(&self, entity: &Entities) -> Option<DynamicImage> {
-        let image = self.local_library.image(entity);
-        if image.is_some() {
-            return image;
-        }
+//     /// If there is an image stored in the local library for the entity return
+//     /// it, otherwise search the attached libraries for one. If one is found,
+//     /// cache it in the local library and return it. Future requests will be
+//     /// served from the cache.
+//     /// TODO I think this goes away and becomes fetch(Dimage), maybe Dimage
+//     /// so it's not constantly overlapping with Image.
+//     fn image(&self, entity: &Entities) -> Option<DynamicImage> {
+//         let image = self.local_library.image(entity);
+//         if image.is_some() {
+//             return image;
+//         }
 
-        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
-            if let Some(dyn_image) = self.libraries.read().unwrap().iter().find_map(|lib| lib.image(entity)) {
-                self.local_library.set_image(entity, &dyn_image);
-                return Some(dyn_image)
-            }
-        }
-        None
-    }
+//         if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+//             if let Some(dyn_image) = self.libraries.read().unwrap().iter().find_map(|lib| lib.image(entity)) {
+//                 self.local_library.set_image(entity, &dyn_image);
+//                 return Some(dyn_image)
+//             }
+//         }
+//         None
+//     }
 
-    fn stream(&self, entity: &Entities) -> Option<Box<dyn Iterator<Item = u8>>> {
-        let iter = self.local_library.stream(entity);
-        if iter.is_some() {
-            log::info!("found local");
-            return iter;
-        }
+//     fn stream(&self, entity: &Entities) -> Option<Box<dyn Iterator<Item = u8>>> {
+//         let iter = self.local_library.stream(entity);
+//         if iter.is_some() {
+//             return iter;
+//         }
 
-        if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
-            if let Some(iter) = self.libraries.read().unwrap().iter().find_map(|lib| lib.stream(entity)) {
-                log::info!("found in lib");
-                // self.local_library.set_image(entity, &dyn_image);
-                return Some(iter)
-            }
-        }
-        None
-    }    
-}
+//         if self.access_mode.lock().unwrap().clone() == AccessMode::Online {
+//             if let Some(iter) = self.libraries.read().unwrap().iter().find_map(|lib| lib.stream(entity)) {
+//                 // self.local_library.set_image(entity, &dyn_image);
+//                 return Some(iter)
+//             }
+//         }
+//         None
+//     }    
+// }
 
-trait Merge<T> {
-    // TODO should probably be references.
-    // 
-    fn merge(a: T, b: T) -> T;
-}
+// struct LocalLibrarian(Librarian);
 
-impl Merge<Entities> for Entities {
-    fn merge(left: Entities, right: Entities) -> Self {
-        match (left, right) {
-            (Entities::Artist(left), Entities::Artist(right)) => {
-                Artist::merge(left, right).entity()
-            },
-            (Entities::ReleaseGroup(left), Entities::ReleaseGroup(right)) => {
-                ReleaseGroup::merge(left, right).entity()
-            },
-            (Entities::Release(left), Entities::Release(right)) => {
-                Release::merge(left, right).entity()
-            },
-            (Entities::Recording(left), Entities::Recording(right)) => {
-                Recording::merge(left, right).entity()
-            },
-            (Entities::RecordingSource(left), Entities::RecordingSource(right)) => {
-                RecordingSource::merge(left, right).entity()
-            },
-            _ => todo!()
-        }
-    }
-}
+// impl Collection for LocalLibrarian {
+//     fn name(&self) -> String {
+//         "LocalLibrarian".to_string()
+//     }
 
-// TODO leaning towards making all these use longer instead of or, which will
-// help with a move towards CRDT.
-impl Merge<Self> for Artist {
-    fn merge(a: Self, b: Self) -> Self {
-        Self {
-            disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            links: a.links.union(&b.links).cloned().collect(),
-            name: a.name.or(b.name),
-            summary: a.summary.or(b.summary),
-            country: a.country.or(b.country),
-        }
-    }
-}
+//     fn search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
+//         self.0.local_library_search(query)
+//     }    
 
-impl Merge<Self> for ReleaseGroup {
-    fn merge(a: Self, b: Self) -> Self {
-        Self {
-            disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            links: a.links.union(&b.links).cloned().collect(),
-            title: a.title.or(b.title),
-            summary: a.summary.or(b.summary),
+//     fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
+//         self.0.local_library.list(of_type, related_to)
+//     }
 
-            first_release_date: a.first_release_date.or(b.first_release_date),
-            primary_type: a.primary_type.or(b.primary_type),
-        }
-    }
-}
+//     fn fetch(&self, entity: &Entities) -> Option<Entities> {
+//         self.0.local_library.fetch(&entity)
+//     }
 
-impl Merge<Self> for Release {
-    fn merge(a: Self, b: Self) -> Self {
-        Self {
-            disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            links: a.links.union(&b.links).cloned().collect(),
-            title: a.title.or(b.title),
-            summary: a.summary.or(b.summary),
+//     /// If there is an image stored in the local library for the entity return
+//     /// it, otherwise search the attached libraries for one. If one is found,
+//     /// cache it in the local library and return it. Future requests will be
+//     /// served from the cache.
+//     /// TODO I think this goes away and becomes fetch(Dimage), maybe Dimage
+//     /// so it's not constantly overlapping with Image.
+//     fn image(&self, entity: &Entities) -> Option<DynamicImage> {
+//         self.0.local_library.image(entity)
+//     }
 
+//     fn stream(&self, entity: &Entities) -> Option<Box<dyn Iterator<Item = u8>>> {
+//         self.0.local_library.stream(entity)
+//     }    
+// }
 
-            barcode: a.barcode.or(b.barcode),
-            country: a.country.or(b.country),
-            date: a.date.or(b.date),
-            packaging: a.packaging.or(b.packaging),
-            status: a.status.or(b.status),
-        }
-    }
-}
-
-impl Merge<Self> for Recording {
-    fn merge(a: Self, b: Self) -> Self {
-        Self {
-            disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            links: a.links.union(&b.links).cloned().collect(),
-            title: a.title.or(b.title),
-            summary: a.summary.or(b.summary),
-
-            annotation: a.annotation.or(b.annotation),
-            isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
-            length: a.length.or(b.length)
-        }
-    }
-}
-
-impl Merge<Self> for RecordingSource {
-    fn merge(a: Self, b: Self) -> Self {
-        Self {
-            // disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            format: a.format.or(b.format),
-            extension: a.extension.or(b.extension),
-            // links: a.links.union(&b.links).cloned().collect(),
-            // title: a.title.or(b.title),
-            // summary: a.summary.or(b.summary),
-
-            // annotation: a.annotation.or(b.annotation),
-            // isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
-            // length: a.length.or(b.length)
-        }
-    }
-}

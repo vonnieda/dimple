@@ -19,6 +19,8 @@ members = [
 ]
 resolver="2"
 
-#[toolchain]
-#channel = "nightly"
+[profile.release]
+debug = true
 
+[profile.dev]
+split-debuginfo = "unpacked"
