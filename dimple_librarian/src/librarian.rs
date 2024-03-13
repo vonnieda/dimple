@@ -1,6 +1,6 @@
 use std::{collections::HashSet, sync::{Arc, Mutex, RwLock}, thread, time::Duration};
 
-use dimple_core::{collection::Collection, model::{Artist, Entity, Release, ReleaseGroup}};
+use dimple_core::{collection::Collection, model::{Artist, Entity, MediaFile, Release, ReleaseGroup}};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
 use dimple_core::model::Entities;
@@ -41,42 +41,43 @@ impl Librarian {
         librarian
     }
 
+    /**
+     * Downloads and stores coverart for entities that do not yet have any.
+     */
     fn coverart_worker(&self) {
         loop {
             thread::sleep(Duration::from_secs(10));
-            log::info!("images up!");
         }
     }
-    
 
-    fn metadata_worker(&self) {
+    /**
+     * Imports MediaFile entities from libraries that supply them.
+     */
+    fn import_worker(&self) {
         loop {
             thread::sleep(Duration::from_secs(10));
             let access_mode = self.access_mode();
             for lib in self.libraries.read().unwrap().iter() {
                 if access_mode == AccessMode::Online || lib.available_offline() {
                     // TODO MediaFiles
-
-                    for artist in Artist::list(lib.as_ref()) {
-                        log::info!("merging {:?}", artist.name);
-                        self.merge(&artist.entity(), None);
-                        // for release_group in artist.release_groups(lib.as_ref()) {
-                        //     self.merge(&release_group.entity(), Some(&artist.entity()));
-                        //     for release in release_group.releases(lib.as_ref()) {
-                        //         self.merge(&release.entity(), Some(&release_group.entity()));
-                        //     }
-                        // }
+                    let media_files: Vec<_> = MediaFile::list(lib.as_ref()).collect();
+                    log::info!("merging {}", media_files.len());
+                    for media_file in media_files {
+                        self.local_library.set(&media_file.entity()).unwrap();
                     }
-
-                    // let mut release_groups: Vec<_> = ReleaseGroup::list(lib.as_ref()).collect();
-                    // release_groups.sort_by_key(|rg| rg.title.clone().or(Some("".to_string())).unwrap());
-
-                    // for release_group in release_groups {
-                    //     log::info!("{:?}", release_group.title);
-                    // }
                 }
             }
             log::info!("merged em shits");
+        }
+    }
+    
+    /**
+     * Improves metadata for stored entities over time by merging in additional
+     * details as they are found.
+     */
+    fn metadata_worker(&self) {
+        loop {
+            thread::sleep(Duration::from_secs(10));
         }
     }
 

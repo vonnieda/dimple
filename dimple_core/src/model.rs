@@ -313,6 +313,24 @@ impl Artist {
 
 
 
+impl MediaFile {
+    pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = MediaFile>> {
+        let iter = col.list(&MediaFile::default().entity(), None)
+            .map(|m| match m {
+                Entities::MediaFile(a) => a,
+                _ => panic!(),
+            });
+        Box::new(iter)
+    }
+
+    pub fn entity(&self) -> Entities {
+        Entities::MediaFile(self.clone())
+    }
+}
+
+
+
+
 impl ReleaseGroup {
     pub fn entity(&self) -> Entities {
         Entities::ReleaseGroup(self.clone())
