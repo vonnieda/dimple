@@ -44,7 +44,8 @@ impl FileLibrary {
 
             log::info!("Scanned {} files in {}ms", files.lock().unwrap().len(), now.elapsed().as_millis());
 
-            std::thread::sleep(Duration::from_secs(60 * 60));
+            // TODO also monitor dir
+            std::thread::sleep(Duration::from_secs(60));
         }
     }
 
@@ -116,82 +117,10 @@ impl Collection for FileLibrary {
     // TODO DRY
     fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
         match (of_type, related_to) {
-            (Entities::Artist(_), None) => {
+            (Entities::MediaFile(_), None) => {
                 let files = self.files.lock().unwrap().clone();
                 let artists: Vec<Artist> = files.values().map(Into::into).collect();
                 let models: Vec<Entities> = artists.iter().map(Artist::entity).collect();
-                Box::new(models.into_iter())
-            }
-            (Entities::Release(_), None) => {
-                let files = self.files.lock().unwrap().clone();
-                let releases: Vec<Release> = files.values().map(Into::into).collect();
-                let models: Vec<Entities> = releases.iter().map(Release::entity).collect();
-                Box::new(models.into_iter())
-            }
-            (Entities::Recording(_), None) => {
-                let files = self.files.lock().unwrap().clone();
-                let recordings: Vec<Recording> = files.values().map(Into::into).collect();
-                let models: Vec<Entities> = recordings.iter().map(Recording::entity).collect();
-                Box::new(models.into_iter())
-            }
-            (Entities::ReleaseGroup(_), Some(Entities::Artist(artist))) => {
-                let files = self.files.lock().unwrap().clone();
-                let release_groups: Vec<ReleaseGroup> = files.values()
-                    .filter(|r| {
-                        let ra: Artist = (*r).into();
-                        !ra.source_ids.is_disjoint(&artist.source_ids)
-                    })
-                    .map(Into::into)
-                    .collect();
-                let models: Vec<Entities> = release_groups.iter().map(ReleaseGroup::entity).collect();
-                Box::new(models.into_iter())
-            }
-            (Entities::Release(_), Some(Entities::Artist(artist))) => {
-                let files = self.files.lock().unwrap().clone();
-                let releases: Vec<Release> = files.values()
-                    .filter(|r| {
-                        let ra: Artist = (*r).into();
-                        !ra.source_ids.is_disjoint(&artist.source_ids)
-                    })
-                    .map(Into::into)
-                    .collect();
-                let models: Vec<Entities> = releases.iter().map(Release::entity).collect();
-                Box::new(models.into_iter())
-            }
-            (Entities::Release(_), Some(Entities::ReleaseGroup(release_group))) => {
-                let files = self.files.lock().unwrap().clone();
-                let releases: Vec<Release> = files.values()
-                    .filter(|file| {
-                        let file_release_group: ReleaseGroup = (*file).into();
-                        !file_release_group.source_ids.is_disjoint(&release_group.source_ids)
-                    })
-                    .map(Into::into)
-                    .collect();
-                let models: Vec<Entities> = releases.iter().map(Release::entity).collect();
-                Box::new(models.into_iter())
-            }
-            (Entities::Recording(_), Some(Entities::Release(release))) => {
-                let files = self.files.lock().unwrap().clone();
-                let recordings: Vec<Recording> = files.values()
-                    .filter(|r| {
-                        let ra: Release = (*r).into();
-                        !ra.source_ids.is_disjoint(&release.source_ids)
-                    })
-                    .map(Into::into)
-                    .collect();
-                let models: Vec<Entities> = recordings.iter().map(Recording::entity).collect();
-                Box::new(models.into_iter())
-            }
-            (Entities::RecordingSource(_), Some(Entities::Recording(recording))) => {
-                let files = self.files.lock().unwrap().clone();
-                let sources: Vec<RecordingSource> = files.values()
-                    .filter(|r| {
-                        let ra: Recording = (*r).into();
-                        !ra.source_ids.is_disjoint(&recording.source_ids)
-                    })
-                    .map(Into::into)
-                    .collect();
-                let models: Vec<Entities> = sources.iter().map(RecordingSource::entity).collect();
                 Box::new(models.into_iter())
             }
             _ => {

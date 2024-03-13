@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::time::Instant;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -119,6 +120,7 @@ pub enum RecordingFormat {
     M4A,
 }
 
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct RecordingSource {
     pub key: Option<String>,
@@ -143,6 +145,27 @@ pub struct Genre {
 }
 
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct MediaFile {
+    pub key: Option<String>,
+    pub url: String,
+    // pub created_at: Instant,
+    // pub modified_at: Instant,
+
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub album_artist: Option<String>,
+    pub title: Option<String>,
+    pub genre: Option<String>,
+
+    pub recording_mbid: Option<String>,
+    pub release_track_mbid: Option<String>,
+    pub album_mbid: Option<String>,
+    pub artist_mbid: Option<String>,
+    pub album_artist_mbid: Option<String>,
+    pub mb_album_type: Option<String>,
+    pub mb_album_comment: Option<String>,
+}
 
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -183,12 +206,13 @@ pub struct Attributed<T> {
 
 
 
+// I think this becomes a struct 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum KnownId {
     MusicBrainzId(String),
-    DiscogsId,
-    LastFmId,
-    WikidataId,
+    DiscogsId(String),
+    LastFmId(String),
+    WikidataId(String),
     SpotifyId,
     DeezerId,
     TidalId,
@@ -470,7 +494,7 @@ impl Genre {
 
 
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Entities {
     Artist(Artist),
     Genre(Genre),
@@ -478,6 +502,7 @@ pub enum Entities {
     Release(Release),
     Recording(Recording),
     RecordingSource(RecordingSource),
+    MediaFile(MediaFile),
 }
 
 /**
@@ -492,6 +517,7 @@ impl Entities {
             Entities::Recording(r) => r.key.clone(),
             Entities::RecordingSource(r) => r.key.clone(),
             Entities::Genre(g) => g.key.clone(),
+            Entities::MediaFile(f) => f.key.clone(),
         }
     }
 
@@ -503,6 +529,7 @@ impl Entities {
             Entities::Genre(m) => m.key = key,
             Entities::Recording(m) => m.key = key,
             Entities::RecordingSource(m) => m.key = key,
+            Entities::MediaFile(m) => m.key = key,
         }
     }
 
@@ -530,6 +557,7 @@ impl Entities {
             Entities::Recording(_) => "recording",
             Entities::RecordingSource(_) => "recording_source",
             Entities::Genre(_) => "genre",
+            Entities::MediaFile(_) => "media_file",
         }
     }
 
@@ -541,6 +569,7 @@ impl Entities {
             Entities::Genre(g) => g.known_ids.clone(),
             Entities::Recording(r) => r.known_ids.clone(),
             Entities::RecordingSource(r) => r.known_ids.clone(),
+            Entities::MediaFile(f) => Default::default(),
         }
     }
 
@@ -552,6 +581,7 @@ impl Entities {
             Entities::Genre(g) => g.source_ids.clone(),
             Entities::Recording(r) => r.source_ids.clone(),
             Entities::RecordingSource(r) => r.source_ids.clone(),
+            Entities::MediaFile(_) => Default::default(),
         }
     }
 
@@ -563,6 +593,7 @@ impl Entities {
             Entities::Recording(r) => r.title.clone(),
             Entities::RecordingSource(r) => r.name().clone(),
             Entities::Genre(g) => g.name.clone(),
+            Entities::MediaFile(f) => Some(f.url.clone()),
         }
     }
 
@@ -574,6 +605,7 @@ impl Entities {
             Entities::Recording(r) => r.disambiguation.clone(),
             Entities::RecordingSource(r) => r.disambiguation().clone(),
             Entities::Genre(g) => g.disambiguation.clone(),
+            Entities::MediaFile(_) => None,
         }
     }
 }
@@ -587,6 +619,9 @@ pub trait Entity {
     fn disambiguation(&self) -> Option<String>;
     fn summary(&self) -> Option<String>;
     fn links(&self) -> HashSet<String>;
+    fn similarity(&self, other: &Self) -> f32 {
+        0.0
+    }
 
     fn mbid(&self) -> Option<String> {
         self.known_ids().iter().find_map(|id| match id {

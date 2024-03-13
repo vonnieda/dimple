@@ -1,18 +1,17 @@
-use std::{collections::HashSet, sync::{Mutex, RwLock}};
+use std::{collections::HashSet, sync::{Arc, Mutex, RwLock}, thread, time::Duration};
 
-use dimple_core::{collection::Collection, model::{Artist, Recording, RecordingSource, Release, ReleaseGroup}};
+use dimple_core::{collection::Collection, model::{Artist, Entity, Release, ReleaseGroup}};
 use dimple_sled_library::sled_library::SledLibrary;
-use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use image::DynamicImage;
-use rayon::prelude::*;
 use dimple_core::model::Entities;
 
-use crate::{art_gen, matching};
+use crate::{art_gen, merge::{self, Merge}};
 
+#[derive(Clone)]
 pub struct Librarian {
-    local_library: SledLibrary,
-    libraries: RwLock<Vec<Box<dyn Collection>>>,
-    access_mode: Mutex<AccessMode>,
+    local_library: Arc<SledLibrary>,
+    libraries: Arc<RwLock<Vec<Box<dyn Collection>>>>,
+    access_mode: Arc<Mutex<AccessMode>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -23,10 +22,61 @@ pub enum AccessMode {
 
 impl Librarian {
     pub fn new(path: &str) -> Self {
-        Self { 
-            local_library: SledLibrary::new(path),
+        let librarian = Self { 
+            local_library: Arc::new(SledLibrary::new(path)),
             libraries: Default::default(),
-            access_mode: Mutex::new(AccessMode::Online),
+            access_mode: Arc::new(Mutex::new(AccessMode::Online)),
+        };
+
+        {
+            let librarian = librarian.clone();
+            thread::spawn(move || librarian.metadata_worker());
+        }
+
+        {
+            let librarian = librarian.clone();
+            thread::spawn(move || librarian.coverart_worker());
+        }
+
+        librarian
+    }
+
+    fn coverart_worker(&self) {
+        loop {
+            thread::sleep(Duration::from_secs(10));
+            log::info!("images up!");
+        }
+    }
+    
+
+    fn metadata_worker(&self) {
+        loop {
+            thread::sleep(Duration::from_secs(10));
+            let access_mode = self.access_mode();
+            for lib in self.libraries.read().unwrap().iter() {
+                if access_mode == AccessMode::Online || lib.available_offline() {
+                    // TODO MediaFiles
+
+                    for artist in Artist::list(lib.as_ref()) {
+                        log::info!("merging {:?}", artist.name);
+                        self.merge(&artist.entity(), None);
+                        // for release_group in artist.release_groups(lib.as_ref()) {
+                        //     self.merge(&release_group.entity(), Some(&artist.entity()));
+                        //     for release in release_group.releases(lib.as_ref()) {
+                        //         self.merge(&release.entity(), Some(&release_group.entity()));
+                        //     }
+                        // }
+                    }
+
+                    // let mut release_groups: Vec<_> = ReleaseGroup::list(lib.as_ref()).collect();
+                    // release_groups.sort_by_key(|rg| rg.title.clone().or(Some("".to_string())).unwrap());
+
+                    // for release_group in release_groups {
+                    //     log::info!("{:?}", release_group.title);
+                    // }
+                }
+            }
+            log::info!("merged em shits");
         }
     }
 
@@ -61,19 +111,10 @@ impl Librarian {
 
     /// Find a matching model in the local store merge the value, and store it. 
     /// If no match is found a new model is stored and returned.
-    /// TODO need to think about how this merges after an offline session, and
-    /// I think that moves it more towards a reusable component that happens
-    /// in the foreground when needed but mostly in the background.
-    /// TODO Okay, I think this is going to start storing every entity, matching
-    /// maybe only on source id, and then what the UI will get will be merged in
-    /// real time? Or also merged at the same time, but primarily gonna start
-    /// storing and being able to reference all the source objects.
-    /// Oh wow, and then I could just have the queries run on the dimple source
-    /// ids. Or even librarian.
-    pub fn merge(&self, model: &Entities, related_to: Option<&Entities>) -> Entities {
-        // TODO this needs to be atomic. When using par_iter it blows up cause
-        // we're saving out of date info.
-        let matched = matching::find_match(self, &self.local_library, model);
+    // TODO this needs to be atomic. When using par_iter it blows up cause
+    // we're saving out of date info.
+    fn merge(&self, model: &Entities, related_to: Option<&Entities>) -> Entities {
+        let matched = self.list(model, None).find(|option| Entities::mergability(model, option) >= 1.0);
         let merged = match matched {
             Some(matched) => Entities::merge(matched, model.clone()),
             None => model.clone(),
@@ -86,23 +127,43 @@ impl Librarian {
         saved
     }
 
+    // pub fn find_match(librarian: &Librarian, local_library: &SledLibrary, model: &Entities) -> Option<Entities> {
+    //     // Find by key
+    //     if let Some(model) = local_library.get(model) {
+    //         return Some(model)
+    //     }
+
+    //     // Find by source id, known id, or fuzzy match
+    //     for candidate in local_library.list(model, None) {
+    //         let l = model;
+    //         let r = m;
+    //         if Entities::mergability(l, &r) > 0.75 {
+    //             return Some(m)
+    //         }
+    //     }
+
+    //     // Give up
+    //     None
+    // }
+
     fn local_library_search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
-        // const MAX_RESULTS_PER_TYPE: usize = 10;
-        // TODO sort by score
-        // TODO other entities
-        let pattern = query.to_string();
-        let matcher = SkimMatcherV2::default();
-        let artists = Artist::list(&self.local_library)
-            .filter(move |a| matcher.fuzzy_match(&a.name.clone().unwrap_or_default(), &pattern).is_some())
-            .map(Entities::Artist);
-            // .take(MAX_RESULTS_PER_TYPE);
-        let pattern = query.to_string();
-        let matcher = SkimMatcherV2::default();
-        let release_groups = ReleaseGroup::list(&self.local_library)
-            .filter(move |a| matcher.fuzzy_match(&a.title.clone().unwrap_or_default(), &pattern).is_some())
-            .map(Entities::ReleaseGroup);
-            // .take(MAX_RESULTS_PER_TYPE);
-        Box::new(artists.chain(release_groups))
+        todo!();
+        // // const MAX_RESULTS_PER_TYPE: usize = 10;
+        // // TODO sort by score
+        // // TODO other entities
+        // let pattern = query.to_string();
+        // let matcher = SkimMatcherV2::default();
+        // let artists = Artist::list(self.local_library.as_ref())
+        //     .filter(move |a| matcher.fuzzy_match(&a.name.clone().unwrap_or_default(), &pattern).is_some())
+        //     .map(Entities::Artist);
+        //     // .take(MAX_RESULTS_PER_TYPE);
+        // let pattern = query.to_string();
+        // let matcher = SkimMatcherV2::default();
+        // let release_groups = ReleaseGroup::list(self.local_library.as_ref())
+        //     .filter(move |a| matcher.fuzzy_match(&a.title.clone().unwrap_or_default(), &pattern).is_some())
+        //     .map(Entities::ReleaseGroup);
+        //     // .take(MAX_RESULTS_PER_TYPE);
+        // Box::new(artists.chain(release_groups))
     }
 }
 
@@ -234,37 +295,29 @@ impl Librarian {
 //     }    
 // }
 
-// struct LocalLibrarian(Librarian);
+impl Collection for Librarian {
+    fn name(&self) -> String {
+        "LocalLibrarian".to_string()
+    }
 
-// impl Collection for LocalLibrarian {
-//     fn name(&self) -> String {
-//         "LocalLibrarian".to_string()
-//     }
+    fn search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
+        self.local_library_search(query)
+    }    
 
-//     fn search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
-//         self.0.local_library_search(query)
-//     }    
+    fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
+        self.local_library.list(of_type, related_to)
+    }
 
-//     fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
-//         self.0.local_library.list(of_type, related_to)
-//     }
+    fn fetch(&self, entity: &Entities) -> Option<Entities> {
+        self.local_library.fetch(&entity)
+    }
 
-//     fn fetch(&self, entity: &Entities) -> Option<Entities> {
-//         self.0.local_library.fetch(&entity)
-//     }
+    fn image(&self, entity: &Entities) -> Option<DynamicImage> {
+        self.local_library.image(entity)
+    }
 
-//     /// If there is an image stored in the local library for the entity return
-//     /// it, otherwise search the attached libraries for one. If one is found,
-//     /// cache it in the local library and return it. Future requests will be
-//     /// served from the cache.
-//     /// TODO I think this goes away and becomes fetch(Dimage), maybe Dimage
-//     /// so it's not constantly overlapping with Image.
-//     fn image(&self, entity: &Entities) -> Option<DynamicImage> {
-//         self.0.local_library.image(entity)
-//     }
-
-//     fn stream(&self, entity: &Entities) -> Option<Box<dyn Iterator<Item = u8>>> {
-//         self.0.local_library.stream(entity)
-//     }    
-// }
+    fn stream(&self, entity: &Entities) -> Option<Box<dyn Iterator<Item = u8>>> {
+        self.local_library.stream(entity)
+    }    
+}
 

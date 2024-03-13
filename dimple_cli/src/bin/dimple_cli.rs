@@ -28,7 +28,8 @@ fn main() -> anyhow::Result<()> {
 
     let librarian = Arc::new(default_librarian());
     let paths = vec![
-        "/Users/jason/Music/Dimple Test Tracks".to_string(),
+        "/Users/jason/Music/My Music".to_string(),
+        // "/Users/jason/Music/Dimple Test Tracks".to_string(),
         // "/Users/jason/Music/My Music/We Were Heading North".to_string(),
         // "/Users/jason/Music/My Music/Metallica".to_string(),
         // "/Users/jason/Music/My Music/Megadeth".to_string(),
@@ -36,35 +37,40 @@ fn main() -> anyhow::Result<()> {
         // "/Users/jason/Music/My Music/Fen".to_string(),
     ];
     librarian.add_library(Box::new(FileLibrary::new(&paths)));
-    std::thread::sleep(Duration::from_secs(1));
 
 
-    // let artist_count = Artist::list(&librarian).count();
-    // for (i, artist) in Artist::list(&librarian).enumerate() {
+    // let artist_count = Artist::list(librarian.as_ref()).count();
+    // for (i, artist) in Artist::list(librarian.as_ref()).enumerate() {
     //     log::info!("Artist {}/{}: {} (mbid:{:?})", 
     //         i + 1, artist_count,
     //         artist.name.clone().unwrap_or_default(),
     //         artist.mbid().unwrap_or_default());
-    //     for release in artist.releases(&librarian) {
-    //         log::info!("    Release: {}", release.title.clone().unwrap_or_default());
-    //         for recording in release.recordings(&librarian) {
-    //             log::info!("        Recording: {}", recording.title.clone().unwrap_or_default());
-    //             for source in recording.sources(&librarian) {
-    //                 log::info!("            Source: {}", source.key.unwrap_or_default());
-    //             }
-    //         }
-    //     }
+        // for release in artist.releases(&librarian) {
+        //     log::info!("    Release: {}", release.title.clone().unwrap_or_default());
+        //     for recording in release.recordings(&librarian) {
+        //         log::info!("        Recording: {}", recording.title.clone().unwrap_or_default());
+        //         for source in recording.sources(&librarian) {
+        //             log::info!("            Source: {}", source.key.unwrap_or_default());
+        //         }
+        //     }
+        // }
     // }
 
-    let player = Player::new(librarian.clone());
-    let recordings: Vec<_> = librarian.list(&Recording::default().entity(), None).collect();
-    for recording in &recordings[0..10] {
-        player.enqueue(recording);
-    }
-    // player.play();
+    // let player = Player::new(librarian.clone());
+    // let recordings: Vec<_> = librarian.list(&Recording::default().entity(), None).collect();
+    // for recording in &recordings[0..10] {
+    //     player.enqueue(recording);
+    // }
+    // // player.play();
+    // loop {
+    //     thread::sleep(Duration::from_secs(10));
+    //     player.seek(player.duration() - Duration::from_secs(5));
+    // }
+    
     loop {
-        thread::sleep(Duration::from_secs(10));
-        player.seek(player.duration() - Duration::from_secs(5));
+        let artist_count = Artist::list(librarian.as_ref()).count();
+        log::info!("{} artists", artist_count);
+        thread::sleep(Duration::from_secs(3));
     }
 
     Ok(())

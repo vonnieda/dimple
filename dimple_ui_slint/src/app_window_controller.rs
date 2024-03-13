@@ -15,7 +15,7 @@ use std::{collections::VecDeque, default, env, path::Display, rc::Rc, sync::{Arc
 use dimple_core::{collection::Collection, model::{Artist, Entities, Entity, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track}};
 use dimple_librarian::librarian::{AccessMode, Librarian};
 use image::DynamicImage;
-use slint::{ComponentHandle, Model, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, StandardListViewItem, TableColumn, VecModel};
+use slint::{ComponentHandle, Image, Model, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, StandardListViewItem, TableColumn, VecModel};
 
 slint::include_modules!();
 use rayon::prelude::*;
@@ -63,7 +63,6 @@ impl AppWindowController {
         self.ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
         let paths = vec![
             "/Users/jason/Music/My Music".to_string(),
-            // "/Users/jason/Music/Dimple Test Tracks".to_string(),
         ];
         self.librarian.add_library(Box::new(FileLibrary::new(&paths)));
         self.librarian.add_library(Box::<MusicBrainzLibrary>::default());
@@ -312,7 +311,8 @@ impl AppWindowController {
                     cards: card_adapters(cards),
                 };
                 ui.set_card_grid_adapter(adapter);
-                ui.set_page(0)
+                ui.set_page(0);
+                log::info!("Rendering complete.");
             }).unwrap();
         });
     }

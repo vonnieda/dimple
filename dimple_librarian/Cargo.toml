@@ -14,4 +14,5 @@ log = "0.4.17"
 dimple_core = { path = "../dimple_core" }
 dimple_sled_library = { path = "../dimple_sled_library" }
 rayon = "1.8.0"
-fuzzy-matcher = "0.3.7"
+strsim = "0.11.0"
+unicode-normalization = "0.1.23"

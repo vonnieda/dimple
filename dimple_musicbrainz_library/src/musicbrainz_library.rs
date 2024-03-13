@@ -256,6 +256,7 @@ impl Collection for MusicBrainzLibrary {
             },
             Entities::Genre(_) => None,
             Entities::RecordingSource(_) => None,
+            Entities::MediaFile(_) => None,
         }        
     }
 }
