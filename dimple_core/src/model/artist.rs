@@ -14,10 +14,6 @@ use crate::model::Genre;
 
 use super::Entities;
 
-/// References
-/// https://musicbrainz.org/doc/Artist
-/// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
-
 // https://musicbrainz.org/doc/Artist
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct Artist {
