@@ -1,6 +1,6 @@
 use std::env;
 
-use dimple_core::collection::{Collection, LibrarySupport};
+use dimple_core::{collection::{Collection, LibrarySupport}, model::Entity};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 use dimple_core::model::Entities;
@@ -59,10 +59,10 @@ impl Collection for TheAudioDbLibrary {
     // TODO add release groups (albums)
 
     fn image(&self, entity: &Entities) -> Option<image::DynamicImage> {
-        let mbid = entity.mbid()?;
         match entity {
             // https://www.theaudiodb.com/api/v1/json/api_key/artist-mb.php?i=1d86a19b-8ddd-448c-a815-4f41350bea53
             Entities::Artist(a) => {
+                let mbid = a.mbid()?;
                 let client = Client::builder()
                     .https_only(true)
                     .user_agent(dimple_core::USER_AGENT)

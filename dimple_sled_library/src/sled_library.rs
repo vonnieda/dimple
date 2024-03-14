@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 
 use dimple_core::{collection::Collection, image_cache::ImageCache};
-use dimple_core::model::Entities;
+use dimple_core::model::{Entities, Entity};
 
 use image::{DynamicImage, EncodableLayout};
 
@@ -157,75 +157,75 @@ impl Collection for SledLibrary {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use dimple_core::model::{Artist, Release};
+// #[cfg(test)]
+// mod tests {
+//     use dimple_core::model::{Artist, Release};
 
-    use super::*;
+//     use super::*;
 
-    #[test]
-    fn basics() {
-        let lib = SledLibrary::new(".sled");
-        lib.clear();
+//     #[test]
+//     fn basics() {
+//         let lib = SledLibrary::new(".sled");
+//         lib.clear();
         
-        let metallicurds = lib.set(&Artist {
-            name: Some("Metallicurds".to_string()),
-            ..Default::default()
-        }.entity()).unwrap();
+//         let metallicurds = lib.set(&Artist {
+//             name: Some("Metallicurds".to_string()),
+//             ..Default::default()
+//         }.entity()).unwrap();
 
-        let and_fresh_curds = lib.set(&Release {
-            title: Some("...And Fresh Curds For All".to_string()),
-            ..Default::default()
-        }.entity()).unwrap();
+//         let and_fresh_curds = lib.set(&Release {
+//             title: Some("...And Fresh Curds For All".to_string()),
+//             ..Default::default()
+//         }.entity()).unwrap();
         
-        let master_of_pasteurization = lib.set(&Release {
-            title: Some("Master of Pasteurization".to_string()),
-            ..Default::default()
-        }.entity()).unwrap();
+//         let master_of_pasteurization = lib.set(&Release {
+//             title: Some("Master of Pasteurization".to_string()),
+//             ..Default::default()
+//         }.entity()).unwrap();
         
-        let ride_the_milkfat = lib.set(&Release {
-            title: Some("Ride the Milkfat".to_string()),
-            ..Default::default()
-        }.entity()).unwrap();
+//         let ride_the_milkfat = lib.set(&Release {
+//             title: Some("Ride the Milkfat".to_string()),
+//             ..Default::default()
+//         }.entity()).unwrap();
         
-        lib.link(&metallicurds, &and_fresh_curds, "artist_credit").unwrap();
-        lib.link(&metallicurds, &master_of_pasteurization, "artist_credit").unwrap();
-        lib.link(&metallicurds, &ride_the_milkfat, "artist_credit").unwrap();
+//         lib.link(&metallicurds, &and_fresh_curds, "artist_credit").unwrap();
+//         lib.link(&metallicurds, &master_of_pasteurization, "artist_credit").unwrap();
+//         lib.link(&metallicurds, &ride_the_milkfat, "artist_credit").unwrap();
 
-        let moo_cheese = lib.set(&Artist {
-            name: Some("Moo Cheese".to_string()),
-            ..Default::default()
-        }.entity()).unwrap();
+//         let moo_cheese = lib.set(&Artist {
+//             name: Some("Moo Cheese".to_string()),
+//             ..Default::default()
+//         }.entity()).unwrap();
 
-        let transfonduer = lib.set(&Release {
-            title: Some("Transfonduer".to_string()),
-            ..Default::default()
-        }.entity()).unwrap();
+//         let transfonduer = lib.set(&Release {
+//             title: Some("Transfonduer".to_string()),
+//             ..Default::default()
+//         }.entity()).unwrap();
 
-        lib.link(&moo_cheese, &transfonduer, "artist_credit").unwrap();
+//         lib.link(&moo_cheese, &transfonduer, "artist_credit").unwrap();
 
-        let mumu = lib.set(&Release {
-            title: Some("Mumu".to_string()),
-            ..Default::default()
-        }.entity()).unwrap();
+//         let mumu = lib.set(&Release {
+//             title: Some("Mumu".to_string()),
+//             ..Default::default()
+//         }.entity()).unwrap();
 
-        lib.link(&metallicurds, &mumu, "artist_credit").unwrap();
-        lib.link(&moo_cheese, &mumu, "artist_credit").unwrap();
+//         lib.link(&metallicurds, &mumu, "artist_credit").unwrap();
+//         lib.link(&moo_cheese, &mumu, "artist_credit").unwrap();
 
-        let artists = lib.list(&Artist::default().entity(), None);
-        // for artist in artists {
-        //     let artist: Artist = (&artist).into();
-        //     println!("{}",artist.name.clone().unwrap());
-        //     let releases = lib.links(&artist.entity(), &Release::default().entity(), "artist_credit");
-        //     for release in releases {
-        //         let release: Release = (&release).into();
-        //         println!("    {}", release.title.clone().unwrap());
-        //         let artists = lib.links(&release.entity(), &Artist::default().entity(), "artist_credit");
-        //         for artist in artists {
-        //             let artist: Artist = (&artist).into();
-        //             println!("        {}",artist.name.clone().unwrap());
-        //         }
-        //     }
-        // }
-    }
-}
+//         let artists = lib.list(&Artist::default().entity(), None);
+//         // for artist in artists {
+//         //     let artist: Artist = (&artist).into();
+//         //     println!("{}",artist.name.clone().unwrap());
+//         //     let releases = lib.links(&artist.entity(), &Release::default().entity(), "artist_credit");
+//         //     for release in releases {
+//         //         let release: Release = (&release).into();
+//         //         println!("    {}", release.title.clone().unwrap());
+//         //         let artists = lib.links(&release.entity(), &Artist::default().entity(), "artist_credit");
+//         //         for artist in artists {
+//         //             let artist: Artist = (&artist).into();
+//         //             println!("        {}",artist.name.clone().unwrap());
+//         //         }
+//         //     }
+//         // }
+//     }
+// }

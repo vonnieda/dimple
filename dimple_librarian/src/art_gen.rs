@@ -1,4 +1,4 @@
-use dimple_core::{collection::Collection, model::Entities};
+use dimple_core::{collection::Collection, model::{Entities, Entity}};
 use image::DynamicImage;
 
 use crate::librarian::Librarian;

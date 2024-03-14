@@ -180,9 +180,9 @@ impl Collection for MusicBrainzLibrary {
     }
 
     fn fetch(&self, entity: &Entities) -> Option<Entities> {
-        let mbid = entity.mbid()?;
         match entity {
             Entities::Artist(a) => {
+                let mbid = a.mbid()?;
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", mbid));
                 self.enforce_rate_limit();
@@ -200,6 +200,7 @@ impl Collection for MusicBrainzLibrary {
                     .map(Entities::Artist)        
             },
             Entities::ReleaseGroup(r) => {
+                let mbid = r.mbid()?;
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", mbid));
                 self.enforce_rate_limit();
@@ -218,6 +219,7 @@ impl Collection for MusicBrainzLibrary {
                     .map(Entities::ReleaseGroup)        
             },
             Entities::Release(r) => {
+                let mbid = r.mbid()?;
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", mbid));
                 self.enforce_rate_limit();
@@ -237,6 +239,7 @@ impl Collection for MusicBrainzLibrary {
                     .map(Entities::Release)        
             },
             Entities::Recording(r) => {
+                let mbid = r.mbid()?;
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/recording/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", mbid));
                 self.enforce_rate_limit();
@@ -257,6 +260,8 @@ impl Collection for MusicBrainzLibrary {
             Entities::Genre(_) => None,
             Entities::RecordingSource(_) => None,
             Entities::MediaFile(_) => None,
+            Entities::Track(_) => None,
+            Entities::Medium(_) => None,
         }        
     }
 }

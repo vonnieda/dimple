@@ -204,7 +204,7 @@ impl Player {
                 if !inner.has_current_song() {
                     if let Some(current_item) = self.current_queue_item() {
                         if let Ok(Some(song)) = self.resolve_song(&current_item.entity) {
-                            log::info!("Now playing {}", current_item.entity.name().unwrap());
+                            // log::info!("Now playing {}", current_item.entity.name().unwrap());
                             inner.play_song_now(&song, None).unwrap();
                         }
                     }
@@ -216,12 +216,12 @@ impl Player {
                     // finished poop.
                     if preloaded {
                         self.advance_queue();
-                        log::info!("Now playing {}", self.current_queue_item().unwrap().entity.name().unwrap());
+                        // log::info!("Now playing {}", self.current_queue_item().unwrap().entity.name().unwrap());
                     }
 
                     if let Some(next_item) = self.next_queue_item() {
                         if let Ok(Some(song)) = self.resolve_song(&next_item.entity) {
-                            log::info!("Next up {}", next_item.entity.name().unwrap());
+                            // log::info!("Next up {}", next_item.entity.name().unwrap());
                             inner.play_song_next(&song, None).unwrap();
                         }
                     }
@@ -300,14 +300,14 @@ impl Player {
     }
 
     fn download(&self, entity: &Entities) -> Result<Song, PlayerError> {
-        log::debug!("Downloading {}", entity.name().unwrap());
+        // log::debug!("Downloading {}", entity.name().unwrap());
         if let Some(stream) = self.librarian.stream(entity) {
             let bytes: Vec<_> = stream.collect();
-            log::debug!("Downloaded {} bytes for {}", bytes.len(), entity.name().unwrap());
+            // log::debug!("Downloaded {} bytes for {}", bytes.len(), entity.name().unwrap());
             let song = Song::new(Box::new(Cursor::new(bytes)), 
                 &Hint::new(), 
                 None).unwrap();
-            log::debug!("Converted {} to song", entity.name().unwrap());
+            // log::debug!("Converted {} to song", entity.name().unwrap());
             Ok(song)
         }
         else {
