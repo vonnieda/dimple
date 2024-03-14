@@ -51,7 +51,12 @@ impl Librarian {
     }
 
     /**
-     * Imports MediaFile entities from libraries that supply them.
+     * Imports MediaFile entities from libraries that supply them. Performs
+     * clustering, scanning, and lookup for files without good metadata. The
+     * goal is to try to match a MediaFile to a Musicbrainz ID or an existing
+     * entity.
+     * 
+     * https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
      */
     fn import_worker(&self) {
         loop {

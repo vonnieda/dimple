@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use dimple_core::{collection::{Collection, LibrarySupport}, model::{Artist, Recording, Release, ReleaseGroup}};
+use dimple_core::{collection::{Collection, LibrarySupport}, model::{Artist, Entity, Recording, Release, ReleaseGroup}};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
 use dimple_core::model::Entities;

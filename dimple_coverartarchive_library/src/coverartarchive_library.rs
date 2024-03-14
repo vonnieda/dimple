@@ -1,5 +1,7 @@
+use std::collections::HashSet;
+
 use dimple_core::collection::{Collection, LibrarySupport};
-use dimple_core::model::{Entities, Entity};
+use dimple_core::model::{Entities, Entity, KnownId};
 use image::DynamicImage;
 use musicbrainz_rs::entity::{CoverartResponse, release_group::ReleaseGroup, release::Release};
 use musicbrainz_rs::FetchCoverart;

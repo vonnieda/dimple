@@ -5,7 +5,7 @@ use dimple_core::model::Entities;
 
 use image::{DynamicImage, EncodableLayout};
 
-use sled::{Db, Tree};
+use sled::Db;
 
 use uuid::Uuid;
 
