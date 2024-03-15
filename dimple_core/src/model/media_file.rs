@@ -1,26 +1,16 @@
-
-
-
 use serde::Deserialize;
 use serde::Serialize;
 
-
-
-use crate::model::Entity;
-
-
-
-use crate::collection::Collection;
-
 use super::Entities;
+use super::Entity;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct MediaFile {
-    pub key: Option<String>,
-    pub url: String,
+    pub key: String,
+
+    // pub url: String,
     // pub created_at: Instant,
     // pub modified_at: Instant,
-
     pub artist: Option<String>,
     pub album: Option<String>,
     pub album_artist: Option<String>,
@@ -36,19 +26,32 @@ pub struct MediaFile {
     pub mb_album_comment: Option<String>,
 }
 
+// impl MediaFile {
+//     pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = MediaFile>> {
+//         let iter = col
+//             .list(&MediaFile::default().entity(), None)
+//             .map(|m| match m {
+//                 Entities::MediaFile(a) => a,
+//                 _ => panic!(),
+//             });
+//         Box::new(iter)
+//     }
 
-impl MediaFile {
-    pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = MediaFile>> {
-        let iter = col.list(&MediaFile::default().entity(), None)
-            .map(|m| match m {
-                Entities::MediaFile(a) => a,
-                _ => panic!(),
-            });
-        Box::new(iter)
+//     pub fn entity(&self) -> Entities {
+//         Entities::MediaFile(self.clone())
+//     }
+// }
+
+impl Entity for MediaFile {
+    fn key(&self) -> Option<String> {
+        Some(self.key.clone())
     }
 
-    pub fn entity(&self) -> Entities {
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key.unwrap();
+    }
+
+    fn entity(&self) -> Entities {
         Entities::MediaFile(self.clone())
-    }
+    }    
 }
-

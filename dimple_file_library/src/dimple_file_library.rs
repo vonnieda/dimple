@@ -145,7 +145,7 @@ impl Collection for FileLibrary {
 impl From<&FileDetails> for MediaFile {
     fn from(value: &FileDetails) -> Self {
         MediaFile {
-            url: format!("file://{}", value.path),
+            key: value.path.clone(),
             ..Default::default()
         }
     }

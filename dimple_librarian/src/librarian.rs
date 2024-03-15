@@ -30,13 +30,13 @@ impl Librarian {
 
         {
             let librarian = librarian.clone();
-            thread::spawn(move || librarian.metadata_worker());
+            thread::spawn(move || librarian.sync_worker());
         }
 
-        {
-            let librarian = librarian.clone();
-            thread::spawn(move || librarian.coverart_worker());
-        }
+        // {
+        //     let librarian = librarian.clone();
+        //     thread::spawn(move || librarian.coverart_worker());
+        // }
 
         librarian
     }
@@ -51,6 +51,43 @@ impl Librarian {
     }
 
     /**
+     * Keeps entities in sync between the libraries, primarily pulling data from
+     * remotes and adding it to the local. Haven't quite decided if I want to
+     * approach pushing changes back to providers. I think maybe that's just
+     * shooting myself in the feets.
+     */
+    fn sync_worker(&self) {
+        loop {
+            let access_mode = self.access_mode();
+            for lib in self.libraries.read().unwrap().iter() {
+                if access_mode == AccessMode::Online || lib.available_offline() {
+                    for mut media_file in lib.list(&MediaFile::default().entity(), None) {
+                        let new_key = format!("{}:{}", lib.name(), media_file.key().unwrap());
+                        media_file.set_key(Some(new_key));
+                        self.local_library.set(&media_file).unwrap();
+                    }
+                    // for artist in Artist::list(lib.as_ref()) {
+                    //     self.local_library.set(&artist.entity()).unwrap();
+                    //     for rg in artist.release_groups(lib.as_ref()) {
+                    //         self.local_library.set(&rg.entity()).unwrap();
+                    //         for r in rg.releases(lib.as_ref()) {
+                    //             self.local_library.set(&r.entity()).unwrap();
+                    //         }
+                    //     }
+                    // }
+                }
+            }
+
+            log::info!("MediaFiles: {}", self.local_library.list(&MediaFile::default().entity(), None).count());
+            thread::sleep(Duration::from_secs(1));
+        }
+    }
+
+    fn acoustid_worker(&self) {
+
+    }
+
+    /**
      * Imports MediaFile entities from libraries that supply them. Performs
      * clustering, scanning, and lookup for files without good metadata. The
      * goal is to try to match a MediaFile to a Musicbrainz ID or an existing
@@ -61,18 +98,6 @@ impl Librarian {
     fn import_worker(&self) {
         loop {
             thread::sleep(Duration::from_secs(10));
-            let access_mode = self.access_mode();
-            for lib in self.libraries.read().unwrap().iter() {
-                if access_mode == AccessMode::Online || lib.available_offline() {
-                    // TODO MediaFiles
-                    let media_files: Vec<_> = MediaFile::list(lib.as_ref()).collect();
-                    log::info!("merging {}", media_files.len());
-                    for media_file in media_files {
-                        self.local_library.set(&media_file.entity()).unwrap();
-                    }
-                }
-            }
-            log::info!("merged em shits");
         }
     }
     

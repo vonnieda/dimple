@@ -30,13 +30,6 @@ pub trait Entity {
     fn set_key(&mut self, key: Option<String>);
     fn entity(&self) -> Entities;
 
-    // fn name(&self) -> Option<String>;
-    // fn source_ids(&self) -> HashSet<String>;
-    // fn known_ids(&self) -> HashSet<KnownId>;
-    // fn disambiguation(&self) -> Option<String>;
-    // fn summary(&self) -> Option<String>;
-    // fn links(&self) -> HashSet<String>;
-
     fn known_ids(&self) -> HashSet<KnownId> {
         Default::default()
     }
@@ -47,11 +40,6 @@ pub trait Entity {
             _ => None,
         })
     }
-
-    // TODO
-    // fn to_json(&self) -> Option<String>;
-    // fn from_json(&self) -> Option<String>;
-
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
@@ -91,7 +79,7 @@ impl Entities {
             Entities::Recording(r) => r.key.clone(),
             Entities::RecordingSource(r) => r.key.clone(),
             Entities::Genre(g) => g.key.clone(),
-            Entities::MediaFile(f) => f.key.clone(),
+            Entities::MediaFile(f) => Some(f.key.clone()),
             Entities::Track(t) => t.key.clone(),
             Entities::Medium(m) => m.key.clone(),
         }
@@ -105,7 +93,7 @@ impl Entities {
             Entities::Genre(m) => m.key = key,
             Entities::Recording(m) => m.key = key,
             Entities::RecordingSource(m) => m.key = key,
-            Entities::MediaFile(m) => m.key = key,
+            Entities::MediaFile(m) => m.key = key.unwrap(),
             Entities::Track(t) => t.key = key,
             Entities::Medium(m) => m.key = key,
         }

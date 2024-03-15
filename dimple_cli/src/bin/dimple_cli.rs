@@ -2,7 +2,7 @@
 
 use std::{sync::Arc, thread, time::Duration};
 
-use dimple_core::{collection::Collection, model::{Artist, Entity, Recording}};
+use dimple_core::{collection::Collection, model::{Artist, Entity, MediaFile, Recording}};
 use dimple_coverartarchive_library::CoverArtArchiveLibrary;
 use dimple_deezer_library::DeezerLibrary;
 use dimple_fanart_tv_library::FanartTvLibrary;
@@ -68,8 +68,8 @@ fn main() -> anyhow::Result<()> {
     // }
     
     loop {
-        let artist_count = Artist::list(librarian.as_ref()).count();
-        log::info!("{} artists", artist_count);
+        // log::info!("{} artists", Artist::list(librarian.as_ref()).count());
+        // log::info!("{} media files", MediaFile::list(librarian.as_ref()).count());
         thread::sleep(Duration::from_secs(3));
     }
 

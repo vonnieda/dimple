@@ -4,7 +4,6 @@ use colored::Colorize;
 
 use crate::model::Entities;
 
-
 pub trait Collection: Send + Sync {
     /// Get a user friendly display name for the Library.
     fn name(&self) -> String;
