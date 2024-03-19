@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::collection::Collection;
+
 use super::Entities;
 use super::Entity;
 
@@ -26,21 +28,17 @@ pub struct MediaFile {
     pub mb_album_comment: Option<String>,
 }
 
-// impl MediaFile {
-//     pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = MediaFile>> {
-//         let iter = col
-//             .list(&MediaFile::default().entity(), None)
-//             .map(|m| match m {
-//                 Entities::MediaFile(a) => a,
-//                 _ => panic!(),
-//             });
-//         Box::new(iter)
-//     }
-
-//     pub fn entity(&self) -> Entities {
-//         Entities::MediaFile(self.clone())
-//     }
-// }
+impl MediaFile {
+    pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = MediaFile>> {
+        let iter = col
+            .list(&MediaFile::default().entity(), None)
+            .map(|m| match m {
+                Entities::MediaFile(m) => m,
+                _ => panic!(),
+            });
+        Box::new(iter)
+    }
+}
 
 impl Entity for MediaFile {
     fn key(&self) -> Option<String> {

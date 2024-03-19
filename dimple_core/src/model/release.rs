@@ -46,8 +46,14 @@ impl Release {
         }
     }
 
-    pub fn entity(&self) -> Entities {
-        Entities::Release(self.clone())
+    pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = Release>> {
+        let iter = col
+            .list(&Release::default().entity(), None)
+            .map(|m| match m {
+                Entities::Release(m) => m,
+                _ => panic!(),
+            });
+        Box::new(iter)
     }
 
     pub fn recordings(&self, lib: &dyn Collection) -> Box<dyn Iterator<Item = Recording>> {
@@ -89,5 +95,5 @@ impl Entity for Release {
 
     fn entity(&self) -> Entities {
         Entities::Release(self.clone())
-    }    
+    }   
 }

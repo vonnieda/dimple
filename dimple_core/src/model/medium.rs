@@ -1,17 +1,9 @@
-
-
-
 use serde::Deserialize;
 use serde::Serialize;
 
-
-
 use crate::model::Entity;
 
-
-
 use crate::model::Track;
-
 
 /// References
 /// https://musicbrainz.org/doc/Artist
@@ -30,5 +22,3 @@ pub struct Medium {
     pub track_count: u32,
     pub tracks: Vec<Track>,
 }
-
-

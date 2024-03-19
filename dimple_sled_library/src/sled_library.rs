@@ -159,7 +159,7 @@ impl Collection for SledLibrary {
 
 #[cfg(test)]
 mod tests {
-    use dimple_core::model::{Artist, Release};
+    use dimple_core::model::{Artist, Entity, Release};
 
     use super::*;
 

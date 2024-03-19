@@ -1,6 +1,6 @@
 use std::{collections::HashSet, sync::{Arc, Mutex, RwLock}, thread, time::Duration};
 
-use dimple_core::{collection::Collection, model::{Artist, Entity, MediaFile, Release, ReleaseGroup}};
+use dimple_core::{collection::Collection, model::{Artist, Entity, MediaFile, Release, ReleaseGroup, Track}};
 use dimple_sled_library::sled_library::SledLibrary;
 use image::DynamicImage;
 use dimple_core::model::Entities;
@@ -33,21 +33,17 @@ impl Librarian {
             thread::spawn(move || librarian.sync_worker());
         }
 
+        {
+            let librarian = librarian.clone();
+            thread::spawn(move || librarian.mediafile_worker());
+        }
+
         // {
         //     let librarian = librarian.clone();
         //     thread::spawn(move || librarian.coverart_worker());
         // }
 
         librarian
-    }
-
-    /**
-     * Downloads and stores coverart for entities that do not yet have any.
-     */
-    fn coverart_worker(&self) {
-        loop {
-            thread::sleep(Duration::from_secs(10));
-        }
     }
 
     /**
@@ -66,6 +62,9 @@ impl Librarian {
                         media_file.set_key(Some(new_key));
                         self.local_library.set(&media_file).unwrap();
                     }
+                    // TODO Maybe good place to get genres?
+                    // TODO this will also refresh RSS feeds, prices, etc.
+                    // TODO this might actually be ProviderWorker.
                     // for artist in Artist::list(lib.as_ref()) {
                     //     self.local_library.set(&artist.entity()).unwrap();
                     //     for rg in artist.release_groups(lib.as_ref()) {
@@ -78,13 +77,16 @@ impl Librarian {
                 }
             }
 
-            log::info!("MediaFiles: {}", self.local_library.list(&MediaFile::default().entity(), None).count());
-            thread::sleep(Duration::from_secs(1));
+            log::info!("Artists:           {}", Artist::list(self.local_library.as_ref()).count());
+            log::info!("Release Groups:    {}", ReleaseGroup::list(self.local_library.as_ref()).count());
+            log::info!("Releases:          {}", Release::list(self.local_library.as_ref()).count());
+            log::info!("Mediums:           {}", Medium::list(self.local_library.as_ref()).count());
+            log::info!("Tracks:            {}", Track::list(self.local_library.as_ref()).count());
+            log::info!("Recordings:        {}", Recording::list(self.local_library.as_ref()).count());
+            log::info!("Recording Sources: {}", RecordingSource::list(self.local_library.as_ref()).count());
+            log::info!("MediaFiles:        {}", MediaFile::list(self.local_library.as_ref()).count());
+            thread::sleep(Duration::from_secs(10));
         }
-    }
-
-    fn acoustid_worker(&self) {
-
     }
 
     /**
@@ -95,12 +97,38 @@ impl Librarian {
      * 
      * https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
      */
-    fn import_worker(&self) {
+    fn mediafile_worker(&self) {
+        loop {
+            let media_files: Vec<_> = MediaFile::list(self.local_library.as_ref()).collect();
+            // Filter out already merged files
+            // Cluster to reduce the number of lookups
+            
+            thread::sleep(Duration::from_secs(1));
+        }
+    }
+    
+    /**
+     * Downloads and stores coverart for entities that do not yet have any.
+     */
+    fn coverart_worker(&self) {
         loop {
             thread::sleep(Duration::from_secs(10));
         }
     }
-    
+
+    /**
+     * Merges newly imported items 
+     */
+    fn merge_worker(&self) {
+        loop {
+            thread::sleep(Duration::from_secs(1));
+        }        
+    }
+
+    fn acoustid_worker(&self) {
+
+    }
+
     /**
      * Improves metadata for stored entities over time by merging in additional
      * details as they are found.

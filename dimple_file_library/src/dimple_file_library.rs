@@ -100,8 +100,6 @@ impl FileLibrary {
             tags,
         };
 
-        // log::info!("read {:?}", details);
-
         Ok(details)
     }
 }
@@ -139,13 +137,36 @@ impl Collection for FileLibrary {
         //     })?;
         // log::debug!("found {}", &file.path);
         // Some(Box::new(std::fs::read(file.path.clone()).ok()?.into_iter()))
-    }
+    // }
 }
 
+// https://github.com/navidrome/navidrome/blob/master/scanner/mapping.go#L31
 impl From<&FileDetails> for MediaFile {
     fn from(value: &FileDetails) -> Self {
         MediaFile {
             key: value.path.clone(),
+
+            // TODO in the future maybe this is, or includes, the sha
+            // source_ids: std::iter::once(value.path.clone()).collect(),
+
+            artist: value.get_tag_value(StandardTagKey::Artist),
+            artist_mbid: value.get_tag_value(StandardTagKey::MusicBrainzArtistId),
+
+            album: value.get_tag_value(StandardTagKey::Album),
+            album_mbid: value.get_tag_value(StandardTagKey::MusicBrainzAlbumId),
+            album_type_mb: value.get_tag_value(StandardTagKey::MusicBrainzReleaseType),
+
+            album_artist: value.get_tag_value(StandardTagKey::AlbumArtist),
+            album_artist_mbid: value.get_tag_value(StandardTagKey::MusicBrainzAlbumArtistId),
+
+            title: value.get_tag_value(StandardTagKey::TrackTitle),
+            recording_mbid: value.get_tag_value(StandardTagKey::MusicBrainzRecordingId),
+            release_track_mbid: value.get_tag_value(StandardTagKey::MusicBrainzReleaseTrackId),
+
+            genre: value.get_tag_value(StandardTagKey::Genre),
+
+            // mb_album_comment: value.get_tag_value(StandardTagKey::commen),
+
             ..Default::default()
         }
     }
