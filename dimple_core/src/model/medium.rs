@@ -1,8 +1,6 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::model::Entity;
-
 use crate::model::Track;
 
 /// References

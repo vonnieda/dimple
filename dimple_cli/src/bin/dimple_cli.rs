@@ -1,91 +1,92 @@
+use anyhow::Result;
+use dimple_core::{db::{Db, MemoryDb}, model::{Artist, Model, Release}};
 
+fn main() -> Result<()> {
+    let db = MemoryDb::default();
 
-use std::{sync::Arc, thread, time::Duration};
+    let artist1: Artist = db.insert(&Artist {
+        name: Some("Rick and Morty".to_string()),
+        ..Default::default()
+    }.into())?.into();
 
-use dimple_core::{collection::Collection, model::{Artist, Entity, MediaFile, Recording}};
-use dimple_coverartarchive_library::CoverArtArchiveLibrary;
-use dimple_deezer_library::DeezerLibrary;
-use dimple_fanart_tv_library::FanartTvLibrary;
-use dimple_file_library::dimple_file_library::FileLibrary;
-use dimple_lastfm_library::LastFmLibrary;
-use dimple_librarian::librarian::Librarian;
-use dimple_musicbrainz_library::MusicBrainzLibrary;
-use dimple_player::player::Player;
-use dimple_theaudiodb_library::TheAudioDbLibrary;
-use dimple_wikidata_library::WikidataLibrary;
-use directories::ProjectDirs;
+    let artist2: Artist = db.insert(&Artist {
+        name: Some("Infected Mushroom".to_string()),
+        ..Default::default()
+    }.into())?.into();
 
-fn main() -> anyhow::Result<()> {
-    let mut builder = env_logger::Builder::new();
-    builder.filter_level(log::LevelFilter::Info);
-    builder.format_timestamp_millis();
-    builder.parse_default_env();
-    builder.filter(Some("symphonia_core"), log::LevelFilter::Off);
-    builder.filter(Some("symphonia_metadata"), log::LevelFilter::Off);
-    builder.filter(Some("symphonia_bundle_mp3"), log::LevelFilter::Off);
-    builder.filter(Some("symphonia_format_isomp4"), log::LevelFilter::Off);
-    builder.init();
+    let artist3: Artist = db.insert(&Artist {
+        name: Some("Hoodie Poo".to_string()),
+        ..Default::default()
+    }.into())?.into();
 
-    let librarian = Arc::new(default_librarian());
-    let paths = vec![
-        "/Users/jason/Music/My Music".to_string(),
-        // "/Users/jason/Music/Dimple Test Tracks".to_string(),
-        // "/Users/jason/Music/My Music/We Were Heading North".to_string(),
-        // "/Users/jason/Music/My Music/Metallica".to_string(),
-        // "/Users/jason/Music/My Music/Megadeth".to_string(),
-        // "/Users/jason/Music/My Music/Opeth".to_string(),
-        // "/Users/jason/Music/My Music/Fen".to_string(),
-    ];
-    librarian.add_library(Box::new(FileLibrary::new(&paths)));
+    let release1: Release = db.insert(&Release {
+        title: Some("Mega Seeds".to_string()),
+        ..Default::default()
+    }.into())?.into();
 
+    let release2: Release = db.insert(&Release {
+        title: Some("Boss La Rosh".to_string()),
+        ..Default::default()
+    }.into())?.into();
 
-    // let artist_count = Artist::list(librarian.as_ref()).count();
-    // for (i, artist) in Artist::list(librarian.as_ref()).enumerate() {
-    //     log::info!("Artist {}/{}: {} (mbid:{:?})", 
-    //         i + 1, artist_count,
-    //         artist.name.clone().unwrap_or_default(),
-    //         artist.mbid().unwrap_or_default());
-        // for release in artist.releases(&librarian) {
-        //     log::info!("    Release: {}", release.title.clone().unwrap_or_default());
-        //     for recording in release.recordings(&librarian) {
-        //         log::info!("        Recording: {}", recording.title.clone().unwrap_or_default());
-        //         for source in recording.sources(&librarian) {
-        //             log::info!("            Source: {}", source.key.unwrap_or_default());
-        //         }
-        //     }
-        // }
-    // }
+    let release3: Release = db.insert(&Release {
+        title: Some("All Together Now".to_string()),
+        ..Default::default()
+    }.into())?.into();
 
-    // let player = Player::new(librarian.clone());
-    // let recordings: Vec<_> = librarian.list(&Recording::default().entity(), None).collect();
-    // for recording in &recordings[0..10] {
-    //     player.enqueue(recording);
-    // }
-    // // player.play();
-    // loop {
-    //     thread::sleep(Duration::from_secs(10));
-    //     player.seek(player.duration() - Duration::from_secs(5));
-    // }
-    
-    loop {
-        // log::info!("{} artists", Artist::list(librarian.as_ref()).count());
-        // log::info!("{} media files", MediaFile::list(librarian.as_ref()).count());
-        thread::sleep(Duration::from_secs(3));
+    db.link(&release1.clone().into(), &artist1.clone().into())?;
+    db.link(&release2.clone().into(), &artist2.clone().into())?;
+    db.link(&release3.clone().into(), &artist1.clone().into())?;
+    db.link(&release3.clone().into(), &artist2.clone().into())?;
+    db.link(&release3.clone().into(), &artist3.clone().into())?;
+
+    let artists: Vec<Artist> = db
+        .list(&Model::Artist(Artist::default()), None)?
+        .map(Into::into)
+        .collect();
+    println!("{:?}", artists);
+
+    let releases: Vec<Release> = db
+        .list(&Model::Release(Release::default()), None)?
+        .map(Into::into)
+        .collect();
+    println!("{:?}", releases);
+
+    let artist1_releases: Vec<Release> = db
+        .list(
+            &Model::Release(Release::default()),
+            Some(&Model::Artist(artist1)),
+        )?
+        .map(Into::into)
+        .collect();
+    println!("{:?}", artist1_releases);
+
+    let artist2_releases: Vec<Release> = db
+        .list(
+            &Model::Release(Release::default()),
+            Some(&Model::Artist(artist2)),
+        )?
+        .map(Into::into)
+        .collect();
+    println!("{:?}", artist2_releases);
+
+    let release2_artists: Vec<Artist> = db
+        .list(
+            &Model::Artist(Artist::default()),
+            Some(&Model::Release(release2)),
+        )?
+        .map(Into::into)
+        .collect();
+    println!("{:?}", release2_artists);
+
+    let artists: Vec<Artist> = db.list(&Model::Artist(Artist::default()), None)?.map(Into::into).collect();
+    for artist in artists {
+        println!("{}", artist.name.clone().unwrap());
+        let releases: Vec<Release> = db.list(&Model::Release(Release::default()), Some(&Model::Artist(artist)))?.map(Into::into).collect();
+        for release in releases {
+            println!("  {}", release.title.unwrap());
+        }
     }
 
     Ok(())
-}
-
-fn default_librarian() -> Librarian {
-    let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
-    let dir = dirs.data_dir().to_str().unwrap();
-    let librarian = Librarian::new(dir);
-    librarian.add_library(Box::<MusicBrainzLibrary>::default());
-    librarian.add_library(Box::<TheAudioDbLibrary>::default());
-    librarian.add_library(Box::<FanartTvLibrary>::default());
-    librarian.add_library(Box::<DeezerLibrary>::default());
-    librarian.add_library(Box::<WikidataLibrary>::default());
-    librarian.add_library(Box::<LastFmLibrary>::default());
-    librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
-    librarian
 }
