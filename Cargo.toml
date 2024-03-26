@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "dimple_core",
-    # "dimple_librarian",
+    "dimple_librarian",
     # "dimple_player",
     # "dimple_sled_library",
     # "dimple_deezer_library",

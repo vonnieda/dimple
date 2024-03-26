@@ -1,5 +1,3 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
-
 use anyhow::Result;
 
 use uuid::Uuid;
@@ -8,12 +6,50 @@ use crate::model::Model;
 
 use super::Db;
 
-#[derive(Default)]
-pub struct MemoryDb {
-    map: Arc<Mutex<HashMap<String, String>>>,
+use sqlite::{Connection, State};
+
+pub struct SqliteDb {
+    con: Connection,
 }
 
-impl MemoryDb {
+impl SqliteDb {
+    pub fn new(path: &str) -> Self {
+        let con = sqlite::open(path).unwrap();
+        con.execute("CREATE TABLE IF NOT EXISTS kv (key TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)").unwrap();
+        Self {
+            con,
+        }
+    }
+
+    fn _get(&self, key: &str) -> Result<Option<String>> {
+        let mut statement = self.con.prepare("SELECT value FROM kv WHERE key = :key")?;
+        statement.bind((":key", key))?;
+        if let Ok(State::Row) = statement.next() {
+            let value = statement.read::<String, _>("value")?;
+            return Ok(Some(value));
+        }
+        Ok(None)
+    }
+
+    fn _insert(&self, key: &str, value: &str) -> Result<()> {
+        let mut statement = self.con.prepare("REPLACE INTO kv (key, value) VALUES (:key, :value)")?;
+        statement.bind((":key", key))?;
+        statement.bind((":value", value))?;
+        statement.next()?;
+        Ok(())
+    }
+
+    fn _list(&self, prefix: &str) -> Result<Box<dyn Iterator<Item = String>>> {
+        let mut statement = self.con.prepare("SELECT value FROM kv WHERE key LIKE :prefix")?;
+        statement.bind((":prefix", prefix))?;
+        let mut results: Vec<String> = vec![];
+        while let Ok(State::Row) = statement.next() {
+            let value = statement.read::<String, _>("value")?;
+            results.push(value);
+        }
+        Ok(Box::new(results.into_iter()))
+    }
+
     fn node_key(model: &Model) -> String {
         // type:key
         format!("node:{}:{}", model.entity_name(), model.key().unwrap())
@@ -46,7 +82,7 @@ impl MemoryDb {
     }
 }
 
-impl Db for MemoryDb {
+impl Db for SqliteDb {
     fn insert(&self, model: &Model) -> Result<Model> {
         let model = match model.key() {
             Some(_) => model.clone(),
@@ -58,38 +94,36 @@ impl Db for MemoryDb {
         };
         let key = Self::node_key(&model);
         let json = serde_json::to_string(&model)?;
-        self.map.lock().unwrap().insert(key, json);
+        // self.map.lock().unwrap().insert(key, json);
+        self._insert(&key, &json)?;
         Ok(model)
     }
 
     fn get(&self, model: &Model) -> Result<Option<Model>> {
         let key = Self::node_key(model);
-        let map = self.map.lock().unwrap();
-        let json = map.get(&key);
+        let json = self._get(&key)?;
         if json.is_none() {
-            return Ok(None)
+            return Ok(None);
         }
-        let model = serde_json::from_str(json.unwrap())?;
+        let model = serde_json::from_str(&json.unwrap())?;
         Ok(Some(model))
     }
 
     fn link(&self, model: &Model, related_to: &Model) -> Result<()> {
-        let mut map = self.map.lock().unwrap();
-
         // related_to -> model
         let key = Self::edge_key(model, related_to);
         let related_key = Self::node_key(model);
-        map.insert(key, related_key);
+        self._insert(&key, &related_key)?;
 
         // model -> related_to
         // TODO not sure if I want this to be bi-dir by default or not
         let key = Self::edge_key(related_to, model);
         let related_key = Self::node_key(related_to);
-        map.insert(key, related_key);
+        self._insert(&key, &related_key)?;
 
         Ok(())
     }
-    
+
     fn list(
         &self,
         list_of: &Model,
@@ -98,27 +132,23 @@ impl Db for MemoryDb {
         if let Some(related_to) = related_to {
             let prefix = Self::edge_prefix(list_of, related_to);
             let mut models: Vec<Model> = vec![];
-            let map = self.map.lock().unwrap();
-            for key in map.keys() {
-                if key.starts_with(&prefix) {
-                    let related_key = map.get(key).unwrap();
-                    let json = map.get(related_key).unwrap();
-                    let model = serde_json::from_str(json)?;
-                    models.push(model);
+            let like_prefix = format!("{}%", prefix);
+            for related_key in self._list(&like_prefix)? {
+                let json = self._get(&related_key)?;
+                if json.is_none() {
+                    continue;
                 }
+                let model = serde_json::from_str(&json.unwrap())?;
+                models.push(model);
             }
             Ok(Box::new(models.into_iter()))
-        }
-        else {
+        } else {
             let prefix = Self::node_prefix(list_of);
             let mut models: Vec<Model> = vec![];
-            let map = self.map.lock().unwrap();
-            for key in map.keys() {
-                if key.starts_with(&prefix) {
-                    let json = map.get(key).unwrap();
-                    let model = serde_json::from_str(json)?;
-                    models.push(model);
-                }
+            let like_prefix = format!("{}%", prefix);
+            for json in self._list(&like_prefix)? {
+                let model = serde_json::from_str(&json)?;
+                models.push(model);
             }
             Ok(Box::new(models.into_iter()))
         }
@@ -137,7 +167,7 @@ impl Entity for Model {
             Model::Artist(_) => "Artist".to_string(),
             Model::Genre(_) => "ReleaseGroup".to_string(),
             Model::MediaFile(_) => "ReleaseGroup".to_string(),
-            Model::Medium(_) => "ReleaseGroup".to_string(),            
+            Model::Medium(_) => "ReleaseGroup".to_string(),
             Model::Recording(_) => "ReleaseGroup".to_string(),
             Model::RecordingSource(_) => "ReleaseGroup".to_string(),
             Model::Release(_) => "Release".to_string(),
@@ -159,7 +189,7 @@ impl Entity for Model {
             Model::Track(value) => value.key.clone(),
         }
     }
-    
+
     fn set_key(&mut self, key: Option<String>) {
         match self {
             Model::Artist(value) => value.key = key,

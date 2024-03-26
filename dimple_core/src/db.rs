@@ -3,8 +3,10 @@ use anyhow::Result;
 use crate::model::Model;
 
 mod memory_db;
+mod sqlite_db;
 
 pub use memory_db::MemoryDb;
+pub use sqlite_db::SqliteDb;
 
 pub trait Db {
     /// Save the model in the database using its key. If no key is set, create

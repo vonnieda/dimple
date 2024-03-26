@@ -1,8 +1,8 @@
 use anyhow::Result;
-use dimple_core::{db::{Db, MemoryDb}, model::{Artist, Model, Release}};
+use dimple_core::{db::{Db, MemoryDb, SqliteDb}, model::{Artist, Model, Release}};
 
 fn main() -> Result<()> {
-    let db = MemoryDb::default();
+    let db = SqliteDb::new("test.db");
 
     let artist1: Artist = db.insert(&Artist {
         name: Some("Rick and Morty".to_string()),
