@@ -123,6 +123,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "dimple_core",
+ "dimple_librarian",
  "directories",
  "env_logger",
  "log",

@@ -1,38 +1,72 @@
 use anyhow::Result;
-use dimple_core::{db::{Db, MemoryDb, SqliteDb}, model::{Artist, Model, Release}};
+use dimple_core::{
+    db::{Db, SqliteDb},
+    model::{Artist, Model, Release},
+};
+use dimple_librarian::librarian::Librarian;
 
 fn main() -> Result<()> {
-    let db = SqliteDb::new("test.db");
+    let db: &dyn Db = &Librarian::new(":memory:");
 
-    let artist1: Artist = db.insert(&Artist {
-        name: Some("Rick and Morty".to_string()),
-        ..Default::default()
-    }.into())?.into();
+    let artist1: Artist = db
+        .insert(
+            &Artist {
+                name: Some("Rick and Morty".to_string()),
+                ..Default::default()
+            }
+            .into(),
+        )?
+        .into();
 
-    let artist2: Artist = db.insert(&Artist {
-        name: Some("Infected Mushroom".to_string()),
-        ..Default::default()
-    }.into())?.into();
+    let artist2: Artist = db
+        .insert(
+            &Artist {
+                name: Some("Infected Mushroom".to_string()),
+                ..Default::default()
+            }
+            .into(),
+        )?
+        .into();
 
-    let artist3: Artist = db.insert(&Artist {
-        name: Some("Hoodie Poo".to_string()),
-        ..Default::default()
-    }.into())?.into();
+    let artist3: Artist = db
+        .insert(
+            &Artist {
+                name: Some("Hoodie Poo".to_string()),
+                ..Default::default()
+            }
+            .into(),
+        )?
+        .into();
 
-    let release1: Release = db.insert(&Release {
-        title: Some("Mega Seeds".to_string()),
-        ..Default::default()
-    }.into())?.into();
+    let release1: Release = db
+        .insert(
+            &Release {
+                title: Some("Mega Seeds".to_string()),
+                ..Default::default()
+            }
+            .into(),
+        )?
+        .into();
 
-    let release2: Release = db.insert(&Release {
-        title: Some("Boss La Rosh".to_string()),
-        ..Default::default()
-    }.into())?.into();
+    let release2: Release = db
+        .insert(
+            &Release {
+                title: Some("Boss La Rosh".to_string()),
+                ..Default::default()
+            }
+            .into(),
+        )?
+        .into();
 
-    let release3: Release = db.insert(&Release {
-        title: Some("All Together Now".to_string()),
-        ..Default::default()
-    }.into())?.into();
+    let release3: Release = db
+        .insert(
+            &Release {
+                title: Some("All Together Now".to_string()),
+                ..Default::default()
+            }
+            .into(),
+        )?
+        .into();
 
     db.link(&release1.clone().into(), &artist1.clone().into())?;
     db.link(&release2.clone().into(), &artist2.clone().into())?;
@@ -79,10 +113,19 @@ fn main() -> Result<()> {
         .collect();
     println!("{:?}", release2_artists);
 
-    let artists: Vec<Artist> = db.list(&Model::Artist(Artist::default()), None)?.map(Into::into).collect();
+    let artists: Vec<Artist> = db
+        .list(&Model::Artist(Artist::default()), None)?
+        .map(Into::into)
+        .collect();
     for artist in artists {
         println!("{}", artist.name.clone().unwrap());
-        let releases: Vec<Release> = db.list(&Model::Release(Release::default()), Some(&Model::Artist(artist)))?.map(Into::into).collect();
+        let releases: Vec<Release> = db
+            .list(
+                &Model::Release(Release::default()),
+                Some(&Model::Artist(artist)),
+            )?
+            .map(Into::into)
+            .collect();
         for release in releases {
             println!("  {}", release.title.unwrap());
         }

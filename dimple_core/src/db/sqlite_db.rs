@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 
 use uuid::Uuid;
@@ -6,15 +8,15 @@ use crate::model::Model;
 
 use super::Db;
 
-use sqlite::{Connection, State};
+use sqlite::{Connection, ConnectionThreadSafe, State};
 
 pub struct SqliteDb {
-    con: Connection,
+    con: ConnectionThreadSafe,
 }
 
 impl SqliteDb {
     pub fn new(path: &str) -> Self {
-        let con = sqlite::open(path).unwrap();
+        let con = Connection::open_thread_safe(path).unwrap();
         con.execute("CREATE TABLE IF NOT EXISTS kv (key TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)").unwrap();
         Self {
             con,
@@ -94,7 +96,6 @@ impl Db for SqliteDb {
         };
         let key = Self::node_key(&model);
         let json = serde_json::to_string(&model)?;
-        // self.map.lock().unwrap().insert(key, json);
         self._insert(&key, &json)?;
         Ok(model)
     }

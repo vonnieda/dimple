@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex, RwLock};
 
 use dimple_core::{
-    db::{Db, MemoryDb},
+    db::{Db, MemoryDb, SqliteDb},
     source::{AccessMode, Source},
 };
 
@@ -9,15 +9,15 @@ use anyhow::Result;
 
 #[derive(Clone)]
 pub struct Librarian {
-    db: Arc<MemoryDb>,
+    db: Arc<SqliteDb>,
     sources: Arc<RwLock<Vec<Box<dyn Source>>>>,
     access_mode: Arc<Mutex<AccessMode>>,
 }
 
 impl Librarian {
-    pub fn new(_path: &str) -> Self {
+    pub fn new(path: &str) -> Self {
         let librarian = Self {
-            db: Arc::new(MemoryDb::default()),
+            db: Arc::new(SqliteDb::new(path)),
             sources: Default::default(),
             access_mode: Arc::new(Mutex::new(AccessMode::Online)),
         };
@@ -40,6 +40,28 @@ impl Librarian {
 
     pub fn set_access_mode(&self, value: &AccessMode) {
         *self.access_mode.lock().unwrap() = value.clone();
+    }
+}
+
+impl Db for Librarian {
+    fn insert(&self, model: &dimple_core::model::Model) -> Result<dimple_core::model::Model> {
+        self.db.insert(model)
+    }
+
+    fn get(&self, model: &dimple_core::model::Model) -> Result<Option<dimple_core::model::Model>> {
+        self.db.get(model)
+    }
+
+    fn link(&self, model: &dimple_core::model::Model, related_to: &dimple_core::model::Model) -> Result<()> {
+        self.db.link(model, related_to)
+    }
+
+    fn list(
+        &self,
+        list_of: &dimple_core::model::Model,
+        related_to: Option<&dimple_core::model::Model>,
+    ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
+        self.db.list(list_of, related_to)
     }
 }
 

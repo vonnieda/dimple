@@ -13,6 +13,7 @@ pub struct MemoryDb {
     map: Arc<Mutex<HashMap<String, String>>>,
 }
 
+// TODO rework this using SqliteDb's _get etc. functions
 impl MemoryDb {
     fn node_key(model: &Model) -> String {
         // type:key

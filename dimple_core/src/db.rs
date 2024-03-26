@@ -8,7 +8,7 @@ mod sqlite_db;
 pub use memory_db::MemoryDb;
 pub use sqlite_db::SqliteDb;
 
-pub trait Db {
+pub trait Db: Send + Sync {
     /// Save the model in the database using its key. If no key is set, create
     /// a unique one, save the model with it, and return the model with the
     /// new key set. Overwrites existing values.
