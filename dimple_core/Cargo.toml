@@ -13,4 +13,5 @@ anyhow = "1.0.81"
 uuid = { version = "1.7.0", features = ["v4"] }
 serde_json = "1.0.94"
 sqlite = "0.34.0"
+dimple_core_macro = { path = "../dimple_core_macro" }
 

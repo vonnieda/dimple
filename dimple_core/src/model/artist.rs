@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -8,7 +9,7 @@ use crate::model::KnownId;
 use super::Model;
 
 // https://musicbrainz.org/doc/Artist
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 pub struct Artist {
     pub key: Option<String>,
     pub name: Option<String>,
@@ -21,17 +22,3 @@ pub struct Artist {
     pub country: Option<String>,
 }
 
-impl From<Artist> for Model {
-    fn from(value: Artist) -> Self {
-        Self::Artist(value)
-    }
-}
-
-impl From<Model> for Artist {
-    fn from(value: Model) -> Self {
-        match value {
-            Model::Artist(value) => value,
-            _ => panic!(),
-        }
-    }
-}

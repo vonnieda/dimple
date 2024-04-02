@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -7,7 +8,7 @@ use super::KnownId;
 use super::Model;
 
 // https://musicbrainz.org/doc/Release
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 #[serde(default)]
 pub struct Release {
     pub key: Option<String>,
@@ -25,17 +26,3 @@ pub struct Release {
     pub status: Option<String>,
 }
 
-impl From<Release> for Model {
-    fn from(value: Release) -> Self {
-        Self::Release(value)
-    }
-}
-
-impl From<Model> for Release {
-    fn from(value: Model) -> Self {
-        match value {
-            Model::Release(value) => value,
-            _ => panic!(),
-        }
-    }
-}

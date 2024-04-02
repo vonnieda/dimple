@@ -1,3 +1,4 @@
+use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -5,8 +6,10 @@ use crate::model::RecordingSource;
 
 use crate::model::Recording;
 
+use super::Model;
+
 // https://musicbrainz.org/doc/Track
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 pub struct Track {
     pub key: Option<String>,
 

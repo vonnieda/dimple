@@ -4,7 +4,7 @@ use anyhow::Result;
 
 use uuid::Uuid;
 
-use crate::model::Model;
+use crate::model::{Artist, Model};
 
 use super::Db;
 

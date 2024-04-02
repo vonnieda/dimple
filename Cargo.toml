@@ -14,7 +14,7 @@ members = [
     # "dimple_sqlite3_library",
     # "dimple_navidrome_library",
     # "dimple_file_library",
-    "dimple_cli",
+    "dimple_cli", "dimple_core_macro",
     # "dimple_ui_egui",
 ]
 resolver="2"

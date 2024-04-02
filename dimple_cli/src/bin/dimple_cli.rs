@@ -1,7 +1,7 @@
 use anyhow::Result;
 use dimple_core::{
     db::{Db, SqliteDb},
-    model::{Artist, Model, Release},
+    model::{Artist, Model, Release}, source::Source,
 };
 use dimple_librarian::librarian::Librarian;
 
