@@ -35,8 +35,8 @@ fn main() -> Result<(), slint::PlatformError> {
     };
 
     let config = PlatformConfig {
-        dbus_name: "my_player",
-        display_name: "My Player",
+        dbus_name: "dimple",
+        display_name: "Dimple",
         hwnd,
     };
 
@@ -56,11 +56,6 @@ fn main() -> Result<(), slint::PlatformError> {
             ..Default::default()
         })
         .unwrap();
-
-    // // Your actual logic goes here.
-    // loop {
-    //     std::thread::sleep(std::time::Duration::from_secs(1));
-    // }
 
     let ui = AppWindowController::default();
     ui.run()

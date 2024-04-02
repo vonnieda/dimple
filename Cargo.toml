@@ -9,7 +9,7 @@ members = [
     # "dimple_fanart_tv_library",
     # "dimple_theaudiodb_library",
     # "dimple_lastfm_library",
-    # "dimple_ui_slint",
+    "dimple_ui_slint",
     # "dimple_s3_compatible_storage_library",
     # "dimple_sqlite3_library",
     # "dimple_navidrome_library",

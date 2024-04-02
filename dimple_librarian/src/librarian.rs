@@ -1,7 +1,7 @@
-use std::sync::{Arc, Mutex, RwLock};
+use std::{fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, MemoryDb, SqliteDb},
+    db::{Db, SqliteDb},
     source::{AccessMode, Source},
 };
 
@@ -16,8 +16,10 @@ pub struct Librarian {
 
 impl Librarian {
     pub fn new(path: &str) -> Self {
+        fs::create_dir_all(path).unwrap();
+        let db_path = Path::new(path).join("library.db");
         let librarian = Self {
-            db: Arc::new(SqliteDb::new(path)),
+            db: Arc::new(SqliteDb::new(db_path.to_str().unwrap())),
             sources: Default::default(),
             access_mode: Arc::new(Mutex::new(AccessMode::Online)),
         };

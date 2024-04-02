@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use anyhow::Result;
 
 use uuid::Uuid;
 
-use crate::model::{Artist, Model};
+use crate::model::{Model};
 
 use super::Db;
 
