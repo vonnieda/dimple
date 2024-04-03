@@ -1,7 +1,8 @@
+use dimple_player::player::Player;
 use serde::{de, Deserialize, Serialize};
 use url::Url;
 
-use std::{collections::VecDeque, default, env, path::Display, rc::Rc, sync::{Arc, Mutex}, thread, time::{Duration, Instant}};
+use std::{collections::VecDeque, rc::Rc, sync::{Arc, Mutex}, thread, time::{Duration, Instant}};
 
 use dimple_core::{model::{Artist, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track}, source::AccessMode};
 use image::DynamicImage;
@@ -12,14 +13,15 @@ use rayon::prelude::*;
 
 use dimple_librarian::librarian::Librarian;
 
+use directories::ProjectDirs;
+use dimple_core::source::Source;
+
 pub struct AppWindowController {
     ui: AppWindow,
     librarian: Arc<Librarian>,
     history: Arc<Mutex<VecDeque<String>>>,
-    // player: Player,
+    player: Player,
 }
-
-use directories::ProjectDirs;
 
 impl Default for AppWindowController {
     fn default() -> Self {
@@ -27,12 +29,12 @@ impl Default for AppWindowController {
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
         let dir = dirs.data_dir().to_str().unwrap();
         let librarian = Arc::new(Librarian::new(dir));
-        // let player = Player::new(librarian.clone());
+        let player = Player::new(librarian.clone());
         Self {
             ui,
             librarian,
             history: Arc::new(Mutex::new(VecDeque::new())),
-            // player,
+            player,
         }
     }
 }
@@ -74,22 +76,22 @@ impl AppWindowController {
             }).unwrap();
         });
 
-        // // Updates player state
-        // let ui = self.ui.as_weak();
-        // let player = self.player.clone();
-        // thread::spawn(move || {
-        //     ui.upgrade_in_event_loop(move |ui| {
-        //         let adapter = PlayerBarAdapter {
-        //             duration_seconds: player.duration().as_secs() as i32,
-        //             duration_label: length_to_string(player.duration().as_secs() as u32).into(),
-        //             position_seconds: player.position().as_secs() as i32,
-        //             position_label: length_to_string(player.position().as_secs() as u32).into(),
-        //             ..Default::default()
-        //         };
-        //         ui.set_player_bar_adapter(adapter);
-        //     }).unwrap();
-        //     thread::sleep(Duration::from_millis(100));
-        // });
+        // Updates player state
+        let ui = self.ui.as_weak();
+        let player = self.player.clone();
+        thread::spawn(move || {
+            ui.upgrade_in_event_loop(move |ui| {
+                let adapter = PlayerBarAdapter {
+                    duration_seconds: player.duration().as_secs() as i32,
+                    duration_label: length_to_string(player.duration().as_secs() as u32).into(),
+                    position_seconds: player.position().as_secs() as i32,
+                    position_label: length_to_string(player.position().as_secs() as u32).into(),
+                    ..Default::default()
+                };
+                ui.set_player_bar_adapter(adapter);
+            }).unwrap();
+            thread::sleep(Duration::from_millis(100));
+        });
            
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
@@ -143,90 +145,71 @@ impl AppWindowController {
 
     fn back(history: Arc<Mutex<VecDeque<String>>>, 
         librarian: &Librarian, ui: slint::Weak<AppWindow>) {
-            // ui.upgrade_in_event_loop(move |ui| {
-            //     let url: Option<String> = history.lock().ok()
-            //         .and_then(|mut history| {
-            //             let _ = history.pop_back()?;
-            //             history.pop_back()
-            //         });
-            //     if let Some(url) = url {
-            //         Self::navigate(url.into(), history.clone(), librarian, ui.as_weak());
-            //     }
-            // }).unwrap();
+            let librarian = librarian.clone();
+            ui.upgrade_in_event_loop(move |ui| {
+                let url: Option<String> = history.lock().ok()
+                    .and_then(|mut history| {
+                        let _ = history.pop_back()?;
+                        history.pop_back()
+                    });
+                if let Some(url) = url {
+                    Self::navigate(url.into(), history.clone(), &librarian, ui.as_weak());
+                }
+            }).unwrap();
     }
 
     fn refresh(history: Arc<Mutex<VecDeque<String>>>, 
         librarian: &Librarian, ui: slint::Weak<AppWindow>) {
-            // ui.upgrade_in_event_loop(move |ui| {
-            //     let url: Option<String> = history.lock().ok()
-            //         .and_then(|mut history| {
-            //             history.pop_back()
-            //         });
-            //     if let Some(url) = url {
-            //         Self::navigate(url.into(), history.clone(), librarian, ui.as_weak());
-            //     }
-            // }).unwrap();
+            let librarian = librarian.clone();
+            ui.upgrade_in_event_loop(move |ui| {
+                let url: Option<String> = history.lock().ok()
+                    .and_then(|mut history| {
+                        history.pop_back()
+                    });
+                if let Some(url) = url {
+                    Self::navigate(url.into(), history.clone(), &librarian, ui.as_weak());
+                }
+            }).unwrap();
     }
 
     fn home(librarian: &Librarian, ui: slint::Weak<AppWindow>) {
+        let librarian = librarian.clone();
         std::thread::spawn(move || {
-            // let i = Instant::now();
-            // let mut tracks: Vec<(Artist, Release, Recording, RecordingSource)> = Vec::new();
-            // for artist in Artist::list(librarian.as_ref()) {
-            //     for release in artist.releases(librarian.as_ref()) {
-            //         for recording in release.recordings(librarian.as_ref()) {
-            //             for source in recording.sources(librarian.as_ref()) {
-            //                 tracks.push((artist.clone(), release.clone(), recording.clone(), source.clone()));
-            //             }
-            //         }
-            //     }
-            // }
+            let mut tracks: Vec<(Artist, Release, Recording, RecordingSource)> = Vec::new();
+            let artists = librarian
+                .list(&Artist::default().into(), None, &AccessMode::Online).unwrap()
+                .map(Into::<Artist>::into);
+            for artist in artists {
+                dbg!(artist);
+                // for release in artist.releases(librarian.as_ref()) {
+                //     for recording in release.recordings(librarian.as_ref()) {
+                //         for source in recording.sources(librarian.as_ref()) {
+                //             tracks.push((artist.clone(), release.clone(), recording.clone(), source.clone()));
+                //         }
+                //     }
+                // }
+            }
 
             ui.upgrade_in_event_loop(move |ui| {
-                // let rows: VecModel<ModelRc<StandardListViewItem>> = VecModel::default();
-                // for (artist, release, recording, source) in tracks {
-                //     let row = Rc::new(VecModel::default());
-                //     row.push(recording.title.listview_item());
-                //     row.push(release.title.listview_item());
-                //     row.push(artist.name.listview_item());
-                //     row.push(source.extension.listview_item());
-                //     row.push(format!("{:?}", source.source_ids).listview_item());
-                //     row.push("".listview_item());
-                //     rows.push(row.into());
-                // }
-                // let adapter = HomeAdapter {
-                //     rows: ModelRc::new(rows),
-                // };
-                // ui.set_home_adapter(adapter);
+                let rows: VecModel<ModelRc<StandardListViewItem>> = VecModel::default();
+                for (artist, release, recording, source) in tracks {
+                    let row = Rc::new(VecModel::default());
+                    row.push(recording.title.listview_item());
+                    row.push(release.title.listview_item());
+                    row.push(artist.name.listview_item());
+                    row.push(source.extension.listview_item());
+                    row.push(format!("{:?}", source.source_ids).listview_item());
+                    row.push("".listview_item());
+                    rows.push(row.into());
+                }
+                let adapter = HomeAdapter {
+                    rows: ModelRc::new(rows),
+                };
+                ui.set_home_adapter(adapter);
                 ui.set_page(5);
             }).unwrap();
         });
     }
-
-    // fn home(librarian: LibrarianHandle, ui: slint::Weak<AppWindow>) {
-    //     std::thread::spawn(move || {
-    //         ui.upgrade_in_event_loop(move |ui| {
-    //             let i = Instant::now();
-    //             let rows: VecModel<ModelRc<StandardListViewItem>> = VecModel::default();
-    //             for i in 1..100000 {
-    //                 let row = Rc::new(VecModel::default());
-    //                 row.push(format!("title {}", i).listview_item());
-    //                 row.push(format!("album {}", i).listview_item());
-    //                 row.push(format!("artist {}", i).listview_item());
-    //                 row.push(format!("what {}", i).listview_item());
-    //                 row.push(format!("ever {}", i).listview_item());
-    //                 row.push(format!("man {}", i).listview_item());
-    //                 rows.push(row.into());
-    //             }
-    //             let adapter = HomeAdapter {
-    //                 rows: ModelRc::new(rows),
-    //             };
-    //             ui.set_home_adapter(adapter);
-    //             ui.set_page(5);
-    //             log::info!("{}", i.elapsed().as_millis());
-    //         }).unwrap();
-    //     });
-    // }
 
     fn settings(ui: slint::Weak<AppWindow>) {
         std::thread::spawn(move || {

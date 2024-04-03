@@ -32,6 +32,7 @@ export component AppWindow inherits Window {
     in-out property <int> page: 1;
     // TODO Note to self: Currently you can't expose properties on
     // sub-components, so all this is needed.
+    // https://github.com/slint-ui/slint/issues/784
     in-out property <CardGridAdapter> card-grid-adapter;
     in-out property <ArtistDetailsAdapter> artist-details;
     in-out property <ReleaseGroupDetailsAdapter> release-group-details;
