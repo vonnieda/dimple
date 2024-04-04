@@ -5,7 +5,7 @@ import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Palette, Navigator } from "../common.slint";
 
-export struct RecordingDetailsAdapter {
+export struct TrackDetailsAdapter {
     card: CardAdapter,
     disambiguation: string,
     summary: string,
@@ -20,7 +20,7 @@ export struct RecordingDetailsAdapter {
     // media: [MediumAdapter],
 }
 
-export component RecordingDetails inherits ScrollView {
+export component TrackDetails inherits ScrollView {
     VerticalBox {
         alignment: start;
         spacing: StyleMetrics.layout-spacing * 2;
@@ -144,7 +144,7 @@ export component RecordingDetails inherits ScrollView {
         }
     }
 
-    in property <RecordingDetailsAdapter> model: {
+    in property <TrackDetailsAdapter> model: {
         // id: "123-123-123-123",
         // title: "A Reign of Fish",
         card: {

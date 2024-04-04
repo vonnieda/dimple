@@ -167,23 +167,43 @@ export component SideBar inherits VerticalBox {
         font-size: 1.3rem;
         height: 36px;
     }
-    SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/light/arrow-left-light.svg");
-        text: "Back";
-        url: "dimple://back";
-    }
-    SideBarRefreshItem {
+    // SideBarMenuItem {
+    //     image: @image-url("../icons/phosphor/SVGs/light/arrow-left-light.svg");
+    //     text: "Back";
+    //     url: "dimple://back";
+    // }
+    // SideBarRefreshItem {
 
-    }
+    // }
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/regular/house.svg");
         url: "dimple://home";
         text: "Home";
     }
+    // SideBarMenuItem {
+    //     image: @image-url("../icons/phosphor/SVGs/regular/books.svg");
+    //     url: "dimple://artists";
+    //     text: "Library";
+    // }
     SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/regular/books.svg");
+        image: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
         url: "dimple://artists";
-        text: "Library";
+        text: "Artists";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
+        url: "dimple://releases";
+        text: "Albums";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/music-notes.svg");
+        url: "dimple://tracks";
+        text: "Tracks";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/list.svg");
+        url: "dimple://playlists";
+        text: "Playlists";
     }
     SideBarImageItem {
         image: { image: @image-url("../images/wwhn-lightness.png"), 
@@ -203,27 +223,28 @@ export component SideBar inherits VerticalBox {
         title: { name: "Death Metal + Horns", url: "internal://release/1234" };
         sub-title: { name: "Playlist • 14 Songs",url: "internal://artist/9876" };
     }
+
     // Fills the space between the last normal item and the settings, at the bottom.
     Rectangle {
         
     }
 
-    HorizontalLayout {
-        spacing: 8px;
-        CheckBox {
-            checked: AppState.online;
-            toggled => { AppState.set_online(self.checked); }
-            horizontal-stretch: 0;
-        }
-        VerticalLayout {
-            alignment: center;
-            Text {
-                font-size: 1.4rem;
-                text: "Online?";
-                font-weight: Palette.font-weight-bold;
-            }
-        }
-    }
+    // HorizontalLayout {
+    //     spacing: 8px;
+    //     CheckBox {
+    //         checked: AppState.online;
+    //         toggled => { AppState.set_online(self.checked); }
+    //         horizontal-stretch: 0;
+    //     }
+    //     VerticalLayout {
+    //         alignment: center;
+    //         Text {
+    //             font-size: 1.4rem;
+    //             text: "Online?";
+    //             font-weight: Palette.font-weight-bold;
+    //         }
+    //     }
+    // }
 
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/light/gear-light.svg");

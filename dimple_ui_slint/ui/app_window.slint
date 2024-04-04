@@ -11,18 +11,21 @@ import { ImageLinkAdapter, LinkAdapter, Links, Link} from "./components/link.sli
 import { ArtistDetailsAdapter } from "./pages/artist_details.slint";
 import { ReleaseDetailsAdapter } from "./pages/release_details.slint";
 import { ReleaseGroupDetailsAdapter } from "./pages/release_group_details.slint";
-import { RecordingDetailsAdapter } from "./pages/recording_details.slint";
 import { SettingsAdapter } from "./pages/settings.slint";
 import { HomeAdapter } from "./pages/home.slint";
 import { PlayerBarAdapter } from "./player_bar.slint";
 import { ArtistDetails } from "pages/artist_details.slint";
 import { ReleaseGroupDetails } from "pages/release_group_details.slint";
 import { ReleaseDetails } from "pages/release_details.slint";
-import { RecordingDetails } from "pages/recording_details.slint";
+import { TrackDetails, TrackDetailsAdapter } from "pages/track_details.slint";
 import { Home } from "pages/home.slint";
 import { Settings } from "pages/settings.slint";
 import { PlayerBar } from "player_bar.slint";
 import { SideBar } from "side_bar.slint";
+import { ArtistList } from "pages/artist_list.slint";
+import { ReleaseGroupList } from "pages/release_group_list.slint";
+import { ReleaseList } from "pages/release_list.slint";
+import { TrackList } from "pages/track_list.slint";
 
 export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter, Palette, AppState }
 
@@ -38,20 +41,39 @@ import "../fonts/Roboto/Roboto-MediumItalic.ttf";
 import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
+import { Search } from "pages/search.slint";
+
+// I think I'm supposed to think of this more in terms of the whole state of
+// the app, which the UI then reacts to / reflects. Right now what I'm doing
+// feels like rebuilding the UI every time? But maybe that's just because
+// for all these pages that's what I have to do?
+
+export enum Page { Home, Search,
+        ArtistList, ArtistDetails,
+        ReleaseList, ReleaseDetails,
+        ReleaseGroupList, ReleaseGroupDetails,
+        TrackList, TrackDetails,
+        PlaylistList, PlaylistDetails,
+        Settings }
 
 export component AppWindow inherits Window {
-    in-out property <int> page: 1;
+    in-out property <Page> page: Settings;
+
     // TODO Note to self: Currently you can't expose properties on
-    // sub-components, so we have to bubble them all to the top for now.
-    // https://github.com/slint-ui/slint/issues/784
-    in-out property <CardGridAdapter> card-grid-adapter;
+    // sub-components, so we have to bubble them all to the top.
+    // See: https://github.com/slint-ui/slint/issues/784
+    in-out property <HomeAdapter> home;
+    in-out property <CardGridAdapter> search;
+    in-out property <CardGridAdapter> artist-list;
     in-out property <ArtistDetailsAdapter> artist-details;
+    in-out property <CardGridAdapter> release-group-list;
     in-out property <ReleaseGroupDetailsAdapter> release-group-details;
+    in-out property <CardGridAdapter> release-list;
     in-out property <ReleaseDetailsAdapter> release-details;
-    in-out property <RecordingDetailsAdapter> recording-details;
-    in-out property <SettingsAdapter> settings-adapter;
-    in-out property <HomeAdapter> home-adapter;
-    in-out property <PlayerBarAdapter> player-bar-adapter;
+    in-out property <CardGridAdapter> track-list;
+    in-out property <TrackDetailsAdapter> track-details;
+    in-out property <SettingsAdapter> settings;
+    in-out property <PlayerBarAdapter> player-bar;
     
     title: "Dimple";
     icon: @image-url("../images/icon_512x512.png");
@@ -72,41 +94,38 @@ export component AppWindow inherits Window {
             GroupBox {
                 horizontal-stretch: 1;
                 Rectangle {
-                    if page == 0: VerticalLayout {
-                        ScrollView {                        
-                            card-grid := CardGrid {
-                                cards: root.card-grid-adapter.cards;
-                                parent-width: parent.width;
-                            }
-                        }
-                        Text {
-                            horizontal-alignment: right;
-                            text: card-grid-adapter.cards.length + " items";
-                        }
+                    if page == Page.Home: Home {
+                        model: root.home;
                     }
-                    if page == 1: ArtistDetails {  
+                    if page == Page.Search: Search {
+                        model: root.search;
+                    }
+                    if page == Page.ArtistList: ArtistList {
+                        model: root.artist-list;
+                    }
+                    if page == Page.ArtistDetails: ArtistDetails {  
                         model: root.artist-details;
                     }
-                    if page == 2: ReleaseGroupDetails {  
+                    if page == Page.ReleaseGroupList: ReleaseGroupList {  
+                        model: root.release-group-list;
+                    }
+                    if page == Page.ReleaseGroupDetails: ReleaseGroupDetails {  
                         model: root.release-group-details;
                     }
-                    if page == 3: ReleaseDetails {  
+                    if page == Page.ReleaseList: ReleaseList {  
+                        model: root.release-list;
+                    }                
+                    if page == Page.ReleaseDetails: ReleaseDetails {  
                         model: root.release-details;
                     }                
-                    if page == 4: RecordingDetails {  
-                        model: root.recording-details;
+                    if page == Page.TrackList: TrackList {  
+                        model: root.track-list;
                     }
-                    if page == 5: VerticalLayout {
-                        Home {  
-                            adapter: root.home-adapter;
-                        }
-                        Text {
-                            horizontal-alignment: right;
-                            text: root.home-adapter.rows.length + " items";
-                        }
+                    if page == Page.TrackDetails: TrackDetails {  
+                        model: root.track-details;
                     }
-                    if page == 6: Settings {  
-                        adapter: root.settings-adapter;
+                    if page == Page.Settings: Settings {  
+                        adapter: root.settings;
                     }
                 }
             }    
@@ -114,7 +133,7 @@ export component AppWindow inherits Window {
         GroupBox {
             vertical-stretch: 0;
             PlayerBar {
-                adapter: player-bar-adapter;
+                model: player-bar;
             }
         }
     }

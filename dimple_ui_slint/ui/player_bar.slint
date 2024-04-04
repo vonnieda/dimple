@@ -42,7 +42,7 @@ component InfoAreaLabel inherits HorizontalLayout {
 }
 
 export component PlayerBar {
-    in-out property <PlayerBarAdapter> adapter;
+    in-out property <PlayerBarAdapter> model;
 
     HorizontalLayout {
         spacing: StyleMetrics.layout-spacing * 2;
@@ -55,7 +55,7 @@ export component PlayerBar {
             clip: true;
             // TODO needs imagelink
             img := Image {
-                source: adapter.now-playing-recording.image.image;
+                source: model.now-playing-recording.image.image;
                 width: Palette.thumbnail-width-medium;
                 height: Palette.thumbnail-width-medium;
             }    
@@ -67,33 +67,33 @@ export component PlayerBar {
                 spacing: 2px;
                 InfoAreaLabel {
                     icon: @image-url("../icons/phosphor/SVGs/bold/music-notes-bold.svg");
-                    link: adapter.now-playing-artist.title;
+                    link: model.now-playing-artist.title;
                     font-weight: Palette.font-weight-bold;
                 }
                 InfoAreaLabel {
                     icon: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
-                    link: adapter.now-playing-release.title;
+                    link: model.now-playing-release.title;
                 }
                 InfoAreaLabel {
                     icon: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
-                    link: adapter.now-playing-recording.title;
+                    link: model.now-playing-recording.title;
                 }
                 Rectangle {
                     vertical-stretch: 1;
                 }
                 Slider { 
-                    value: adapter.position-seconds;
-                    maximum: adapter.duration-seconds;
+                    value: model.position-seconds;
+                    maximum: model.duration-seconds;
                     vertical-stretch: 0;
                 }
                 HorizontalLayout {
                     Text {
-                        text: adapter.position-label;
+                        text: model.position-label;
                         font-size: 0.9rem;
                     }
                     Text {
                         horizontal-alignment: right;
-                        text: adapter.duration-label;
+                        text: model.duration-label;
                         font-size: 0.9rem;
                     }
                 }

@@ -4,7 +4,7 @@ use std::{collections::VecDeque, sync::{Arc, Mutex}, thread, time::Duration};
 
 use dimple_core::source::AccessMode;
 
-use slint::ComponentHandle;
+use slint::{ComponentHandle, SharedString, Weak};
 
 use dimple_librarian::librarian::Librarian;
 
@@ -22,6 +22,8 @@ pub struct AppWindowController {
 impl Default for AppWindowController {
     fn default() -> Self {
         let ui = AppWindow::new().unwrap();
+        // TODO Probably this and librarian happens once the UI is up so that we
+        // can show errors if needed. 
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
         let dir = dirs.data_dir().to_str().unwrap();
         let librarian = Arc::new(Librarian::new(dir));
@@ -36,9 +38,6 @@ impl Default for AppWindowController {
 }
 
 impl AppWindowController {
-    const THUMBNAIL_WIDTH: u32 = 200;
-    const THUMBNAIL_HEIGHT: u32 = 200;
-
     pub fn run(&self) -> Result<(), slint::PlatformError> {
         let ui = self.ui.as_weak();
         let librarian = self.librarian.clone();
@@ -61,56 +60,25 @@ impl AppWindowController {
         // self.librarian.add_library(Box::<LastFmLibrary>::default());
         // self.librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
 
-        let ui = self.ui.as_weak();
-        let librarian = self.librarian.clone();
-        // TODO moves to settings, or side bar, or wherever it's supposed to go.
-        self.ui.global::<AppState>().on_set_online(move |online| {
-            let librarian = librarian.clone();
-            ui.upgrade_in_event_loop(move |ui| {
-                let librarian = librarian.clone();
-                librarian.set_access_mode(if online { &AccessMode::Online } else { &AccessMode::Offline });
-                ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
-            }).unwrap();
-        });
-
         // Updates player state
-        // TODO moves to player_bar
-        let ui = self.ui.as_weak();
-        let player = self.player.clone();
-        thread::spawn(move || {
-            ui.upgrade_in_event_loop(move |ui| {
-                fn length_to_string(length: u32) -> String {
-                    format!("{}:{:02}", 
-                        length / (60 * 1000), 
-                        length % (60 * 1000) / 1000)
-                }
-                
-                let adapter = PlayerBarAdapter {
-                    duration_seconds: player.duration().as_secs() as i32,
-                    duration_label: length_to_string(player.duration().as_secs() as u32).into(),
-                    position_seconds: player.position().as_secs() as i32,
-                    position_label: length_to_string(player.position().as_secs() as u32).into(),
-                    ..Default::default()
-                };
-                ui.set_player_bar_adapter(adapter);
-            }).unwrap();
-            thread::sleep(Duration::from_millis(100));
-        });
            
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
         self.ui.run()
     }
 
-    fn navigate(url: slint::SharedString, history: Arc<Mutex<VecDeque<String>>>, 
-        librarian: &Librarian, ui: slint::Weak<AppWindow>) {
+    fn set_page(ui: Weak<AppWindow>, page: Page) {
+        ui.upgrade_in_event_loop(move |ui| {
+            ui.set_page(page);
+        }).unwrap();
+    }
+
+    fn navigate(url: SharedString, history: Arc<Mutex<VecDeque<String>>>, 
+        librarian: &Librarian, ui: Weak<AppWindow>) {
 
         log::info!("{}", &url);
         if url.starts_with("http") {
             let _ = opener::open_browser(url.to_string());
-        }
-        else if url.starts_with("dimple://search") {
-            Self::search(&url, librarian, ui);
         }
         else if url == "dimple://back" {
             Self::back(history.clone(), librarian, ui);
@@ -118,27 +86,39 @@ impl AppWindowController {
         else if url == "dimple://refresh" {
             Self::refresh(history.clone(), librarian, ui);
         }
-        // else if url.starts_with("dimple://home") {
-        //     Self::home(librarian, ui);
-        // } 
-        // else if url == "dimple://artists" {
-        //     Self::artists(librarian, ui);
-        // }
-        // else if url.starts_with("dimple://artist/") {
-        //     Self::artist_details(&url, librarian, ui);
-        // }
-        // else if url.starts_with("dimple://release-group/") {
-        //     Self::release_group_details(&url, librarian, ui);
-        // }
-        // else if url.starts_with("dimple://release/") {
-        //     Self::release_details(&url, librarian, ui);
-        // }
-        // else if url.starts_with("dimple://recording/") {
-        //     Self::recording_details(&url, librarian, ui);
-        // }
-        // else if url == "dimple://settings" {
-        //     Self::settings(ui);
-        // }
+        else if url.starts_with("dimple://search") {
+            Self::set_page(ui, Page::Search);
+        }
+        else if url.starts_with("dimple://home") {
+            Self::set_page(ui, Page::Home);
+        } 
+        else if url.starts_with("dimple://artists") {
+            Self::set_page(ui, Page::ArtistList);
+        }
+        else if url.starts_with("dimple://artist/") {
+            Self::set_page(ui, Page::ArtistDetails);
+        }
+        else if url.starts_with("dimple://release-groups") {
+            Self::set_page(ui, Page::ReleaseGroupList);
+        }
+        else if url.starts_with("dimple://release-group/") {
+            Self::set_page(ui, Page::ReleaseGroupDetails);
+        }
+        else if url.starts_with("dimple://releases/") {
+            Self::set_page(ui, Page::ReleaseDetails);
+        }
+        else if url.starts_with("dimple://release/") {
+            Self::set_page(ui, Page::ReleaseDetails);
+        }
+        else if url.starts_with("dimple://tracks") {
+            Self::set_page(ui, Page::TrackList);
+        }
+        else if url.starts_with("dimple://track/") {
+            Self::set_page(ui, Page::TrackDetails);
+        }
+        else if url == "dimple://settings" {
+            Self::set_page(ui, Page::Settings);
+        }
 
         // Store history.
         if url != "dimple://back" && url != "dimple://refresh" {
@@ -173,39 +153,6 @@ impl AppWindowController {
                     Self::navigate(url.into(), history.clone(), &librarian, ui.as_weak());
                 }
             }).unwrap();
-    }
-
-    fn search(url: &str, librarian: &Librarian, ui: slint::Weak<AppWindow>) {
-        let url = url.to_owned();
-        // std::thread::spawn(move || {
-        //     ui.upgrade_in_event_loop(move |ui| {
-        //         ui.global::<Navigator>().set_busy(true);
-        //     }).unwrap();
-
-        //     let url = Url::parse(&url).unwrap();
-        //     let query = url.path_segments()
-        //         // TODO is this pattern wrong? Shouldn't the or be an error?
-        //         .ok_or("missing path").unwrap()
-        //         .nth(0)
-        //         .ok_or("missing query").unwrap();
-        //     let search_results: Vec<_> = librarian.search(query).collect();
-        //     // TODO woops, was sorting by name when they are returned by
-        //     // relevance. Once more sources are merged I'll need to bring
-        //     // rel to the front and sort on it.
-        //     // search_results.sort_by_key(|e| e.name().to_lowercase());
-        //     let cards = entity_cards(search_results, &librarian, 
-        //         Self::THUMBNAIL_WIDTH, 
-        //         Self::THUMBNAIL_WIDTH);
-        //     ui.upgrade_in_event_loop(move |ui| {
-        //         let adapter = CardGridAdapter {
-        //             cards: card_adapters(cards),
-        //         };
-        //         ui.set_card_grid_adapter(adapter);
-        //         ui.set_page(0);
-
-        //         ui.global::<Navigator>().set_busy(false);
-        //     }).unwrap();
-        // });
     }
 }
 

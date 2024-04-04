@@ -20,3 +20,15 @@ fn settings(ui: slint::Weak<AppWindow>) {
     });
 }
 
+// let ui = self.ui.as_weak();
+// let librarian = self.librarian.clone();
+// // TODO moves to settings, or side bar, or wherever it's supposed to go.
+// self.ui.global::<AppState>().on_set_online(move |online| {
+//     let librarian = librarian.clone();
+//     ui.upgrade_in_event_loop(move |ui| {
+//         let librarian = librarian.clone();
+//         librarian.set_access_mode(if online { &AccessMode::Online } else { &AccessMode::Offline });
+//         ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
+//     }).unwrap();
+// });
+

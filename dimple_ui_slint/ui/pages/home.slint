@@ -19,10 +19,10 @@ export component Home inherits VerticalLayout {
             { title: "Plays" },
             { title: "Length" },
         ];
-        rows: adapter.rows;
+        rows: model.rows;
     }
 
-    in-out property <HomeAdapter> adapter: {
+    in-out property <HomeAdapter> model: {
         rows: [
             [
                 { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
