@@ -60,8 +60,6 @@ impl AppWindowController {
         // self.librarian.add_library(Box::<LastFmLibrary>::default());
         // self.librarian.add_library(Box::<CoverArtArchiveLibrary>::default());
 
-        // Updates player state
-           
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
         self.ui.run()

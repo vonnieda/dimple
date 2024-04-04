@@ -1,3 +1,4 @@
+        // Updates player state
         // // TODO moves to player_bar
         // let ui = self.ui.as_weak();
         // let player = self.player.clone();
