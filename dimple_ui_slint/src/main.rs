@@ -1,4 +1,6 @@
-use dimple_ui_slint::app_window_controller::AppWindowController;
+pub mod ui;
+
+use ui::app_window_controller::AppWindowController;
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, PlatformConfig};
 
 fn main() -> Result<(), slint::PlatformError> {

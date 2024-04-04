@@ -1,7 +1,8 @@
 import { Slider , GroupBox, HorizontalBox} from "std-widgets.slint";
-import { Palette, LinkAdapter, Link } from "common.slint";
 import { StyleMetrics } from "std-widgets.slint";
-import { CardAdapter } from "card.slint";
+import { CardAdapter } from "components/card.slint";
+import {Link, LinkAdapter} from "./components/link.slint";
+import { Palette, Navigator } from "./common.slint";
 
 export struct PlayerBarAdapter {
     now_playing_artist: CardAdapter,

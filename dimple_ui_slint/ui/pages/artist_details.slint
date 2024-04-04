@@ -1,8 +1,9 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette, LinkAdapter, Navigator, Links, Link} from "common.slint";
-import { CardAdapter } from "card.slint";
+import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
-import { CardGrid } from "card_grid.slint";
+import { CardGrid } from "../components/card_grid.slint";
+import { Palette, Navigator } from "../common.slint";
 
 export struct ArtistDetailsAdapter {
     card: CardAdapter,
@@ -46,7 +47,7 @@ export component ArtistDetails inherits ScrollView {
                     spacing: StyleMetrics.layout-spacing;
                     Image {
                         // TODO DRY
-                        source: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
+                        source: @image-url("../../icons/phosphor/SVGs/regular/users-three.svg");
                         height: 4rem;
                         width: 4rem;
                         colorize: StyleMetrics.default-text-color;

@@ -1,0 +1,219 @@
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { CardAdapter } from "../components/card.slint";
+import { CardGrid } from "../components/card_grid.slint";
+import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { Palette, Navigator } from "../common.slint";
+import {MediumAdapter} from "../components/medium.slint";
+
+export struct ReleaseGroupDetailsAdapter {
+    card: CardAdapter,
+    disambiguation: string,
+    summary: string,
+    genres: [LinkAdapter],
+    releases: [CardAdapter],
+    links: [LinkAdapter],
+    primary_type: string,
+    artists: [LinkAdapter],
+
+    // From the default and/or selected release.
+    media: [MediumAdapter],
+    dump: string,
+}
+
+export component ReleaseGroupDetails inherits ScrollView {
+    VerticalBox {
+        alignment: start;
+        spacing: StyleMetrics.layout-spacing * 2;
+        // Header: Image, Title, Artists, Genres, Summary
+        HorizontalLayout {
+            alignment: start;
+            spacing: StyleMetrics.layout-spacing;
+            // Image
+            Rectangle {
+                width: Palette.thumbnail-width-extra-large;
+                height: Palette.thumbnail-width-extra-large;
+                border-radius: Palette.thumbnail-border-radius;
+                border-color: Palette.thumbnail-border-color;
+                border-width: Palette.thumbnail-border-width;
+                clip: true;
+                Image {
+                    width: Palette.thumbnail-width-extra-large;
+                    height: Palette.thumbnail-width-extra-large;
+                    source: model.card.image.image;
+                }
+            }
+            VerticalBox {
+                alignment: start;
+                // Title
+                Text {
+                    text: model.card.title.name;
+                    font-weight: Palette.font-weight-bold;
+                    font-size: 5rem;
+                    wrap: word-wrap;
+                }
+                // Disambiguation
+                if model.disambiguation > 0: Text {
+                    text: model.disambiguation;
+                    // font-weight: Palette.font-weight-bold;
+                    font-size: 1.3rem;
+                }
+                // Type and artists
+                if model.artists.length > 0: HorizontalLayout {
+                    alignment: start;
+                    Text {
+                        text: "\{model.primary-type} by ";
+                        font-size: 1.3rem;
+                    }
+                    Links {
+                        links: model.artists;
+                        font-size: 1.3rem;
+                    }
+                }
+                // Genres
+                if model.genres.length > 0: HorizontalLayout {
+                    alignment: start;
+                    Text {
+                        text: "In ";
+                        font-size: 1.3rem;
+                    }    
+                    Links {
+                        links: model.genres;
+                        font-size: 1.3rem;
+                    }
+                }
+                // Summary
+                Text {
+                    text: model.summary;
+                    wrap: word-wrap;
+                    font-size: 1.2rem;
+                }
+            }
+        }
+
+        // // Media and Tracks
+        // if model.media.length > 0: VerticalBox {
+        //     for medium in model.media: VerticalBox {
+        //         // Text {
+        //         //     text: medium.title;
+        //         //     font-weight: Palette.font-weight-bold;
+        //         //     font-size: 2rem;
+        //         // }
+        //         // https://github.com/slint-ui/slint/blob/master/internal/compiler/widgets/cupertino-base/tableview.slint
+        //         TrackList {
+        //             tracks: medium.tracks;
+        //         }
+        //     }
+        // }
+
+        // Releases
+        if model.releases.length > 0: VerticalLayout {
+            spacing: StyleMetrics.layout-spacing * 0.50;
+            Text {
+                text: "Releases";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.releases;
+                parent-width: root.width;
+            }
+        }
+
+        // Links
+        if model.links.length > 0: VerticalLayout {
+            Text {
+                text: "Links";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            for link in model.links: Link {
+                url: link.url;
+                name: link.name;
+            }
+        }
+
+        // Debug Dump
+        Text {
+            text: "Debug";
+            font-weight: Palette.font-weight-bold;
+            font-size: 2rem;
+        }
+        Text {
+            text: model.dump;
+        }
+    }
+
+    in property <ReleaseGroupDetailsAdapter> model: {
+        // id: "123-123-123-123",
+        // title: "A Reign of Fish",
+        card: {
+            image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+            title: {name: "A Reign of Fish",url: "internal://release/1234"},
+            sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+        },
+        disambiguation: "regular kind",
+        summary: "I swear it thwernt but 784 years ago when they came. I tell ya, they were glorious. The regular kind, you see? Not them fancy ones. The common ones. Common as muck my ma said! But when they came walkin in you knew it. Shit, everyone knew it. I know Kenny knew it, cause when they come walkin in Kenny stood up, pointed, shit his pants and passed out on the floor. Now, like I said, these're the regular ones, not the diamond ones, so you get it, but still. And I suppose it's fair to mention that Kenny'd had about half a bottle of something so who knews if it were the liquor or not. Anyway, really nice folks. Good music too.",
+        genres: [ {name: "fish jazz",url: "internal://release/1234"} ],
+        artists: [ 
+            { name: "Shield Fish", url: "internal://release/1234" }, 
+            { name: "Zim Babwe", url: "internal://release/1234" }, 
+            { name: "Vic Toria", url: "internal://release/1234" }, 
+        ],
+        links: [ 
+            { name: "Shield Fish", url: "internal://release/1234" }, 
+            { name: "Zim Babwe", url: "internal://release/1234" }, 
+            { name: "Vic Toria", url: "internal://release/1234" }, 
+        ],
+        releases: [
+            { 
+                image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+            },
+            { 
+                image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+            },
+            { 
+                image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+            },
+        ],
+        primary-type: "Album",
+        media: [
+            {
+                title: "Disc 1 of 2",
+                tracks: [
+                    { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 17, },
+                    { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 21, },
+                    { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 79, },
+                ]
+            },
+            {
+                title: "Disc 2 of 2",
+                tracks: [
+                    { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 17, },
+                    { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 21, },
+                    { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 79, },
+                ]
+            },
+        ]
+    };
+}

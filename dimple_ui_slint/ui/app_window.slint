@@ -1,17 +1,28 @@
-import { Button, VerticalBox , ScrollView, TextEdit, LineEdit, GroupBox} from "std-widgets.slint";
-import { CardGrid, CardGridAdapter } from "card_grid.slint";
-import { Card, CardAdapter } from "card.slint";
-import { PlayerBar, PlayerBarAdapter } from "player_bar.slint";
-import { ArtistDetails, ArtistDetailsAdapter } from "artist_details.slint";
-import { ReleaseGroupDetails, ReleaseGroupDetailsAdapter } from "release_group_details.slint";
-import { Palette, Navigator, LinkAdapter, ImageLinkAdapter , Tag, AppState} from "common.slint";
-import { StyleMetrics , HorizontalBox} from "std-widgets.slint";
-import { ReleaseGroupDetails } from "release_group_details.slint";
-import { ReleaseDetails, ReleaseDetailsAdapter } from "release_details.slint";
-import { RecordingDetails, RecordingDetailsAdapter } from "recording_details.slint";
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, GroupBox} from "std-widgets.slint";
+import { CardAdapter } from "./components/card.slint";
+import { CardGrid, CardGridAdapter } from "./components/card_grid.slint";
+import { LinkAdapter, Links, Link} from "./components/link.slint";
+import { Palette, Navigator, AppState } from "./common.slint";
+import { MediumAdapter } from "./components/medium.slint";
+import { ImageLinkAdapter, LinkAdapter, Links, Link} from "./components/link.slint";
+import { ArtistDetailsAdapter } from "./pages/artist_details.slint";
+import { ReleaseDetailsAdapter } from "./pages/release_details.slint";
+import { ReleaseGroupDetailsAdapter } from "./pages/release_group_details.slint";
+import { RecordingDetailsAdapter } from "./pages/recording_details.slint";
+import { SettingsAdapter } from "./pages/settings.slint";
+import { HomeAdapter } from "./pages/home.slint";
+import { PlayerBarAdapter } from "./player_bar.slint";
+import { ArtistDetails } from "pages/artist_details.slint";
+import { ReleaseGroupDetails } from "pages/release_group_details.slint";
+import { ReleaseDetails } from "pages/release_details.slint";
+import { RecordingDetails } from "pages/recording_details.slint";
+import { Home } from "pages/home.slint";
+import { Settings } from "pages/settings.slint";
+import { PlayerBar } from "player_bar.slint";
 import { SideBar } from "side_bar.slint";
-import { Home, HomeAdapter } from "home.slint";
-import { Settings, SettingsAdapter } from "settings.slint";
 
 export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter, Palette, AppState }
 
@@ -31,7 +42,7 @@ import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 export component AppWindow inherits Window {
     in-out property <int> page: 1;
     // TODO Note to self: Currently you can't expose properties on
-    // sub-components, so all this is needed.
+    // sub-components, so we have to bubble them all to the top for now.
     // https://github.com/slint-ui/slint/issues/784
     in-out property <CardGridAdapter> card-grid-adapter;
     in-out property <ArtistDetailsAdapter> artist-details;

@@ -1,9 +1,8 @@
 import { Button , LineEdit, HorizontalBox, GroupBox} from "std-widgets.slint";
 import { Navigator } from "common.slint";
-import {CardAdapter } from "card.slint";
 import { Palette, Navigator, AppState } from "common.slint";
 import {StyleMetrics, VerticalBox, TextEdit, Spinner, Slider, CheckBox} from "std-widgets.slint";
-import { ImageLinkAdapter, LinkAdapter, Links, Link } from "./common.slint";
+import {Link, LinkAdapter, ImageLinkAdapter} from "./components/link.slint";
 
 component SideBarImageItem inherits Rectangle {
     in property <ImageLinkAdapter> image: {
