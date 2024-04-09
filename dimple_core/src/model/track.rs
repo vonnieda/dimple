@@ -2,10 +2,6 @@ use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::model::RecordingSource;
-
-use crate::model::Recording;
-
 use super::Model;
 
 // https://musicbrainz.org/doc/Track
@@ -13,11 +9,9 @@ use super::Model;
 pub struct Track {
     pub key: Option<String>,
 
-    pub title: String,
+    pub title: Option<String>,
 
-    pub length: u32,
-    pub number: String,
-    pub position: u32,
-    pub recording: Recording,
-    pub sources: Vec<RecordingSource>,
+    pub length: Option<u32>,
+    pub number: Option<String>,
+    pub position: Option<u32>,
 }

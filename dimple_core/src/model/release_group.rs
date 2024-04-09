@@ -1,12 +1,15 @@
 use std::collections::HashSet;
 
+use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
 use crate::model::KnownId;
 
+use super::Model;
+
 // https://musicbrainz.org/doc/ReleaseGroup
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 #[serde(default)]
 pub struct ReleaseGroup {
     pub key: Option<String>,

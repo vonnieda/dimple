@@ -5,6 +5,7 @@ use playback_rs::{Hint, Song};
 
 #[derive(Clone)]
 pub struct Player {    
+    // TODO remove the Arc, Librarian is now safe to clone
     librarian: Arc<Librarian>,
     sender: Sender<PlayerCommand>,
     shared_state: Arc<RwLock<SharedState>>,

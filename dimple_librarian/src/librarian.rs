@@ -1,7 +1,7 @@
 use std::{fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Artist, Release}, source::{AccessMode, Source}
+    db::{Db, SqliteDb}, source::{AccessMode, Source}
 };
 
 use anyhow::Result;
@@ -22,82 +22,6 @@ impl Librarian {
             sources: Default::default(),
             access_mode: Arc::new(Mutex::new(AccessMode::Online)),
         };
-
-        let db = librarian.db.clone();
-
-        let artist1: Artist = db
-        .insert(
-            &Artist {
-                name: Some("Rick and Morty".to_string()),
-                ..Default::default()
-            }
-            .into(),
-        ).unwrap()
-        .into();
-
-    let artist2: Artist = db
-        .insert(
-            &Artist {
-                name: Some("Infected Mushroom".to_string()),
-                ..Default::default()
-            }
-            .into(),
-        ).unwrap()
-        .into();
-
-    let artist3: Artist = db
-        .insert(
-            &Artist {
-                name: Some("Hoodie Poo".to_string()),
-                ..Default::default()
-            }
-            .into(),
-        ).unwrap()
-        .into();
-
-    let release1: Release = db
-        .insert(
-            &Release {
-                title: Some("Mega Seeds".to_string()),
-                ..Default::default()
-            }
-            .into(),
-        ).unwrap()
-        .into();
-
-    let release2: Release = db
-        .insert(
-            &Release {
-                title: Some("Boss La Rosh".to_string()),
-                ..Default::default()
-            }
-            .into(),
-        ).unwrap()
-        .into();
-
-    let release3: Release = db
-        .insert(
-            &Release {
-                title: Some("All Together Now".to_string()),
-                ..Default::default()
-            }
-            .into(),
-        ).unwrap()
-        .into();
-
-    db.link(&release1.clone().into(), &artist1.clone().into()).unwrap();
-    db.link(&release2.clone().into(), &artist2.clone().into()).unwrap();
-    db.link(&release3.clone().into(), &artist1.clone().into()).unwrap();
-    db.link(&release3.clone().into(), &artist2.clone().into()).unwrap();
-    db.link(&release3.clone().into(), &artist3.clone().into()).unwrap();
-        
-
-
-        {
-            // let librarian = librarian.clone();
-            // thread::spawn(move || librarian.sync_worker());
-        }
-
         librarian
     }
 

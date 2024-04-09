@@ -1,8 +1,8 @@
 use dimple_player::player::Player;
 
-use std::{collections::VecDeque, sync::{Arc, Mutex}, thread, time::Duration};
+use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
-use dimple_core::source::AccessMode;
+use dimple_core::{db::Db, model::{Artist, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track}};
 
 use slint::{ComponentHandle, SharedString, Weak};
 
@@ -14,7 +14,7 @@ use crate::ui::{*};
 
 pub struct AppWindowController {
     ui: AppWindow,
-    librarian: Arc<Librarian>,
+    librarian: Librarian,
     history: Arc<Mutex<VecDeque<String>>>,
     player: Player,
 }
@@ -26,8 +26,8 @@ impl Default for AppWindowController {
         // can show errors if needed. 
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
         let dir = dirs.data_dir().to_str().unwrap();
-        let librarian = Arc::new(Librarian::new(dir));
-        let player = Player::new(librarian.clone());
+        let librarian = Librarian::new(dir);
+        let player = Player::new(Arc::new(librarian.clone()));
         Self {
             ui,
             librarian,
@@ -39,15 +39,66 @@ impl Default for AppWindowController {
 
 impl AppWindowController {
     pub fn run(&self) -> Result<(), slint::PlatformError> {
-        let ui = self.ui.as_weak();
-        let librarian = self.librarian.clone();
-        let history = self.history.clone();
-        self.ui.global::<Navigator>().on_navigate(move |url| 
-            Self::navigate(url, history.clone(), &librarian.clone(), ui.clone()));
+        {
+            let ui = self.ui.as_weak();
+            let librarian = self.librarian.clone();
+            let history = self.history.clone();
+            self.ui.global::<Navigator>().on_navigate(move |url| 
+                Self::navigate(url, history.clone(), &librarian.clone(), ui.clone()));
+        }
+
+        {
+            // TODO STOPSHIP remove: create some test data if there is none
+            let db: &dyn Db = &self.librarian.clone();
+            if db.list(&Artist::default().into(), None).unwrap().count() == 0 {
+                let artist = Artist {
+                    name: Some("Jason von Nieda".to_string()),
+                    country: Some("US".to_string()),
+                    ..Default::default()
+                };
+                let release_group = ReleaseGroup {
+                    title: Some("Gravity Vaccine".to_string()),
+                    ..Default::default()
+                };
+                let release = Release {
+                    title: Some("Gravity Vaccine".to_string()),
+                    ..Default::default()
+                };
+                let medium = Medium {
+                    disc_count: Some(1),
+                    track_count: Some(1),
+                    ..Default::default()
+                };
+                let track = Track {
+                    title: Some("Hexagon Matenda".to_string()),
+                    ..Default::default()
+                };
+                let recording = Recording {
+                    title: Some("Electronic Silence".to_string()),
+                    ..Default::default()
+                };
+                let recording_source = RecordingSource {
+                    ..Default::default()
+                };
+                let artist = db.insert(&artist.clone().into()).unwrap();
+                let release_group = db.insert(&release_group.clone().into()).unwrap();
+                let release = db.insert(&release.clone().into()).unwrap();
+                let medium = db.insert(&medium.clone().into()).unwrap();
+                let track = db.insert(&track.clone().into()).unwrap();
+                let recording = db.insert(&recording.clone().into()).unwrap();
+                let recording_source = db.insert(&recording_source.clone().into()).unwrap();
+                db.link(&release_group.clone().into(), &artist.clone().into()).unwrap();
+                db.link(&release.clone().into(), &release_group.clone().into()).unwrap();
+                db.link(&medium.clone().into(), &release.clone().into()).unwrap();
+                db.link(&track.clone().into(), &medium.clone().into()).unwrap();
+                db.link(&recording.clone().into(), &track.clone().into()).unwrap();
+                db.link(&recording_source.clone().into(), &recording.clone().into()).unwrap();
+            }
+        }
 
         // let ui = self.ui.as_weak();
-        let librarian = self.librarian.clone();
-        self.ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
+        // let librarian = self.librarian.clone();
+        // self.ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
         // let paths = vec![
         //     "/Users/jason/Music/My Music".to_string(),
         // ];
