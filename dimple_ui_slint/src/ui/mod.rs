@@ -5,3 +5,4 @@ pub mod player_bar;
 pub mod side_bar;
 
 pub mod pages;
+
