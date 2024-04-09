@@ -1,38 +1,22 @@
-import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { ScrollView } from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
-import { CardGrid } from "../components/card_grid.slint";
+import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 
 export struct HomeAdapter {
-    rows: [[StandardListViewItem]],
+    cards: [CardAdapter],
 }
 
 export component Home inherits VerticalLayout {
-    StandardTableView {
-        height: 100%;
-        width: 100%;
-        columns: [
-            { title: "Title" },
-            { title: "Album" },
-            { title: "Artist" },
-            { title: "Track #" },
-            { title: "Plays" },
-            { title: "Length" },
-        ];
-        rows: model.rows;
-    }
+    in-out property <HomeAdapter> model;
 
-    in-out property <HomeAdapter> model: {
-        rows: [
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ],
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ],
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ]
-        ],
-    };
+    ScrollView {                        
+        card-grid := CardGrid {
+            cards: model.cards;
+            parent-width: parent.width;
+        }
+    }
+    Text {
+        horizontal-alignment: right;
+        text: model.cards.length + " items";
+    }
 }

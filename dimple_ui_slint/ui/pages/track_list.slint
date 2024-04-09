@@ -1,17 +1,42 @@
-import { ScrollView } from "std-widgets.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { CardAdapter } from "../components/card.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+
+export struct TrackListAdapter {
+    rows: [[StandardListViewItem]],
+}
 
 export component TrackList inherits VerticalLayout {
-    in-out property <CardGridAdapter> model;
+    in-out property <TrackListAdapter> model: {
+        rows: [
+            [
+                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
+            ],
+            [
+                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
+            ],
+            [
+                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
+            ]
+        ],
+    };
 
-    ScrollView {                        
-        card-grid := CardGrid {
-            cards: model.cards;
-            parent-width: parent.width;
-        }
+    StandardTableView {
+        height: 100%;
+        width: 100%;
+        columns: [
+            { title: "Title" },
+            { title: "Album" },
+            { title: "Artist" },
+            { title: "Track #" },
+            { title: "Plays" },
+            { title: "Length" },
+        ];
+        rows: model.rows;
     }
     Text {
         horizontal-alignment: right;
-        text: model.cards.length + " items";
+        text: model.rows.length + " items";
     }
 }

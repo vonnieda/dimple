@@ -18,6 +18,7 @@ import { ArtistDetails } from "pages/artist_details.slint";
 import { ReleaseGroupDetails } from "pages/release_group_details.slint";
 import { ReleaseDetails } from "pages/release_details.slint";
 import { TrackDetails, TrackDetailsAdapter } from "pages/track_details.slint";
+import { TrackListAdapter } from "pages/track_list.slint";
 import { Home } from "pages/home.slint";
 import { Settings } from "pages/settings.slint";
 import { PlayerBar } from "player_bar.slint";
@@ -70,7 +71,7 @@ export component AppWindow inherits Window {
     in-out property <ReleaseGroupDetailsAdapter> release-group-details;
     in-out property <CardGridAdapter> release-list;
     in-out property <ReleaseDetailsAdapter> release-details;
-    in-out property <CardGridAdapter> track-list;
+    in-out property <TrackListAdapter> track-list;
     in-out property <TrackDetailsAdapter> track-details;
     in-out property <SettingsAdapter> settings;
     in-out property <PlayerBarAdapter> player-bar;
