@@ -50,50 +50,7 @@ impl AppWindowController {
         {
             // TODO STOPSHIP remove: create some test data if there is none
             let db: &dyn Db = &self.librarian.clone();
-            if db.list(&Artist::default().into(), None).unwrap().count() == 0 {
-                let artist = Artist {
-                    name: Some("Jason von Nieda".to_string()),
-                    country: Some("US".to_string()),
-                    ..Default::default()
-                };
-                let release_group = ReleaseGroup {
-                    title: Some("Gravity Vaccine".to_string()),
-                    ..Default::default()
-                };
-                let release = Release {
-                    title: Some("Gravity Vaccine".to_string()),
-                    ..Default::default()
-                };
-                let medium = Medium {
-                    disc_count: Some(1),
-                    track_count: Some(1),
-                    ..Default::default()
-                };
-                let track = Track {
-                    title: Some("Hexagon Matenda".to_string()),
-                    ..Default::default()
-                };
-                let recording = Recording {
-                    title: Some("Electronic Silence".to_string()),
-                    ..Default::default()
-                };
-                let recording_source = RecordingSource {
-                    ..Default::default()
-                };
-                let artist = db.insert(&artist.clone().into()).unwrap();
-                let release_group = db.insert(&release_group.clone().into()).unwrap();
-                let release = db.insert(&release.clone().into()).unwrap();
-                let medium = db.insert(&medium.clone().into()).unwrap();
-                let track = db.insert(&track.clone().into()).unwrap();
-                let recording = db.insert(&recording.clone().into()).unwrap();
-                let recording_source = db.insert(&recording_source.clone().into()).unwrap();
-                db.link(&release_group.clone().into(), &artist.clone().into()).unwrap();
-                db.link(&release.clone().into(), &release_group.clone().into()).unwrap();
-                db.link(&medium.clone().into(), &release.clone().into()).unwrap();
-                db.link(&track.clone().into(), &medium.clone().into()).unwrap();
-                db.link(&recording.clone().into(), &track.clone().into()).unwrap();
-                db.link(&recording_source.clone().into(), &recording.clone().into()).unwrap();
-            }
+            Self::create_test_data(db);
         }
 
         // let ui = self.ui.as_weak();
@@ -116,7 +73,7 @@ impl AppWindowController {
         self.ui.run()
     }
 
-    fn set_page(ui: Weak<AppWindow>, page: Page) {
+    pub fn set_page(ui: Weak<AppWindow>, page: Page) {
         ui.upgrade_in_event_loop(move |ui| {
             ui.set_page(page);
         }).unwrap();
@@ -142,7 +99,7 @@ impl AppWindowController {
             Self::set_page(ui, Page::Home);
         } 
         else if url.starts_with("dimple://artists") {
-            Self::set_page(ui, Page::ArtistList);
+            crate::ui::pages::artist_list::artist_list(librarian, ui);
         }
         else if url.starts_with("dimple://artist/") {
             Self::set_page(ui, Page::ArtistDetails);
@@ -153,8 +110,8 @@ impl AppWindowController {
         else if url.starts_with("dimple://release-group/") {
             Self::set_page(ui, Page::ReleaseGroupDetails);
         }
-        else if url.starts_with("dimple://releases/") {
-            Self::set_page(ui, Page::ReleaseDetails);
+        else if url.starts_with("dimple://releases") {
+            Self::set_page(ui, Page::ReleaseList);
         }
         else if url.starts_with("dimple://release/") {
             Self::set_page(ui, Page::ReleaseDetails);
@@ -202,6 +159,53 @@ impl AppWindowController {
                     Self::navigate(url.into(), history.clone(), &librarian, ui.as_weak());
                 }
             }).unwrap();
+    }
+
+    fn create_test_data(db: &dyn Db) {
+        if db.list(&Artist::default().into(), None).unwrap().count() == 0 {
+            let artist = Artist {
+                name: Some("Jason von Nieda".to_string()),
+                country: Some("US".to_string()),
+                ..Default::default()
+            };
+            let release_group = ReleaseGroup {
+                title: Some("Gravity Vaccine".to_string()),
+                ..Default::default()
+            };
+            let release = Release {
+                title: Some("Gravity Vaccine".to_string()),
+                ..Default::default()
+            };
+            let medium = Medium {
+                disc_count: Some(1),
+                track_count: Some(1),
+                ..Default::default()
+            };
+            let track = Track {
+                title: Some("Hexagon Matenda".to_string()),
+                ..Default::default()
+            };
+            let recording = Recording {
+                title: Some("Electronic Silence".to_string()),
+                ..Default::default()
+            };
+            let recording_source = RecordingSource {
+                ..Default::default()
+            };
+            let artist = db.insert(&artist.clone().into()).unwrap();
+            let release_group = db.insert(&release_group.clone().into()).unwrap();
+            let release = db.insert(&release.clone().into()).unwrap();
+            let medium = db.insert(&medium.clone().into()).unwrap();
+            let track = db.insert(&track.clone().into()).unwrap();
+            let recording = db.insert(&recording.clone().into()).unwrap();
+            let recording_source = db.insert(&recording_source.clone().into()).unwrap();
+            db.link(&release_group.clone().into(), &artist.clone().into()).unwrap();
+            db.link(&release.clone().into(), &release_group.clone().into()).unwrap();
+            db.link(&medium.clone().into(), &release.clone().into()).unwrap();
+            db.link(&track.clone().into(), &medium.clone().into()).unwrap();
+            db.link(&recording.clone().into(), &track.clone().into()).unwrap();
+            db.link(&recording_source.clone().into(), &recording.clone().into()).unwrap();
+        }
     }
 }
 
