@@ -34,6 +34,7 @@ rayon = "1.8.0"
 directories = "5.0.1"
 rfd = "0.13.0"
 souvlaki = "0.7.0"
+fakeit = "1.2.0"
 
 [build-dependencies]
 slint-build = "1.4.0"

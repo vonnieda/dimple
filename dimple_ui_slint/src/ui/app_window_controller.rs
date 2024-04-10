@@ -53,6 +53,10 @@ impl AppWindowController {
             Self::create_test_data(db);
         }
 
+        // log::info!("Creating some random data.");
+        // Self::create_random_data(&self.librarian, 400);
+        // log::info!("Done.");
+
         // let ui = self.ui.as_weak();
         // let librarian = self.librarian.clone();
         // self.ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
@@ -117,7 +121,7 @@ impl AppWindowController {
             Self::set_page(ui, Page::ReleaseDetails);
         }
         else if url.starts_with("dimple://tracks") {
-            Self::set_page(ui, Page::TrackList);
+            crate::ui::pages::track_list::track_list(librarian, ui);
         }
         else if url.starts_with("dimple://track/") {
             Self::set_page(ui, Page::TrackDetails);
@@ -159,6 +163,53 @@ impl AppWindowController {
                     Self::navigate(url.into(), history.clone(), &librarian, ui.as_weak());
                 }
             }).unwrap();
+    }
+
+    fn create_random_data(db: &dyn Db, num_artists: u32) {
+        for i in 0..num_artists {
+            let artist = Artist {
+                name: Some("Jason von Nieda".to_string()),
+                country: Some("US".to_string()),
+                ..Default::default()
+            };
+            let release_group = ReleaseGroup {
+                title: Some("Gravity Vaccine".to_string()),
+                ..Default::default()
+            };
+            let release = Release {
+                title: Some("Gravity Vaccine".to_string()),
+                ..Default::default()
+            };
+            let medium = Medium {
+                disc_count: Some(1),
+                track_count: Some(1),
+                ..Default::default()
+            };
+            let track = Track {
+                title: Some("Hexagon Matenda".to_string()),
+                ..Default::default()
+            };
+            let recording = Recording {
+                title: Some("Electronic Silence".to_string()),
+                ..Default::default()
+            };
+            let recording_source = RecordingSource {
+                ..Default::default()
+            };
+            let artist = db.insert(&artist.clone().into()).unwrap();
+            let release_group = db.insert(&release_group.clone().into()).unwrap();
+            let release = db.insert(&release.clone().into()).unwrap();
+            let medium = db.insert(&medium.clone().into()).unwrap();
+            let track = db.insert(&track.clone().into()).unwrap();
+            let recording = db.insert(&recording.clone().into()).unwrap();
+            let recording_source = db.insert(&recording_source.clone().into()).unwrap();
+            db.link(&release_group.clone().into(), &artist.clone().into()).unwrap();
+            db.link(&release.clone().into(), &release_group.clone().into()).unwrap();
+            db.link(&medium.clone().into(), &release.clone().into()).unwrap();
+            db.link(&track.clone().into(), &medium.clone().into()).unwrap();
+            db.link(&recording.clone().into(), &track.clone().into()).unwrap();
+            db.link(&recording_source.clone().into(), &recording.clone().into()).unwrap();
+        }
     }
 
     fn create_test_data(db: &dyn Db) {
