@@ -1,5 +1,6 @@
 import { Palette, Navigator } from "../common.slint";
 import {StyleMetrics} from "std-widgets.slint";
+import {LazyImage} from "./lazy_image.slint";
 
 export struct LinkAdapter {
     name: string,
@@ -8,6 +9,12 @@ export struct LinkAdapter {
 
 export struct ImageLinkAdapter {
     image: image,
+    name: string,
+    url: string,
+}
+
+export struct LazyImageLinkAdapter {
+    image: LazyImage,
     name: string,
     url: string,
 }

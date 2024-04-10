@@ -3,7 +3,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widge
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, GroupBox} from "std-widgets.slint";
 import { CardAdapter } from "./components/card.slint";
-import { CardGrid, CardGridAdapter } from "./components/card_grid.slint";
+import { CardGrid, CardGridAdapter, LazyCardGridAdapter } from "./components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "./components/link.slint";
 import { Palette, Navigator, AppState } from "./common.slint";
 import { MediumAdapter } from "./components/medium.slint";
@@ -65,7 +65,7 @@ export component AppWindow inherits Window {
     // See: https://github.com/slint-ui/slint/issues/784
     in-out property <HomeAdapter> home;
     in-out property <CardGridAdapter> search;
-    in-out property <CardGridAdapter> artist-list;
+    in-out property <LazyCardGridAdapter> artist-list;
     in-out property <ArtistDetailsAdapter> artist-details;
     in-out property <CardGridAdapter> release-group-list;
     in-out property <ReleaseGroupDetailsAdapter> release-group-details;

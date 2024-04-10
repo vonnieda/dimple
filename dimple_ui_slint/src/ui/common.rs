@@ -378,3 +378,38 @@ impl AsListViewItem for String {
     }
 }
 
+
+
+
+// {
+//     let librarian = librarian.clone();
+//     let ui = ui.clone();
+//     std::thread::spawn(move || {
+//         thread::sleep(Duration::from_secs(5));
+//         log::info!("here we go!");
+//         ui.upgrade_in_event_loop(move |ui| {
+//             let adapter = ui.get_artist_list();
+//             // let pixel_buffer = SharedPixelBuffer::<Rgba8Pixel>::new(640, 480);
+//             // let image = Image::from_rgba8_premultiplied(pixel_buffer);
+
+//             let mut demo_image = image::open("images/light.png").expect("Error loading demo image").into_rgba8();
+
+//             image::imageops::colorops::brighten_in_place(&mut demo_image, 20);
+            
+//             let buffer = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+//                 demo_image.as_raw(),
+//                 demo_image.width(),
+//                 demo_image.height(),
+//             );
+//             let image = Image::from_rgba8(buffer);
+
+//             for (i, card) in adapter.cards.iter().enumerate() {
+//                 let mut card = card.clone();
+//                 card.image.image = image.clone();
+//                 card.title.name = "Wow".to_string().into();
+//                 adapter.cards.set_row_data(i, card);
+//             }
+//         })
+//         .unwrap();
+//     });
+// }
