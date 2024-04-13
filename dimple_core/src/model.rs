@@ -12,6 +12,7 @@ mod release_group;
 mod release;
 mod track;
 mod known_id;
+mod art;
 
 pub use artist::Artist;
 pub use release_group::ReleaseGroup;
@@ -23,6 +24,7 @@ pub use recording::Recording;
 pub use recording_source::RecordingSource;
 pub use genre::Genre;
 pub use known_id::KnownId;
+pub use art::Art;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Model {
@@ -35,5 +37,6 @@ pub enum Model {
     ReleaseGroup(ReleaseGroup),
     Release(Release),
     Track(Track),
+    Art(Art),
 }
 

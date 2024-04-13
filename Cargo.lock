@@ -1357,6 +1357,7 @@ dependencies = [
  "slint",
  "slint-build",
  "souvlaki",
+ "tiny-skia",
  "url",
 ]
 

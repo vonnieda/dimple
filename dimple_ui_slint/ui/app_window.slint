@@ -3,7 +3,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widge
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, GroupBox} from "std-widgets.slint";
 import { CardAdapter } from "./components/card.slint";
-import { CardGrid, CardGridAdapter, LazyCardGridAdapter } from "./components/card_grid.slint";
+import { CardGrid, CardGridAdapter } from "./components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "./components/link.slint";
 import { Palette, Navigator, AppState } from "./common.slint";
 import { MediumAdapter } from "./components/medium.slint";
@@ -28,7 +28,7 @@ import { ReleaseGroupList } from "pages/release_group_list.slint";
 import { ReleaseList } from "pages/release_list.slint";
 import { TrackList } from "pages/track_list.slint";
 
-export { Navigator, LinkAdapter, ImageLinkAdapter, CardAdapter, Palette, AppState }
+export { Navigator, Palette, AppState }
 
 import "../fonts/Roboto/Roboto-Black.ttf";
 import "../fonts/Roboto/Roboto-BlackItalic.ttf";
@@ -63,9 +63,10 @@ export component AppWindow inherits Window {
     // TODO Note to self: Currently you can't expose properties on
     // sub-components, so we have to bubble them all to the top.
     // See: https://github.com/slint-ui/slint/issues/784
+    // Wait, how the heck do I hookup callbacks then?
     in-out property <HomeAdapter> home;
     in-out property <CardGridAdapter> search;
-    in-out property <LazyCardGridAdapter> artist-list;
+    in-out property <CardGridAdapter> artist-list;
     in-out property <ArtistDetailsAdapter> artist-details;
     in-out property <CardGridAdapter> release-group-list;
     in-out property <ReleaseGroupDetailsAdapter> release-group-details;
@@ -75,7 +76,7 @@ export component AppWindow inherits Window {
     in-out property <TrackDetailsAdapter> track-details;
     in-out property <SettingsAdapter> settings;
     in-out property <PlayerBarAdapter> player-bar;
-    
+
     title: "Dimple";
     icon: @image-url("../images/icon_512x512.png");
     preferred-width: 1440px;

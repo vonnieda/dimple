@@ -163,6 +163,7 @@ trait Entity {
 impl Entity for Model {
     fn entity_name(&self) -> String {
         match self {
+            Model::Art(_) => "Art".to_string(),
             Model::Artist(_) => "Artist".to_string(),
             Model::Genre(_) => "ReleaseGroup".to_string(),
             Model::MediaFile(_) => "ReleaseGroup".to_string(),
@@ -177,6 +178,7 @@ impl Entity for Model {
 
     fn key(&self) -> Option<String> {
         match self {
+            Model::Art(value) => value.key.clone(),
             Model::Artist(value) => value.key.clone(),
             Model::Genre(value) => value.key.clone(),
             Model::MediaFile(value) => value.key.clone(),
@@ -191,6 +193,7 @@ impl Entity for Model {
 
     fn set_key(&mut self, key: Option<String>) {
         match self {
+            Model::Art(value) => value.key = key,
             Model::Artist(value) => value.key = key,
             Model::Genre(value) => value.key = key,
             Model::MediaFile(value) => value.key = key,

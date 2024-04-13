@@ -1,11 +1,11 @@
 import { ScrollView } from "std-widgets.slint";
-import { CardGrid, CardGridAdapter, LazyCardGrid, LazyCardGridAdapter } from "../components/card_grid.slint";
+import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 
 export component ArtistList inherits VerticalLayout {
-    in-out property <LazyCardGridAdapter> model;
+    in-out property <CardGridAdapter> model;
 
     ScrollView {                        
-        card-grid := LazyCardGrid {
+        card-grid := CardGrid {
             cards: model.cards;
             parent-width: parent.width;
         }

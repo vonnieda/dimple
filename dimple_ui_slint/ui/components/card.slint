@@ -1,17 +1,11 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Palette, Navigator } from "../common.slint";
 import {StyleMetrics} from "std-widgets.slint";
-import {ImageLinkAdapter, LinkAdapter, LazyImageLinkAdapter} from "../components/link.slint";
+import {ImageLinkAdapter, LinkAdapter} from "../components/link.slint";
 import { Link } from "link.slint";
 
 export struct CardAdapter {
     image: ImageLinkAdapter,
-    title: LinkAdapter,
-    sub-title: LinkAdapter,
-}
-
-export struct LazyCardAdapter {
-    image: LazyImageLinkAdapter,
     title: LinkAdapter,
     sub-title: LinkAdapter,
 }
@@ -59,45 +53,3 @@ export component Card inherits VerticalLayout {
     }
 }
 
-export component LazyCard inherits VerticalLayout {
-    in property <LazyCardAdapter> model: {
-        image: {image: { image: @image-url("../images/dark.png") },name: "A Reign of Fish",url: "internal://release/1234"},
-        title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-    };
-
-    width: Palette.thumbnail-width-large;
-    spacing: 2px;
-    alignment: start;
-
-    image-area := TouchArea {
-        width: root.width;
-        height: Palette.thumbnail-width-large;
-        mouse-cursor: pointer;
-        clicked => { Navigator.navigate(model.image.url); }
-        Rectangle {
-            width: 100%;
-            height: 100%;
-            border-radius: Palette.thumbnail-border-radius;
-            border-width: Palette.thumbnail-border-width;
-            border-color: Palette.thumbnail-border-color;
-            clip: true;
-            Image {
-                width: 100%;
-                height: 100%;
-                source: model.image.image.image;
-                accessible-role: button;
-                accessible-description: model.image.name;
-            }    
-        }
-    }
-    Rectangle {}
-    title-area := Link {
-        url: model.title.url;
-        name: model.title.name;
-    }
-    sub-title-area := Link {
-        url: model.sub-title.url;
-        name: model.sub-title.name;
-    }
-}

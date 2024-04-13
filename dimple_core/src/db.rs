@@ -2,10 +2,8 @@ use anyhow::Result;
 
 use crate::model::Model;
 
-mod memory_db;
 mod sqlite_db;
 
-pub use memory_db::MemoryDb;
 pub use sqlite_db::SqliteDb;
 
 pub trait Db: Send + Sync {

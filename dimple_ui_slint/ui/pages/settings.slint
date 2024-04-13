@@ -11,7 +11,7 @@
 
 
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, GroupBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, GroupBox, Button} from "std-widgets.slint";
 import { Palette, Navigator } from "../common.slint";
 
 export struct SettingsAdapter {
@@ -44,6 +44,12 @@ export component Settings inherits ScrollView {
                     text: stat;
                     font-size: 1.3rem;
                 }
+        }
+        VerticalBox {
+            Button {
+                text: "Generate 100";
+                clicked => {}
+            }
         }
     }
 }

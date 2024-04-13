@@ -35,6 +35,7 @@ directories = "5.0.1"
 rfd = "0.13.0"
 souvlaki = "0.7.0"
 fakeit = "1.2.0"
+tiny-skia = "0.11.4"
 
 [build-dependencies]
 slint-build = "1.4.0"
