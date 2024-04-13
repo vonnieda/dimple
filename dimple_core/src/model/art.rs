@@ -1,7 +1,8 @@
+use std::io::Cursor;
+
 use dimple_core_macro::ModelSupport;
 use image::DynamicImage;
-use image::ImageDecoder;
-use image::ImageEncoder;
+use image::ImageOutputFormat;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -15,14 +16,12 @@ pub struct Art {
 }
 
 impl Art {
-    pub fn set_image(&mut self, image: Option<&DynamicImage>) {
+    pub fn set_image(&mut self, image: &DynamicImage) {
+        let mut cursor = Cursor::new(&mut self.compressed_image);
+        image.write_to(&mut cursor, ImageOutputFormat::Png).unwrap()
     }
 
-    pub fn get_image(&self) -> Option<DynamicImage> {
-        if self.compressed_image.is_none() {
-            return None
-        }
-        ImageDecoder::
+    pub fn get_image(&self) -> DynamicImage {
+        image::load_from_memory(&self.compressed_image).unwrap()
     }
 }
-

@@ -86,14 +86,26 @@ impl From<&Artist> for CardAdapter {
 /// based on currently available data. Calling it again might produce a
 /// a different image if related data has been updated.
 pub fn get_artist_image(librarian: &Librarian, artist: &Artist, width: u32, height: u32) -> SharedPixelBuffer<Rgba8Pixel> {
-    random_image(width, height)
-    let art = librarian.list(&Art::default().into(), Some(&artist.clone().into())).iter().next();
-    if art.is_none() {
-        let image = random_image(width, height);
-        let art = Art {
-            image: Some(image.as_bytes().to_vec()),
-            ..Default::default()
-        };
-    }
+    let art = librarian.list(&Art::default().into(), Some(&artist.clone().into()))
+        .unwrap()
+        .next();
+    let art: Art = match art {
+        Some(art) => art,
+        None => {
+            let image = random_image(width, height);
+            let mut art = Art::default();
+            art.set_image(&image);
+            let art = librarian.insert(&art.into()).unwrap();
+            librarian.link(&art.clone().into(), &artist.clone().into()).unwrap();
+            art
+        }
+    }.into();
+    let dyn_image = art.get_image();
+    let image_buf = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+        dyn_image.as_bytes(),
+        dyn_image.width(),
+        dyn_image.height(),
+    );
+    image_buf
 }
 

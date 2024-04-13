@@ -1,6 +1,6 @@
-use slint::{Rgba8Pixel, SharedPixelBuffer};
+use image::DynamicImage;
 
-pub fn random_image(width: u32, height: u32) -> SharedPixelBuffer<Rgba8Pixel> {
+pub fn random_image(width: u32, height: u32) -> DynamicImage {
     let mut pixmap = tiny_skia::Pixmap::new(width, height).unwrap();
     for i in 0..50 {
         let mut paint = tiny_skia::Paint::default();
@@ -20,12 +20,7 @@ pub fn random_image(width: u32, height: u32) -> SharedPixelBuffer<Rgba8Pixel> {
 
     let image: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> = image::ImageBuffer::from_raw(width, height, pixmap.data().to_vec()).unwrap();
     let image = image::imageops::blur(&image, 13.0);
-    
-    let image_buf = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
-        image.as_raw(),
-        image.width(),
-        image.height(),
-    );
-    image_buf
+
+    DynamicImage::ImageRgba8(image)
 }
 
