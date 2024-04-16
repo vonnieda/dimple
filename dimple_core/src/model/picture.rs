@@ -8,14 +8,14 @@ use serde::Serialize;
 
 use super::Model;
 
-// https://musicbrainz.org/doc/Artist
+/// A model for storing an image in Dimple. Not Image because too overloaded.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
-pub struct Art {
+pub struct Picture {
     pub key: Option<String>,
     compressed_image: Vec<u8>,
 }
 
-impl Art {
+impl Picture {
     pub fn set_image(&mut self, image: &DynamicImage) {
         let mut cursor = Cursor::new(&mut self.compressed_image);
         image.write_to(&mut cursor, ImageOutputFormat::Png).unwrap()

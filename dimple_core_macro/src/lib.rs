@@ -17,6 +17,12 @@ pub fn my_macro(input: TokenStream) -> TokenStream {
             }
         }
         
+        impl From<&#name> for Model {
+            fn from(value: &#name) -> Self {
+                Self::#name(value.clone())
+            }
+        }
+        
         impl From<Model> for #name {
             fn from(value: Model) -> Self {
                 match value {
