@@ -21,4 +21,3 @@ pub struct Artist {
 
     pub country: Option<String>,
 }
-

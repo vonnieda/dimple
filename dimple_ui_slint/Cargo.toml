@@ -10,7 +10,7 @@ description = "Dimple is an open source, cross-platform music player that celebr
 
 [dependencies]
 log = "0.4.19"
-slint = { version = "1.4.0", default-features = true }
+slint = { version = "= 1.4.1", default-features = true }
 env_logger = "0.10.0"
 dimple_core = { path = "../dimple_core" }
 dimple_player = { path = "../dimple_player" }
@@ -38,7 +38,7 @@ fakeit = "1.2.0"
 tiny-skia = "0.11.4"
 
 [build-dependencies]
-slint-build = "1.4.0"
+slint-build = "= 1.4.1"
 
 # https://github.com/burtonageo/cargo-bundle
 [package.metadata.bundle]

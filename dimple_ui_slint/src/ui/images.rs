@@ -61,3 +61,4 @@ pub fn fuzzy_circles(width: u32, height: u32) -> DynamicImage {
     DynamicImage::ImageRgba8(image)
 }
 
+

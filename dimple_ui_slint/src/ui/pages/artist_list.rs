@@ -1,3 +1,4 @@
+use std::sync::mpsc::channel;
 use std::thread;
 
 use crate::ui::images::get_model_image;
@@ -30,7 +31,7 @@ pub fn artist_list(librarian: &Librarian, ui: slint::Weak<AppWindow>) {
         artists.sort_by_key(|a| a.name.clone().unwrap_or_default().to_lowercase());
 
         ui.upgrade_in_event_loop(move |ui| {
-            let cards: Vec<CardAdapter> = artists.iter().map(Into::into).collect();
+            let cards: Vec<CardAdapter> = artists.iter().cloned().map(Into::into).collect();
             let adapter = CardGridAdapter {
                 cards: ModelRc::from(cards.as_slice()),
             };
@@ -41,17 +42,11 @@ pub fn artist_list(librarian: &Librarian, ui: slint::Weak<AppWindow>) {
     });
 }
 
-/// All looking really good, last thing to do is genericify this.
-/// Probably need to think of this in terms of updating an image for one model
-/// somehow, and then expand that to the arrays, as we'll need this for title
-/// images and such. So there needs to be a way to generically specify a callback
-/// or something that will fix up the image.
-/// I think using a callback for the image makes sense cause it can essentially
-/// register by asking.
 fn load_images(librarian: &Librarian, artists: &[Artist], ui: slint::Weak<AppWindow>) {
     let artists: Vec<_> = artists.iter().cloned().collect();
     let librarian = librarian.clone();
     thread::spawn(move || {
+        // TODO this needs to be improved to not spam the UI thread. 
         artists.iter().enumerate().for_each(|(i, artist)| {
             // TODO Use Palette for thumbnail sizes
             let image = get_model_image(&librarian, &artist.into(), 200, 200);
@@ -66,8 +61,8 @@ fn load_images(librarian: &Librarian, artists: &[Artist], ui: slint::Weak<AppWin
     });
 }
 
-impl From<&Artist> for CardAdapter {
-    fn from(value: &Artist) -> Self {
+impl From<Artist> for CardAdapter {
+    fn from(value: Artist) -> Self {
         CardAdapter {
             image: ImageLinkAdapter {
                 image: Default::default(),

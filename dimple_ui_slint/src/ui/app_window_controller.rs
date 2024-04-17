@@ -49,7 +49,7 @@ impl AppWindowController {
 
         if self.librarian.list(&Artist::default().into(), None).unwrap().count() == 0 {
             log::info!("Creating some random data.");
-            Self::create_random_data(&self.librarian, 100);
+            Self::create_random_data(&self.librarian, 1000);
             log::info!("Done.");
         }
 
@@ -102,7 +102,7 @@ impl AppWindowController {
             crate::ui::pages::artist_list::artist_list(librarian, ui);
         }
         else if url.starts_with("dimple://artist/") {
-            Self::set_page(ui, Page::ArtistDetails);
+            crate::ui::pages::artist_details::artist_details(&url, librarian, ui);
         }
         else if url.starts_with("dimple://release-groups") {
             Self::set_page(ui, Page::ReleaseGroupList);
@@ -165,7 +165,9 @@ impl AppWindowController {
         for i in 0..num_artists {
             let artist = Artist {
                 name: Some(fakeit::name::full()),
-                country: Some("US".to_string()),
+                summary: Some(fakeit::hipster::paragraph(1, 4, 40, " ".to_string())),
+                country: Some(fakeit::address::country_abr()),
+                disambiguation: Some(fakeit::address::country()),
                 ..Default::default()
             };
             let release_group = ReleaseGroup {
