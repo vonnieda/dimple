@@ -1,10 +1,11 @@
 use std::{fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, source::{AccessMode, Source}
+    db::{Db, SqliteDb}, model::Picture, source::{AccessMode, Source}
 };
 
 use anyhow::Result;
+use image::DynamicImage;
 
 #[derive(Clone)]
 pub struct Librarian {

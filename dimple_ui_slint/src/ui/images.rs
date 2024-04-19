@@ -29,6 +29,7 @@ pub fn get_model_image(librarian: &Librarian, model: &Model, width: u32, height:
 }
 
 pub fn create_model_image(librarian: &Librarian, model: &Model, width: u32, height: u32) -> DynamicImage {
+    dbg!("creating image for {}", model);
     match model {
         Model::Artist(value) => {
             fuzzy_circles(width, height)
