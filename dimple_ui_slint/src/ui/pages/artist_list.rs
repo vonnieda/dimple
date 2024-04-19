@@ -5,6 +5,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 use crate::ui::images::get_model_image;
+use crate::ui::images::lazy_load_images;
 use crate::ui::AppWindow;
 use crate::ui::CardAdapter;
 use crate::ui::CardGridAdapter;
@@ -47,87 +48,10 @@ pub fn artist_list(librarian: &Librarian, ui: slint::Weak<AppWindow>) {
             };
             ui.set_artist_list(adapter);
             ui.set_page(Page::ArtistList);
-            load_images(&librarian, &artists, ui.as_weak(), |ui| ui.get_artist_list().cards);
+            let models: Vec<dimple_core::model::Model> = artists.iter().cloned().map(Into::into).collect();
+            lazy_load_images(&librarian, models.as_slice(), ui.as_weak(), |ui| ui.get_artist_list().cards);
         }).unwrap();
     });
-}
-
-fn load_images<F: Fn(AppWindow) -> ModelRc<CardAdapter> + Send + Copy + 'static>(librarian: &Librarian, 
-    artists: &[Artist], ui: slint::Weak<AppWindow>, get_model: F) {
-
-    let artists: Vec<_> = artists.iter().cloned().collect();
-    let librarian = librarian.clone();
-    // Spawns a thread that loads images for the given artists in batches
-    // of N = 10. Whenever at least N images are loaded, they are passed
-    // off to the UI thread to be set on the models.
-    // TODO: Ah, okay, so this could have just been a timer, every 250ms,
-    // draining a queue until it is empty.
-    thread::spawn(move || {
-        let mut queue: VecDeque<(usize, SharedPixelBuffer<Rgba8Pixel>)> = VecDeque::new();
-        let mut last_send = Instant::now();
-        for (i, artist) in artists.iter().enumerate() {
-            let buffer = get_model_image(&librarian, &artist.into(), 200, 200);
-            queue.push_back((i, buffer));
-            if last_send.elapsed() > Duration::from_millis(250) {
-                last_send = Instant::now();
-                let items: Vec<_> = queue.drain(..).collect();
-                ui.upgrade_in_event_loop(move |ui| {
-                    let model = get_model(ui);
-                    for (index, buffer) in items {
-                        let mut card = model.row_data(index).unwrap();
-                        card.image.image = Image::from_rgba8_premultiplied(buffer);
-                        model.set_row_data(index, card);
-                    }
-                }).unwrap();
-            }
-        }
-        let items: Vec<_> = queue.drain(..).collect();
-        ui.upgrade_in_event_loop(move |ui| {
-            let model = get_model(ui);
-            for (index, buffer) in items {
-                let mut card = model.row_data(index).unwrap();
-                card.image.image = Image::from_rgba8_premultiplied(buffer);
-                model.set_row_data(index, card);
-            }
-        }).unwrap();
-});
-}
-
-// fn load_images(librarian: &Librarian, artists: &[Artist], ui: slint::Weak<AppWindow>) {
-//     let artists: Vec<_> = artists.iter().cloned().collect();
-//     let librarian = librarian.clone();
-//     thread::spawn(move || {
-//         // TODO this needs to be improved to not spam the UI thread. 
-//         artists.iter().enumerate().for_each(|(i, artist)| {
-//             // TODO Use Palette for thumbnail sizes
-//             let image = get_model_image(&librarian, &artist.into(), 200, 200);
-//             ui.upgrade_in_event_loop(move |ui| {
-//                 let image = Image::from_rgba8_premultiplied(image);
-//                 let adapter = ui.get_artist_list();
-//                 let mut card: CardAdapter = adapter.cards.row_data(i).unwrap();
-//                 card.image.image = image;
-//                 adapter.cards.set_row_data(i, card);
-//             }).unwrap();
-//         });
-//     });
-// }
-
-fn artist_card(artist: Artist, librarian: Librarian) -> CardAdapter {
-    CardAdapter {
-        image: ImageLinkAdapter {
-            image: Default::default(),
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-        },
-        title: LinkAdapter {
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-        },
-        sub_title: LinkAdapter {
-            name: artist.disambiguation.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-        },
-    }
 }
 
 impl From<Artist> for CardAdapter {

@@ -5,7 +5,6 @@ use dimple_core::{
 };
 
 use anyhow::Result;
-use image::DynamicImage;
 
 #[derive(Clone)]
 pub struct Librarian {

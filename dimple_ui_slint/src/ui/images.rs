@@ -1,8 +1,16 @@
+use std::collections::VecDeque;
+use std::thread;
+use std::time::Duration;
+use std::time::Instant;
+
 use dimple_core::model::{Model, Picture};
 use dimple_librarian::librarian::Librarian;
 use dimple_core::db::Db;
 use image::DynamicImage;
-use slint::{Rgba8Pixel, SharedPixelBuffer};
+use slint::Image;
+use slint::{ModelRc, Rgba8Pixel, SharedPixelBuffer};
+use crate::ui::AppWindow;
+use crate::ui::CardAdapter;
 
 pub fn get_model_image(librarian: &Librarian, model: &Model, width: u32, height: u32) -> SharedPixelBuffer<Rgba8Pixel> {
     let picture = librarian.list(&Picture::default().into(), Some(&model))
@@ -29,7 +37,6 @@ pub fn get_model_image(librarian: &Librarian, model: &Model, width: u32, height:
 }
 
 pub fn create_model_image(librarian: &Librarian, model: &Model, width: u32, height: u32) -> DynamicImage {
-    dbg!("creating image for {}", model);
     match model {
         Model::Artist(value) => {
             fuzzy_circles(width, height)
@@ -62,4 +69,44 @@ pub fn fuzzy_circles(width: u32, height: u32) -> DynamicImage {
     DynamicImage::ImageRgba8(image)
 }
 
+pub fn lazy_load_images<F>(librarian: &Librarian, 
+    models: &[dimple_core::model::Model], 
+    ui: slint::Weak<AppWindow>, 
+    get_model: F) 
+    where F: Fn(AppWindow) -> ModelRc<CardAdapter> + Send + Copy + 'static {
+
+    let models: Vec<_> = models.iter().cloned().collect();
+    let librarian = librarian.clone();
+    thread::spawn(move || {
+        let mut queue: VecDeque<(usize, SharedPixelBuffer<Rgba8Pixel>)> = VecDeque::new();
+        let mut last_send = Instant::now();
+        for (i, model) in models.iter().enumerate() {
+            let buffer = get_model_image(&librarian, model, 200, 200);
+            queue.push_back((i, buffer));
+            if last_send.elapsed() > Duration::from_millis(250) {
+                last_send = Instant::now();
+                // DRY 1
+                let items: Vec<_> = queue.drain(..).collect();
+                ui.upgrade_in_event_loop(move |ui| {
+                    let model = get_model(ui);
+                    for (index, buffer) in items {
+                        let mut card = slint::Model::row_data(&model, index).unwrap();
+                        card.image.image = Image::from_rgba8_premultiplied(buffer);
+                        slint::Model::set_row_data(&model, index, card);
+                    }
+                }).unwrap();
+            }
+        }
+        // DRY 1
+        let items: Vec<_> = queue.drain(..).collect();
+        ui.upgrade_in_event_loop(move |ui| {
+            let model = get_model(ui);
+            for (index, buffer) in items {
+                let mut card = slint::Model::row_data(&model, index).unwrap();
+                card.image.image = Image::from_rgba8_premultiplied(buffer);
+                slint::Model::set_row_data(&model, index, card);
+            }
+        }).unwrap();
+});
+}
 
