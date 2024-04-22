@@ -69,6 +69,14 @@ pub fn fuzzy_circles(width: u32, height: u32) -> DynamicImage {
     DynamicImage::ImageRgba8(image)
 }
 
+// https://releases.slint.dev/1.5.1/docs/rust/slint/struct.image#sending-image-to-a-thread
+// https://github.com/slint-ui/slint/discussions/4289
+// https://github.com/slint-ui/slint/discussions/2527
+/// Background loads images for the specified slice of Models. Every T = 250ms
+/// the UI is notified of any newly loaded images. The images are batched by
+/// time as this was shown in testing to keep the UI feeling smooth.
+/// TODO This can be further improved with a par_iter sender/receiver setup.
+/// And by adding caching back in.
 pub fn lazy_load_images<F>(librarian: &Librarian, 
     models: &[dimple_core::model::Model], 
     ui: slint::Weak<AppWindow>, 
@@ -77,6 +85,7 @@ pub fn lazy_load_images<F>(librarian: &Librarian,
 
     let models: Vec<_> = models.iter().cloned().collect();
     let librarian = librarian.clone();
+
     thread::spawn(move || {
         let mut queue: VecDeque<(usize, SharedPixelBuffer<Rgba8Pixel>)> = VecDeque::new();
         let mut last_send = Instant::now();
@@ -87,6 +96,7 @@ pub fn lazy_load_images<F>(librarian: &Librarian,
                 last_send = Instant::now();
                 // DRY 1
                 let items: Vec<_> = queue.drain(..).collect();
+                log::info!("updating batch of {}", items.len());
                 ui.upgrade_in_event_loop(move |ui| {
                     let model = get_model(ui);
                     for (index, buffer) in items {
@@ -107,6 +117,6 @@ pub fn lazy_load_images<F>(librarian: &Librarian,
                 slint::Model::set_row_data(&model, index, card);
             }
         }).unwrap();
-});
+    });
 }
 

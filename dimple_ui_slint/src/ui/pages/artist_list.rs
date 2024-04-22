@@ -1,10 +1,3 @@
-use std::collections::VecDeque;
-use std::sync::mpsc::channel;
-use std::thread;
-use std::time::Duration;
-use std::time::Instant;
-
-use crate::ui::images::get_model_image;
 use crate::ui::images::lazy_load_images;
 use crate::ui::AppWindow;
 use crate::ui::CardAdapter;
@@ -15,21 +8,9 @@ use crate::ui::Page;
 use dimple_core::db::Db;
 use dimple_core::model::Artist;
 use dimple_librarian::librarian::Librarian;
-use rayon::iter::IntoParallelRefIterator;
-use rayon::iter::ParallelIterator;
 use slint::ComponentHandle;
-use slint::Image;
-use slint::Model;
 use slint::ModelRc;
-use slint::Rgba8Pixel;
-use slint::SharedPixelBuffer;
-use slint::Weak;
 
-// https://releases.slint.dev/1.5.1/docs/rust/slint/struct.image#sending-image-to-a-thread
-// https://github.com/slint-ui/slint/discussions/4289
-// https://github.com/slint-ui/slint/discussions/2527
-
-/// Current thinking is need a placeholder image, and then set later.
 pub fn artist_list(librarian: &Librarian, ui: slint::Weak<AppWindow>) {
     let librarian = librarian.clone();
     let ui = ui.clone();
@@ -48,6 +29,8 @@ pub fn artist_list(librarian: &Librarian, ui: slint::Weak<AppWindow>) {
             };
             ui.set_artist_list(adapter);
             ui.set_page(Page::ArtistList);
+            // It again seems like the place to do this is in the mapping from artist
+            // to card.
             let models: Vec<dimple_core::model::Model> = artists.iter().cloned().map(Into::into).collect();
             lazy_load_images(&librarian, models.as_slice(), ui.as_weak(), |ui| ui.get_artist_list().cards);
         }).unwrap();

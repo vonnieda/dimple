@@ -57,6 +57,7 @@ export enum Page { Home, Search,
         PlaylistList, PlaylistDetails,
         Settings }
 
+
 export component AppWindow inherits Window {
     in-out property <Page> page: Settings;
 
@@ -64,6 +65,7 @@ export component AppWindow inherits Window {
     // sub-components, so we have to bubble them all to the top.
     // See: https://github.com/slint-ui/slint/issues/784
     // Wait, how the heck do I hookup callbacks then?
+    // Same way :(
     in-out property <HomeAdapter> home;
     in-out property <CardGridAdapter> search;
     in-out property <CardGridAdapter> artist-list;

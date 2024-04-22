@@ -12,6 +12,8 @@ use directories::ProjectDirs;
 
 use crate::ui::{*};
 
+// TODO I think this is going to become App, or break into parts one being
+// App, and that will have the global state and get passed around.
 pub struct AppWindowController {
     ui: AppWindow,
     librarian: Librarian,

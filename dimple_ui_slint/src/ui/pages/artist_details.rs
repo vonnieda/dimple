@@ -3,8 +3,11 @@ use dimple_core::model::Model;
 use dimple_core::model::ReleaseGroup;
 use dimple_librarian::librarian::Librarian;
 use slint::ComponentHandle;
+use slint::Image;
 use slint::ModelRc;
 use url::Url;
+use crate::ui::images::get_model_image;
+use crate::ui::images::lazy_load_images;
 use crate::ui::AppWindow;
 use crate::ui::Navigator;
 use crate::ui::Page;
@@ -66,7 +69,7 @@ pub fn artist_details(url: &str, librarian: &Librarian, ui: slint::Weak<AppWindo
             let eps: Vec<CardAdapter> = eps.iter().cloned().map(Into::into).collect();
             let others: Vec<CardAdapter> = others.iter().cloned().map(Into::into).collect();
 
-            let adapter = ArtistDetailsAdapter {
+            let mut adapter = ArtistDetailsAdapter {
                 // TODO need to load the images for the card and for all the
                 // generated cards.
                 card: artist.clone().into(),
@@ -81,6 +84,8 @@ pub fn artist_details(url: &str, librarian: &Librarian, ui: slint::Weak<AppWindo
                 dump: serde_json::to_string_pretty(&artist).unwrap().into(),
                 ..Default::default()
             };
+            adapter.card.image.image = Image::from_rgba8_premultiplied(
+                get_model_image(&librarian, &artist.clone().into(), 275, 275));
             ui.set_artist_details(adapter);
             ui.set_page(Page::ArtistDetails);
             ui.global::<Navigator>().set_busy(false);
