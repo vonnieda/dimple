@@ -6,3 +6,5 @@ pub mod side_bar;
 
 pub mod pages;
 pub mod images;
+
+pub mod common;

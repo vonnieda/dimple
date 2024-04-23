@@ -8,6 +8,7 @@ use slint::ModelRc;
 use slint::StandardListViewItem;
 use slint::VecModel;
 
+// https://github.com/slint-ui/slint/discussions/2329
 pub fn track_list(_librarian: &Librarian, ui: slint::Weak<AppWindow>) {
     ui.upgrade_in_event_loop(move |ui| {
         let rows: VecModel<ModelRc<StandardListViewItem>> = VecModel::default();

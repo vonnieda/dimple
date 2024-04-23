@@ -7,7 +7,6 @@ use serde::Serialize;
 use crate::model::KnownId;
 
 use super::Model;
-
 // https://musicbrainz.org/doc/Artist
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 pub struct Artist {

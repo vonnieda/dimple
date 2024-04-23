@@ -14,8 +14,6 @@ use crate::ui::Page;
 use crate::ui::ArtistDetailsAdapter;
 use dimple_core::db::Db;
 use crate::ui::CardAdapter;
-use crate::ui::LinkAdapter;
-use crate::ui::ImageLinkAdapter;
 
 pub fn artist_details(url: &str, librarian: &Librarian, ui: slint::Weak<AppWindow>) {
     let url = url.to_owned();
@@ -93,22 +91,3 @@ pub fn artist_details(url: &str, librarian: &Librarian, ui: slint::Weak<AppWindo
     });
 }
 
-impl From<ReleaseGroup> for CardAdapter {
-    fn from(value: ReleaseGroup) -> Self {
-        CardAdapter {
-            image: ImageLinkAdapter {
-                image: Default::default(),
-                name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://release_group/{}", value.key.clone().unwrap_or_default()).into(),
-            },
-            title: LinkAdapter {
-                name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://release_group/{}", value.key.clone().unwrap_or_default()).into(),
-            },
-            sub_title: LinkAdapter {
-                name: value.disambiguation.clone().unwrap_or_default().into(),
-                url: format!("dimple://release_group/{}", value.key.clone().unwrap_or_default()).into(),
-            },
-        }
-    }
-}

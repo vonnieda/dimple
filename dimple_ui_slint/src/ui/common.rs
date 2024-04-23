@@ -1,10 +1,55 @@
+use dimple_core::model::Artist;
+use dimple_core::model::ReleaseGroup;
+use crate::ui::CardAdapter;
+use crate::ui::ImageLinkAdapter;
+use crate::ui::LinkAdapter;
+
+impl From<Artist> for CardAdapter {
+    fn from(value: Artist) -> Self {
+        CardAdapter {
+            image: ImageLinkAdapter {
+                image: Default::default(),
+                name: value.name.clone().unwrap_or_default().into(),
+                url: format!("dimple://artist/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            title: LinkAdapter {
+                name: value.name.clone().unwrap_or_default().into(),
+                url: format!("dimple://artist/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            sub_title: LinkAdapter {
+                name: value.disambiguation.clone().unwrap_or_default().into(),
+                url: format!("dimple://artist/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+        }
+    }
+}
+
+impl From<ReleaseGroup> for CardAdapter {
+    fn from(value: ReleaseGroup) -> Self {
+        CardAdapter {
+            image: ImageLinkAdapter {
+                image: Default::default(),
+                name: value.title.clone().unwrap_or_default().into(),
+                url: format!("dimple://release_group/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            title: LinkAdapter {
+                name: value.title.clone().unwrap_or_default().into(),
+                url: format!("dimple://release_group/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            sub_title: LinkAdapter {
+                name: value.disambiguation.clone().unwrap_or_default().into(),
+                url: format!("dimple://release_group/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+        }
+    }
+}
 
 
 // TODO hastily written bunch of adapters, clean em up
-fn link_adapters(links: Vec<Link>) -> ModelRc<LinkAdapter> {
-    let links: Vec<_> = links.into_iter().map(Into::into).collect();
-    ModelRc::from(links.as_slice())
-}
+// fn link_adapters(links: Vec<Link>) -> ModelRc<LinkAdapter> {
+//     let links: Vec<_> = links.into_iter().map(Into::into).collect();
+//     ModelRc::from(links.as_slice())
+// }
 
 // fn entity_cards(entities: Vec<Entities>, lib: &Librarian, width: u32, height: u32) -> Vec<Card> {
 //     entities.par_iter()
@@ -254,129 +299,129 @@ fn link_adapters(links: Vec<Link>) -> ModelRc<LinkAdapter> {
 // Creates a simple score for a release to use when selecting a
 // a default release.
 // TODO this is super naive, just needed something to set the example.
-fn score_release(r: &Release) -> f64 {
-    let mut score = 0.;
-    let country = r.country.str().to_lowercase();
-    if country == "xw" {
-        score += 1.0;
-    }                
-    else if country == "us" || country == "gb" || country == "xe" {
-        score += 0.7;
-    }
-    else if !country.is_empty() {
-        score += 0.1;
-    }
+// fn score_release(r: &Release) -> f64 {
+//     let mut score = 0.;
+//     let country = r.country.str().to_lowercase();
+//     if country == "xw" {
+//         score += 1.0;
+//     }                
+//     else if country == "us" || country == "gb" || country == "xe" {
+//         score += 0.7;
+//     }
+//     else if !country.is_empty() {
+//         score += 0.1;
+//     }
 
-    if r.status.str().to_lowercase() == "official" {
-        score += 1.0;
-    }
+//     if r.status.str().to_lowercase() == "official" {
+//         score += 1.0;
+//     }
 
-    let packaging = r.packaging.str().to_lowercase();
-    if packaging == "digipak" {
-        score += 1.0;
-    }
-    else if packaging == "jewelcase" {
-        score += 0.5;
-    }
+//     let packaging = r.packaging.str().to_lowercase();
+//     if packaging == "digipak" {
+//         score += 1.0;
+//     }
+//     else if packaging == "jewelcase" {
+//         score += 0.5;
+//     }
 
-    // if !r.media.is_empty() {
-    //     let mut media_format_score = 0.;
-    //     for media in r.media.clone() {
-    //         let format = media.format.to_lowercase();
-    //         if format == "digital media" {
-    //             media_format_score += 1.0;
-    //         }
-    //         else if format == "cd" {
-    //             media_format_score += 0.5;
-    //         }
-    //     }
-    //     score += media_format_score / r.media.len() as f64;
-    // }
+//     // if !r.media.is_empty() {
+//     //     let mut media_format_score = 0.;
+//     //     for media in r.media.clone() {
+//     //         let format = media.format.to_lowercase();
+//     //         if format == "digital media" {
+//     //             media_format_score += 1.0;
+//     //         }
+//     //         else if format == "cd" {
+//     //             media_format_score += 0.5;
+//     //         }
+//     //     }
+//     //     score += media_format_score / r.media.len() as f64;
+//     // }
 
-    score / 4.
-}
+//     score / 4.
+// }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-struct Link {
-    name: String,
-    url: String,
-}
+// #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+// struct Link {
+//     name: String,
+//     url: String,
+// }
 
-#[derive(Clone, Debug, PartialEq, Default)]
-struct ImageLink {
-    link: Link,
-    image: DynamicImage,
-}
+// #[derive(Clone, Debug, PartialEq, Default)]
+// struct ImageLink {
+//     link: Link,
+//     image: DynamicImage,
+// }
 
-#[derive(Clone, Debug, PartialEq, Default)]
-struct Card {
-    image: ImageLink,
-    title: Link,
-    sub_title: Link,
-}
+// #[derive(Clone, Debug, PartialEq, Default)]
+// struct Card {
+//     image: ImageLink,
+//     title: Link,
+//     sub_title: Link,
+// }
 
-impl From<Link> for LinkAdapter {
-    fn from(value: Link) -> Self {
-        Self {
-            name: value.name.into(),
-            url: value.url.into(),
-        }
-    }
-}
+// impl From<Link> for LinkAdapter {
+//     fn from(value: Link) -> Self {
+//         Self {
+//             name: value.name.into(),
+//             url: value.url.into(),
+//         }
+//     }
+// }
 
-trait OptStr {
-    fn str(&self) -> String;
-}
+// trait OptStr {
+//     fn str(&self) -> String;
+// }
 
-impl OptStr for Option<String> {
-    fn str(&self) -> String {
-        self.clone().unwrap_or_default()
-    }
-}
+// impl OptStr for Option<String> {
+//     fn str(&self) -> String {
+//         self.clone().unwrap_or_default()
+//     }
+// }
 
-trait AsSharedString {
-    fn shared(&self) -> SharedString; 
-}
+// trait AsSharedString {
+//     fn shared(&self) -> SharedString; 
+// }
 
-impl AsSharedString for Option<String> {
-    fn shared(&self) -> SharedString {
-        SharedString::from(self.str())        
-    }
-}
+// impl AsSharedString for Option<String> {
+//     fn shared(&self) -> SharedString {
+//         SharedString::from(self.str())        
+//     }
+// }
 
-impl AsSharedString for &str {
-    fn shared(&self) -> SharedString {
-        SharedString::from(self.to_string())
-    }
-}
+// impl AsSharedString for &str {
+//     fn shared(&self) -> SharedString {
+//         SharedString::from(self.to_string())
+//     }
+// }
 
-impl AsSharedString for String {
-    fn shared(&self) -> SharedString {
-        SharedString::from(self)        
-    }
-}
+// impl AsSharedString for String {
+//     fn shared(&self) -> SharedString {
+//         SharedString::from(self)        
+//     }
+// }
 
-trait AsListViewItem {
-    fn listview_item(&self) -> StandardListViewItem;
-}
+// trait AsListViewItem {
+//     fn listview_item(&self) -> StandardListViewItem;
+// }
 
-impl AsListViewItem for Option<String> {
-    fn listview_item(&self) -> StandardListViewItem {
-        StandardListViewItem::from(self.shared())
-    }
-}
+// impl AsListViewItem for Option<String> {
+//     fn listview_item(&self) -> StandardListViewItem {
+//         StandardListViewItem::from(self.shared())
+//     }
+// }
 
-impl AsListViewItem for &str {
-    fn listview_item(&self) -> StandardListViewItem {
-        StandardListViewItem::from(self.shared())
-    }
-}
+// impl AsListViewItem for &str {
+//     fn listview_item(&self) -> StandardListViewItem {
+//         StandardListViewItem::from(self.shared())
+//     }
+// }
 
-impl AsListViewItem for String {
-    fn listview_item(&self) -> StandardListViewItem {
-        StandardListViewItem::from(self.shared())
-    }
-}
+// impl AsListViewItem for String {
+//     fn listview_item(&self) -> StandardListViewItem {
+//         StandardListViewItem::from(self.shared())
+//     }
+// }
 
 
 

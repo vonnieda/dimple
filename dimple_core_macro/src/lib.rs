@@ -35,7 +35,7 @@ pub fn my_macro(input: TokenStream) -> TokenStream {
         // impl ModelSupport for #name {
         //     fn model(&self) -> Model {
         //         Model::#name(self.clone())
-        //    }
+        //     }
         // }
     };
 

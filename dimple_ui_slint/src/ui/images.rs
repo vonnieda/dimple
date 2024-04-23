@@ -1,12 +1,19 @@
+use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::sync::mpsc::channel;
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
 
 use dimple_core::model::{Model, Picture};
+use dimple_librarian::librarian;
 use dimple_librarian::librarian::Librarian;
 use dimple_core::db::Db;
 use image::DynamicImage;
+use rayon::iter::ParallelBridge;
+use rayon::iter::ParallelIterator;
 use slint::Image;
 use slint::{ModelRc, Rgba8Pixel, SharedPixelBuffer};
 use crate::ui::AppWindow;
@@ -77,6 +84,8 @@ pub fn fuzzy_circles(width: u32, height: u32) -> DynamicImage {
 /// time as this was shown in testing to keep the UI feeling smooth.
 /// TODO This can be further improved with a par_iter sender/receiver setup.
 /// And by adding caching back in.
+type LazyImage = (usize, SharedPixelBuffer<Rgba8Pixel>);
+
 pub fn lazy_load_images<F>(librarian: &Librarian, 
     models: &[dimple_core::model::Model], 
     ui: slint::Weak<AppWindow>, 
@@ -85,25 +94,35 @@ pub fn lazy_load_images<F>(librarian: &Librarian,
 
     let models: Vec<_> = models.iter().cloned().collect();
     let librarian = librarian.clone();
+    let (sender, receiver) = channel::<LazyImage>();
 
     thread::spawn(move || {
-        let mut queue: VecDeque<(usize, SharedPixelBuffer<Rgba8Pixel>)> = VecDeque::new();
-        let mut last_send = Instant::now();
-        for (i, model) in models.iter().enumerate() {
+        models.iter().enumerate().par_bridge().for_each(|(index, model)| {
             let buffer = get_model_image(&librarian, model, 200, 200);
-            queue.push_back((i, buffer));
+            sender.send((index, buffer)).unwrap();
+        });
+    });
+
+    thread::spawn(move || {        
+        let mut queue: VecDeque<LazyImage> = VecDeque::new();
+        let mut last_send = Instant::now();
+        for lazy_image in receiver.iter() {
+            let index = lazy_image.0;
+            let buffer = lazy_image.1;
+            queue.push_back((index, buffer));
             if last_send.elapsed() > Duration::from_millis(250) {
                 last_send = Instant::now();
                 // DRY 1
                 let items: Vec<_> = queue.drain(..).collect();
-                log::info!("updating batch of {}", items.len());
                 ui.upgrade_in_event_loop(move |ui| {
+                    log::info!("updating {} items", items.len());
                     let model = get_model(ui);
                     for (index, buffer) in items {
                         let mut card = slint::Model::row_data(&model, index).unwrap();
                         card.image.image = Image::from_rgba8_premultiplied(buffer);
                         slint::Model::set_row_data(&model, index, card);
                     }
+                    log::info!("done updating");
                 }).unwrap();
             }
         }
@@ -120,3 +139,39 @@ pub fn lazy_load_images<F>(librarian: &Librarian,
     });
 }
 
+/// Handles image loading, placeholders, caching, scaling, generation, etc.
+/// Primary job is to quickly return an image for a Model, and be able to
+/// notify the view when a better one is available.
+#[derive(Clone)]
+pub struct ImageMangler {
+    librarian: Librarian,
+    cache: Arc<Mutex<HashMap<String, SharedPixelBuffer<Rgba8Pixel>>>>,
+    // queue: Arc<Mutex<VecDeque<QueueItem>>>,
+}
+
+struct QueueItem<F>
+    where F: FnOnce() {
+    model: Model,
+    width: u32,
+    height: u32,
+    callback: F,
+}
+
+impl ImageMangler {
+    pub fn new(librarian: Librarian) -> Self {
+        Self {
+            librarian,
+            cache: Default::default(),
+            // queue: Default::default(),
+        }
+    }
+
+    pub fn get<F>(&self, model: dimple_core::model::Model, width: u32, height: u32, callback: F) -> SharedPixelBuffer<Rgba8Pixel> 
+        where F: FnOnce() {
+
+        // If an image is already cached at the correct size, return it. All
+        // other methods are deferred and go into the queue.
+        // let key = format!("{}:{}:{}", model.key(), width, height);
+        todo!()
+    }
+}
