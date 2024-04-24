@@ -20,71 +20,11 @@ use rayon::iter::ParallelIterator;
 use slint::Image;
 use slint::Weak;
 use slint::{ModelRc, Rgba8Pixel, SharedPixelBuffer};
+use threadpool::ThreadPool;
 use tiny_skia::Rect;
 use crate::ui::AppWindow;
 use crate::ui::CardAdapter;
 
-
-// https://releases.slint.dev/1.5.1/docs/rust/slint/struct.image#sending-image-to-a-thread
-// https://github.com/slint-ui/slint/discussions/4289
-// https://github.com/slint-ui/slint/discussions/2527
-/// Background loads images for the specified slice of Models. Every T = 250ms
-/// the UI is notified of any newly loaded images. The images are batched by
-/// time as this was shown in testing to keep the UI feeling smooth.
-/// TODO This can be further improved with a par_iter sender/receiver setup.
-/// And by adding caching back in.
-// type LazyImage = (usize, SharedPixelBuffer<Rgba8Pixel>);
-
-// pub fn lazy_load_images<F>(librarian: &Librarian, 
-//     models: &[dimple_core::model::Model], 
-//     ui: slint::Weak<AppWindow>, 
-//     get_model: F) 
-//     where F: Fn(AppWindow) -> ModelRc<CardAdapter> + Send + Copy + 'static {
-
-//     let models: Vec<_> = models.iter().cloned().collect();
-//     let librarian = librarian.clone();
-//     let (sender, receiver) = channel::<LazyImage>();
-
-//     thread::spawn(move || {
-//         models.iter().enumerate().par_bridge().for_each(|(index, model)| {
-//             let buffer = get_model_image(&librarian, model, 200, 200);
-//             sender.send((index, buffer)).unwrap();
-//         });
-//     });
-
-//     thread::spawn(move || {        
-//         let mut queue: VecDeque<LazyImage> = VecDeque::new();
-//         let mut last_send = Instant::now();
-//         for lazy_image in receiver.iter() {
-//             let index = lazy_image.0;
-//             let buffer = lazy_image.1;
-//             queue.push_back((index, buffer));
-//             if last_send.elapsed() > Duration::from_millis(250) {
-//                 last_send = Instant::now();
-//                 // DRY 1
-//                 let items: Vec<_> = queue.drain(..).collect();
-//                 ui.upgrade_in_event_loop(move |ui| {
-//                     let model = get_model(ui);
-//                     for (index, buffer) in items {
-//                         let mut card = slint::Model::row_data(&model, index).unwrap();
-//                         card.image.image = Image::from_rgba8_premultiplied(buffer);
-//                         slint::Model::set_row_data(&model, index, card);
-//                     }
-//                 }).unwrap();
-//             }
-//         }
-//         // DRY 1
-//         let items: Vec<_> = queue.drain(..).collect();
-//         ui.upgrade_in_event_loop(move |ui| {
-//             let model = get_model(ui);
-//             for (index, buffer) in items {
-//                 let mut card = slint::Model::row_data(&model, index).unwrap();
-//                 card.image.image = Image::from_rgba8_premultiplied(buffer);
-//                 slint::Model::set_row_data(&model, index, card);
-//             }
-//         }).unwrap();
-//     });
-// }
 
 /// Handles image loading, placeholders, caching, scaling, generation, etc.
 /// Primary job is to quickly return an image for a Model, and be able to
@@ -97,10 +37,7 @@ pub struct ImageMangler {
     default_artist: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     default_release_group: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     default_other: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
-}
-
-struct LazyImage {
-
+    threadpool: ThreadPool,
 }
 
 impl ImageMangler {
@@ -112,6 +49,7 @@ impl ImageMangler {
             default_artist: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
             default_release_group: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
             default_other: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_rects(128, 128)))),
+            threadpool: ThreadPool::new(8),
         };
 
         images
@@ -124,9 +62,10 @@ impl ImageMangler {
         if let Some(buffer) = self.cache.lock().unwrap().get(&cache_key) {
             return Image::from_rgba8_premultiplied(buffer.clone())
         }
+        // TODO DRY(osdfhaosdhfoiuaysdiofuhaoisfd)
         if let Some(dyn_image) = self.load_model_image(&model) {
             let dyn_image = dyn_image.resize(width, height, 
-                image::imageops::FilterType::CatmullRom);
+                image::imageops::FilterType::Nearest);
             let buffer = dynamic_to_buffer(&dyn_image);
             self.cache.lock().unwrap().insert(cache_key, buffer.clone());
             // TODO go to network, or more likely we'll just use a different
@@ -148,10 +87,14 @@ impl ImageMangler {
             let images = self.clone();
             let model = model.clone();
             let ui = self.ui.clone();
-            thread::spawn(move || {
+            self.threadpool.execute(move || {
+                // TODO DRY(osdfhaosdhfoiuaysdiofuhaoisfd)
                 if let Some(dyn_image) = images.load_model_image(&model) {
+                    // TODO note, this resize is so slow in some cases that it
+                    // might be worth doing a way scaled down version first, setting it,
+                    // and then doing the real one.
                     let dyn_image = dyn_image.resize(width, height, 
-                        image::imageops::FilterType::CatmullRom);
+                        image::imageops::FilterType::Nearest);
                     let buffer = dynamic_to_buffer(&dyn_image);
                     images.cache.lock().unwrap().insert(cache_key, buffer.clone());
                     // TODO go to network?
