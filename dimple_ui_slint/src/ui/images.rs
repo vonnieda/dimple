@@ -159,9 +159,9 @@ impl ImageMangler {
             librarian: librarian.clone(),
             cache: Default::default(),
             // queue: Default::default(),
-            default_artist: Arc::new(Mutex::new(dynamic_to_buffer(&fuzzy_circles(16, 16)))),
+            default_artist: Arc::new(Mutex::new(dynamic_to_buffer(&fuzzy_circles(128, 128)))),
             // default_release_group: dynamic_to_buffer(&fuzzy_circles(1000, 1000)),
-            default_other: Arc::new(Mutex::new(dynamic_to_buffer(&fuzzy_circles(16, 16)))),
+            default_other: Arc::new(Mutex::new(dynamic_to_buffer(&fuzzy_circles(128, 128)))),
         };
         // {
         //     let images = images.clone();
@@ -180,29 +180,25 @@ impl ImageMangler {
         images
     }
 
-    fn get(&self, model: &Model) -> SharedPixelBuffer<Rgba8Pixel> {
-        let picture = self.librarian.list(&Picture::default().into(), Some(&model))
-            .unwrap()
-            .next();
-        if let Some(picture) = picture {
-            let picture: Picture = picture.into();
-            let dyn_image = picture.get_image();
-            let image_buf = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
-                dyn_image.as_bytes(),
-                dyn_image.width(),
-                dyn_image.height(),
-            );
-            return image_buf
+    pub fn get<F>(&self, model: dimple_core::model::Model, width: u32, height: u32, set_image: F) -> SharedPixelBuffer<Rgba8Pixel> 
+        where F: Fn(AppWindow, Image) {
+        // If an image is already cached at the correct size, return it. All
+        // other methods are deferred and go into the queue.
+        // let key = format!("{}:{}:{}", model.key(), width, height);
+        let model_key = match &model {
+            Model::Artist(v) => v.key.clone().unwrap(),
+            Model::ReleaseGroup(v) => v.key.clone().unwrap(),
+            _ => todo!(),
+        };
+        let cache_key = format!("{}:{}:{}", model_key, width, height);
+        if let Some(buffer) = self.cache.lock().unwrap().get(&cache_key) {
+            return buffer.clone()
         }
-        else {
-            match model {
-                Model::Artist(a) => {
-                    return self.default_artist.lock().unwrap().clone()
-                },
-                _ => {
-                    return self.default_other.lock().unwrap().clone()
-                }
-            }
+        // TODO queue the placeholder replacement
+        match &model {
+            Model::Artist(_v) => return self.default_artist.lock().unwrap().clone(),
+            // Model::ReleaseGroup(_v) => return self.default_artist.clone(),
+            _ => return self.default_other.lock().unwrap().clone(),
         }
     }
 
@@ -220,53 +216,9 @@ impl ImageMangler {
             Model::Picture(_) => todo!(),
         }
     }
-
-    // pub fn get<F>(&self, model: dimple_core::model::Model, width: u32, height: u32, index: usize, get_model: F) -> SharedPixelBuffer<Rgba8Pixel> 
-    //     where F: Fn(AppWindow) -> ModelRc<CardAdapter> + Send + Copy + 'static {
-    //     // If an image is already cached at the correct size, return it. All
-    //     // other methods are deferred and go into the queue.
-    //     // let key = format!("{}:{}:{}", model.key(), width, height);
-    //     let model_key = match &model {
-    //         Model::Artist(v) => v.key.clone().unwrap(),
-    //         Model::ReleaseGroup(v) => v.key.clone().unwrap(),
-    //         _ => "".to_string(),
-    //     };
-    //     let cache_key = format!("{}:{}:{}", model_key, width, height);
-    //     if let Some(buffer) = self.cache.lock().unwrap().get(&cache_key) {
-    //         return buffer.clone()
-    //     }
-    //     // TODO queue the placeholder replacement
-    //     match &model {
-    //         Model::Artist(_v) => return self.default_artist.clone(),
-    //         Model::ReleaseGroup(_v) => return self.default_artist.clone(),
-    //         _ => return self.default_other.clone(),
-    //     }
-    // }
-
-    // pub fn get2<F>(&self, model: dimple_core::model::Model, width: u32, height: u32, set_image: F) -> SharedPixelBuffer<Rgba8Pixel> 
-    //     where F: Fn(AppWindow, Image) {
-    //     // If an image is already cached at the correct size, return it. All
-    //     // other methods are deferred and go into the queue.
-    //     // let key = format!("{}:{}:{}", model.key(), width, height);
-    //     let model_key = match &model {
-    //         Model::Artist(v) => v.key.clone().unwrap(),
-    //         Model::ReleaseGroup(v) => v.key.clone().unwrap(),
-    //         _ => "".to_string(),
-    //     };
-    //     let cache_key = format!("{}:{}:{}", model_key, width, height);
-    //     if let Some(buffer) = self.cache.lock().unwrap().get(&cache_key) {
-    //         return buffer.clone()
-    //     }
-    //     // TODO queue the placeholder replacement
-    //     match &model {
-    //         Model::Artist(_v) => return self.default_artist.clone(),
-    //         Model::ReleaseGroup(_v) => return self.default_artist.clone(),
-    //         _ => return self.default_other.clone(),
-    //     }
-    // }
 }
 
-fn dynamic_to_buffer(dynamic_image: &DynamicImage) -> SharedPixelBuffer<Rgba8Pixel> {
+pub fn dynamic_to_buffer(dynamic_image: &DynamicImage) -> SharedPixelBuffer<Rgba8Pixel> {
     let rgba8_image = dynamic_image.clone().into_rgba8();
     SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
         rgba8_image.as_raw(),
