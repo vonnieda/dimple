@@ -42,6 +42,23 @@ pub enum Model {
     Picture(Picture),
 }
 
+impl Model {
+    pub fn entity(&self) -> &dyn Entity {
+        match self {
+            Model::Artist(v) => v,
+            Model::Genre(v) => v,
+            Model::MediaFile(v) => todo!(),
+            Model::Medium(v) => v,
+            Model::Recording(v) => v,
+            Model::RecordingSource(v) => v,
+            Model::ReleaseGroup(v) => v,
+            Model::Release(v) => v,
+            Model::Track(v) => v,
+            Model::Picture(v) => v,
+        }
+    }
+}
+
 pub trait Entity {
     fn key(&self) -> Option<String>;
     fn type_name(&self) -> String;

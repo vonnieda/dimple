@@ -43,7 +43,7 @@ impl AppWindowController {
                 librarian: librarian.clone(),
                 history: Arc::new(Mutex::new(VecDeque::new())),
                 player,
-                images: ImageMangler::new(librarian.clone()),
+                images: ImageMangler::new(librarian.clone(), ui_weak.clone()),
                 ui: ui_weak,
             }
         }
