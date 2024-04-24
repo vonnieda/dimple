@@ -6,8 +6,6 @@ use image::ImageOutputFormat;
 use serde::Deserialize;
 use serde::Serialize;
 
-use super::Model;
-
 /// A model for storing an image in Dimple. Not Image because too overloaded.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 pub struct Picture {

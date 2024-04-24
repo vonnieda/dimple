@@ -458,3 +458,58 @@ impl From<ReleaseGroup> for CardAdapter {
 //         .unwrap();
 //     });
 // }
+
+// fn create_random_data(db: &dyn Db, num_artists: u32) {
+//     for i in 0..num_artists {
+//         let artist = Artist {
+//             name: Some(fakeit::name::full()),
+//             summary: Some(fakeit::hipster::paragraph(1, 4, 40, " ".to_string())),
+//             country: Some(fakeit::address::country_abr()),
+//             disambiguation: Some(fakeit::address::country()),
+//             ..Default::default()
+//         };
+
+//         let mut picture = Picture::default();
+//         picture.set_image(&fuzzy_circles(1000, 1000));
+
+//         let release_group = ReleaseGroup {
+//             title: Some(fakeit::hipster::sentence(2)),
+//             ..Default::default()
+//         };
+//         let release = Release {
+//             title: release_group.title.clone(),
+//             ..Default::default()
+//         };
+//         let medium = Medium {
+//             disc_count: Some(1),
+//             track_count: Some(1),
+//             ..Default::default()
+//         };
+//         let track = Track {
+//             title: Some(fakeit::hipster::sentence(3)),
+//             ..Default::default()
+//         };
+//         let recording = Recording {
+//             title: track.title.clone(),
+//             ..Default::default()
+//         };
+//         let recording_source = RecordingSource {
+//             ..Default::default()
+//         };
+//         let artist = db.insert(&artist.clone().into()).unwrap();
+//         let picture = db.insert(&picture.clone().into()).unwrap();
+//         let release_group = db.insert(&release_group.clone().into()).unwrap();
+//         let release = db.insert(&release.clone().into()).unwrap();
+//         let medium = db.insert(&medium.clone().into()).unwrap();
+//         let track = db.insert(&track.clone().into()).unwrap();
+//         let recording = db.insert(&recording.clone().into()).unwrap();
+//         let recording_source = db.insert(&recording_source.clone().into()).unwrap();
+//         db.link(&picture.clone().into(), &artist.clone().into()).unwrap();
+//         db.link(&release_group.clone().into(), &artist.clone().into()).unwrap();
+//         db.link(&release.clone().into(), &release_group.clone().into()).unwrap();
+//         db.link(&medium.clone().into(), &release.clone().into()).unwrap();
+//         db.link(&track.clone().into(), &medium.clone().into()).unwrap();
+//         db.link(&recording.clone().into(), &track.clone().into()).unwrap();
+//         db.link(&recording_source.clone().into(), &recording.clone().into()).unwrap();
+//     }
+// }

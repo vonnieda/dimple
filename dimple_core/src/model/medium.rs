@@ -2,8 +2,6 @@ use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
-use super::Model;
-
 /// References
 /// https://musicbrainz.org/doc/Artist
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html

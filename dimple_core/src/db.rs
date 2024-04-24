@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::model::Model;
+use crate::model::{Artist, Entity, Model};
 
 mod sqlite_db;
 
@@ -31,4 +31,31 @@ pub trait Db: Send + Sync {
         list_of: &Model,
         related_to: Option<&Model>,
     ) -> Result<Box<dyn Iterator<Item = Model>>>;
+}
+
+pub trait EntityDb: Send + Sync {
+    fn insert(&self, entity: &dyn Entity) -> Result<Box<dyn Entity>>;
+
+    fn get(&self, entity: &dyn Entity) -> Result<Option<Box<dyn Entity>>>;
+
+    fn link(&self, entity: &dyn Entity, related_to: &dyn Entity) -> Result<()>;
+
+    fn list(
+        &self,
+        list_of: &dyn Entity,
+        related_to: Option<&dyn Entity>,
+    ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>>;
+}
+
+struct Temp {
+
+}
+
+impl Temp {
+    pub fn do_stuff(db: &dyn EntityDb) {
+        let artist = Artist::default();
+        let artist = db.insert(&artist).unwrap();
+        let artist = artist.as_any().downcast_ref::<Artist>().unwrap();
+        let artists: Vec<_> = db.list(&Artist::default(), None).unwrap().map(|a| a.as_any().downcast_ref::<Artist>().unwrap().clone()).collect();
+    }
 }

@@ -15,23 +15,23 @@ pub struct SqliteDb {
 impl SqliteDb {
     pub fn new(path: &str) -> Self {
         let con = Connection::open_thread_safe(path).unwrap();
-        con.execute("CREATE TABLE IF NOT EXISTS kv (key TEXT NOT NULL PRIMARY KEY, value TEXT NOT NULL)").unwrap();
+        con.execute("CREATE TABLE IF NOT EXISTS kv (key TEXT NOT NULL PRIMARY KEY, value BLOB NOT NULL)").unwrap();
         Self {
             con,
         }
     }
 
-    fn _get(&self, key: &str) -> Result<Option<String>> {
+    fn _get(&self, key: &str) -> Result<Option<Vec<u8>>> {
         let mut statement = self.con.prepare("SELECT value FROM kv WHERE key = :key")?;
         statement.bind((":key", key))?;
         if let Ok(State::Row) = statement.next() {
-            let value = statement.read::<String, _>("value")?;
+            let value = statement.read::<Vec<u8>, _>("value")?;
             return Ok(Some(value));
         }
         Ok(None)
     }
 
-    fn _insert(&self, key: &str, value: &str) -> Result<()> {
+    fn _insert(&self, key: &str, value: &[u8]) -> Result<()> {
         let mut statement = self.con.prepare("REPLACE INTO kv (key, value) VALUES (:key, :value)")?;
         statement.bind((":key", key))?;
         statement.bind((":value", value))?;
@@ -39,12 +39,12 @@ impl SqliteDb {
         Ok(())
     }
 
-    fn _list(&self, prefix: &str) -> Result<Box<dyn Iterator<Item = String>>> {
+    fn _list(&self, prefix: &str) -> Result<Box<dyn Iterator<Item = Vec<u8>>>> {
         let mut statement = self.con.prepare("SELECT value FROM kv WHERE key LIKE :prefix")?;
         statement.bind((":prefix", prefix))?;
-        let mut results: Vec<String> = vec![];
+        let mut results: Vec<Vec<u8>> = vec![];
         while let Ok(State::Row) = statement.next() {
-            let value = statement.read::<String, _>("value")?;
+            let value = statement.read::<Vec<u8>, _>("value")?;
             results.push(value);
         }
         Ok(Box::new(results.into_iter()))
@@ -93,18 +93,18 @@ impl Db for SqliteDb {
             }
         };
         let key = Self::node_key(&model);
-        let json = serde_json::to_string(&model)?;
-        self._insert(&key, &json)?;
+        let value = bincode::serialize(&model).unwrap();
+        self._insert(&key, &value)?;
         Ok(model)
     }
 
     fn get(&self, model: &Model) -> Result<Option<Model>> {
         let key = Self::node_key(model);
-        let json = self._get(&key)?;
-        if json.is_none() {
+        let value = self._get(&key)?;
+        if value.is_none() {
             return Ok(None);
         }
-        let model = serde_json::from_str(&json.unwrap())?;
+        let model: Model = bincode::deserialize(&value.unwrap()).unwrap();
         Ok(Some(model))
     }
 
@@ -112,13 +112,13 @@ impl Db for SqliteDb {
         // related_to -> model
         let key = Self::edge_key(model, related_to);
         let related_key = Self::node_key(model);
-        self._insert(&key, &related_key)?;
+        self._insert(&key, related_key.as_bytes())?;
 
         // model -> related_to
         // TODO not sure if I want this to be bi-dir by default or not
         let key = Self::edge_key(related_to, model);
         let related_key = Self::node_key(related_to);
-        self._insert(&key, &related_key)?;
+        self._insert(&key, related_key.as_bytes())?;
 
         Ok(())
     }
@@ -133,11 +133,11 @@ impl Db for SqliteDb {
             let mut models: Vec<Model> = vec![];
             let like_prefix = format!("{}%", prefix);
             for related_key in self._list(&like_prefix)? {
-                let json = self._get(&related_key)?;
-                if json.is_none() {
+                let value = self._get(&String::from_utf8(related_key)?)?;
+                if value.is_none() {
                     continue;
                 }
-                let model = serde_json::from_str(&json.unwrap())?;
+                let model: Model = bincode::deserialize(&value.unwrap()).unwrap();
                 models.push(model);
             }
             Ok(Box::new(models.into_iter()))
@@ -145,8 +145,8 @@ impl Db for SqliteDb {
             let prefix = Self::node_prefix(list_of);
             let mut models: Vec<Model> = vec![];
             let like_prefix = format!("{}%", prefix);
-            for json in self._list(&like_prefix)? {
-                let model = serde_json::from_str(&json)?;
+            for value in self._list(&like_prefix)? {
+                let model: Model = bincode::deserialize(&value).unwrap();
                 models.push(model);
             }
             Ok(Box::new(models.into_iter()))

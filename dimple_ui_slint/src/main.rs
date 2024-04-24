@@ -59,6 +59,6 @@ fn main() -> Result<(), slint::PlatformError> {
         })
         .unwrap();
 
-    let ui = AppWindowController::default();
+    let ui = AppWindowController::new();
     ui.run()
 }

@@ -7,11 +7,14 @@ use std::thread;
 use std::time::Duration;
 use std::time::Instant;
 
+use dimple_core::model::Artist;
+use dimple_core::model::Entity;
 use dimple_core::model::{Model, Picture};
 use dimple_librarian::librarian;
 use dimple_librarian::librarian::Librarian;
 use dimple_core::db::Db;
 use image::DynamicImage;
+use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelBridge;
 use rayon::iter::ParallelIterator;
 use slint::Image;
@@ -24,7 +27,7 @@ pub fn get_model_image(librarian: &Librarian, model: &Model, width: u32, height:
         .unwrap()
         .next();
     let picture: Picture = match picture {
-        Some(art) => art,
+        Some(picture) => picture,
         None => {
             let image = create_model_image(librarian, model, width, height);
             let mut picture = Picture::default();
@@ -115,14 +118,12 @@ pub fn lazy_load_images<F>(librarian: &Librarian,
                 // DRY 1
                 let items: Vec<_> = queue.drain(..).collect();
                 ui.upgrade_in_event_loop(move |ui| {
-                    log::info!("updating {} items", items.len());
                     let model = get_model(ui);
                     for (index, buffer) in items {
                         let mut card = slint::Model::row_data(&model, index).unwrap();
                         card.image.image = Image::from_rgba8_premultiplied(buffer);
                         slint::Model::set_row_data(&model, index, card);
                     }
-                    log::info!("done updating");
                 }).unwrap();
             }
         }
@@ -147,31 +148,129 @@ pub struct ImageMangler {
     librarian: Librarian,
     cache: Arc<Mutex<HashMap<String, SharedPixelBuffer<Rgba8Pixel>>>>,
     // queue: Arc<Mutex<VecDeque<QueueItem>>>,
-}
-
-struct QueueItem<F>
-    where F: FnOnce() {
-    model: Model,
-    width: u32,
-    height: u32,
-    callback: F,
+    default_artist: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    // default_release_group: SharedPixelBuffer<Rgba8Pixel>,
+    default_other: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
 }
 
 impl ImageMangler {
     pub fn new(librarian: Librarian) -> Self {
-        Self {
-            librarian,
+        let images = Self {
+            librarian: librarian.clone(),
             cache: Default::default(),
             // queue: Default::default(),
+            default_artist: Arc::new(Mutex::new(dynamic_to_buffer(&fuzzy_circles(16, 16)))),
+            // default_release_group: dynamic_to_buffer(&fuzzy_circles(1000, 1000)),
+            default_other: Arc::new(Mutex::new(dynamic_to_buffer(&fuzzy_circles(16, 16)))),
+        };
+        // {
+        //     let images = images.clone();
+        //     let librarian = librarian.clone();
+        //     thread::spawn(move || {
+        //         log::info!("Preloading artist images");
+        //         let artists: Vec<Model> = librarian.list(&Artist::default().model(), None).unwrap().collect();
+        //         artists.par_iter().for_each(|artist| {
+        //             let key = Self::model_key(artist);
+        //             let image = images.get(&artist);
+        //             images.cache.lock().unwrap().insert(key, image);
+        //         });
+        //         log::info!("Done preloading artist images");
+        //     });
+        // }
+        images
+    }
+
+    fn get(&self, model: &Model) -> SharedPixelBuffer<Rgba8Pixel> {
+        let picture = self.librarian.list(&Picture::default().into(), Some(&model))
+            .unwrap()
+            .next();
+        if let Some(picture) = picture {
+            let picture: Picture = picture.into();
+            let dyn_image = picture.get_image();
+            let image_buf = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+                dyn_image.as_bytes(),
+                dyn_image.width(),
+                dyn_image.height(),
+            );
+            return image_buf
+        }
+        else {
+            match model {
+                Model::Artist(a) => {
+                    return self.default_artist.lock().unwrap().clone()
+                },
+                _ => {
+                    return self.default_other.lock().unwrap().clone()
+                }
+            }
         }
     }
 
-    pub fn get<F>(&self, model: dimple_core::model::Model, width: u32, height: u32, callback: F) -> SharedPixelBuffer<Rgba8Pixel> 
-        where F: FnOnce() {
-
-        // If an image is already cached at the correct size, return it. All
-        // other methods are deferred and go into the queue.
-        // let key = format!("{}:{}:{}", model.key(), width, height);
-        todo!()
+    fn model_key(model: &Model) -> String {
+        match model {
+            Model::Artist(a) => format!("artist:{}", a.key.clone().unwrap()),
+            Model::Genre(_) => todo!(),
+            Model::MediaFile(_) => todo!(),
+            Model::Medium(_) => todo!(),
+            Model::Recording(_) => todo!(),
+            Model::RecordingSource(_) => todo!(),
+            Model::ReleaseGroup(_) => todo!(),
+            Model::Release(_) => todo!(),
+            Model::Track(_) => todo!(),
+            Model::Picture(_) => todo!(),
+        }
     }
+
+    // pub fn get<F>(&self, model: dimple_core::model::Model, width: u32, height: u32, index: usize, get_model: F) -> SharedPixelBuffer<Rgba8Pixel> 
+    //     where F: Fn(AppWindow) -> ModelRc<CardAdapter> + Send + Copy + 'static {
+    //     // If an image is already cached at the correct size, return it. All
+    //     // other methods are deferred and go into the queue.
+    //     // let key = format!("{}:{}:{}", model.key(), width, height);
+    //     let model_key = match &model {
+    //         Model::Artist(v) => v.key.clone().unwrap(),
+    //         Model::ReleaseGroup(v) => v.key.clone().unwrap(),
+    //         _ => "".to_string(),
+    //     };
+    //     let cache_key = format!("{}:{}:{}", model_key, width, height);
+    //     if let Some(buffer) = self.cache.lock().unwrap().get(&cache_key) {
+    //         return buffer.clone()
+    //     }
+    //     // TODO queue the placeholder replacement
+    //     match &model {
+    //         Model::Artist(_v) => return self.default_artist.clone(),
+    //         Model::ReleaseGroup(_v) => return self.default_artist.clone(),
+    //         _ => return self.default_other.clone(),
+    //     }
+    // }
+
+    // pub fn get2<F>(&self, model: dimple_core::model::Model, width: u32, height: u32, set_image: F) -> SharedPixelBuffer<Rgba8Pixel> 
+    //     where F: Fn(AppWindow, Image) {
+    //     // If an image is already cached at the correct size, return it. All
+    //     // other methods are deferred and go into the queue.
+    //     // let key = format!("{}:{}:{}", model.key(), width, height);
+    //     let model_key = match &model {
+    //         Model::Artist(v) => v.key.clone().unwrap(),
+    //         Model::ReleaseGroup(v) => v.key.clone().unwrap(),
+    //         _ => "".to_string(),
+    //     };
+    //     let cache_key = format!("{}:{}:{}", model_key, width, height);
+    //     if let Some(buffer) = self.cache.lock().unwrap().get(&cache_key) {
+    //         return buffer.clone()
+    //     }
+    //     // TODO queue the placeholder replacement
+    //     match &model {
+    //         Model::Artist(_v) => return self.default_artist.clone(),
+    //         Model::ReleaseGroup(_v) => return self.default_artist.clone(),
+    //         _ => return self.default_other.clone(),
+    //     }
+    // }
+}
+
+fn dynamic_to_buffer(dynamic_image: &DynamicImage) -> SharedPixelBuffer<Rgba8Pixel> {
+    let rgba8_image = dynamic_image.clone().into_rgba8();
+    SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+        rgba8_image.as_raw(),
+        rgba8_image.width(),
+        rgba8_image.height(),
+    )
 }

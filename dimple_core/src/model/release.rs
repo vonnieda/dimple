@@ -5,7 +5,6 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use super::KnownId;
-use super::Model;
 
 // https://musicbrainz.org/doc/Release
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]

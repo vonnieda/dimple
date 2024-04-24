@@ -6,6 +6,7 @@ use slint::ComponentHandle;
 use slint::Image;
 use slint::ModelRc;
 use url::Url;
+use crate::ui::app_window_controller::App;
 use crate::ui::images::get_model_image;
 use crate::ui::images::lazy_load_images;
 use crate::ui::AppWindow;
@@ -15,9 +16,10 @@ use crate::ui::ArtistDetailsAdapter;
 use dimple_core::db::Db;
 use crate::ui::CardAdapter;
 
-pub fn artist_details(url: &str, librarian: &Librarian, ui: slint::Weak<AppWindow>) {
+pub fn artist_details(url: &str, app: &App) {
     let url = url.to_owned();
-    let librarian = librarian.clone();
+    let librarian = app.librarian.clone();
+    let ui = app.ui.clone();
     std::thread::spawn(move || {        
         ui.upgrade_in_event_loop(move |ui| {
             ui.global::<Navigator>().set_busy(true);

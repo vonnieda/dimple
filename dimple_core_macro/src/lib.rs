@@ -11,6 +11,8 @@ pub fn my_macro(input: TokenStream) -> TokenStream {
 
     // Build the output, possibly using quasi-quotation
     let expanded = quote! {
+        use crate::model::Model;
+
         impl From<#name> for Model {
             fn from(value: #name) -> Self {
                 Self::#name(value)
@@ -32,11 +34,26 @@ pub fn my_macro(input: TokenStream) -> TokenStream {
             }
         }
         
-        // impl ModelSupport for #name {
-        //     fn model(&self) -> Model {
-        //         Model::#name(self.clone())
-        //     }
-        // }
+        use crate::model::Entity;
+        use std::any::Any;
+
+        impl Entity for #name {
+            fn key(&self) -> Option<String> {
+                self.key.clone()
+            }
+
+            fn type_name(&self) -> String {
+                "#name".to_string()
+            }
+
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+
+            fn model(&self) -> Model {
+                Model::#name(self.clone())
+            }
+        }
     };
 
     // Hand the output tokens back to the compiler

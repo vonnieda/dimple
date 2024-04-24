@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -40,3 +42,9 @@ pub enum Model {
     Picture(Picture),
 }
 
+pub trait Entity {
+    fn key(&self) -> Option<String>;
+    fn type_name(&self) -> String;
+    fn as_any(&self) -> &dyn Any;
+    fn model(&self) -> Model;
+}

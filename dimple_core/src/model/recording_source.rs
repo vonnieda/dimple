@@ -6,8 +6,6 @@ use serde::Serialize;
 
 use crate::model::KnownId;
 
-use super::Model;
-
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RecordingFormat {
     MP3,

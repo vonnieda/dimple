@@ -2,8 +2,6 @@ use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
-use super::Model;
-
 // https://musicbrainz.org/doc/Track
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 pub struct Track {
