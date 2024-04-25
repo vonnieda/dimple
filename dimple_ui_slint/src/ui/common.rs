@@ -470,7 +470,7 @@ pub fn create_artist(db: &dyn Db) -> Artist {
     let artist_pic = db.insert(&Picture::new(&gen_fuzzy_circles(1000, 1000)).model()).unwrap();
     db.link(&artist_pic, &artist).unwrap();
 
-    for i in 0..3 {
+    for _ in 0..3 {
         let genre = db.insert(&Genre {
             name: Some(format!("{} {}", fakeit::hipster::word(), 
                 fakeit::words::word())),
@@ -483,14 +483,13 @@ pub fn create_artist(db: &dyn Db) -> Artist {
 }
 
 pub fn create_release_group(db: &dyn Db) -> ReleaseGroup {
-    let primary_types = vec!["album", "single", "ep", "other"];
-    let primary_type = primary_types.get(fakeit::misc::random(0, primary_types.len() - 1)).unwrap().to_string();
+    let primary_type_options = vec!["album", "single", "ep", "other"];
     let release_group = db.insert(&ReleaseGroup {
         title: Some(fakeit::hipster::sentence(2)),
         summary: Some(fakeit::hipster::paragraph(2, 2, 40, " ".to_string())),
         disambiguation: None,
         first_release_date: Some(fakeit::datetime::year()),
-        primary_type: Some(primary_type),
+        primary_type: Some(primary_type_options.get(fakeit::misc::random(0, primary_type_options.len() - 1)).unwrap().to_string()),
         links: create_links(fakeit::misc::random(0, 5)),
         known_ids: create_known_ids(),
         ..Default::default()
@@ -499,7 +498,7 @@ pub fn create_release_group(db: &dyn Db) -> ReleaseGroup {
     let release_group_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
     db.link(&release_group_pic, &release_group).unwrap();
 
-    for i in 0..3 {
+    for _ in 0..3 {
         let genre = db.insert(&Genre {
             name: Some(format!("{} {}", fakeit::hipster::word(), 
                 fakeit::words::word())),
@@ -511,12 +510,75 @@ pub fn create_release_group(db: &dyn Db) -> ReleaseGroup {
     release_group.into()
 }
 
+pub fn create_release(db: &dyn Db) -> Release {
+    let status_options = vec!["official", "promotion", "bootleg", "pseudo-release", "withdrawn", "cancelled"];
+    let packaging_options = vec!["Book", "Box", "Digipak", "Jewel case", "Other", "Cardboard/Paper Sleeve"];
+    let release = db.insert(&Release {
+        title: Some(fakeit::hipster::sentence(2)),
+        summary: Some(fakeit::hipster::paragraph(2, 2, 40, " ".to_string())),
+        disambiguation: None,
+        links: create_links(fakeit::misc::random(0, 5)),
+        known_ids: create_known_ids(),
+        barcode: Some(format!("{}{}", fakeit::address::zip(), fakeit::address::zip())),
+        country: Some(fakeit::address::country_abr()),
+        status: Some(status_options.get(fakeit::misc::random(0, status_options.len() - 1)).unwrap().to_string()),
+        packaging: Some(packaging_options.get(fakeit::misc::random(0, packaging_options.len() - 1)).unwrap().to_string()),
+        date: Some(fakeit::datetime::year()),        
+        ..Default::default()
+    }.model()).unwrap();
+    
+    let release_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
+    db.link(&release_pic, &release).unwrap();
+
+    for _ in 0..3 {
+        let genre = db.insert(&Genre {
+            name: Some(format!("{} {}", fakeit::hipster::word(), 
+                fakeit::words::word())),
+            ..Default::default()
+        }.model()).unwrap();
+        db.link(&genre, &release).unwrap();
+    }
+
+    release.into()
+}
+
+pub fn create_medium(db: &dyn Db) -> Medium {
+    let medium = db.insert(&Medium {
+        ..Default::default()
+    }.model()).unwrap();
+    
+    medium.into()
+}
+
+pub fn create_track(db: &dyn Db) -> Track {
+    let track = db.insert(&Track {
+        title: Some(fakeit::hipster::sentence(5)),
+        length: Some(fakeit::misc::random(1, 30 * 60)),
+        position: Some(fakeit::misc::random(1, 12)),        
+        ..Default::default()
+    }.model()).unwrap();
+    
+    track.into()
+}
+
 pub fn create_random_data(db: &dyn Db, num_artists: u32) {
     (0..num_artists).into_par_iter().for_each(|_| {
         let artist = create_artist(db);
-        for _ in 0..fakeit::misc::random(0, 7) {
+        (0..fakeit::misc::random(0, 7)).into_par_iter().for_each(|_| {
             let release_group = create_release_group(db);
-            db.link(&release_group.model(), &artist.model()).unwrap();
-        }
+            db.link(&release_group.model(), &artist.model()).unwrap();            
+            (0..fakeit::misc::random(1, 3)).into_par_iter().for_each(|_| {
+                let release = create_release(db);
+                db.link(&release.model(), &release_group.model()).unwrap();            
+                (0..fakeit::misc::random(1, 2)).into_par_iter().for_each(|_| {
+                    let medium = create_medium(db);
+                    db.link(&medium.model(), &release.model()).unwrap();            
+                    (0..fakeit::misc::random(1, 12)).into_par_iter().for_each(|_| {
+                        let track = create_track(db);
+                        db.link(&track.model(), &medium.model()).unwrap();            
+                    });
+                });
+            });
+        });
     })
 }

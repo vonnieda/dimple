@@ -56,12 +56,12 @@ impl AppWindowController {
         self.ui.global::<Navigator>().on_navigate(move |url| app.navigate(url));
 
         let app = self.app.clone();
-        self.ui.global::<AppState>().on_settings_generate_50_artists(
-            move || settings::settings_generate_50_artists(&app));
+        self.ui.global::<AppState>().on_settings_generate_artists(
+            move || settings::settings_generate_artists(&app));
 
         let app = self.app.clone();
         self.ui.global::<AppState>().on_settings_reset_database(
-            move || settings::settings_generate_reset_database(&app));
+            move || settings::settings_reset_database(&app));
     
             self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
         self.ui.run()
@@ -105,7 +105,7 @@ impl App {
             self.set_page(Page::ReleaseDetails);
         }
         else if url.starts_with("dimple://tracks") {
-            crate::ui::pages::track_list::track_list(&self.librarian, self.ui.clone());
+            crate::ui::pages::track_list::track_list(self);
         }
         else if url.starts_with("dimple://track/") {
             self.set_page(Page::TrackDetails);

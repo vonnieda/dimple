@@ -6,6 +6,7 @@ mod sqlite_db;
 
 pub use sqlite_db::SqliteDb;
 
+// TODO I think this will get the ability to notify of changes
 pub trait Db: Send + Sync {
     /// Save the model in the database using its key. If no key is set, create
     /// a unique one, save the model with it, and return the model with the

@@ -64,16 +64,16 @@ pub fn settings(app: &App) {
     });
 }
 
-pub fn settings_generate_50_artists(app: &App) {
+pub fn settings_generate_artists(app: &App) {
     let app = app.clone();
     thread::spawn(move || {
         log::info!("Creating some random data.");
-        common::create_random_data(&app.librarian, 50);
+        common::create_random_data(&app.librarian, 5);
         log::info!("Done creating some random data.");
     });
 }
 
-pub fn settings_generate_reset_database(app: &App) {
+pub fn settings_reset_database(app: &App) {
     let app = app.clone();
     thread::spawn(move || {
         log::info!("Resetting database.");
