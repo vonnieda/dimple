@@ -13,7 +13,7 @@ use directories::ProjectDirs;
 
 use crate::ui::{*};
 
-use self::images::ImageMangler;
+use self::{images::ImageMangler, pages::settings};
 
 #[derive(Clone)]
 pub struct App {
@@ -52,16 +52,18 @@ impl AppWindowController {
     }
 
     pub fn run(&self) -> Result<(), slint::PlatformError> {
-
-        if self.app.librarian.list(&Artist::default().into(), None).unwrap().count() == 0 {
-            log::info!("Creating some random data.");
-            common::create_random_data(&self.app.librarian, 100);
-            log::info!("Done.");
-        }
-        
         let app = self.app.clone();
         self.ui.global::<Navigator>().on_navigate(move |url| app.navigate(url));
-        self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
+
+        let app = self.app.clone();
+        self.ui.global::<AppState>().on_settings_generate_50_artists(
+            move || settings::settings_generate_50_artists(&app));
+
+        let app = self.app.clone();
+        self.ui.global::<AppState>().on_settings_reset_database(
+            move || settings::settings_generate_reset_database(&app));
+    
+            self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
         self.ui.run()
     }
 }
@@ -109,7 +111,7 @@ impl App {
             self.set_page(Page::TrackDetails);
         }
         else if url == "dimple://settings" {
-            self.set_page(Page::Settings);
+            crate::ui::pages::settings::settings(self);
         }
 
         // Store history.

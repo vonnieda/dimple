@@ -12,26 +12,39 @@
 
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, GroupBox, Button} from "std-widgets.slint";
-import { Palette, Navigator } from "../common.slint";
+import { AppState, Palette, Navigator } from "../common.slint";
 
 export struct SettingsAdapter {
     cache_stats: [string],
+    database_stats: [string],
 }
 
 export component Settings inherits ScrollView {
-    in property <SettingsAdapter> adapter;
+    in property <SettingsAdapter> model;
 
     VerticalLayout {
         alignment: start;
+        // VerticalBox {
+        //     Text {
+        //         text: "Libraries";
+        //         font-size: 2rem;
+        //         font-weight: Palette.font-weight-bold;
+        //     }
+        //     ListView {
+
+        //     }
+        // }
         VerticalBox {
             Text {
-                text: "Libraries";
+                text: "Database";
                 font-size: 2rem;
                 font-weight: Palette.font-weight-bold;
             }
-            ListView {
-
-            }
+            for stat in model.database-stats: 
+                Text {
+                    text: stat;
+                    font-size: 1.3rem;
+                }
         }
         VerticalBox {
             Text {
@@ -39,16 +52,25 @@ export component Settings inherits ScrollView {
                 font-size: 2rem;
                 font-weight: Palette.font-weight-bold;
             }
-            for stat in adapter.cache-stats: 
+            for stat in model.cache-stats: 
                 Text {
                     text: stat;
                     font-size: 1.3rem;
                 }
         }
         VerticalBox {
+            Text {
+                text: "Development";
+                font-size: 2rem;
+                font-weight: Palette.font-weight-bold;
+            }
             Button {
-                text: "Generate 100";
-                clicked => {}
+                text: "Generate 50 Artists";
+                clicked => { AppState.settings_generate_50_artists() }
+            }
+            Button {
+                text: "Reset Database";
+                clicked => { AppState.settings_reset_database() }
             }
         }
     }

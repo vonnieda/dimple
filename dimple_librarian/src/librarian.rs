@@ -58,6 +58,10 @@ impl Db for Librarian {
     ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         self.db.list(list_of, related_to)
     }
+    
+    fn reset(&self) -> Result<()> {
+        self.db.reset()
+    }
 }
 
 impl Source for Librarian {

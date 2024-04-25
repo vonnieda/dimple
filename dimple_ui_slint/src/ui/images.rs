@@ -1,29 +1,17 @@
 use std::collections::HashMap;
-use std::sync::mpsc::channel;
-use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::thread;
-use std::time::Duration;
-use std::time::Instant;
 
-use dimple_core::model::Artist;
-use dimple_core::model::Entity;
 use dimple_core::model::{Model, Picture};
-use dimple_librarian::librarian;
 use dimple_librarian::librarian::Librarian;
 use dimple_core::db::Db;
 use image::DynamicImage;
-use rayon::iter::IntoParallelRefIterator;
-use rayon::iter::ParallelBridge;
-use rayon::iter::ParallelIterator;
 use slint::Image;
 use slint::Weak;
-use slint::{ModelRc, Rgba8Pixel, SharedPixelBuffer};
+use slint::{Rgba8Pixel, SharedPixelBuffer};
 use threadpool::ThreadPool;
 use tiny_skia::Rect;
 use crate::ui::AppWindow;
-use crate::ui::CardAdapter;
 
 
 /// Handles image loading, placeholders, caching, scaling, generation, etc.
@@ -53,6 +41,10 @@ impl ImageMangler {
         };
 
         images
+    }
+
+    pub fn cache_len(&self) -> usize {
+        self.cache.lock().unwrap().len()
     }
 
     pub fn get(&self, model: dimple_core::model::Model, width: u32, height: u32) -> slint::Image {
@@ -130,6 +122,7 @@ impl ImageMangler {
     }
 }
 
+// TODO load correct default images
 //             let mut demo_image = image::open("images/light.png").expect("Error loading demo image").into_rgba8();
 
 //             image::imageops::colorops::brighten_in_place(&mut demo_image, 20);

@@ -66,6 +66,9 @@ export component AppWindow inherits Window {
     // See: https://github.com/slint-ui/slint/issues/784
     // Wait, how the heck do I hookup callbacks then?
     // Same way :(
+    // Recent reading (find links) makes me think this should all move
+    // to a global called, like AppLogic. I've started doing some of that
+    // in AppState for callbacks.
     in-out property <HomeAdapter> home;
     in-out property <CardGridAdapter> search;
     in-out property <CardGridAdapter> artist-list;
@@ -129,7 +132,7 @@ export component AppWindow inherits Window {
                         model: root.track-details;
                     }
                     if page == Page.Settings: Settings {  
-                        adapter: root.settings;
+                        model: root.settings;
                     }
                 }
             }    

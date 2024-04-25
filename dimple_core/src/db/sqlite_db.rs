@@ -152,6 +152,11 @@ impl Db for SqliteDb {
             Ok(Box::new(models.into_iter()))
         }
     }
+
+    fn reset(&self) -> Result<()> {
+        self.con.execute("DELETE FROM kv")?;
+        Ok(())
+    }
 }
 
 // TODO now that we have Entity in core this can all go away
