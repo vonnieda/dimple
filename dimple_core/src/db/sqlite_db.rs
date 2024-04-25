@@ -154,6 +154,7 @@ impl Db for SqliteDb {
     }
 }
 
+// TODO now that we have Entity in core this can all go away
 trait Entity {
     fn entity_name(&self) -> String;
     fn key(&self) -> Option<String>;
@@ -165,14 +166,14 @@ impl Entity for Model {
         match self {
             Model::Picture(_) => "Picture".to_string(),
             Model::Artist(_) => "Artist".to_string(),
-            Model::Genre(_) => "ReleaseGroup".to_string(),
-            Model::MediaFile(_) => "ReleaseGroup".to_string(),
-            Model::Medium(_) => "ReleaseGroup".to_string(),
-            Model::Recording(_) => "ReleaseGroup".to_string(),
-            Model::RecordingSource(_) => "ReleaseGroup".to_string(),
+            Model::Genre(_) => "Genre".to_string(),
+            Model::MediaFile(_) => "MediaFile".to_string(),
+            Model::Medium(_) => "Medium".to_string(),
+            Model::Recording(_) => "Recording".to_string(),
+            Model::RecordingSource(_) => "RecordingSource".to_string(),
             Model::Release(_) => "Release".to_string(),
             Model::ReleaseGroup(_) => "ReleaseGroup".to_string(),
-            Model::Track(_) => "ReleaseGroup".to_string(),
+            Model::Track(_) => "Track".to_string(),
         }
     }
 

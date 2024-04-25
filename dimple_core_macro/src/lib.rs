@@ -29,7 +29,7 @@ pub fn my_macro(input: TokenStream) -> TokenStream {
             fn from(value: Model) -> Self {
                 match value {
                     Model::#name(value) => value,
-                    _ => panic!(),
+                    _ => todo!(),
                 }
             }
         }

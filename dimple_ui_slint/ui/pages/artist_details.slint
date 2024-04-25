@@ -142,15 +142,15 @@ export component ArtistDetails inherits ScrollView {
             }
         }
 
-        // // Debug Dump
-        // Text {
-        //     text: "Debug";
-        //     font-weight: Palette.font-weight-bold;
-        //     font-size: 2rem;
-        // }
-        // Text {
-        //     text: model.dump;
-        // }
+        // Debug Dump
+        Text {
+            text: "Debug";
+            font-weight: Palette.font-weight-bold;
+            font-size: 2rem;
+        }
+        Text {
+            text: model.dump;
+        }
     }
 
     in property <ArtistDetailsAdapter> model;

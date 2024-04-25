@@ -47,7 +47,7 @@ impl Model {
         match self {
             Model::Artist(v) => v,
             Model::Genre(v) => v,
-            Model::MediaFile(v) => todo!(),
+            Model::MediaFile(v) => v,
             Model::Medium(v) => v,
             Model::Recording(v) => v,
             Model::RecordingSource(v) => v,
