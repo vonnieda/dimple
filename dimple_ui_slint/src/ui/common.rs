@@ -11,6 +11,8 @@ use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
 use image::DynamicImage;
+use rayon::iter::IntoParallelIterator;
+use rayon::iter::ParallelIterator;
 use crate::ui::CardAdapter;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
@@ -541,12 +543,18 @@ pub fn create_release_group(db: &dyn Db) -> ReleaseGroup {
 }
 
 pub fn create_random_data(db: &dyn Db, num_artists: u32) {
-    // let range = 0..num_artists;
-    for _ in 0..num_artists {
+    (0..num_artists).into_par_iter().for_each(|_| {
         let artist = create_artist(db);
         for _ in 0..fakeit::misc::random(0, 7) {
             let release_group = create_release_group(db);
             db.link(&release_group.model(), &artist.model()).unwrap();
         }
-    }
+    })
+    // for _ in 0..num_artists {
+    //     let artist = create_artist(db);
+    //     for _ in 0..fakeit::misc::random(0, 7) {
+    //         let release_group = create_release_group(db);
+    //         db.link(&release_group.model(), &artist.model()).unwrap();
+    //     }
+    // }
 }
