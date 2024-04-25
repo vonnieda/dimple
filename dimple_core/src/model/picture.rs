@@ -14,6 +14,12 @@ pub struct Picture {
 }
 
 impl Picture {
+    pub fn new(image: &DynamicImage) -> Self {
+        let mut pic = Self::default();
+        pic.set_image(image);
+        pic
+    }
+
     pub fn set_image(&mut self, image: &DynamicImage) {
         let mut cursor = Cursor::new(&mut self.compressed_image);
         image.write_to(&mut cursor, ImageOutputFormat::Png).unwrap()

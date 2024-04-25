@@ -1,8 +1,22 @@
+use core::num;
+
+use dimple_core::db::Db;
 use dimple_core::model::Artist;
+use dimple_core::model::Entity;
+use dimple_core::model::Medium;
+use dimple_core::model::Picture;
+use dimple_core::model::Recording;
+use dimple_core::model::RecordingSource;
+use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
+use dimple_core::model::Track;
+use image::DynamicImage;
 use crate::ui::CardAdapter;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
+
+use super::images::gen_fuzzy_circles;
+use super::images::gen_fuzzy_rects;
 
 impl From<Artist> for CardAdapter {
     fn from(value: Artist) -> Self {
@@ -459,57 +473,80 @@ impl From<ReleaseGroup> for CardAdapter {
 //     });
 // }
 
-// fn create_random_data(db: &dyn Db, num_artists: u32) {
-//     for i in 0..num_artists {
-//         let artist = Artist {
-//             name: Some(fakeit::name::full()),
-//             summary: Some(fakeit::hipster::paragraph(1, 4, 40, " ".to_string())),
-//             country: Some(fakeit::address::country_abr()),
-//             disambiguation: Some(fakeit::address::country()),
-//             ..Default::default()
-//         };
+// fn create_artist(db: &dyn Db) -> Artist {
+//     let artist = Artist {
+//         name: Some(fakeit::name::full()),
+//         summary: Some(fakeit::hipster::paragraph(1, 4, 40, " ".to_string())),
+//         country: Some(fakeit::address::country_abr()),
+//         disambiguation: Some(fakeit::address::country()),
+//         ..Default::default()
+//     };
+//     let artist_pic = Picture::new(&gen_fuzzy_circles(1000, 1000));
 
-//         let mut picture = Picture::default();
-//         picture.set_image(&fuzzy_circles(1000, 1000));
+//     let artist: Artist = db.insert(&artist.model()).unwrap().into();
+//     let artist_pic: Picture = db.insert(&artist_pic.model()).unwrap().into();
 
-//         let release_group = ReleaseGroup {
-//             title: Some(fakeit::hipster::sentence(2)),
-//             ..Default::default()
-//         };
-//         let release = Release {
-//             title: release_group.title.clone(),
-//             ..Default::default()
-//         };
-//         let medium = Medium {
-//             disc_count: Some(1),
-//             track_count: Some(1),
-//             ..Default::default()
-//         };
-//         let track = Track {
-//             title: Some(fakeit::hipster::sentence(3)),
-//             ..Default::default()
-//         };
-//         let recording = Recording {
-//             title: track.title.clone(),
-//             ..Default::default()
-//         };
-//         let recording_source = RecordingSource {
-//             ..Default::default()
-//         };
-//         let artist = db.insert(&artist.clone().into()).unwrap();
-//         let picture = db.insert(&picture.clone().into()).unwrap();
-//         let release_group = db.insert(&release_group.clone().into()).unwrap();
-//         let release = db.insert(&release.clone().into()).unwrap();
-//         let medium = db.insert(&medium.clone().into()).unwrap();
-//         let track = db.insert(&track.clone().into()).unwrap();
-//         let recording = db.insert(&recording.clone().into()).unwrap();
-//         let recording_source = db.insert(&recording_source.clone().into()).unwrap();
-//         db.link(&picture.clone().into(), &artist.clone().into()).unwrap();
-//         db.link(&release_group.clone().into(), &artist.clone().into()).unwrap();
-//         db.link(&release.clone().into(), &release_group.clone().into()).unwrap();
-//         db.link(&medium.clone().into(), &release.clone().into()).unwrap();
-//         db.link(&track.clone().into(), &medium.clone().into()).unwrap();
-//         db.link(&recording.clone().into(), &track.clone().into()).unwrap();
-//         db.link(&recording_source.clone().into(), &recording.clone().into()).unwrap();
-//     }
+//     db.link(&artist_pic.model(), &artist.model());
+
+//     artist
 // }
+
+// fn create
+
+// fn create_picture(db: &dyn Db, image: &DynamicImage) -> Picture {
+//     let picture = Picture::new(image);
+//     db.insert(&picture.model()).unwrap().into()
+// }
+
+// fn create_artist(db: &dyn Db) -> Artist {
+//     let artist = Artist {
+//         name: Some(fakeit::name::full()),
+//         summary: Some(fakeit::hipster::paragraph(1, 4, 40, " ".to_string())),
+//         country: Some(fakeit::address::country_abr()),
+//         disambiguation: Some(fakeit::address::country()),
+//         ..Default::default()
+//     };
+//     let artist: Artist = db.insert(&artist.model()).unwrap().into();
+//     let artist_pic = create_picture(db, &gen_fuzzy_circles(1000, 1000));
+//     db.link(&artist_pic.model(), &artist.model());
+
+//     artist
+// }
+
+// fn create_release_group(db: &dyn Db) -> ReleaseGroup {
+//     let 
+// }
+
+pub fn create_artist(db: &dyn Db) -> Artist {
+    let artist = db.insert(&Artist {
+        name: Some(fakeit::name::full()),
+        summary: Some(fakeit::hipster::paragraph(1, 4, 40, " ".to_string())),
+        country: Some(fakeit::address::country_abr()),
+        disambiguation: Some(fakeit::address::country()),
+        ..Default::default()
+    }.model()).unwrap();
+    let artist_pic = db.insert(&Picture::new(&gen_fuzzy_circles(1000, 1000)).model()).unwrap();
+    db.link(&artist_pic, &artist).unwrap();
+    artist.into()
+}
+
+pub fn create_release_group(db: &dyn Db) -> ReleaseGroup {
+    let release_group = db.insert(&ReleaseGroup {
+        title: Some(fakeit::hipster::sentence(2)),
+        ..Default::default()
+    }.model()).unwrap();
+    let release_group_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
+    db.link(&release_group_pic, &release_group).unwrap();
+    release_group.into()
+}
+
+pub fn create_random_data(db: &dyn Db, num_artists: u32) {
+    // let range = 0..num_artists;
+    for _ in 0..num_artists {
+        let artist = create_artist(db);
+        for _ in 0..fakeit::misc::random(0, 7) {
+            let release_group = create_release_group(db);
+            db.link(&release_group.model(), &artist.model()).unwrap();
+        }
+    }
+}

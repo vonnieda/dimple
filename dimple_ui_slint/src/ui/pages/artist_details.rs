@@ -3,7 +3,6 @@ use dimple_core::model::Entity;
 use dimple_core::model::Model;
 use dimple_core::model::ReleaseGroup;
 use slint::ComponentHandle;
-use slint::Image;
 use slint::Model as _;
 use slint::ModelExt;
 use slint::ModelRc;

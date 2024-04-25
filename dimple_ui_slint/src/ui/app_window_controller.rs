@@ -1,7 +1,9 @@
+use dimple_core::model::Artist;
 use dimple_player::player::Player;
 
 use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
+use dimple_core::db::Db;
 
 use slint::{ComponentHandle, SharedString, Weak};
 
@@ -50,6 +52,13 @@ impl AppWindowController {
     }
 
     pub fn run(&self) -> Result<(), slint::PlatformError> {
+
+        if self.app.librarian.list(&Artist::default().into(), None).unwrap().count() == 0 {
+            log::info!("Creating some random data.");
+            common::create_random_data(&self.app.librarian, 25);
+            log::info!("Done.");
+        }
+        
         let app = self.app.clone();
         self.ui.global::<Navigator>().on_navigate(move |url| app.navigate(url));
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
