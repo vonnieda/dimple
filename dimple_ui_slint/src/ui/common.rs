@@ -1,4 +1,5 @@
 use core::num;
+use std::collections::HashSet;
 
 use dimple_core::db::Db;
 use dimple_core::model::Artist;
@@ -533,8 +534,17 @@ pub fn create_artist(db: &dyn Db) -> Artist {
 }
 
 pub fn create_release_group(db: &dyn Db) -> ReleaseGroup {
+    let primary_types = vec!["album", "single", "ep", "other"];
+    let primary_type = primary_types.get(fakeit::misc::random(0, primary_types.len() - 1)).unwrap().to_string();
     let release_group = db.insert(&ReleaseGroup {
         title: Some(fakeit::hipster::sentence(2)),
+        summary: Some(fakeit::hipster::paragraph(2, 2, 40, " ".to_string())),
+        disambiguation: None,
+        // source_ids: todo!(),
+        // known_ids: todo!(),
+        links: HashSet::new(),
+        first_release_date: Some(fakeit::datetime::year()),
+        primary_type: Some(primary_type),
         ..Default::default()
     }.model()).unwrap();
     let release_group_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();

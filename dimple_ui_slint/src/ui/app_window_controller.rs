@@ -55,7 +55,7 @@ impl AppWindowController {
 
         if self.app.librarian.list(&Artist::default().into(), None).unwrap().count() == 0 {
             log::info!("Creating some random data.");
-            common::create_random_data(&self.app.librarian, 1000);
+            common::create_random_data(&self.app.librarian, 100);
             log::info!("Done.");
         }
         

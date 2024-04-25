@@ -120,6 +120,8 @@ impl ImageMangler {
     }
 
     pub fn default_model_image(&self, model: &Model) -> SharedPixelBuffer<Rgba8Pixel> {
+        // let image = image::open("images/light.png").expect("Error loading demo image").into_rgba8();
+
         match model {
             Model::Artist(_) => return self.default_artist.lock().unwrap().clone(),
             Model::ReleaseGroup(_) => return self.default_release_group.lock().unwrap().clone(),
@@ -127,6 +129,25 @@ impl ImageMangler {
         }
     }
 }
+
+//             let mut demo_image = image::open("images/light.png").expect("Error loading demo image").into_rgba8();
+
+//             image::imageops::colorops::brighten_in_place(&mut demo_image, 20);
+            
+//             let buffer = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+//                 demo_image.as_raw(),
+//                 demo_image.width(),
+//                 demo_image.height(),
+//             );
+//             let image = Image::from_rgba8(buffer);
+
+//             for (i, card) in adapter.cards.iter().enumerate() {
+//                 let mut card = card.clone();
+//                 card.image.image = image.clone();
+//                 card.title.name = "Wow".to_string().into();
+//                 adapter.cards.set_row_data(i, card);
+//             }
+
 
 pub fn dynamic_to_buffer(dynamic_image: &DynamicImage) -> SharedPixelBuffer<Rgba8Pixel> {
     let rgba8_image = dynamic_image.clone().into_rgba8();
