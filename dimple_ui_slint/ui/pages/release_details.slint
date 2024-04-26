@@ -1,8 +1,16 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette, LinkAdapter, Navigator, Links , Link, TrackList, TrackAdapter, MediumAdapter} from "common.slint";
-import { CardAdapter } from "card.slint";
+import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
-import { CardGrid } from "card_grid.slint";
+import { CardGrid } from "../components/card_grid.slint";
+import { LinkAdapter, Links, Link} from "../components/link.slint";
+import {MediumAdapter} from "../components/medium.slint";
+import {TrackList} from "../components/track_list.slint";
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { CardAdapter } from "../components/card.slint";
+import { CardGrid } from "../components/card_grid.slint";
+import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { Palette, Navigator, AppState } from "../common.slint";
 
 export struct ReleaseDetailsAdapter {
     card: CardAdapter,
@@ -116,13 +124,15 @@ export component ReleaseDetails inherits ScrollView {
         }
 
         // Debug Dump
-        Text {
-            text: "Debug";
-            font-weight: Palette.font-weight-bold;
-            font-size: 2rem;
-        }
-        Text {
-            text: model.dump;
+        if AppState.debug: VerticalLayout {
+            Text {
+                text: "Debug";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            Text {
+                text: model.dump;
+            }
         }
     }
 
@@ -130,7 +140,7 @@ export component ReleaseDetails inherits ScrollView {
         // id: "123-123-123-123",
         // title: "A Reign of Fish",
         card: {
-            image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+            image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
             title: {name: "A Reign of Fish",url: "internal://release/1234"},
             sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
         },

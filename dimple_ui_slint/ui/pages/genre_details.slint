@@ -1,23 +1,25 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette, LinkAdapter, Navigator, Links, Link} from "common.slint";
-import { CardAdapter } from "card.slint";
+import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
-import { CardGrid } from "card_grid.slint";
+import { CardGrid } from "../components/card_grid.slint";
+import { Palette, Navigator, AppState } from "../common.slint";
 
-export struct ArtistDetailsAdapter {
+export struct GenreDetailsAdapter {
     card: CardAdapter,
     summary: string,
     disambiguation: string,
-    genres: [LinkAdapter],
-    albums: [CardAdapter],
-    singles: [CardAdapter],
-    eps: [CardAdapter],
-    others: [CardAdapter],
+    related_genres: [LinkAdapter],
+    artists: [CardAdapter],
+    release_groups: [CardAdapter],
+    tracks: [CardAdapter],
+    playlists: [CardAdapter],
+    related_genres: [CardAdapter],
     links: [LinkAdapter],
     dump: string,
 }
 
-export component ArtistDetails inherits ScrollView {
+export component GenreDetails inherits ScrollView {
     VerticalBox {
         alignment: start;
         spacing: StyleMetrics.layout-spacing * 2;
@@ -44,86 +46,99 @@ export component ArtistDetails inherits ScrollView {
                 HorizontalLayout {
                     alignment: start;
                     spacing: StyleMetrics.layout-spacing;
-                    Image {
-                        // TODO DRY
-                        source: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
-                        height: 4rem;
-                        width: 4rem;
-                        colorize: StyleMetrics.default-text-color;
-                    }
+                    // Image {
+                    //     // TODO DRY
+                    //     source: @image-url("../../icons/phosphor/SVGs/regular/users-three.svg");
+                    //     height: 4rem;
+                    //     width: 4rem;
+                    //     colorize: StyleMetrics.default-text-color;
+                    // }
                     Text {
                         text: model.card.title.name;
                         font-weight: Palette.font-weight-bold;
                         font-size: 4rem;
                     }
                 }
-                if model.genres.length > 0: 
-                    HorizontalLayout {
-                        alignment: start;
-                        Text {
-                            text: "In ";
-                            font-size: 1.3rem;
-                        }    
-                        Links {
-                            links: model.genres;
-                        }
-                    }
-                    Text {
-                        text: model.summary;
-                        wrap: word-wrap;
-                        font-size: 1.2rem;
-                    }
+                // if model.genres.length > 0: 
+                //     HorizontalLayout {
+                //         alignment: start;
+                //         Text {
+                //             text: "In ";
+                //             font-size: 1.3rem;
+                //         }    
+                //         Links {
+                //             links: model.genres;
+                //         }
+                //     }
+                //     Text {
+                //         text: model.summary;
+                //         wrap: word-wrap;
+                //         font-size: 1.2rem;
+                //     }
+            }
+        }
+
+        // Artists
+        if model.artists.length > 0: VerticalLayout {
+            Text {
+                text: "Artists";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.artists;
+                parent-width: root.width;
             }
         }
 
         // Albums
-        if model.albums.length > 0: VerticalLayout {
+        if model.release-groups.length > 0: VerticalLayout {
             Text {
                 text: "Albums";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
-                cards: model.albums;
+                cards: model.release-groups;
                 parent-width: root.width;
             }
         }
 
-        // Singles
-        if model.singles.length > 0: VerticalLayout {
+        // Tracks
+        if model.tracks.length > 0: VerticalLayout {
             Text {
-                text: "Singles";
+                text: "Tracks";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
-                cards: model.singles;
+                cards: model.tracks;
                 parent-width: root.width;
             }
         }
 
-        // EPs
-        if model.eps.length > 0: VerticalLayout {
+        // Playlists
+        if model.playlists.length > 0: VerticalLayout {
             Text {
-                text: "EPs";
+                text: "Playlists";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
-                cards: model.eps;
+                cards: model.playlists;
                 parent-width: root.width;
             }
         }
 
-        // Other Releases
-        if model.others.length > 0: VerticalLayout {
+        // Genres
+        if model.related-genres.length > 0: VerticalLayout {
             Text {
-                text: "Other Releases";
+                text: "Related Genres";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
-                cards: model.others;
+                cards: model.related-genres;
                 parent-width: root.width;
             }
         }
@@ -142,15 +157,17 @@ export component ArtistDetails inherits ScrollView {
         }
 
         // Debug Dump
-        Text {
-            text: "Debug";
-            font-weight: Palette.font-weight-bold;
-            font-size: 2rem;
-        }
-        Text {
-            text: model.dump;
+        if AppState.debug: VerticalLayout {
+            Text {
+                text: "Debug";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            Text {
+                text: model.dump;
+            }
         }
     }
 
-    in property <ArtistDetailsAdapter> model;
+    in property <GenreDetailsAdapter> model;
 }

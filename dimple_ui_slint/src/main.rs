@@ -1,4 +1,6 @@
-use dimple_ui_slint::app_window_controller::AppWindowController;
+pub mod ui;
+
+use ui::app_window_controller::AppWindowController;
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, PlatformConfig};
 
 fn main() -> Result<(), slint::PlatformError> {
@@ -35,8 +37,8 @@ fn main() -> Result<(), slint::PlatformError> {
     };
 
     let config = PlatformConfig {
-        dbus_name: "my_player",
-        display_name: "My Player",
+        dbus_name: "dimple",
+        display_name: "Dimple",
         hwnd,
     };
 
@@ -57,11 +59,6 @@ fn main() -> Result<(), slint::PlatformError> {
         })
         .unwrap();
 
-    // // Your actual logic goes here.
-    // loop {
-    //     std::thread::sleep(std::time::Duration::from_secs(1));
-    // }
-
-    let ui = AppWindowController::default();
+    let ui = AppWindowController::new();
     ui.run()
 }

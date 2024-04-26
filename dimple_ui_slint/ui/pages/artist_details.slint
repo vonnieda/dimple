@@ -1,0 +1,158 @@
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { CardAdapter } from "../components/card.slint";
+import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
+import { CardGrid } from "../components/card_grid.slint";
+import { Palette, Navigator, AppState } from "../common.slint";
+
+export struct ArtistDetailsAdapter {
+    card: CardAdapter,
+    summary: string,
+    disambiguation: string,
+    genres: [LinkAdapter],
+    albums: [CardAdapter],
+    singles: [CardAdapter],
+    eps: [CardAdapter],
+    others: [CardAdapter],
+    links: [LinkAdapter],
+    dump: string,
+}
+
+export component ArtistDetails inherits ScrollView {
+    VerticalBox {
+        alignment: start;
+        spacing: StyleMetrics.layout-spacing * 2;
+        // Header
+        HorizontalLayout {
+            alignment: start;
+            spacing: StyleMetrics.layout-spacing;
+            // Image
+            Rectangle {
+                width: Palette.thumbnail-width-extra-large;
+                height: Palette.thumbnail-width-extra-large;
+                border-radius: Palette.thumbnail-border-radius;
+                border-color: Palette.thumbnail-border-color;
+                border-width: Palette.thumbnail-border-width;
+                clip: true;
+                Image {
+                    width: Palette.thumbnail-width-extra-large;
+                    height: Palette.thumbnail-width-extra-large;
+                    source: model.card.image.image;
+                }
+            }
+            VerticalLayout {
+                alignment: start;
+                spacing: StyleMetrics.layout-spacing;
+                // Title
+                Text {
+                    text: model.card.title.name;
+                    font-weight: Palette.font-weight-bold;
+                    font-size: 4rem;
+                }
+                // Disambiguation
+                if model.disambiguation > 0: Text {
+                    text: model.disambiguation;
+                    // font-weight: Palette.font-weight-bold;
+                    font-size: 1.3rem;
+                }
+                // Genres
+                if model.genres.length > 0: HorizontalLayout {
+                    alignment: start;
+                    Text {
+                        text: "In ";
+                        font-size: 1.3rem;
+                    }    
+                    Links {
+                        links: model.genres;
+                        font-size: 1.3rem;
+                    }
+                }
+                // Summary
+                Text {
+                    text: model.summary;
+                    wrap: word-wrap;
+                    font-size: 1.2rem;
+                }
+            }
+        }
+
+        // Albums
+        if model.albums.length > 0: VerticalLayout {
+            Text {
+                text: "Albums";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.albums;
+                parent-width: root.width;
+            }
+        }
+
+        // Singles
+        if model.singles.length > 0: VerticalLayout {
+            Text {
+                text: "Singles";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.singles;
+                parent-width: root.width;
+            }
+        }
+
+        // EPs
+        if model.eps.length > 0: VerticalLayout {
+            Text {
+                text: "EPs";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.eps;
+                parent-width: root.width;
+            }
+        }
+
+        // Other Releases
+        if model.others.length > 0: VerticalLayout {
+            Text {
+                text: "Other Releases";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.others;
+                parent-width: root.width;
+            }
+        }
+
+        // Links
+        if model.links.length > 0: VerticalLayout {
+            Text {
+                text: "Links";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            for link in model.links: Link {
+                url: link.url;
+                name: link.name;
+            }
+        }
+
+        // Debug Dump
+        if AppState.debug: VerticalLayout {
+            Text {
+                text: "Debug";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            Text {
+                text: model.dump;
+            }
+        }
+    }
+
+    in property <ArtistDetailsAdapter> model;
+}

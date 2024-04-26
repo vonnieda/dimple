@@ -1,0 +1,27 @@
+export component Tag inherits TouchArea {
+    // in property <color> color: #4ff692;
+    in property <color> color: #f6b94f;
+    in property <color> font-color: #000000;
+    in property <int> font-weight: 400;
+    in property <string> name: "heavy metal";
+    in property <string> url;
+    in property <length> font-size: 1.3rem;
+
+    Rectangle {
+        border-radius: 8px;
+        height: text.min-height + 6px;
+        width: text.min-width + 10px;
+        background: parent.has-hover 
+            ? color.brighter(0.10)
+            : color;
+
+        text := Text {
+            font-size: font-size;
+            text: name;
+            color: font-color;
+            font-weight: font-weight;
+        }
+    }
+}
+
+

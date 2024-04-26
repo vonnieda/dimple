@@ -1,12 +1,14 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Card, CardAdapter } from "card.slint";
-import { Palette, Navigator } from "common.slint";
+import { Palette, Navigator } from "../common.slint";
 import {StyleMetrics} from "std-widgets.slint";
 
 export struct CardGridAdapter {
     cards: [CardAdapter],
 }
 
+// TODO See: https://github.com/slint-ui/slint/discussions/4661
+// TODO See: https://releases.slint.dev/1.4.1/docs/slint/src/recipes/recipes#custom-table-view
 export component CardGrid inherits VerticalLayout {
     in-out property <[CardAdapter]> cards;
 
@@ -32,3 +34,4 @@ export component CardGrid inherits VerticalLayout {
         }
     }
 }
+

@@ -1,0 +1,95 @@
+/**
+    - language: Will used to narrow wikidata queries, select bios, and for i18n.
+    - libraries: List of the enabled libraries. I guess this should really be a
+      plugin system but we'll get there later. For now it's ReferenceMachine.
+      These will likely include auth flows.
+    - import/export: still not sure about mp3 import or mp3 library, but still
+      things like csv or json. I want to import my history and I don't see
+      a reason for those to be libraries. 
+    - cache stats, clear, relocate, etc.
+ */
+
+
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, GroupBox, Button} from "std-widgets.slint";
+import { AppState, Palette, Navigator } from "../common.slint";
+
+export struct SettingsAdapter {
+    cache_stats: [string],
+    database_stats: [string],
+}
+
+export component Settings inherits ScrollView {
+    in property <SettingsAdapter> model;
+
+    VerticalLayout {
+        alignment: start;
+        // VerticalBox {
+        //     Text {
+        //         text: "Libraries";
+        //         font-size: 2rem;
+        //         font-weight: Palette.font-weight-bold;
+        //     }
+        //     ListView {
+
+        //     }
+        // }
+        VerticalBox {
+            Text {
+                text: "Database";
+                font-size: 2rem;
+                font-weight: Palette.font-weight-bold;
+            }
+            for stat in model.database-stats: 
+                Text {
+                    text: stat;
+                    font-size: 1.3rem;
+                }
+        }
+        VerticalBox {
+            Text {
+                text: "Cache";
+                font-size: 2rem;
+                font-weight: Palette.font-weight-bold;
+            }
+            for stat in model.cache-stats: 
+                Text {
+                    text: stat;
+                    font-size: 1.3rem;
+                }
+        }
+        VerticalBox {
+            Text {
+                text: "Development";
+                font-size: 2rem;
+                font-weight: Palette.font-weight-bold;
+            }
+            Button {
+                text: "Generate Some Artists";
+                clicked => { AppState.settings_generate_artists() }
+            }
+            Button {
+                text: "Reset Database";
+                clicked => { AppState.settings_reset_database() }
+            }
+        }
+    }
+}
+
+    // HorizontalLayout {
+    //     spacing: 8px;
+    //     CheckBox {
+    //         checked: AppState.online;
+    //         toggled => { AppState.set_online(self.checked); }
+    //         horizontal-stretch: 0;
+    //     }
+    //     VerticalLayout {
+    //         alignment: center;
+    //         Text {
+    //             font-size: 1.4rem;
+    //             text: "Online?";
+    //             font-weight: Palette.font-weight-bold;
+    //         }
+    //     }
+    // }
+

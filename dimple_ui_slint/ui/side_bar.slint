@@ -1,9 +1,8 @@
 import { Button , LineEdit, HorizontalBox, GroupBox} from "std-widgets.slint";
 import { Navigator } from "common.slint";
-import {CardAdapter } from "card.slint";
 import { Palette, Navigator, AppState } from "common.slint";
 import {StyleMetrics, VerticalBox, TextEdit, Spinner, Slider, CheckBox} from "std-widgets.slint";
-import { ImageLinkAdapter, LinkAdapter, Links, Link } from "./common.slint";
+import {Link, LinkAdapter, ImageLinkAdapter} from "./components/link.slint";
 
 component SideBarImageItem inherits Rectangle {
     in property <ImageLinkAdapter> image: {
@@ -181,11 +180,43 @@ export component SideBar inherits VerticalBox {
         url: "dimple://home";
         text: "Home";
     }
+    // SideBarMenuItem {
+    //     image: @image-url("../icons/phosphor/SVGs/regular/books.svg");
+    //     url: "dimple://artists";
+    //     text: "Library";
+    // }
     SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/regular/books.svg");
+        image: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
         url: "dimple://artists";
-        text: "Library";
+        text: "Artists";
     }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
+        url: "dimple://release-groups";
+        text: "Albums";
+    }
+    // SideBarMenuItem {
+    //     image: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
+    //     url: "dimple://releases";
+    //     text: "Releases";
+    // }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/music-notes.svg");
+        url: "dimple://tracks";
+        text: "Tracks";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/list.svg");
+        url: "dimple://playlists";
+        text: "Playlists";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/globe-simple.svg");
+        url: "dimple://genres";
+        text: "Genres";
+    }
+
+    // List of pinned items, or favorites, or recents, or something.
     SideBarImageItem {
         image: { image: @image-url("../images/wwhn-lightness.png"), 
             name: "We Were Heading North",url: "dimple://artist/73084492-3e59-4b7f-aa65-572a9d7691d5" };
@@ -204,26 +235,10 @@ export component SideBar inherits VerticalBox {
         title: { name: "Death Metal + Horns", url: "internal://release/1234" };
         sub-title: { name: "Playlist • 14 Songs",url: "internal://artist/9876" };
     }
+
     // Fills the space between the last normal item and the settings, at the bottom.
     Rectangle {
         
-    }
-
-    HorizontalLayout {
-        spacing: 8px;
-        CheckBox {
-            checked: AppState.online;
-            toggled => { AppState.set_online(self.checked); }
-            horizontal-stretch: 0;
-        }
-        VerticalLayout {
-            alignment: center;
-            Text {
-                font-size: 1.4rem;
-                text: "Online?";
-                font-weight: Palette.font-weight-bold;
-            }
-        }
     }
 
     SideBarMenuItem {

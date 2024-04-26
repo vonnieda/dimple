@@ -1,0 +1,70 @@
+import { Palette, Navigator } from "../common.slint";
+import {StyleMetrics} from "std-widgets.slint";
+
+export struct LinkAdapter {
+    name: string,
+    url: string,
+}
+
+export struct ImageLinkAdapter {
+    image: image,
+    name: string,
+    url: string,
+}
+
+export component Link inherits TouchArea {
+    in property <string> url;
+    in property <string> name;
+    in property <length> font-size: 1.2rem;
+    in property <int> font-weight;
+    in property <TextVerticalAlignment> vertical-alignment: bottom;
+    padding: 0;
+
+    mouse-cursor: pointer;
+    clicked => { Navigator.navigate(url); }
+    title := Text {
+        vertical-alignment: vertical-alignment;
+        width: root.width;
+        text: name;
+        // wrap: word-wrap;
+        font-weight: font-weight;
+        font-size: font-size;
+        color: parent.has-hover 
+            ? Palette.link-color-hover
+            : StyleMetrics.default-text-color;
+    }
+}
+
+export component Links inherits HorizontalLayout {
+    in property <[LinkAdapter]> links;
+    in property <length> font-size: 1.2rem;
+    alignment: start;
+    padding: 0;
+    // TODO I think the kerning ends up incorrect when doing it this way. It
+    // looks weird. But I don't know another way to get individual links with
+    // fancy commas.
+    for link[i] in links: HorizontalLayout {
+        alignment: start;
+        Link {
+            name: link.name;
+            url: link.url;
+            font-size: font-size;
+        }
+        // TODO edge cases
+        if i < links.length - 2:
+            Text {
+                vertical-alignment: bottom;
+                text: ", ";
+                font-size: font-size;
+                // wrap: word-wrap;
+            }    
+        if i == links.length - 2:
+            Text {
+                vertical-alignment: bottom;
+                text: ", and ";
+                font-size: font-size;
+                // wrap: word-wrap;
+            }    
+    }
+}
+

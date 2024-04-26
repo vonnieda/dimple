@@ -10,20 +10,20 @@ description = "Dimple is an open source, cross-platform music player that celebr
 
 [dependencies]
 log = "0.4.19"
-slint = { version = "1.4.0", default-features = true }
+slint = { version = "= 1.4.1", default-features = true }
 env_logger = "0.10.0"
 dimple_core = { path = "../dimple_core" }
 dimple_player = { path = "../dimple_player" }
-dimple_file_library = { path = "../dimple_file_library" }
+# dimple_file_library = { path = "../dimple_file_library" }
 # dimple_navidrome_library = { path = "../dimple_navidrome_library" }
 # dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
-dimple_coverartarchive_library = { path = "../dimple_coverartarchive_library" }
-dimple_musicbrainz_library = { path = "../dimple_musicbrainz_library" }
-dimple_lastfm_library = { path = "../dimple_lastfm_library" }
-dimple_deezer_library = { path = "../dimple_deezer_library" }
-dimple_fanart_tv_library = { path = "../dimple_fanart_tv_library" }
-dimple_theaudiodb_library = { path = "../dimple_theaudiodb_library" }
-dimple_wikidata_library = { path = "../dimple_wikidata_library" }
+# dimple_coverartarchive_library = { path = "../dimple_coverartarchive_library" }
+# dimple_musicbrainz_library = { path = "../dimple_musicbrainz_library" }
+# dimple_lastfm_library = { path = "../dimple_lastfm_library" }
+# dimple_deezer_library = { path = "../dimple_deezer_library" }
+# dimple_fanart_tv_library = { path = "../dimple_fanart_tv_library" }
+# dimple_theaudiodb_library = { path = "../dimple_theaudiodb_library" }
+# dimple_wikidata_library = { path = "../dimple_wikidata_library" }
 dimple_librarian = { path = "../dimple_librarian" }
 serde = "1.0.175"
 serde_json = "1.0.94"
@@ -34,9 +34,12 @@ rayon = "1.8.0"
 directories = "5.0.1"
 rfd = "0.13.0"
 souvlaki = "0.7.0"
+fakeit = "1.2.0"
+tiny-skia = "0.11.4"
+threadpool = "1.8.1"
 
 [build-dependencies]
-slint-build = "1.4.0"
+slint-build = "= 1.4.1"
 
 # https://github.com/burtonageo/cargo-bundle
 [package.metadata.bundle]

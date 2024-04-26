@@ -1,29 +1,14 @@
+import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette, LinkAdapter, Navigator, Links, Link, TrackAdapter} from "common.slint";
-import { CardAdapter } from "card.slint";
+import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
-import { CardGrid } from "card_grid.slint";
 
-export struct HomeAdapter {
+export struct TrackListAdapter {
     rows: [[StandardListViewItem]],
 }
 
-export component Home inherits VerticalLayout {
-    StandardTableView {
-        height: 100%;
-        width: 100%;
-        columns: [
-            { title: "Title" },
-            { title: "Album" },
-            { title: "Artist" },
-            { title: "Track #" },
-            { title: "Plays" },
-            { title: "Length" },
-        ];
-        rows: adapter.rows;
-    }
-
-    in-out property <HomeAdapter> adapter: {
+export component TrackList inherits VerticalLayout {
+    in-out property <TrackListAdapter> model: {
         rows: [
             [
                 { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
@@ -36,4 +21,22 @@ export component Home inherits VerticalLayout {
             ]
         ],
     };
+
+    StandardTableView {
+        height: 100%;
+        width: 100%;
+        columns: [
+            { title: "Title" },
+            { title: "Album" },
+            { title: "Artist" },
+            { title: "Track #" },
+            { title: "Plays" },
+            { title: "Length" },
+        ];
+        rows: model.rows;
+    }
+    Text {
+        horizontal-alignment: right;
+        text: model.rows.length + " items";
+    }
 }

@@ -1,25 +1,29 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { Palette, LinkAdapter, Navigator, Links , Link, TrackList, TrackAdapter} from "common.slint";
-import { CardAdapter } from "card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
-import { CardGrid } from "card_grid.slint";
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { CardAdapter } from "../components/card.slint";
+import { CardGrid } from "../components/card_grid.slint";
+import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { Palette, Navigator, AppState } from "../common.slint";
+import {MediumAdapter} from "../components/medium.slint";
 
-export struct RecordingDetailsAdapter {
+export struct ReleaseGroupDetailsAdapter {
     card: CardAdapter,
     disambiguation: string,
     summary: string,
     genres: [LinkAdapter],
-    // releases: [CardAdapter],
+    releases: [CardAdapter],
     links: [LinkAdapter],
-    // primary_type: string,
+    primary_type: string,
     artists: [LinkAdapter],
-    isrcs: [LinkAdapter],
 
     // From the default and/or selected release.
-    // media: [MediumAdapter],
+    media: [MediumAdapter],
+    dump: string,
 }
 
-export component RecordingDetails inherits ScrollView {
+export component ReleaseGroupDetails inherits ScrollView {
     VerticalBox {
         alignment: start;
         spacing: StyleMetrics.layout-spacing * 2;
@@ -41,13 +45,14 @@ export component RecordingDetails inherits ScrollView {
                     source: model.card.image.image;
                 }
             }
-            VerticalBox {
+            VerticalLayout {
                 alignment: start;
+                spacing: StyleMetrics.layout-spacing;
                 // Title
                 Text {
                     text: model.card.title.name;
                     font-weight: Palette.font-weight-bold;
-                    font-size: 5rem;
+                    font-size: 4rem;
                     wrap: word-wrap;
                 }
                 // Disambiguation
@@ -56,15 +61,17 @@ export component RecordingDetails inherits ScrollView {
                     // font-weight: Palette.font-weight-bold;
                     font-size: 1.3rem;
                 }
+                // TODO Change this to date, type, and then artists.
                 // Type and artists
                 if model.artists.length > 0: HorizontalLayout {
                     alignment: start;
-                    // Text {
-                    //     text: "\{model.primary-type} by ";
-                    //     font-size: 1.3rem;
-                    // }
+                    Text {
+                        text: "\{model.primary-type} by ";
+                        font-size: 1.3rem;
+                    }
                     Links {
                         links: model.artists;
+                        font-size: 1.3rem;
                     }
                 }
                 // Genres
@@ -76,6 +83,7 @@ export component RecordingDetails inherits ScrollView {
                     }    
                     Links {
                         links: model.genres;
+                        font-size: 1.3rem;
                     }
                 }
                 // Summary
@@ -102,30 +110,17 @@ export component RecordingDetails inherits ScrollView {
         //     }
         // }
 
-        // // Releases
-        // if model.releases.length > 0: VerticalLayout {
-        //     spacing: StyleMetrics.layout-spacing * 0.50;
-        //     Text {
-        //         text: "Other Releases";
-        //         font-weight: Palette.font-weight-bold;
-        //         font-size: 2rem;
-        //     }
-        //     CardGrid {
-        //         cards: model.releases;
-        //         parent-width: root.width;
-        //     }
-        // }
-
-        // Links
-        if model.isrcs.length > 0: VerticalLayout {
+        // Releases
+        if model.releases.length > 0: VerticalLayout {
+            spacing: StyleMetrics.layout-spacing * 0.50;
             Text {
-                text: "ISRCs";
+                text: "Releases";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
-            for link in model.isrcs: Link {
-                url: link.url;
-                name: link.name;
+            CardGrid {
+                cards: model.releases;
+                parent-width: root.width;
             }
         }
 
@@ -141,13 +136,25 @@ export component RecordingDetails inherits ScrollView {
                 name: link.name;
             }
         }
+
+        // Debug Dump
+        if AppState.debug: VerticalLayout {
+            Text {
+                text: "Debug";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            Text {
+                text: model.dump;
+            }
+        }
     }
 
-    in property <RecordingDetailsAdapter> model: {
+    in property <ReleaseGroupDetailsAdapter> model: {
         // id: "123-123-123-123",
         // title: "A Reign of Fish",
         card: {
-            image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+            image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
             title: {name: "A Reign of Fish",url: "internal://release/1234"},
             sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
         },
@@ -164,53 +171,53 @@ export component RecordingDetails inherits ScrollView {
             { name: "Zim Babwe", url: "internal://release/1234" }, 
             { name: "Vic Toria", url: "internal://release/1234" }, 
         ],
-        // releases: [
-        //     { 
-        //         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        //         title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        //         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        //     },
-        //     { 
-        //         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        //         title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        //         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        //     },
-        //     { 
-        //         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        //         title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        //         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        //     },
-        // ],
-        // primary-type: "Album",
-        // media: [
-        //     {
-        //         title: "Disc 1 of 2",
-        //         tracks: [
-        //             { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 17, },
-        //             { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 21, },
-        //             { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 79, },
-        //         ]
-        //     },
-        //     {
-        //         title: "Disc 2 of 2",
-        //         tracks: [
-        //             { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 17, },
-        //             { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 21, },
-        //             { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 79, },
-        //         ]
-        //     },
-        // ]
+        releases: [
+            { 
+                image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+            },
+            { 
+                image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+            },
+            { 
+                image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+                title: {name: "A Reign of Fish",url: "internal://release/1234"},
+                sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+            },
+        ],
+        primary-type: "Album",
+        media: [
+            {
+                title: "Disc 1 of 2",
+                tracks: [
+                    { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 17, },
+                    { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 21, },
+                    { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 79, },
+                ]
+            },
+            {
+                title: "Disc 2 of 2",
+                tracks: [
+                    { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 17, },
+                    { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 21, },
+                    { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
+                        artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
+                        plays: 79, },
+                ]
+            },
+        ]
     };
 }

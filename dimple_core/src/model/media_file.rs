@@ -1,14 +1,10 @@
+use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::collection::Collection;
-
-use super::Entities;
-use super::Entity;
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 pub struct MediaFile {
-    pub key: String,
+    pub key: Option<String>,
 
     // pub url: String,
     // pub created_at: Instant,
@@ -28,28 +24,3 @@ pub struct MediaFile {
     pub mb_album_comment: Option<String>,
 }
 
-impl MediaFile {
-    pub fn list(col: &dyn Collection) -> Box<dyn Iterator<Item = MediaFile>> {
-        let iter = col
-            .list(&MediaFile::default().entity(), None)
-            .map(|m| match m {
-                Entities::MediaFile(m) => m,
-                _ => panic!(),
-            });
-        Box::new(iter)
-    }
-}
-
-impl Entity for MediaFile {
-    fn key(&self) -> Option<String> {
-        Some(self.key.clone())
-    }
-
-    fn set_key(&mut self, key: Option<String>) {
-        self.key = key.unwrap();
-    }
-
-    fn entity(&self) -> Entities {
-        Entities::MediaFile(self.clone())
-    }    
-}

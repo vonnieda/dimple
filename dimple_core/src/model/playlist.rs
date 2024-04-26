@@ -1,15 +1,9 @@
-
-
-
+use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::collection::Collection;
-
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 pub struct Playlist {
-    pub name: String,
+    pub key: Option<String>,
+    pub name: Option<String>,
 }
-
-

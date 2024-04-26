@@ -4,6 +4,7 @@ Dimple is:
 - an open source and cross-platform music player that celebrates music and privacy.
 - an open source, cross-platform music player for the open Internet.
 - a private music streaming service, just for you, in a single app.
+- a local first, open source, music platform in an app.
 
 It runs on all the common desktops and mobiles, and gives you all the power of
 a streaming service in a beautiful, self-contained app.
@@ -17,16 +18,19 @@ player I can.**
 
 If you you'd like to support Dimple, please consider:
 - Donating or sponsoring Dimple:
-  - Merch:
+  - Merch: https://dimple.lol/store
   - BTC:
   - ETH:
   - DOGE:
   - Paypal: 
-  - Github:
+  - Github: https://github.com/vonnieda
   - Venmo: 
-- Donating to Musicbrainz:
-- Donating to fanart.tv:
-- Sponsoring TheAudioDB:
+  - Ko-Fi: https://ko-fi.com/vonnieda
+  - Buy Me a Coffee: https://www.buymeacoffee.com/vonnieda
+  - Patreon: 
+- Donating to Musicbrainz: https://metabrainz.org/donate
+- Donating to fanart.tv: https://fanart.tv/
+- Sponsoring TheAudioDB: https://www.patreon.com/thedatadb
 
 # Features
 
@@ -34,14 +38,14 @@ If you you'd like to support Dimple, please consider:
 - Github: https://github.com/vonnieda/Dimple
 
 ## Cross Platform
-- macOS
-- Linux
-- Windows
-- iOS
-- Android
-- CarPlay
-- Android Auto
-- Apple tvOS
+- [x] macOS
+- [x] Linux
+- [x] Windows
+- [ ] iOS
+- [ ] Android
+- [ ] CarPlay
+- [ ] Android Auto
+- [ ] Apple tvOS
 
 ## Private
 - No ads, no accounts, no data collection, no tracking, no DRM, no telemetry,
@@ -132,10 +136,7 @@ If you you'd like to support Dimple, please consider:
 
 # Notes
 - I'm writing Dimple as a way to learn Rust. If you see weird things in the code
-  it's probably because I didn't know the better way. Please feel free to
+  it's probably because I didn't know a better way. Please feel free to
   open a PR or Issue and let me know! I'm still learning, and I appreciate the
   help!
 
-# Support
-https://ko-fi.com/vonnieda
-https://www.buymeacoffee.com/vonnieda
