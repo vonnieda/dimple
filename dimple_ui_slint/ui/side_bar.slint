@@ -193,28 +193,30 @@ export component SideBar inherits VerticalBox {
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
         url: "dimple://release-groups";
-        text: "Release Groups";
+        text: "Albums";
     }
-    SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
-        url: "dimple://releases";
-        text: "Releases";
-    }
+    // SideBarMenuItem {
+    //     image: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
+    //     url: "dimple://releases";
+    //     text: "Releases";
+    // }
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/regular/music-notes.svg");
         url: "dimple://tracks";
         text: "Tracks";
     }
     SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
-        url: "dimple://genres";
-        text: "Genres";
-    }
-    SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/regular/list.svg");
         url: "dimple://playlists";
         text: "Playlists";
     }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/globe-simple.svg");
+        url: "dimple://genres";
+        text: "Genres";
+    }
+
+    // List of pinned items, or favorites, or recents, or something.
     SideBarImageItem {
         image: { image: @image-url("../images/wwhn-lightness.png"), 
             name: "We Were Heading North",url: "dimple://artist/73084492-3e59-4b7f-aa65-572a9d7691d5" };
@@ -238,23 +240,6 @@ export component SideBar inherits VerticalBox {
     Rectangle {
         
     }
-
-    // HorizontalLayout {
-    //     spacing: 8px;
-    //     CheckBox {
-    //         checked: AppState.online;
-    //         toggled => { AppState.set_online(self.checked); }
-    //         horizontal-stretch: 0;
-    //     }
-    //     VerticalLayout {
-    //         alignment: center;
-    //         Text {
-    //             font-size: 1.4rem;
-    //             text: "Online?";
-    //             font-weight: Palette.font-weight-bold;
-    //         }
-    //     }
-    // }
 
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/light/gear-light.svg");

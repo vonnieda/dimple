@@ -32,7 +32,7 @@ pub struct AppWindowController {
 impl AppWindowController {
     pub fn new() -> Self {
         let ui = AppWindow::new().unwrap();
-        // TODO Probably this and librarian happens once the UI is up so that we
+        // TODO This and librarian should happen once the UI is up so that we
         // can show errors if needed. 
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
         let dir = dirs.data_dir().to_str().unwrap();
@@ -96,7 +96,7 @@ impl App {
             crate::ui::pages::release_group_list::release_group_list(self);
         }
         else if url.starts_with("dimple://release-group/") {
-            self.set_page(Page::ReleaseGroupDetails);
+            crate::ui::pages::release_group_details::release_group_details(&url, self);
         }
         else if url.starts_with("dimple://releases") {
             crate::ui::pages::release_list::release_list(self);
@@ -112,6 +112,9 @@ impl App {
         }
         else if url.starts_with("dimple://genres") {
             crate::ui::pages::genre_list::genre_list(self);
+        }
+        else if url.starts_with("dimple://genre/") {
+            crate::ui::pages::genre_details::genre_details(&url, self);
         }
         else if url == "dimple://settings" {
             crate::ui::pages::settings::settings(self);

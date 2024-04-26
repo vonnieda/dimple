@@ -1,0 +1,162 @@
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { CardAdapter } from "../components/card.slint";
+import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
+import { CardGrid } from "../components/card_grid.slint";
+import { Palette, Navigator, AppState } from "../common.slint";
+
+export struct GenreDetailsAdapter {
+    card: CardAdapter,
+    summary: string,
+    disambiguation: string,
+    related_genres: [LinkAdapter],
+    artists: [CardAdapter],
+    release_groups: [CardAdapter],
+    tracks: [CardAdapter],
+    playlists: [CardAdapter],
+    // singles: [CardAdapter],
+    // eps: [CardAdapter],
+    // others: [CardAdapter],
+    links: [LinkAdapter],
+    dump: string,
+}
+
+export component GenreDetails inherits ScrollView {
+    VerticalBox {
+        alignment: start;
+        spacing: StyleMetrics.layout-spacing * 2;
+        // Header
+        HorizontalLayout {
+            alignment: start;
+            spacing: StyleMetrics.layout-spacing;
+            Rectangle {
+                width: Palette.thumbnail-width-extra-large;
+                height: Palette.thumbnail-width-extra-large;
+                border-radius: Palette.thumbnail-border-radius;
+                border-color: Palette.thumbnail-border-color;
+                border-width: Palette.thumbnail-border-width;
+                clip: true;
+                Image {
+                    width: Palette.thumbnail-width-extra-large;
+                    height: Palette.thumbnail-width-extra-large;
+                    source: model.card.image.image;
+                }
+            }
+            VerticalLayout {
+                alignment: start;
+                spacing: StyleMetrics.layout-spacing;
+                HorizontalLayout {
+                    alignment: start;
+                    spacing: StyleMetrics.layout-spacing;
+                    // Image {
+                    //     // TODO DRY
+                    //     source: @image-url("../../icons/phosphor/SVGs/regular/users-three.svg");
+                    //     height: 4rem;
+                    //     width: 4rem;
+                    //     colorize: StyleMetrics.default-text-color;
+                    // }
+                    Text {
+                        text: model.card.title.name;
+                        font-weight: Palette.font-weight-bold;
+                        font-size: 4rem;
+                    }
+                }
+                // if model.genres.length > 0: 
+                //     HorizontalLayout {
+                //         alignment: start;
+                //         Text {
+                //             text: "In ";
+                //             font-size: 1.3rem;
+                //         }    
+                //         Links {
+                //             links: model.genres;
+                //         }
+                //     }
+                //     Text {
+                //         text: model.summary;
+                //         wrap: word-wrap;
+                //         font-size: 1.2rem;
+                //     }
+            }
+        }
+
+        // Artists
+        if model.artists.length > 0: VerticalLayout {
+            Text {
+                text: "Artists";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.artists;
+                parent-width: root.width;
+            }
+        }
+
+        // Release Groups
+        if model.release-groups.length > 0: VerticalLayout {
+            Text {
+                text: "Albums";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.release-groups;
+                parent-width: root.width;
+            }
+        }
+
+        // Tracks
+        if model.tracks.length > 0: VerticalLayout {
+            Text {
+                text: "Tracks";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.tracks;
+                parent-width: root.width;
+            }
+        }
+
+        // Playlists
+        if model.playlists.length > 0: VerticalLayout {
+            Text {
+                text: "Playlists";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.playlists;
+                parent-width: root.width;
+            }
+        }
+
+        // Links
+        if model.links.length > 0: VerticalLayout {
+            Text {
+                text: "Links";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            for link in model.links: Link {
+                url: link.url;
+                name: link.name;
+            }
+        }
+
+        // Debug Dump
+        if AppState.debug: VerticalLayout {
+            Text {
+                text: "Debug";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            Text {
+                text: model.dump;
+            }
+        }
+    }
+
+    in property <GenreDetailsAdapter> model;
+}

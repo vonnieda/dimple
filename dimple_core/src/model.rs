@@ -27,8 +27,7 @@ pub use recording_source::RecordingSource;
 pub use genre::Genre;
 pub use known_id::KnownId;
 pub use picture::Picture;
-
-use self::playlist::Playlist;
+pub use playlist::Playlist;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Model {

@@ -7,6 +7,7 @@ use dimple_core::model::Genre;
 use dimple_core::model::KnownId;
 use dimple_core::model::Medium;
 use dimple_core::model::Picture;
+use dimple_core::model::Playlist;
 use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
@@ -95,6 +96,27 @@ impl From<Genre> for CardAdapter {
                 name: value.disambiguation.unwrap_or_default().into(),
                 url: format!("dimple://genre/{}", value.key.clone().unwrap_or_default()).into(),
             },
+        }
+    }
+}
+
+impl From<Playlist> for CardAdapter {
+    fn from(value: Playlist) -> Self {
+        CardAdapter {
+            image: ImageLinkAdapter {
+                image: Default::default(),
+                name: value.name.clone().unwrap_or_default().into(),
+                url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            title: LinkAdapter {
+                name: value.name.clone().unwrap_or_default().into(),
+                url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            ..Default::default()
+            // sub_title: LinkAdapter {
+            //     name: value.disambiguation.unwrap_or_default().into(),
+            //     url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
+            // },
         }
     }
 }
@@ -271,7 +293,6 @@ impl From<Genre> for CardAdapter {
 //     score / 4.
 // }
 
-
 pub fn create_links(count: usize) -> HashSet<String> {
     let mut links = HashSet::new();
     for i in 0..count {
@@ -309,6 +330,8 @@ pub fn create_artist(db: &dyn Db) -> Artist {
                 fakeit::words::word())),
             ..Default::default()
         }.model()).unwrap();
+        let genre_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
+        db.link(&genre_pic, &genre).unwrap();
         db.link(&genre, &artist).unwrap();
     }
     
@@ -337,6 +360,8 @@ pub fn create_release_group(db: &dyn Db) -> ReleaseGroup {
                 fakeit::words::word())),
             ..Default::default()
         }.model()).unwrap();
+        let genre_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
+        db.link(&genre_pic, &genre).unwrap();
         db.link(&genre, &release_group).unwrap();
     }
 
@@ -370,6 +395,8 @@ pub fn create_release(db: &dyn Db) -> Release {
             ..Default::default()
         }.model()).unwrap();
         db.link(&genre, &release).unwrap();
+        let genre_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
+        db.link(&genre_pic, &genre).unwrap();
     }
 
     release.into()
