@@ -26,6 +26,7 @@ export component ArtistDetails inherits ScrollView {
         HorizontalLayout {
             alignment: start;
             spacing: StyleMetrics.layout-spacing;
+            // Image
             Rectangle {
                 width: Palette.thumbnail-width-extra-large;
                 height: Palette.thumbnail-width-extra-large;
@@ -42,38 +43,36 @@ export component ArtistDetails inherits ScrollView {
             VerticalLayout {
                 alignment: start;
                 spacing: StyleMetrics.layout-spacing;
-                HorizontalLayout {
+                // Title
+                Text {
+                    text: model.card.title.name;
+                    font-weight: Palette.font-weight-bold;
+                    font-size: 4rem;
+                }
+                // Disambiguation
+                if model.disambiguation > 0: Text {
+                    text: model.disambiguation;
+                    // font-weight: Palette.font-weight-bold;
+                    font-size: 1.3rem;
+                }
+                // Genres
+                if model.genres.length > 0: HorizontalLayout {
                     alignment: start;
-                    spacing: StyleMetrics.layout-spacing;
-                    // Image {
-                    //     // TODO DRY
-                    //     source: @image-url("../../icons/phosphor/SVGs/regular/users-three.svg");
-                    //     height: 4rem;
-                    //     width: 4rem;
-                    //     colorize: StyleMetrics.default-text-color;
-                    // }
                     Text {
-                        text: model.card.title.name;
-                        font-weight: Palette.font-weight-bold;
-                        font-size: 4rem;
+                        text: "In ";
+                        font-size: 1.3rem;
+                    }    
+                    Links {
+                        links: model.genres;
+                        font-size: 1.3rem;
                     }
                 }
-                if model.genres.length > 0: 
-                    HorizontalLayout {
-                        alignment: start;
-                        Text {
-                            text: "In ";
-                            font-size: 1.3rem;
-                        }    
-                        Links {
-                            links: model.genres;
-                        }
-                    }
-                    Text {
-                        text: model.summary;
-                        wrap: word-wrap;
-                        font-size: 1.2rem;
-                    }
+                // Summary
+                Text {
+                    text: model.summary;
+                    wrap: word-wrap;
+                    font-size: 1.2rem;
+                }
             }
         }
 

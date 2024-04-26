@@ -45,13 +45,14 @@ export component ReleaseGroupDetails inherits ScrollView {
                     source: model.card.image.image;
                 }
             }
-            VerticalBox {
+            VerticalLayout {
                 alignment: start;
+                spacing: StyleMetrics.layout-spacing;
                 // Title
                 Text {
                     text: model.card.title.name;
                     font-weight: Palette.font-weight-bold;
-                    font-size: 5rem;
+                    font-size: 4rem;
                     wrap: word-wrap;
                 }
                 // Disambiguation

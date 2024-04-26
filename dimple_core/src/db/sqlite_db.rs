@@ -180,6 +180,7 @@ impl Entity for Model {
             Model::ReleaseGroup(_) => "ReleaseGroup".to_string(),
             Model::Track(_) => "Track".to_string(),
             Model::Playlist(_) => "Playlist".to_string(),
+            Model::PlaylistItem(_) => "PlaylistItem".to_string(),
         }
     }
 
@@ -196,6 +197,7 @@ impl Entity for Model {
             Model::ReleaseGroup(value) => value.key.clone(),
             Model::Track(value) => value.key.clone(),
             Model::Playlist(value) => value.key.clone(),
+            Model::PlaylistItem(value) => value.key.clone(),
         }
     }
 
@@ -212,6 +214,7 @@ impl Entity for Model {
             Model::ReleaseGroup(value) => value.key = key,
             Model::Track(value) => value.key = key,
             Model::Playlist(value) => value.key = key,
+            Model::PlaylistItem(value) => value.key = key,
         }
     }
 }

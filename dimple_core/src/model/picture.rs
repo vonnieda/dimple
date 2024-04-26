@@ -10,6 +10,9 @@ use serde::Serialize;
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 pub struct Picture {
     pub key: Option<String>,
+    // TODO I think this moves to it's own object, as we'll want more metadata
+    // here eventually and don't want to pay the load penalty just to read
+    // metadata.
     compressed_image: Vec<u8>,
 }
 

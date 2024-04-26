@@ -14,9 +14,7 @@ export struct GenreDetailsAdapter {
     release_groups: [CardAdapter],
     tracks: [CardAdapter],
     playlists: [CardAdapter],
-    // singles: [CardAdapter],
-    // eps: [CardAdapter],
-    // others: [CardAdapter],
+    related_genres: [CardAdapter],
     links: [LinkAdapter],
     dump: string,
 }
@@ -93,7 +91,7 @@ export component GenreDetails inherits ScrollView {
             }
         }
 
-        // Release Groups
+        // Albums
         if model.release-groups.length > 0: VerticalLayout {
             Text {
                 text: "Albums";
@@ -128,6 +126,19 @@ export component GenreDetails inherits ScrollView {
             }
             CardGrid {
                 cards: model.playlists;
+                parent-width: root.width;
+            }
+        }
+
+        // Genres
+        if model.related-genres.length > 0: VerticalLayout {
+            Text {
+                text: "Related Genres";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            CardGrid {
+                cards: model.related-genres;
                 parent-width: root.width;
             }
         }

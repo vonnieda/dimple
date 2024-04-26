@@ -43,14 +43,9 @@ import "../fonts/Roboto/Roboto-MediumItalic.ttf";
 import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
+import { PlaylistList } from "pages/playlist_list.slint";
 
 export { Navigator, Palette, AppState }
-
-
-// I think I'm supposed to think of this more in terms of the whole state of
-// the app, which the UI then reacts to / reflects. Right now what I'm doing
-// feels like rebuilding the UI every time? But maybe that's just because
-// for all these pages that's what I have to do?
 
 export enum Page { Home, Search,
         ArtistList, ArtistDetails,
@@ -84,6 +79,7 @@ export component AppWindow inherits Window {
     in-out property <GenreDetailsAdapter> genre-details;
     in-out property <TrackListAdapter> track-list;
     in-out property <TrackDetailsAdapter> track-details;
+    in-out property <CardGridAdapter> playlist-list;
     in-out property <SettingsAdapter> settings;
     in-out property <PlayerBarAdapter> player-bar;
 
@@ -142,6 +138,12 @@ export component AppWindow inherits Window {
                     if page == Page.GenreDetails: GenreDetails {  
                         model: root.genre-details;
                     }
+                    if page == Page.PlaylistList: PlaylistList {  
+                        model: root.playlist-list;
+                    }
+                    // if page == Page.PlaylistDetails: PlaylistDetails {  
+                    //     model: root.playlist-details;
+                    // }
                     if page == Page.Settings: Settings {  
                         model: root.settings;
                     }

@@ -116,6 +116,9 @@ impl App {
         else if url.starts_with("dimple://genre/") {
             crate::ui::pages::genre_details::genre_details(&url, self);
         }
+        else if url.starts_with("dimple://playlists") {
+            crate::ui::pages::playlist_list::playlist_list(self);
+        }
         else if url == "dimple://settings" {
             crate::ui::pages::settings::settings(self);
         }

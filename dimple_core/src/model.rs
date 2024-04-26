@@ -15,6 +15,7 @@ mod release;
 mod track;
 mod known_id;
 mod picture;
+mod playlist_item;
 
 pub use artist::Artist;
 pub use release_group::ReleaseGroup;
@@ -28,6 +29,7 @@ pub use genre::Genre;
 pub use known_id::KnownId;
 pub use picture::Picture;
 pub use playlist::Playlist;
+pub use playlist_item::PlaylistItem;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Model {
@@ -42,6 +44,7 @@ pub enum Model {
     Track(Track),
     Picture(Picture),
     Playlist(Playlist),
+    PlaylistItem(PlaylistItem),
 }
 
 impl Model {
@@ -58,6 +61,7 @@ impl Model {
             Model::Release(v) => v,
             Model::Track(v) => v,
             Model::Picture(v) => v,
+            Model::PlaylistItem(v) => v,
         }
     }
 }

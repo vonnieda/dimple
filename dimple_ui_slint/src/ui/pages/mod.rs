@@ -7,3 +7,4 @@ pub mod release_group_details;
 pub mod release_list;
 pub mod genre_list;
 pub mod genre_details;
+pub mod playlist_list;

@@ -121,6 +121,27 @@ impl From<Playlist> for CardAdapter {
     }
 }
 
+impl From<Track> for CardAdapter {
+    fn from(value: Track) -> Self {
+        CardAdapter {
+            image: ImageLinkAdapter {
+                image: Default::default(),
+                name: value.title.clone().unwrap_or_default().into(),
+                url: format!("dimple://track/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            title: LinkAdapter {
+                name: value.title.clone().unwrap_or_default().into(),
+                url: format!("dimple://track/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            ..Default::default()
+            // sub_title: LinkAdapter {
+            //     name: value.disambiguation.unwrap_or_default().into(),
+            //     url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
+            // },
+        }
+    }
+}
+
 
 // fn recording_card(recording: &Recording, width: u32, height: u32, lib: &Librarian) -> Card {
 //     Card {
@@ -421,7 +442,19 @@ pub fn create_track(db: &dyn Db) -> Track {
     track.into()
 }
 
+pub fn create_playlist(db: &dyn Db) -> Playlist {
+    let playlist = db.insert(&Playlist {
+        name: Some(fakeit::hipster::sentence(4)),
+        ..Default::default()
+    }.model()).unwrap();
+    
+    playlist.into()
+}
+
 pub fn create_random_data(db: &dyn Db, num_artists: u32) {
+    for _ in 0..5 {
+        let _ = create_playlist(db);
+    }
     (0..num_artists).into_par_iter().for_each(|_| {
         let artist = create_artist(db);
         (0..fakeit::misc::random(0, 7)).into_par_iter().for_each(|_| {
@@ -440,5 +473,5 @@ pub fn create_random_data(db: &dyn Db, num_artists: u32) {
                 });
             });
         });
-    })
+    });
 }
