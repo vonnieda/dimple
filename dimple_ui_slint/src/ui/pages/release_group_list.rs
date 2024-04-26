@@ -3,7 +3,6 @@ use crate::ui::CardAdapter;
 use crate::ui::CardGridAdapter;
 use crate::ui::Page;
 use dimple_core::db::Db;
-use dimple_core::model::Artist;
 use dimple_core::model::Entity;
 use dimple_core::model::ReleaseGroup;
 use slint::Model;

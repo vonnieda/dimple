@@ -28,6 +28,8 @@ pub use genre::Genre;
 pub use known_id::KnownId;
 pub use picture::Picture;
 
+use self::playlist::Playlist;
+
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Model {
     Artist(Artist),
@@ -40,11 +42,13 @@ pub enum Model {
     Release(Release),
     Track(Track),
     Picture(Picture),
+    Playlist(Playlist),
 }
 
 impl Model {
     pub fn entity(&self) -> &dyn Entity {
         match self {
+            Model::Playlist(v) => v,
             Model::Artist(v) => v,
             Model::Genre(v) => v,
             Model::MediaFile(v) => v,

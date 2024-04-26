@@ -1,4 +1,3 @@
-use core::num;
 use std::collections::HashSet;
 
 use dimple_core::db::Db;
@@ -8,13 +7,9 @@ use dimple_core::model::Genre;
 use dimple_core::model::KnownId;
 use dimple_core::model::Medium;
 use dimple_core::model::Picture;
-use dimple_core::model::Recording;
-use dimple_core::model::RecordingSource;
 use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
-use fakeit::words::word;
-use image::DynamicImage;
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use crate::ui::CardAdapter;
@@ -57,42 +52,53 @@ impl From<ReleaseGroup> for CardAdapter {
                 url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
             },
             sub_title: LinkAdapter {
-                name: value.disambiguation.clone().unwrap_or_default().into(),
+                name: format!("{} {}", value.first_release_date.unwrap_or_default(), value.primary_type.unwrap_or_default()).into(),
                 url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
             },
         }
     }
 }
 
+impl From<Release> for CardAdapter {
+    fn from(value: Release) -> Self {
+        CardAdapter {
+            image: ImageLinkAdapter {
+                image: Default::default(),
+                name: value.title.clone().unwrap_or_default().into(),
+                url: format!("dimple://release/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            title: LinkAdapter {
+                name: value.title.clone().unwrap_or_default().into(),
+                url: format!("dimple://release/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            sub_title: LinkAdapter {
+                name: format!("{} {}", value.date.unwrap_or_default(), value.country.unwrap_or_default()).into(),
+                url: format!("dimple://release/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+        }
+    }
+}
 
-// TODO hastily written bunch of adapters, clean em up
-// fn link_adapters(links: Vec<Link>) -> ModelRc<LinkAdapter> {
-//     let links: Vec<_> = links.into_iter().map(Into::into).collect();
-//     ModelRc::from(links.as_slice())
-// }
+impl From<Genre> for CardAdapter {
+    fn from(value: Genre) -> Self {
+        CardAdapter {
+            image: ImageLinkAdapter {
+                image: Default::default(),
+                name: value.name.clone().unwrap_or_default().into(),
+                url: format!("dimple://genre/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            title: LinkAdapter {
+                name: value.name.clone().unwrap_or_default().into(),
+                url: format!("dimple://genre/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            sub_title: LinkAdapter {
+                name: value.disambiguation.unwrap_or_default().into(),
+                url: format!("dimple://genre/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+        }
+    }
+}
 
-
-// fn release_card(release: &Release, width: u32, height: u32, lib: &Librarian) -> Card {
-//     // TODO want to include disambiguation as the title, but also country,
-//     // label, and date?
-//     Card {
-//         image: ImageLink {
-//             image: lib.thumbnail(&Entities::Release(release.clone()), width, height),
-//             link: Link {
-//                 name: release.title.str(),
-//                 url: format!("dimple://release/{}", release.key.str()),
-//             },
-//         },
-//         title: Link {
-//             name: release.disambiguation.clone().str(),
-//             url: format!("dimple://release/{}", release.key.str()),
-//         },
-//         sub_title: Link { 
-//             name: format!("{} {}", release.date.str(), release.country.str()),
-//             url: format!("dimple://release/{}", release.key.str()),
-//         },
-//     }
-// }
 
 // fn recording_card(recording: &Recording, width: u32, height: u32, lib: &Librarian) -> Card {
 //     Card {
@@ -220,16 +226,6 @@ impl From<ReleaseGroup> for CardAdapter {
 //     ModelRc::from(adapters.as_slice())
 // }
 
-// fn dynamic_image_to_slint_image(dynamic_image: &DynamicImage) -> slint::Image {
-//     let rgba8_image = dynamic_image.clone().into_rgba8();
-//     let shared_pixbuf = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
-//         rgba8_image.as_raw(),
-//         rgba8_image.width(),
-//         rgba8_image.height(),
-//     );
-//     slint::Image::from_rgba8(shared_pixbuf)
-// }
-
 // Creates a simple score for a release to use when selecting a
 // a default release.
 // TODO this is super naive, just needed something to set the example.
@@ -275,169 +271,6 @@ impl From<ReleaseGroup> for CardAdapter {
 //     score / 4.
 // }
 
-// #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
-// struct Link {
-//     name: String,
-//     url: String,
-// }
-
-// #[derive(Clone, Debug, PartialEq, Default)]
-// struct ImageLink {
-//     link: Link,
-//     image: DynamicImage,
-// }
-
-// #[derive(Clone, Debug, PartialEq, Default)]
-// struct Card {
-//     image: ImageLink,
-//     title: Link,
-//     sub_title: Link,
-// }
-
-// impl From<Link> for LinkAdapter {
-//     fn from(value: Link) -> Self {
-//         Self {
-//             name: value.name.into(),
-//             url: value.url.into(),
-//         }
-//     }
-// }
-
-// trait OptStr {
-//     fn str(&self) -> String;
-// }
-
-// impl OptStr for Option<String> {
-//     fn str(&self) -> String {
-//         self.clone().unwrap_or_default()
-//     }
-// }
-
-// trait AsSharedString {
-//     fn shared(&self) -> SharedString; 
-// }
-
-// impl AsSharedString for Option<String> {
-//     fn shared(&self) -> SharedString {
-//         SharedString::from(self.str())        
-//     }
-// }
-
-// impl AsSharedString for &str {
-//     fn shared(&self) -> SharedString {
-//         SharedString::from(self.to_string())
-//     }
-// }
-
-// impl AsSharedString for String {
-//     fn shared(&self) -> SharedString {
-//         SharedString::from(self)        
-//     }
-// }
-
-// trait AsListViewItem {
-//     fn listview_item(&self) -> StandardListViewItem;
-// }
-
-// impl AsListViewItem for Option<String> {
-//     fn listview_item(&self) -> StandardListViewItem {
-//         StandardListViewItem::from(self.shared())
-//     }
-// }
-
-// impl AsListViewItem for &str {
-//     fn listview_item(&self) -> StandardListViewItem {
-//         StandardListViewItem::from(self.shared())
-//     }
-// }
-
-// impl AsListViewItem for String {
-//     fn listview_item(&self) -> StandardListViewItem {
-//         StandardListViewItem::from(self.shared())
-//     }
-// }
-
-
-
-
-// {
-//     let librarian = librarian.clone();
-//     let ui = ui.clone();
-//     std::thread::spawn(move || {
-//         thread::sleep(Duration::from_secs(5));
-//         log::info!("here we go!");
-//         ui.upgrade_in_event_loop(move |ui| {
-//             let adapter = ui.get_artist_list();
-//             // let pixel_buffer = SharedPixelBuffer::<Rgba8Pixel>::new(640, 480);
-//             // let image = Image::from_rgba8_premultiplied(pixel_buffer);
-
-//             let mut demo_image = image::open("images/light.png").expect("Error loading demo image").into_rgba8();
-
-//             image::imageops::colorops::brighten_in_place(&mut demo_image, 20);
-            
-//             let buffer = SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
-//                 demo_image.as_raw(),
-//                 demo_image.width(),
-//                 demo_image.height(),
-//             );
-//             let image = Image::from_rgba8(buffer);
-
-//             for (i, card) in adapter.cards.iter().enumerate() {
-//                 let mut card = card.clone();
-//                 card.image.image = image.clone();
-//                 card.title.name = "Wow".to_string().into();
-//                 adapter.cards.set_row_data(i, card);
-//             }
-//         })
-//         .unwrap();
-//     });
-// }
-
-// fn create_artist(db: &dyn Db) -> Artist {
-//     let artist = Artist {
-//         name: Some(fakeit::name::full()),
-//         summary: Some(fakeit::hipster::paragraph(1, 4, 40, " ".to_string())),
-//         country: Some(fakeit::address::country_abr()),
-//         disambiguation: Some(fakeit::address::country()),
-//         ..Default::default()
-//     };
-//     let artist_pic = Picture::new(&gen_fuzzy_circles(1000, 1000));
-
-//     let artist: Artist = db.insert(&artist.model()).unwrap().into();
-//     let artist_pic: Picture = db.insert(&artist_pic.model()).unwrap().into();
-
-//     db.link(&artist_pic.model(), &artist.model());
-
-//     artist
-// }
-
-// fn create
-
-// fn create_picture(db: &dyn Db, image: &DynamicImage) -> Picture {
-//     let picture = Picture::new(image);
-//     db.insert(&picture.model()).unwrap().into()
-// }
-
-// fn create_artist(db: &dyn Db) -> Artist {
-//     let artist = Artist {
-//         name: Some(fakeit::name::full()),
-//         summary: Some(fakeit::hipster::paragraph(1, 4, 40, " ".to_string())),
-//         country: Some(fakeit::address::country_abr()),
-//         disambiguation: Some(fakeit::address::country()),
-//         ..Default::default()
-//     };
-//     let artist: Artist = db.insert(&artist.model()).unwrap().into();
-//     let artist_pic = create_picture(db, &gen_fuzzy_circles(1000, 1000));
-//     db.link(&artist_pic.model(), &artist.model());
-
-//     artist
-// }
-
-// fn create_release_group(db: &dyn Db) -> ReleaseGroup {
-//     let 
-// }
-
-// TODO next thing to do is get links and genres integrated
 
 pub fn create_links(count: usize) -> HashSet<String> {
     let mut links = HashSet::new();

@@ -99,7 +99,7 @@ impl App {
             self.set_page(Page::ReleaseGroupDetails);
         }
         else if url.starts_with("dimple://releases") {
-            self.set_page(Page::ReleaseList);
+            crate::ui::pages::release_list::release_list(self);
         }
         else if url.starts_with("dimple://release/") {
             self.set_page(Page::ReleaseDetails);
@@ -109,6 +109,9 @@ impl App {
         }
         else if url.starts_with("dimple://track/") {
             self.set_page(Page::TrackDetails);
+        }
+        else if url.starts_with("dimple://genres") {
+            crate::ui::pages::genre_list::genre_list(self);
         }
         else if url == "dimple://settings" {
             crate::ui::pages::settings::settings(self);

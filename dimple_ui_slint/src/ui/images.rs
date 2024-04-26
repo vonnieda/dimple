@@ -24,6 +24,8 @@ pub struct ImageMangler {
     ui: Weak<AppWindow>,
     default_artist: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     default_release_group: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    default_release: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    default_genre: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     default_other: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     threadpool: ThreadPool,
 }
@@ -36,6 +38,8 @@ impl ImageMangler {
             cache: Default::default(),
             default_artist: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
             default_release_group: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
+            default_release: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
+            default_genre: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
             default_other: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_rects(128, 128)))),
             threadpool: ThreadPool::new(8),
         };
@@ -117,6 +121,8 @@ impl ImageMangler {
         match model {
             Model::Artist(_) => return self.default_artist.lock().unwrap().clone(),
             Model::ReleaseGroup(_) => return self.default_release_group.lock().unwrap().clone(),
+            Model::Release(_) => return self.default_release.lock().unwrap().clone(),
+            Model::Genre(_) => return self.default_genre.lock().unwrap().clone(),
             _ => return self.default_other.lock().unwrap().clone(),
         }
     }

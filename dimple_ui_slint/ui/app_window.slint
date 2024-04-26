@@ -43,6 +43,7 @@ import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 import { Search } from "pages/search.slint";
+import { GenreList } from "pages/genre_list.slint";
 
 // I think I'm supposed to think of this more in terms of the whole state of
 // the app, which the UI then reacts to / reflects. Right now what I'm doing
@@ -55,7 +56,7 @@ export enum Page { Home, Search,
         ReleaseGroupList, ReleaseGroupDetails,
         TrackList, TrackDetails,
         PlaylistList, PlaylistDetails,
-        Settings }
+        Settings, GenreList }
 
 
 export component AppWindow inherits Window {
@@ -78,6 +79,7 @@ export component AppWindow inherits Window {
     in-out property <CardGridAdapter> release-list;
     in-out property <ReleaseDetailsAdapter> release-details;
     in-out property <TrackListAdapter> track-list;
+    in-out property <CardGridAdapter> genre-list;
     in-out property <TrackDetailsAdapter> track-details;
     in-out property <SettingsAdapter> settings;
     in-out property <PlayerBarAdapter> player-bar;
@@ -127,6 +129,9 @@ export component AppWindow inherits Window {
                     }                
                     if page == Page.TrackList: TrackList {  
                         model: root.track-list;
+                    }
+                    if page == Page.GenreList: GenreList {  
+                        model: root.genre-list;
                     }
                     if page == Page.TrackDetails: TrackDetails {  
                         model: root.track-details;
