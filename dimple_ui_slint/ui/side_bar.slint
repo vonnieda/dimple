@@ -192,13 +192,23 @@ export component SideBar inherits VerticalBox {
     }
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
+        url: "dimple://release-groups";
+        text: "Release Groups";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
         url: "dimple://releases";
-        text: "Albums";
+        text: "Releases";
     }
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/regular/music-notes.svg");
         url: "dimple://tracks";
         text: "Tracks";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
+        url: "dimple://genres";
+        text: "Genres";
     }
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/regular/list.svg");

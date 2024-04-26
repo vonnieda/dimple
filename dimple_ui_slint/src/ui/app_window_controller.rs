@@ -93,7 +93,7 @@ impl App {
             crate::ui::pages::artist_details::artist_details(&url, self);
         }
         else if url.starts_with("dimple://release-groups") {
-            self.set_page(Page::ReleaseGroupList);
+            crate::ui::pages::release_group_list::release_group_list(self);
         }
         else if url.starts_with("dimple://release-group/") {
             self.set_page(Page::ReleaseGroupDetails);

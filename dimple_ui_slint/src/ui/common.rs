@@ -50,15 +50,15 @@ impl From<ReleaseGroup> for CardAdapter {
             image: ImageLinkAdapter {
                 image: Default::default(),
                 name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://release_group/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
             },
             title: LinkAdapter {
                 name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://release_group/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
             },
             sub_title: LinkAdapter {
                 name: value.disambiguation.clone().unwrap_or_default().into(),
-                url: format!("dimple://release_group/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
             },
         }
     }

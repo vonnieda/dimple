@@ -3,7 +3,7 @@ import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
 import { CardGrid } from "../components/card_grid.slint";
-import { Palette, Navigator } from "../common.slint";
+import { Palette, Navigator, AppState } from "../common.slint";
 
 export struct ArtistDetailsAdapter {
     card: CardAdapter,
@@ -143,13 +143,15 @@ export component ArtistDetails inherits ScrollView {
         }
 
         // Debug Dump
-        Text {
-            text: "Debug";
-            font-weight: Palette.font-weight-bold;
-            font-size: 2rem;
-        }
-        Text {
-            text: model.dump;
+        if AppState.debug: VerticalLayout {
+            Text {
+                text: "Debug";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            Text {
+                text: model.dump;
+            }
         }
     }
 

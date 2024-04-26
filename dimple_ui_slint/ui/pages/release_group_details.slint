@@ -5,7 +5,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widge
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { Palette, Navigator } from "../common.slint";
+import { Palette, Navigator, AppState } from "../common.slint";
 import {MediumAdapter} from "../components/medium.slint";
 
 export struct ReleaseGroupDetailsAdapter {
@@ -136,13 +136,15 @@ export component ReleaseGroupDetails inherits ScrollView {
         }
 
         // Debug Dump
-        Text {
-            text: "Debug";
-            font-weight: Palette.font-weight-bold;
-            font-size: 2rem;
-        }
-        Text {
-            text: model.dump;
+        if AppState.debug: VerticalLayout {
+            Text {
+                text: "Debug";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            Text {
+                text: model.dump;
+            }
         }
     }
 

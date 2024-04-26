@@ -27,6 +27,8 @@ export global AppState {
     in-out property <bool> online;
     callback set_online(bool);
 
+    in-out property <bool> debug: false;
+
     callback settings_generate_artists();
     callback settings_reset_database();
 
