@@ -2,10 +2,10 @@ use anyhow::Result;
 
 use crate::model::Model;
 
-pub trait Source: Send + Sync {
+pub trait Plugin: Send + Sync {
     /// Load the model using its key. Returns None if no key is set, or if the
     /// key doesn't exist in the database.
-    fn get(&self, model: &Model, access_mode: &AccessMode) -> Result<Option<Model>>;
+    fn get(&self, model: &Model, network_mode: &NetworkMode) -> Result<Option<Model>>;
 
     /// Get a list of models that are related to the specified model. If None is
     /// specified list all models of the specified type.
@@ -13,12 +13,12 @@ pub trait Source: Send + Sync {
         &self,
         list_of: &Model,
         related_to: Option<&Model>,
-        access_mode: &AccessMode,
+        network_mode: &NetworkMode,
     ) -> Result<Box<dyn Iterator<Item = Model>>>;
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AccessMode {
+pub enum NetworkMode {
     Online,
     Offline,
 }

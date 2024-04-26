@@ -1,7 +1,7 @@
 use std::{fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::Picture, source::{AccessMode, Source}
+    db::{Db, SqliteDb}, plugin::{NetworkMode, Plugin}
 };
 
 use anyhow::Result;
@@ -9,8 +9,8 @@ use anyhow::Result;
 #[derive(Clone)]
 pub struct Librarian {
     db: Arc<SqliteDb>,
-    sources: Arc<RwLock<Vec<Box<dyn Source>>>>,
-    access_mode: Arc<Mutex<AccessMode>>,
+    plugins: Arc<RwLock<Vec<Box<dyn Plugin>>>>,
+    network_mode: Arc<Mutex<NetworkMode>>,
 }
 
 impl Librarian {
@@ -19,22 +19,22 @@ impl Librarian {
         let db_path = Path::new(path).join("library.db");
         let librarian = Self {
             db: Arc::new(SqliteDb::new(db_path.to_str().unwrap())),
-            sources: Default::default(),
-            access_mode: Arc::new(Mutex::new(AccessMode::Online)),
+            plugins: Default::default(),
+            network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
         };
         librarian
     }
 
-    pub fn add_source(&self, library: Box<dyn Source>) {
-        self.sources.write().unwrap().push(library);
+    pub fn register_plugin(&self, library: Box<dyn Plugin>) {
+        self.plugins.write().unwrap().push(library);
     }
 
-    pub fn access_mode(&self) -> AccessMode {
-        self.access_mode.lock().unwrap().clone()
+    pub fn network_mode(&self) -> NetworkMode {
+        self.network_mode.lock().unwrap().clone()
     }
 
-    pub fn set_access_mode(&self, value: &AccessMode) {
-        *self.access_mode.lock().unwrap() = value.clone();
+    pub fn set_network_mode(&self, value: &NetworkMode) {
+        *self.network_mode.lock().unwrap() = value.clone();
     }
 }
 
@@ -62,23 +62,8 @@ impl Db for Librarian {
     fn reset(&self) -> Result<()> {
         self.db.reset()
     }
-}
-
-impl Source for Librarian {
-    fn get(
-        &self,
-        model: &dimple_core::model::Model,
-        _access_mode: &AccessMode,
-    ) -> Result<Option<dimple_core::model::Model>> {
-        self.db.get(model)
-    }
-
-    fn list(
-        &self,
-        list_of: &dimple_core::model::Model,
-        related_to: Option<&dimple_core::model::Model>,
-        _access_mode: &AccessMode,
-    ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
-        self.db.list(list_of, related_to)
+    
+    fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
+        self.db.search(query)
     }
 }

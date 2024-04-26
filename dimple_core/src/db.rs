@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::model::{Artist, Entity, Model};
+use crate::model::{Entity, Model};
 
 mod sqlite_db;
 
@@ -25,6 +25,8 @@ pub trait Db: Send + Sync {
     /// to retrieve a list of models related to the specified model.
     fn link(&self, model: &Model, related_to: &Model) -> Result<()>;
 
+    fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = Model>>>;
+
     /// Get a list of models that are related to the specified model. If None is
     /// specified list all models of the specified type.
     fn list(
@@ -48,17 +50,4 @@ pub trait EntityDb: Send + Sync {
         list_of: &dyn Entity,
         related_to: Option<&dyn Entity>,
     ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>>;
-}
-
-struct Temp {
-
-}
-
-impl Temp {
-    pub fn do_stuff(db: &dyn EntityDb) {
-        let artist = Artist::default();
-        let artist = db.insert(&artist).unwrap();
-        let artist = artist.as_any().downcast_ref::<Artist>().unwrap();
-        let artists: Vec<_> = db.list(&Artist::default(), None).unwrap().map(|a| a.as_any().downcast_ref::<Artist>().unwrap().clone()).collect();
-    }
 }

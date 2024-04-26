@@ -1,5 +1,5 @@
 [package]
-name = "dimple_file_library"
+name = "dimple_mediafiles_plugin"
 version = "0.1.0"
 edition = "2021"
 

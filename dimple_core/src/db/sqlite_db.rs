@@ -157,6 +157,10 @@ impl Db for SqliteDb {
         self.con.execute("DELETE FROM kv")?;
         Ok(())
     }
+    
+    fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = Model>>> {
+        todo!()
+    }
 }
 
 // TODO now that we have Entity in core this can all go away
