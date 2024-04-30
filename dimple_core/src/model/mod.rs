@@ -5,7 +5,6 @@ use serde::Serialize;
 
 mod artist;
 mod genre;
-mod media_file;
 mod medium;
 mod playlist;
 mod recording_source;
@@ -22,7 +21,6 @@ pub use release_group::ReleaseGroup;
 pub use release::Release;
 pub use track::Track;
 pub use medium::Medium;
-pub use media_file::MediaFile;
 pub use recording::Recording;
 pub use recording_source::RecordingSource;
 pub use genre::Genre;
@@ -35,7 +33,6 @@ pub use playlist_item::PlaylistItem;
 pub enum Model {
     Artist(Artist),
     Genre(Genre),
-    MediaFile(MediaFile),
     Medium(Medium),
     Recording(Recording),
     RecordingSource(RecordingSource),
@@ -53,7 +50,6 @@ impl Model {
             Model::Playlist(v) => v,
             Model::Artist(v) => v,
             Model::Genre(v) => v,
-            Model::MediaFile(v) => v,
             Model::Medium(v) => v,
             Model::Recording(v) => v,
             Model::RecordingSource(v) => v,

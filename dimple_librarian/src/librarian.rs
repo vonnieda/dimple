@@ -1,10 +1,12 @@
 use std::{fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, plugin::{NetworkMode, Plugin}
+    db::{Db, SqliteDb}
 };
 
 use anyhow::Result;
+
+use crate::plugin::{NetworkMode, Plugin};
 
 #[derive(Clone)]
 pub struct Librarian {
@@ -16,7 +18,7 @@ pub struct Librarian {
 impl Librarian {
     pub fn new(path: &str) -> Self {
         fs::create_dir_all(path).unwrap();
-        let db_path = Path::new(path).join("library.db");
+        let db_path = Path::new(path).join("dimple.db");
         let librarian = Self {
             db: Arc::new(SqliteDb::new(db_path.to_str().unwrap())),
             plugins: Default::default(),
@@ -25,16 +27,21 @@ impl Librarian {
         librarian
     }
 
-    pub fn register_plugin(&self, library: Box<dyn Plugin>) {
-        self.plugins.write().unwrap().push(library);
+    pub fn add_plugin(&self, plugin: Box<dyn Plugin>) {
+        plugin.init(self);
+        plugin.set_network_mode(&self.network_mode());
+        self.plugins.write().unwrap().push(plugin);
     }
 
     pub fn network_mode(&self) -> NetworkMode {
         self.network_mode.lock().unwrap().clone()
     }
 
-    pub fn set_network_mode(&self, value: &NetworkMode) {
-        *self.network_mode.lock().unwrap() = value.clone();
+    pub fn set_network_mode(&self, network_mode: &NetworkMode) {
+        *self.network_mode.lock().unwrap() = network_mode.clone();
+        for plugin in self.plugins.write().unwrap().iter_mut() {
+            plugin.set_network_mode(network_mode);
+        }
     }
 }
 

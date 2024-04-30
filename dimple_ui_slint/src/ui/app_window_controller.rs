@@ -1,7 +1,8 @@
 use dimple_core::model::Artist;
+use dimple_mediafiles_plugin::MediaFilesPlugin;
 use dimple_player::player::Player;
 
-use std::{collections::VecDeque, sync::{Arc, Mutex}};
+use std::{borrow::BorrowMut, collections::VecDeque, path::PathBuf, sync::{Arc, Mutex}};
 
 use dimple_core::db::Db;
 
@@ -37,6 +38,11 @@ impl AppWindowController {
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
         let dir = dirs.data_dir().to_str().unwrap();
         let librarian = Librarian::new(dir);
+        
+        let mediafiles_plugin = MediaFilesPlugin::new();
+        mediafiles_plugin.monitor_directory(&PathBuf::from("/Users/jason/Music"));
+        librarian.add_plugin(Box::new(mediafiles_plugin));
+        
         let player = Player::new(Arc::new(librarian.clone()));
         let ui_weak = ui.as_weak();
         Self {

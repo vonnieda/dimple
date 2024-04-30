@@ -1,6 +1,5 @@
 pub mod db;
 pub mod model;
-pub mod plugin;
 // pub const USER_AGENT: &str = "Dimple/0.0.1 +https://github.com/vonnieda/dimple +jason@vonnieda.org";
 
 // pub struct LibrarySupport {

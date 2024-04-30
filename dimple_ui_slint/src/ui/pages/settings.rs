@@ -80,7 +80,7 @@ pub fn settings_reset_database(app: &App) {
     let app = app.clone();
     thread::spawn(move || {
         log::info!("Resetting database.");
-        app.librarian.reset();
+        app.librarian.reset().unwrap();
         log::info!("Done resetting database.");
     });
 }

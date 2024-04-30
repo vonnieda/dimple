@@ -1,10 +1,8 @@
-use std::collections::HashSet;
-
 use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::model::KnownId;
+use crate::db::Db;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RecordingFormat {
@@ -16,8 +14,15 @@ pub enum RecordingFormat {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 pub struct RecordingSource {
     pub key: Option<String>,
-    pub source_ids: HashSet<String>,
-    pub known_ids: HashSet<KnownId>,
+    pub source_id: String,
     pub format: Option<RecordingFormat>,
     pub extension: Option<String>,
+}
+
+impl RecordingSource {
+    pub fn find_by_source_id(db: &dyn Db, source_id: &str) -> Option<RecordingSource> {
+        db.list(&Self::default().model(), None).unwrap()
+            .map(Into::<RecordingSource>::into)
+            .find(|rec_source| rec_source.source_id == source_id)
+    }
 }
