@@ -19,15 +19,15 @@ pub enum KnownId {
     SoundCloud,
 
     // https://musicbrainz.org/doc/Barcode
-    Barcode,
+    Barcode(String),
 
     // https://musicbrainz.org/doc/ISRC
-    ISRC,
+    ISRC(String),
 
     // https://musicbrainz.org/doc/ASIN
-    ASIN,
+    ASIN(String),
 
-    AcoustId,
-    AcoustIdFingerprint,
+    AcoustId(String),
+    AcoustIdFingerprint(String),
 }
 

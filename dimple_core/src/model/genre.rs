@@ -10,7 +10,6 @@ use crate::model::KnownId;
 pub struct Genre {
     pub key: Option<String>,
     pub name: Option<String>,
-    pub source_ids: HashSet<String>,
     pub known_ids: HashSet<KnownId>,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,

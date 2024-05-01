@@ -12,7 +12,6 @@ use super::KnownId;
 pub struct Release {
     pub key: Option<String>,
     pub title: Option<String>,
-    pub source_ids: HashSet<String>,
     pub known_ids: HashSet<KnownId>,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,

@@ -20,6 +20,7 @@ pub struct RecordingSource {
 }
 
 impl RecordingSource {
+    // TODO this really exposes the need for a real database interface. whine.
     pub fn find_by_source_id(db: &dyn Db, source_id: &str) -> Option<RecordingSource> {
         db.list(&Self::default().model(), None).unwrap()
             .map(Into::<RecordingSource>::into)
