@@ -1,32 +1,13 @@
 use std::{fs::File, path::PathBuf};
 
-use dimple_core::{db::Db, model::{Artist, KnownId, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track}};
+use dimple_core::model::{Artist, KnownId, KnownIds, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Visual}, probe::Hint};
 
 #[derive(Clone, Debug)]
 pub struct MediaFile {
-    path: PathBuf,
-    tags: Vec<Tag>,
-    visuals: Vec<Visual>,
-
-    // pub key: Option<String>,
-
-    // pub url: String,
-    // pub created_at: Instant,
-    // pub modified_at: Instant,
-    // pub artist: Option<String>,
-    // pub album: Option<String>,
-    // pub album_artist: Option<String>,
-    // pub title: Option<String>,
-    // pub genre: Option<String>,
-
-    // pub recording_mbid: Option<String>,
-    // pub release_track_mbid: Option<String>,
-    // pub album_mbid: Option<String>,
-    // pub artist_mbid: Option<String>,
-    // pub album_artist_mbid: Option<String>,
-    // pub mb_album_type: Option<String>,
-    // pub mb_album_comment: Option<String>,
+    pub path: PathBuf,
+    pub tags: Vec<Tag>,
+    pub visuals: Vec<Visual>,
 }
 
 impl MediaFile {
@@ -77,17 +58,6 @@ impl MediaFile {
             visuals,
         };
 
-        log::info!("{}", path.to_str().unwrap());
-        for tag in media_file.tags.iter() {
-            log::info!("  Tag: {} = {}", tag.key, tag.value);
-        }
-        for visual in media_file.visuals.iter() {
-            log::info!("  Visual: {} {:?} {:?}", visual.media_type, visual.dimensions, visual.usage);
-            for tag in visual.tags.iter() {
-                log::info!("    Tag: {} = {}", tag.key, tag.value);
-            }
-        }
-
         Ok(media_file)
     }
 
@@ -102,24 +72,17 @@ impl MediaFile {
         })
     }
 
-    // TODO It may do to make this return a list, because of musicbrainz_artistid
-    // being multi-value.
+    // TODO This and a few others may need to be a list, since some of the tags
+    // have multiple values.
     pub fn artist(&self) -> Artist {
         Artist {
             name: self.tag(StandardTagKey::Artist),
-            known_ids: self.tag(StandardTagKey::MusicBrainzArtistId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
-                .collect(),
+            known_ids: KnownIds { 
+                musicbrainz_id: self.tag(StandardTagKey::MusicBrainzArtistId),
+                ..Default::default()
+            },
             links: self.tag(StandardTagKey::UrlArtist).iter()
                 .cloned()
-                .collect(),
-            ..Default::default()
-        }
-    }
-
-    pub fn album_artist(&self) -> Artist {
-        Artist {
-            name: self.tag(StandardTagKey::AlbumArtist),
-            known_ids: self.tag(StandardTagKey::MusicBrainzAlbumArtistId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
                 .collect(),
             ..Default::default()
         }
@@ -163,13 +126,12 @@ impl MediaFile {
 
     pub fn track(&self) -> Track {
         Track {
-            title: self.tag(StandardTagKey::DiscSubtitle),
+            title: self.tag(StandardTagKey::TrackTitle),
             // TODO length
             length: Default::default(),
             number: self.tag(StandardTagKey::TrackNumber).and_then(|s| u32::from_str_radix(&s, 10).ok()),
             position: self.tag(StandardTagKey::DiscNumber).and_then(|s| u32::from_str_radix(&s, 10).ok()),
-            known_ids: self.tag(StandardTagKey::MusicBrainzTrackId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
-                .chain(self.tag(StandardTagKey::MusicBrainzReleaseTrackId).iter().map(|id| KnownId::MusicBrainzId(id.to_string())))
+            known_ids: self.tag(StandardTagKey::MusicBrainzReleaseTrackId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
                 .collect(),
             ..Default::default()
         }
@@ -183,7 +145,8 @@ impl MediaFile {
             length: Default::default(),
             annotation: self.tag(StandardTagKey::Comment),
             isrc: self.tag(StandardTagKey::IdentIsrc),
-            known_ids: self.tag(StandardTagKey::MusicBrainzRecordingId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
+            known_ids: self.tag(StandardTagKey::MusicBrainzTrackId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
+                .chain(self.tag(StandardTagKey::MusicBrainzRecordingId).iter().map(|id| KnownId::MusicBrainzId(id.to_string())))
                 .chain(self.tag(StandardTagKey::IdentIsrc).iter().map(|id| KnownId::ISRC(id.to_string())))
                 .chain(self.tag(StandardTagKey::IdentAsin).iter().map(|id| KnownId::ASIN(id.to_string())))
                 .collect(),
@@ -205,44 +168,4 @@ impl MediaFile {
     }
 
     // TODO genres
-
-
-    /// Takes a MediaFile with unresolved entities and returns a new one
-    /// with matching entities.
-    pub fn find_matching(&self, db: &dyn Db) -> MediaFile {
-        todo!()
-    }
 }
-
-
-// // https://github.com/navidrome/navidrome/blob/master/scanner/mapping.go#L31
-// impl From<&FileDetails> for MediaFile {
-//     fn from(value: &FileDetails) -> Self {
-//         MediaFile {
-//             key: value.path.clone(),
-
-//             // TODO in the future maybe this is, or includes, the sha
-//             // source_ids: std::iter::once(value.path.clone()).collect(),
-
-//             artist: value.get_tag_value(StandardTagKey::Artist),
-//             artist_mbid: value.get_tag_value(StandardTagKey::MusicBrainzArtistId),
-
-//             album: value.get_tag_value(StandardTagKey::Album),
-//             album_mbid: value.get_tag_value(StandardTagKey::MusicBrainzAlbumId),
-//             album_type_mb: value.get_tag_value(StandardTagKey::MusicBrainzReleaseType),
-
-//             album_artist: value.get_tag_value(StandardTagKey::AlbumArtist),
-//             album_artist_mbid: value.get_tag_value(StandardTagKey::MusicBrainzAlbumArtistId),
-
-//             title: value.get_tag_value(StandardTagKey::TrackTitle),
-//             recording_mbid: value.get_tag_value(StandardTagKey::MusicBrainzRecordingId),
-//             release_track_mbid: value.get_tag_value(StandardTagKey::MusicBrainzReleaseTrackId),
-
-//             genre: value.get_tag_value(StandardTagKey::Genre),
-
-//             // mb_album_comment: value.get_tag_value(StandardTagKey::commen),
-
-//             ..Default::default()
-//         }
-//     }
-// }

@@ -338,23 +338,23 @@ pub fn create_artist(db: &dyn Db) -> Artist {
         country: Some(fakeit::address::country_abr()),
         disambiguation: Some(fakeit::address::country()),
         links: create_links(fakeit::misc::random(0, 5)),
-        known_ids: create_known_ids(),
+        // known_ids: create_known_ids(),
         ..Default::default()
     }.model()).unwrap();
     
     let artist_pic = db.insert(&Picture::new(&gen_fuzzy_circles(1000, 1000)).model()).unwrap();
     db.link(&artist_pic, &artist).unwrap();
 
-    for _ in 0..3 {
-        let genre = db.insert(&Genre {
-            name: Some(format!("{} {}", fakeit::hipster::word(), 
-                fakeit::words::word())),
-            ..Default::default()
-        }.model()).unwrap();
-        let genre_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
-        db.link(&genre_pic, &genre).unwrap();
-        db.link(&genre, &artist).unwrap();
-    }
+    // for _ in 0..3 {
+    //     let genre = db.insert(&Genre {
+    //         name: Some(format!("{} {}", fakeit::hipster::word(), 
+    //             fakeit::words::word())),
+    //         ..Default::default()
+    //     }.model()).unwrap();
+    //     let genre_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
+    //     db.link(&genre_pic, &genre).unwrap();
+    //     db.link(&genre, &artist).unwrap();
+    // }
     
     artist.into()
 }

@@ -25,6 +25,7 @@ pub use recording::Recording;
 pub use recording_source::RecordingSource;
 pub use genre::Genre;
 pub use known_id::KnownId;
+pub use known_id::KnownIds;
 pub use picture::Picture;
 pub use playlist::Playlist;
 pub use playlist_item::PlaylistItem;

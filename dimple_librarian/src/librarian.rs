@@ -1,7 +1,7 @@
 use std::{fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}
+    db::{Db, SqliteDb}, model::{Artist, Entity, Model}
 };
 
 use anyhow::Result;
@@ -41,6 +41,67 @@ impl Librarian {
         *self.network_mode.lock().unwrap() = network_mode.clone();
         for plugin in self.plugins.write().unwrap().iter_mut() {
             plugin.set_network_mode(network_mode);
+        }
+    }
+
+    fn merge_artist(&self, artist: Artist) -> Artist {
+        let artist_opt = self.list(&Artist::default().model(), None)
+            .unwrap()
+            .map(Into::<Artist>::into)
+            .filter(|artist_opt| {
+                if artist_opt.key.is_some() && artist_opt.key == artist.key {
+                    true
+                }
+                else if artist_opt.known_ids.musicbrainz_id.is_some() 
+                    && artist_opt.known_ids.musicbrainz_id == artist.known_ids.musicbrainz_id {
+                    true
+                }
+                else if artist_opt.name.is_some() && artist_opt.name == artist.name {
+                    true
+                }
+                else {
+                    false
+                }
+            })
+            .next();
+
+        if let Some(mut artist_opt) = artist_opt {
+            log::info!("merge ({:?}, {:?}, {:?}, {:?}) -> ({:?}, {:?}, {:?}, {:?})",
+                artist.name,
+                artist.country,
+                artist.disambiguation,
+                artist.known_ids.musicbrainz_id,
+                artist_opt.name,
+                artist_opt.country,
+                artist_opt.disambiguation,
+                artist_opt.known_ids.musicbrainz_id,
+            );
+
+            artist_opt.name = artist_opt.name.or(artist.name);
+            artist_opt.country = artist_opt.country.or(artist.country);
+            artist_opt.summary = artist_opt.summary.or(artist.summary);
+            artist_opt.disambiguation = artist_opt.disambiguation.or(artist.disambiguation);
+            artist_opt.known_ids.musicbrainz_id = artist_opt.known_ids.musicbrainz_id.or(artist.known_ids.musicbrainz_id);
+            artist_opt.links = artist_opt.links.union(&artist.links).cloned().collect();
+            
+            self.insert(&artist_opt.model()).unwrap().into()
+        }
+        else {
+            log::info!("insert new ({:?}, {:?}, {:?}, {:?})",
+                artist.name,
+                artist.country,
+                artist.disambiguation,
+                artist.known_ids.musicbrainz_id,
+            );
+
+            self.insert(&artist.model()).unwrap().into()
+        }
+    }
+
+    pub fn merge(&self, model: Model) -> Model {
+        match model {
+            Model::Artist(artist) => self.merge_artist(artist).model(),
+            _ => model,
         }
     }
 }

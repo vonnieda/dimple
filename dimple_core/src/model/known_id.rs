@@ -31,3 +31,9 @@ pub enum KnownId {
     AcoustIdFingerprint(String),
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
+pub struct KnownIds {
+    pub musicbrainz_id: Option<String>,
+    pub discogs_id: Option<String>,
+    pub lastfm_id: Option<String>,
+}

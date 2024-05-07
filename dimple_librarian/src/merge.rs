@@ -1,4 +1,4 @@
-use dimple_core::model::{Artist, Entities, Entity, Recording, RecordingSource, Release, ReleaseGroup};
+use dimple_core::model::{Artist, Recording, RecordingSource, Release, ReleaseGroup};
 
 pub trait Merge<T> {
     /// Commutative: A v B = B v A
@@ -6,50 +6,6 @@ pub trait Merge<T> {
     /// Idempotent : A v A = A
     fn merge(l: T, r: T) -> T;
     fn mergability(l: &T, r: &T) -> f32;
-}
-
-impl Merge<Entities> for Entities {
-    fn merge(left: Entities, right: Entities) -> Self {
-        match (left, right) {
-            (Entities::Artist(left), Entities::Artist(right)) => {
-                Artist::merge(left, right).entity()
-            },
-            (Entities::ReleaseGroup(left), Entities::ReleaseGroup(right)) => {
-                ReleaseGroup::merge(left, right).entity()
-            },
-            (Entities::Release(left), Entities::Release(right)) => {
-                Release::merge(left, right).entity()
-            },
-            (Entities::Recording(left), Entities::Recording(right)) => {
-                Recording::merge(left, right).entity()
-            },
-            (Entities::RecordingSource(left), Entities::RecordingSource(right)) => {
-                RecordingSource::merge(left, right).entity()
-            },
-            _ => todo!()
-        }
-    }
-
-    fn mergability(left: &Entities, right: &Entities) -> f32 {
-        match (left, right) {
-            (Entities::Artist(left), Entities::Artist(right)) => {
-                Artist::mergability(&left, &right)
-            },
-            (Entities::ReleaseGroup(left), Entities::ReleaseGroup(right)) => {
-                ReleaseGroup::mergability(left, right)
-            },
-            (Entities::Release(left), Entities::Release(right)) => {
-                Release::mergability(left, right)
-            },
-            (Entities::Recording(left), Entities::Recording(right)) => {
-                Recording::mergability(left, right)
-            },
-            (Entities::RecordingSource(left), Entities::RecordingSource(right)) => {
-                RecordingSource::mergability(left, right)
-            },
-            _ => todo!()
-        }
-    }
 }
 
 // TODO leaning towards making all these use longer instead of or, which will
@@ -66,7 +22,7 @@ impl Merge<Self> for Artist {
             disambiguation: a.disambiguation.or(b.disambiguation),
             key: a.key.or(b.key),
             known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+            // source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
             links: a.links.union(&b.links).cloned().collect(),
             name: a.name.or(b.name),
             summary: a.summary.or(b.summary),
@@ -75,7 +31,7 @@ impl Merge<Self> for Artist {
     }
 
     fn mergability(l: &Self, r: &Self) -> f32 {
-        if let (Some(l), Some(r)) = (l.key(), r.key()) {
+        if let (Some(l), Some(r)) = (l.key, r.key) {
             if l == r {
                 return 1.0
             }
@@ -107,150 +63,150 @@ impl Merge<Self> for Artist {
     }
 }
 
-impl Merge<Self> for ReleaseGroup {
-    fn merge(a: Self, b: Self) -> Self {
-        Self {
-            disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            links: a.links.union(&b.links).cloned().collect(),
-            title: a.title.or(b.title),
-            summary: a.summary.or(b.summary),
+// impl Merge<Self> for ReleaseGroup {
+//     fn merge(a: Self, b: Self) -> Self {
+//         Self {
+//             disambiguation: a.disambiguation.or(b.disambiguation),
+//             key: a.key.or(b.key),
+//             known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
+//             source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+//             links: a.links.union(&b.links).cloned().collect(),
+//             title: a.title.or(b.title),
+//             summary: a.summary.or(b.summary),
 
-            first_release_date: a.first_release_date.or(b.first_release_date),
-            primary_type: a.primary_type.or(b.primary_type),
-        }
-    }
+//             first_release_date: a.first_release_date.or(b.first_release_date),
+//             primary_type: a.primary_type.or(b.primary_type),
+//         }
+//     }
     
-    fn mergability(l: &Self, r: &Self) -> f32 {
-        if let (Some(l), Some(r)) = (l.key(), r.key()) {
-            if l == r {
-                return 1.0
-            }
-        }
+//     fn mergability(l: &Self, r: &Self) -> f32 {
+//         if let (Some(l), Some(r)) = (l.key(), r.key()) {
+//             if l == r {
+//                 return 1.0
+//             }
+//         }
 
-        // TODO I think we want to check for all clashing KnownIds, but to do
-        // that I either need to hand cod ethem all cause enum, or change that
-        // enum into a struct and give it a type.
-        if let (Some(l), Some(r)) = (l.mbid(), r.mbid()) {
-            if l == r {
-                return 1.0
-            }
-            else {
-                return 0.0
-            }
-        }
+//         // TODO I think we want to check for all clashing KnownIds, but to do
+//         // that I either need to hand cod ethem all cause enum, or change that
+//         // enum into a struct and give it a type.
+//         if let (Some(l), Some(r)) = (l.mbid(), r.mbid()) {
+//             if l == r {
+//                 return 1.0
+//             }
+//             else {
+//                 return 0.0
+//             }
+//         }
 
-        if !l.known_ids.is_disjoint(&r.known_ids) {
-            return 1.0
-        }
+//         if !l.known_ids.is_disjoint(&r.known_ids) {
+//             return 1.0
+//         }
 
-        if !l.source_ids.is_disjoint(&r.source_ids) {
-            return 1.0
-        }
+//         if !l.source_ids.is_disjoint(&r.source_ids) {
+//             return 1.0
+//         }
 
-        (unicode_fuzzy(&l.title, &r.title)
-            + unicode_fuzzy(&l.disambiguation, &r.disambiguation)) / 2.0
-    }
-}
+//         (unicode_fuzzy(&l.title, &r.title)
+//             + unicode_fuzzy(&l.disambiguation, &r.disambiguation)) / 2.0
+//     }
+// }
 
-impl Merge<Self> for Release {
-    fn merge(a: Self, b: Self) -> Self {
-        Self {
-            disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            links: a.links.union(&b.links).cloned().collect(),
-            title: a.title.or(b.title),
-            summary: a.summary.or(b.summary),
+// impl Merge<Self> for Release {
+//     fn merge(a: Self, b: Self) -> Self {
+//         Self {
+//             disambiguation: a.disambiguation.or(b.disambiguation),
+//             key: a.key.or(b.key),
+//             known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
+//             source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+//             links: a.links.union(&b.links).cloned().collect(),
+//             title: a.title.or(b.title),
+//             summary: a.summary.or(b.summary),
 
-            barcode: a.barcode.or(b.barcode),
-            country: a.country.or(b.country),
-            date: a.date.or(b.date),
-            packaging: a.packaging.or(b.packaging),
-            status: a.status.or(b.status),
-        }
-    }
+//             barcode: a.barcode.or(b.barcode),
+//             country: a.country.or(b.country),
+//             date: a.date.or(b.date),
+//             packaging: a.packaging.or(b.packaging),
+//             status: a.status.or(b.status),
+//         }
+//     }
     
-    fn mergability(l: &Self, r: &Self) -> f32 {
-        if let (Some(l), Some(r)) = (l.key(), r.key()) {
-            if l == r {
-                return 1.0
-            }
-        }
+//     fn mergability(l: &Self, r: &Self) -> f32 {
+//         if let (Some(l), Some(r)) = (l.key(), r.key()) {
+//             if l == r {
+//                 return 1.0
+//             }
+//         }
 
-        // TODO I think we want to check for all clashing KnownIds, but to do
-        // that I either need to hand cod ethem all cause enum, or change that
-        // enum into a struct and give it a type.
-        if let (Some(l), Some(r)) = (l.mbid(), r.mbid()) {
-            if l == r {
-                return 1.0
-            }
-            else {
-                return 0.0
-            }
-        }
+//         // TODO I think we want to check for all clashing KnownIds, but to do
+//         // that I either need to hand cod ethem all cause enum, or change that
+//         // enum into a struct and give it a type.
+//         if let (Some(l), Some(r)) = (l.mbid(), r.mbid()) {
+//             if l == r {
+//                 return 1.0
+//             }
+//             else {
+//                 return 0.0
+//             }
+//         }
 
-        if !l.known_ids.is_disjoint(&r.known_ids) {
-            return 1.0
-        }
+//         if !l.known_ids.is_disjoint(&r.known_ids) {
+//             return 1.0
+//         }
 
-        if !l.source_ids.is_disjoint(&r.source_ids) {
-            return 1.0
-        }
+//         if !l.source_ids.is_disjoint(&r.source_ids) {
+//             return 1.0
+//         }
 
-        (unicode_fuzzy(&l.title, &r.title)
-            + unicode_fuzzy(&l.disambiguation, &r.disambiguation)) / 2.0
-    }
-}
+//         (unicode_fuzzy(&l.title, &r.title)
+//             + unicode_fuzzy(&l.disambiguation, &r.disambiguation)) / 2.0
+//     }
+// }
 
-impl Merge<Self> for Recording {
-    fn merge(a: Self, b: Self) -> Self {
-        Self {
-            disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            links: a.links.union(&b.links).cloned().collect(),
-            title: a.title.or(b.title),
-            summary: a.summary.or(b.summary),
+// impl Merge<Self> for Recording {
+//     fn merge(a: Self, b: Self) -> Self {
+//         Self {
+//             disambiguation: a.disambiguation.or(b.disambiguation),
+//             key: a.key.or(b.key),
+//             known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
+//             source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+//             links: a.links.union(&b.links).cloned().collect(),
+//             title: a.title.or(b.title),
+//             summary: a.summary.or(b.summary),
 
-            annotation: a.annotation.or(b.annotation),
-            isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
-            length: a.length.or(b.length)
-        }
-    }
+//             annotation: a.annotation.or(b.annotation),
+//             isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
+//             length: a.length.or(b.length)
+//         }
+//     }
     
-    fn mergability(l: &Self, r: &Self) -> f32 {
-        todo!()
-    }    
-}
+//     fn mergability(l: &Self, r: &Self) -> f32 {
+//         todo!()
+//     }    
+// }
 
-impl Merge<Self> for RecordingSource {
-    fn merge(a: Self, b: Self) -> Self {
-        Self {
-            // disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            format: a.format.or(b.format),
-            extension: a.extension.or(b.extension),
-            // links: a.links.union(&b.links).cloned().collect(),
-            // title: a.title.or(b.title),
-            // summary: a.summary.or(b.summary),
+// impl Merge<Self> for RecordingSource {
+//     fn merge(a: Self, b: Self) -> Self {
+//         Self {
+//             // disambiguation: a.disambiguation.or(b.disambiguation),
+//             key: a.key.or(b.key),
+//             known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
+//             source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
+//             format: a.format.or(b.format),
+//             extension: a.extension.or(b.extension),
+//             // links: a.links.union(&b.links).cloned().collect(),
+//             // title: a.title.or(b.title),
+//             // summary: a.summary.or(b.summary),
 
-            // annotation: a.annotation.or(b.annotation),
-            // isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
-            // length: a.length.or(b.length)
-        }
-    }
+//             // annotation: a.annotation.or(b.annotation),
+//             // isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
+//             // length: a.length.or(b.length)
+//         }
+//     }
     
-    fn mergability(l: &Self, r: &Self) -> f32 {
-        todo!()
-    }
-}
+//     fn mergability(l: &Self, r: &Self) -> f32 {
+//         todo!()
+//     }
+// }
 
 
 fn unicode_fuzzy(l: &Option<String>, r: &Option<String>) -> f32 {

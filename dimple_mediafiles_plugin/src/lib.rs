@@ -1,4 +1,4 @@
-use dimple_core::model::{Artist, Entity, Recording, RecordingSource, Release, ReleaseGroup, Track};
+use dimple_core::model::{Artist, Entity, Medium, Model, Recording, RecordingSource, Release, ReleaseGroup, Track};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{self, MetadataOptions, StandardTagKey, Tag}, probe::Hint, util::bits::contains_ones_byte_u16};
 use walkdir::{WalkDir, DirEntry};
@@ -62,6 +62,11 @@ impl MediaFilesPlugin {
         let db = db.unwrap();
         let now = Instant::now();
         let mut count = 0;
+        let rec_sources: HashMap<String, RecordingSource> = db.list(&RecordingSource::default().model(), None)
+            .unwrap()
+            .map(Into::<RecordingSource>::into)
+            .map(|rec_source: RecordingSource| (rec_source.source_id.clone(), rec_source))
+            .collect();
         for dir in directories {
             for dir_entry in WalkDir::new(dir).into_iter() {
                 if dir_entry.is_err() { continue }
@@ -69,89 +74,46 @@ impl MediaFilesPlugin {
                 let path = dir_entry.unwrap().into_path();
                 if !path.is_file() { continue }
 
+                // Find the matching RecordingSource in the Db, if any. For
+                // now, if one is found we assume we've processed this file and
+                // don't need to do it again. In the future we'll want to handle
+                // merging updated data.
                 let source_id = format!("dmfp://{}", path.to_str().unwrap_or_default());
-
                 // TODO this needs to be a real query. Major perf. issue.
-                let rec_source = db.list(&RecordingSource::default().model(), None).unwrap()
-                    .map(Into::<RecordingSource>::into)
-                    .find(|rec_source| rec_source.source_id == source_id);
+                // let rec_source = db.list(&RecordingSource::default().model(), None).unwrap()
+                //     .map(Into::<RecordingSource>::into)
+                //     .find(|rec_source| rec_source.source_id == source_id);
+                let rec_source = rec_sources.get(&source_id).cloned();
                 if rec_source.is_some() { continue }
 
-                let rec_source = db.insert(&RecordingSource {
-                    source_id,
-                    ..Default::default()
-                }.model()).unwrap();
-
+                // If no RecordingSource is found, read the file and merge the
+                // info.
                 let media_file = MediaFile::new(&path);
                 if media_file.is_err() { continue }
                 let media_file = media_file.unwrap();
 
-                // TODO get associated recording, or create
-                let recording = db.list(&Recording::default().model(), Some(&rec_source))
-                    .unwrap()
-                    .next()
-                    .unwrap_or_else(|| {
-                        let recording = db.insert(&Recording {
-                            title: media_file.tag(StandardTagKey::TrackTitle),
-                            ..Default::default()
-                        }.model()).unwrap();
-                        db.link(&recording, &rec_source).unwrap();
-                        recording
-                    });
-                    
-                // TODO get associated track, or create
-                let track = db.list(&Track::default().model(), Some(&recording))
-                    .unwrap()
-                    .next()
-                    .unwrap_or_else(|| {
-                        let track = db.insert(&Track {
-                            title: media_file.tag(StandardTagKey::TrackTitle),
-                            ..Default::default()
-                        }.model()).unwrap();
-                        db.link(&track, &recording).unwrap();
-                        track
-                    });
-                    
-                // TODO get associated release, or create
-                let release = db.list(&Release::default().model(), Some(&track))
-                    .unwrap()
-                    .next()
-                    .unwrap_or_else(|| {
-                        let release = db.insert(&Release {
-                            title: media_file.tag(StandardTagKey::Album),
-                            ..Default::default()
-                        }.model()).unwrap();
-                        db.link(&release, &track).unwrap();
-                        release
-                    });
-                    
-                // TODO get associated release group, or create
-                let release_group = db.list(&ReleaseGroup::default().model(), Some(&release))
-                    .unwrap()
-                    .next()
-                    .unwrap_or_else(|| {
-                        let release_group = db.insert(&ReleaseGroup {
-                            title: media_file.tag(StandardTagKey::Album),
-                            ..Default::default()
-                        }.model()).unwrap();
-                        db.link(&release_group, &release).unwrap();
-                        release_group
-                    });
-                    
-                // TODO get associated artist, or create
-                let artist = db.list(&Artist::default().model(), Some(&release_group))
-                    .unwrap()
-                    .next()
-                    .unwrap_or_else(|| {
-                        let artist = db.insert(&Artist {
-                            name: media_file.tag(StandardTagKey::Artist),
-                            ..Default::default()
-                        }.model()).unwrap();
-                        db.link(&artist, &release_group).unwrap();
-                        artist
-                    });
-                    
-                // TODO images for each of the above
+                let artist = media_file.artist();
+                let release_group = media_file.release_group();
+                let release = media_file.release();
+                let medium = media_file.medium();
+                let track = media_file.track();
+                let recording = media_file.recording();
+                let recording_source = media_file.recording_source();
+
+                let librarian = self.librarian.lock().unwrap().clone();
+                let librarian = librarian.unwrap();
+
+                // Add last_updated_at to objects, use it to avoid writes
+                // once merged.
+                // Make find simple: name if we have it, musicbrainzid if we
+                // have it, etc.
+
+                librarian.merge(artist.model());
+
+                // TODO images for each of the above?
+
+                // TODO genres for each of the above?
+
                 count += 1;
             }
         }
