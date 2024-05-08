@@ -1,12 +1,12 @@
 use std::{fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Artist, Entity, Model}
+    db::{Db, SqliteDb}, model::{Artist, Entity, Model, ReleaseGroup}
 };
 
 use anyhow::Result;
 
-use crate::plugin::{NetworkMode, Plugin};
+use crate::{merge::Merge, plugin::{NetworkMode, Plugin}};
 
 #[derive(Clone)]
 pub struct Librarian {
@@ -44,64 +44,60 @@ impl Librarian {
         }
     }
 
-    fn merge_artist(&self, artist: Artist) -> Artist {
-        let artist_opt = self.list(&Artist::default().model(), None)
+    fn merge_artist(&self, artist: Artist) -> Option<Model> {
+        // TODO if there's no identifying information, what do we do? I think
+        // we need to not create the entity, and it's links. I think that works
+        // for basically everything.
+        // TODO this can be genericified on Entity + Model 
+
+        let mut artists: Vec<(Artist, f32)> = self.list(&Artist::default().model(), None)
             .unwrap()
             .map(Into::<Artist>::into)
-            .filter(|artist_opt| {
-                if artist_opt.key.is_some() && artist_opt.key == artist.key {
-                    true
-                }
-                else if artist_opt.known_ids.musicbrainz_id.is_some() 
-                    && artist_opt.known_ids.musicbrainz_id == artist.known_ids.musicbrainz_id {
-                    true
-                }
-                else if artist_opt.name.is_some() && artist_opt.name == artist.name {
-                    true
-                }
-                else {
-                    false
-                }
-            })
-            .next();
+            .map(|artist_opt| (artist_opt.clone(), Artist::mergability(&artist, &artist_opt)))
+            .filter(|(_artist_opt, score)| *score >= 1.0)
+            .collect();
+        artists.sort_by(|(_artist_l, score_l), (_artist_r, score_r)| score_l.partial_cmp(score_r).unwrap());
 
-        if let Some(mut artist_opt) = artist_opt {
-            log::info!("merge ({:?}, {:?}, {:?}, {:?}) -> ({:?}, {:?}, {:?}, {:?})",
-                artist.name,
-                artist.country,
-                artist.disambiguation,
-                artist.known_ids.musicbrainz_id,
-                artist_opt.name,
-                artist_opt.country,
-                artist_opt.disambiguation,
-                artist_opt.known_ids.musicbrainz_id,
-            );
-
-            artist_opt.name = artist_opt.name.or(artist.name);
-            artist_opt.country = artist_opt.country.or(artist.country);
-            artist_opt.summary = artist_opt.summary.or(artist.summary);
-            artist_opt.disambiguation = artist_opt.disambiguation.or(artist.disambiguation);
-            artist_opt.known_ids.musicbrainz_id = artist_opt.known_ids.musicbrainz_id.or(artist.known_ids.musicbrainz_id);
-            artist_opt.links = artist_opt.links.union(&artist.links).cloned().collect();
-            
-            self.insert(&artist_opt.model()).unwrap().into()
+        if let Some((artist_opt, _score)) = artists.get(0) {
+            let merged = Artist::merge(artist_opt.clone(), artist.clone());
+            Some(self.insert(&merged.model()).unwrap().into())
         }
         else {
-            log::info!("insert new ({:?}, {:?}, {:?}, {:?})",
-                artist.name,
-                artist.country,
-                artist.disambiguation,
-                artist.known_ids.musicbrainz_id,
-            );
-
-            self.insert(&artist.model()).unwrap().into()
+            Some(self.insert(&artist.model()).unwrap().into())
         }
     }
 
-    pub fn merge(&self, model: Model) -> Model {
+    fn merge_release_group(&self, model: ReleaseGroup) -> Option<Model> {
+        // TODO if there's no identifying information, what do we do? I think
+        // we need to not create the entity, and it's links. I think that works
+        // for basically everything.
+        // TODO this can be genericified on Entity + Model 
+
+        let mut options: Vec<(ReleaseGroup, f32)> = self.list(&model.model(), None)
+            .unwrap()
+            .map(Into::<ReleaseGroup>::into)
+            .map(|option| (option.clone(), ReleaseGroup::mergability(&model, &option)))
+            .filter(|(_option, score)| *score >= 1.0)
+            .collect();
+        options.sort_by(|(_option_l, score_l), (_option_r, score_r)| score_l.partial_cmp(score_r).unwrap());
+
+        if let Some((option, _score)) = options.get(0) {
+            let merged = ReleaseGroup::merge(option.clone(), model.clone());
+            Some(self.insert(&merged.model()).unwrap().into())
+        }
+        else {
+            if model.title.is_none() {
+                return None
+            }
+            Some(self.insert(&model.model()).unwrap().into())
+        }
+    }
+
+    pub fn merge(&self, model: Model) -> Option<Model> {
         match model {
-            Model::Artist(artist) => self.merge_artist(artist).model(),
-            _ => model,
+            Model::Artist(artist) => self.merge_artist(artist),
+            Model::ReleaseGroup(release_group) => self.merge_release_group(release_group),
+            _ => todo!(),
         }
     }
 }

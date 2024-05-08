@@ -108,7 +108,11 @@ impl MediaFilesPlugin {
                 // Make find simple: name if we have it, musicbrainzid if we
                 // have it, etc.
 
-                librarian.merge(artist.model());
+                let artist = librarian.merge(artist.model());
+                let release_group = librarian.merge(release_group.model());
+                if let (Some(artist), Some(release_group)) = (artist, release_group) {
+                    librarian.link(&release_group, &artist).unwrap();
+                }
 
                 // TODO images for each of the above?
 
