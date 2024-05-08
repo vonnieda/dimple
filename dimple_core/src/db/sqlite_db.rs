@@ -175,6 +175,7 @@ impl Entity for Model {
         match self {
             Model::Picture(_) => "Picture".to_string(),
             Model::Artist(_) => "Artist".to_string(),
+            Model::ArtistCredit(_) => "ArtistCredit".to_string(),
             Model::Genre(_) => "Genre".to_string(),
             Model::Medium(_) => "Medium".to_string(),
             Model::Recording(_) => "Recording".to_string(),
@@ -191,6 +192,7 @@ impl Entity for Model {
         match self {
             Model::Picture(value) => value.key.clone(),
             Model::Artist(value) => value.key.clone(),
+            Model::ArtistCredit(value) => value.key.clone(),
             Model::Genre(value) => value.key.clone(),
             Model::Medium(value) => value.key.clone(),
             Model::Recording(value) => value.key.clone(),
@@ -207,6 +209,7 @@ impl Entity for Model {
         match self {
             Model::Picture(value) => value.key = key,
             Model::Artist(value) => value.key = key,
+            Model::ArtistCredit(value) => value.key = key,
             Model::Genre(value) => value.key = key,
             Model::Medium(value) => value.key = key,
             Model::Recording(value) => value.key = key,

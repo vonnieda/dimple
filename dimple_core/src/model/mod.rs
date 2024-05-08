@@ -4,6 +4,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 mod artist;
+mod artist_credit;
 mod genre;
 mod medium;
 mod playlist;
@@ -17,6 +18,7 @@ mod picture;
 mod playlist_item;
 
 pub use artist::Artist;
+pub use artist_credit::ArtistCredit;
 pub use release_group::ReleaseGroup;
 pub use release::Release;
 pub use track::Track;
@@ -33,6 +35,7 @@ pub use playlist_item::PlaylistItem;
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum Model {
     Artist(Artist),
+    ArtistCredit(ArtistCredit),
     Genre(Genre),
     Medium(Medium),
     Recording(Recording),
@@ -50,6 +53,7 @@ impl Model {
         match self {
             Model::Playlist(v) => v,
             Model::Artist(v) => v,
+            Model::ArtistCredit(v) => v,
             Model::Genre(v) => v,
             Model::Medium(v) => v,
             Model::Recording(v) => v,

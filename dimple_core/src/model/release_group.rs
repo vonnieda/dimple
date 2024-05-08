@@ -8,6 +8,7 @@ use crate::model::KnownId;
 
 
 // https://musicbrainz.org/doc/ReleaseGroup
+// https://musicbrainz.org/ws/2/release-group/1b4f4b3c-ca01-37b7-af1d-3e37989f86ad?inc=aliases%2Bartist-credits%2Breleases&fmt=json
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 #[serde(default)]
 pub struct ReleaseGroup {
