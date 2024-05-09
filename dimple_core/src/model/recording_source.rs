@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
@@ -15,4 +17,5 @@ pub struct RecordingSource {
     pub source_id: String,
     pub format: Option<RecordingFormat>,
     pub extension: Option<String>,
+    pub last_modified: Option<SystemTime>,
 }

@@ -1,8 +1,5 @@
-use dimple_core::model::{Artist, KnownIds, Recording, RecordingSource, Release, ReleaseGroup};
+use dimple_core::model::{Artist, KnownIds, Recording, RecordingSource, Release, ReleaseGroup, Track};
 
-// TODO the more I think about this, the more I think both functions return
-// a Result. An Err means cannot be merged. This will happen for like conflicting
-// keys, IDs.
 pub trait Merge {
     /// Commutative: A v B = B v A
     /// Associative: (A v B) v C = A v (B v C)
@@ -10,6 +7,8 @@ pub trait Merge {
     fn merge(l: Self, r: Self) -> Self;
 
     /// -INFINITY <= conflict <= 0.0 no match 1.0 <= +INFINITY
+    /// TODO this should probably just be a Result<f32> where Err is conflict
+    /// and Ok() gives the score.
     fn mergability(l: &Self, r: &Self) -> f32;
 }
 
@@ -44,18 +43,53 @@ impl Merge for Artist {
     }
 }
 
-impl Merge for ReleaseGroup {
+// TODO Note maybe going a different direction than this. The two below are not
+// finished.
+
+// impl Merge for ReleaseGroup {
+//     fn merge(l: Self, r: Self) -> Self {
+//         Self {
+//             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
+//             key: Option::merge(l.key, r.key),
+//             known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+//             links: l.links.union(&r.links).cloned().collect(),
+//             title: Option::merge(l.title, r.title),
+//             summary: Option::merge(l.summary, r.summary),
+//             first_release_date: Option::merge(l.first_release_date, r.first_release_date),
+//             primary_type: Option::merge(l.primary_type, r.primary_type),
+//         }
+//     }
+
+//     fn mergability(l: &Self, r: &Self) -> f32 {
+//         let mut score: f32 = 0.0;
+
+//         score += Option::mergability(&l.key, &r.key);
+//         // score += KnownIds::mergability(&l.known_ids, &r.known_ids);
+
+//         // TODO need more than title! age old problem.
+//         let mut name_score = Option::mergability(&l.title, &r.title);
+//         if name_score >= 1.0 {
+//             name_score += Option::mergability(&l.disambiguation, &r.disambiguation);
+//         }
+//         score += name_score;
+
+//         score
+//     }
+// }
+
+impl Merge for Release {
     fn merge(l: Self, r: Self) -> Self {
         Self {
-            // country: Option::merge(l.country, r.country),
             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
             key: Option::merge(l.key, r.key),
             known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
             links: l.links.union(&r.links).cloned().collect(),
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
-            first_release_date: Option::merge(l.first_release_date, r.first_release_date),
-            primary_type: Option::merge(l.primary_type, r.primary_type),
+            // first_release_date: Option::merge(l.first_release_date, r.first_release_date),
+            // primary_type: Option::merge(l.primary_type, r.primary_type),
+            // TODO
+            ..Default::default()
         }
     }
 
@@ -73,6 +107,53 @@ impl Merge for ReleaseGroup {
         score += name_score;
 
         score
+    }
+}
+
+impl Merge for Recording {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
+            key: Option::merge(l.key, r.key),
+            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            links: l.links.union(&r.links).cloned().collect(),
+            title: Option::merge(l.title, r.title),
+            summary: Option::merge(l.summary, r.summary),
+            annotation: Option::merge(l.annotation, r.annotation),
+            // TODO
+            ..Default::default()
+        }
+    }
+
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        todo!()
+    }
+}
+
+impl Merge for Track {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            key: Option::merge(l.key, r.key),
+            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            title: Option::merge(l.title, r.title),
+            length: Option::merge(l.length, r.length),
+            number: Option::merge(l.number, r.number),
+            position: Option::merge(l.position, r.position),
+        }
+    }
+
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        todo!()
+    }
+}
+
+impl Merge for Option<u32> {
+    fn merge(l: Self, r: Self) -> Self {
+        l.or(r)
+    }
+
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        todo!()
     }
 }
 
