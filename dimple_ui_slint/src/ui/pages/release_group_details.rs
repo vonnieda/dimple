@@ -1,4 +1,3 @@
-use dimple_core::model::Artist;
 use dimple_core::model::Entity;
 use dimple_core::model::Genre;
 use dimple_core::model::Release;
@@ -10,7 +9,6 @@ use url::Url;
 use crate::ui::app_window_controller::App;
 use crate::ui::Navigator;
 use crate::ui::Page;
-use crate::ui::ArtistDetailsAdapter;
 use dimple_core::db::Db;
 use crate::ui::CardAdapter;
 use crate::ui::LinkAdapter;
@@ -46,19 +44,18 @@ pub fn release_group_details(url: &str, app: &App) {
         releases.reverse();
 
         ui.upgrade_in_event_loop(move |ui| {
-            // let others: Vec<CardAdapter> = release_groups.iter().cloned()
-            //     .filter(|release_group| release_group.primary_type != Some("album".to_string()) && release_group.primary_type != Some("ep".to_string()) && release_group.primary_type != Some("single".to_string()))
-            //     .enumerate()
-            //     .map(|(index, release_group)| {
-            //         let mut card: CardAdapter = release_group.clone().into();
-            //         card.image.image = images.lazy_get(release_group.model(), 200, 200, move |ui, image| {
-            //             let mut card = ui.get_artist_details().others.row_data(index).unwrap();
-            //             card.image.image = image;
-            //             ui.get_artist_details().others.set_row_data(index, card);
-            //         });
-            //         card
-            //     })
-            //     .collect();
+            let releases: Vec<CardAdapter> = releases.iter().cloned()
+                .enumerate()
+                .map(|(index, release)| {
+                    let mut card: CardAdapter = release.clone().into();
+                    card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
+                        let mut card = ui.get_release_group_details().releases.row_data(index).unwrap();
+                        card.image.image = image;
+                        ui.get_release_group_details().releases.set_row_data(index, card);
+                    });
+                    card
+                })
+                .collect();
 
             let genres: Vec<LinkAdapter> = genres.iter().cloned().map(|genre| {
                 LinkAdapter {
@@ -78,10 +75,7 @@ pub fn release_group_details(url: &str, app: &App) {
                 card: release_group.clone().into(),
                 disambiguation: release_group.disambiguation.clone().unwrap_or_default().into(),
                 summary: release_group.summary.clone().unwrap_or_default().into(),
-                // albums: ModelRc::from(albums.as_slice()),
-                // singles: ModelRc::from(singles.as_slice()),
-                // eps: ModelRc::from(eps.as_slice()),
-                // others: ModelRc::from(others.as_slice()),
+                releases: ModelRc::from(releases.as_slice()),
                 genres: ModelRc::from(genres.as_slice()),
                 links: ModelRc::from(links.as_slice()),
                 dump: serde_json::to_string_pretty(&release_group).unwrap().into(),

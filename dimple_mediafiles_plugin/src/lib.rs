@@ -1,4 +1,4 @@
-use dimple_core::model::{Artist, Entity, Medium, Model, Recording, RecordingSource, Release, ReleaseGroup, Track};
+use dimple_core::model::{Artist, Entity, Genre, Medium, Model, Recording, RecordingSource, Release, ReleaseGroup, Track};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::{conv::IntoSample, formats::FormatOptions, io::MediaSourceStream, meta::{self, MetadataOptions, StandardTagKey, Tag}, probe::Hint, util::bits::contains_ones_byte_u16};
 use walkdir::{WalkDir, DirEntry};
@@ -63,12 +63,6 @@ impl MediaFilesPlugin {
         let now = Instant::now();
         let mut count = 0;
         let mut skipped = 0;
-        // TODO see query note below. This is a temporary cache.
-        let rec_sources: HashMap<String, RecordingSource> = db.list(&RecordingSource::default().model(), None)
-            .unwrap()
-            .map(Into::<RecordingSource>::into)
-            .map(|rec_source: RecordingSource| (rec_source.source_id.clone(), rec_source))
-            .collect();
         for dir in directories {
             for dir_entry in WalkDir::new(dir).into_iter() {
                 if dir_entry.is_err() { continue }
@@ -76,16 +70,11 @@ impl MediaFilesPlugin {
                 let path = dir_entry.unwrap().into_path();
                 if !path.is_file() { continue }
 
-                // Find the matching RecordingSource in the Db, if any. For
-                // now, if one is found we assume we've processed this file and
-                // don't need to do it again. In the future we'll want to handle
-                // merging updated data.
+                // Find the matching RecordingSource in the Db, if any.
                 let source_id = format!("dmfp://{}", path.to_str().unwrap_or_default());
-                // TODO this needs to be a real query. Major perf. issue. Caching for now.
-                // let rec_source = db.list(&RecordingSource::default().model(), None).unwrap()
-                //     .map(Into::<RecordingSource>::into)
-                //     .find(|rec_source| rec_source.source_id == source_id);
-                let rec_source = rec_sources.get(&source_id).cloned();
+                let rec_source = db.list(&RecordingSource::default().model(), None).unwrap()
+                    .map(Into::<RecordingSource>::into)
+                    .find(|rec_source| rec_source.source_id == source_id);
 
                 // Compare last modified of the file and the rec source
                 // and if the file is older, continue / skip.
@@ -110,113 +99,45 @@ impl MediaFilesPlugin {
                 if media_file.is_err() { continue }
                 let media_file = media_file.unwrap();
             
-                // // TODO so this all works, but it's wordy
-                // // I want something like:
-                // let artist = Self::db_merge_model(&db, &media_file.artist().model(), &None);
-                // let artist_release_group = Self::db_merge_model(&db, &media_file.release_group().model(), &artist);
-                // let release_group_release = Self::db_merge_model(&db, &media_file.release().model(), &artist_release_group);
-                // let release_medium = Self::db_merge_model(&db, &media_file.medium().model(), &release_group_release);
-                // let medium_track = Self::db_merge_model(&db, &media_file.track().model(), &release_medium);
+                // Merge, create, and link objects
+                let artist = Self::db_merge_model(&db, &media_file.artist().model(), &None);
 
-
-                // Find a matching artist in the Db, if any, and merge it. If
-                // there is no matching artist in the Db then we'll create one
-                // as long as we have at least a name or mbid.
-                let mf_artist = media_file.artist();
-                let mut artist: Option<Artist> = None;
-                if let Some(db_artist) = Self::find_artist(&self, &db, &mf_artist) {
-                    let merged = Artist::merge(db_artist, mf_artist);
-                    artist = Some(db.insert(&merged.model()).unwrap().into());
-                }
-                else {
-                    if mf_artist.name.is_some() || mf_artist.known_ids.musicbrainz_id.is_some() {
-                        artist = Some(db.insert(&mf_artist.model()).unwrap().into());
-                        log::debug!("Created artist: {:?}", 
-                            artist.clone().unwrap().name
-                        );
-                    }
+                let mut release_group = None;
+                if artist.is_some() {
+                    release_group = Self::db_merge_model(&db, &media_file.release_group().model(), &artist);
+                    Self::lazy_link(&db, &release_group, &artist);
                 }
 
-                // Find a matching artist-release group in the Db, if any, and merge
-                // it. Same as above except now we include the parent as a
-                // link requirement.
-                let mf_release_group = media_file.release_group();
-                let mut release_group: Option<ReleaseGroup> = None;
-                if let Some(artist) = artist.clone() {
-                    if let Some(db_release_group) = Self::find_artist_release_group(&self, &db, &artist, &mf_release_group) {
-                        let merged = ReleaseGroup::merge(db_release_group, mf_release_group);
-                        release_group = Some(db.insert(&merged.model()).unwrap().into());
-                    }
-                    else {
-                        // TODO Ids
-                        if mf_release_group.title.is_some() {
-                            release_group = Some(db.insert(&mf_release_group.model()).unwrap().into());
-                            log::debug!("Created artist release group: {:?}-{:?}", 
-                                artist.name,
-                                release_group.clone().unwrap().title
-                            );
-                        }
-                    }
-
-                    if release_group.is_some() {
-                        db.link(&release_group.clone().unwrap().model(), &artist.model()).unwrap();
-                    }
+                let mut release = None;
+                if release_group.is_some() {
+                    release = Self::db_merge_model(&db, &media_file.release().model(), &release_group);
+                    Self::lazy_link(&db, &release, &release_group);
+                    Self::lazy_link(&db, &release, &artist); // TODO should be album artist probably
                 }
 
-                // Find a matching artist-release in the Db, if any, and merge
-                // it. Same as above except now we include the artist as a
-                // link requirement.
-                let mf_release = media_file.release();
-                let mut release: Option<Release> = None;
-                if let Some(artist) = artist {
-                    if let Some(db_release) = Self::find_artist_release(&self, &db, &artist, &mf_release) {
-                        let merged = Release::merge(db_release, mf_release);
-                        release = Some(db.insert(&merged.model()).unwrap().into());
-                    }
-                    else {
-                        // TODO Ids
-                        if mf_release.title.is_some() {
-                            release = Some(db.insert(&mf_release.model()).unwrap().into());
-                            log::debug!("Created artist release: {:?}-{:?}", 
-                                artist.name,
-                                release.clone().unwrap().title
-                            );
-                        }
-                    }
-
-                    if release.is_some() {
-                        db.link(&release.clone().unwrap().model(), &artist.model()).unwrap();
-                    }
+                let mut medium = None;
+                if release.is_some() {
+                    medium = Self::db_merge_model(&db, &media_file.medium().model(), &release);
+                    Self::lazy_link(&db, &medium, &release);
+                    Self::lazy_link(&db, &medium, &artist);
                 }
 
-                if release.is_some() && release_group.is_some() {
-                    db.link(&release.clone().unwrap().model(), &release_group.clone().unwrap().model()).unwrap();
+                // TODO can improve further by say allowing creation when there is a mbid
+                // even if there is no release/medium
+                let mut track = None;
+                if medium.is_some() {
+                    track = Self::db_merge_model(&db, &media_file.track().model(), &medium);
+                    Self::lazy_link(&db, &track, &medium);
+                    Self::lazy_link(&db, &track, &artist);
                 }
 
-                // Find a matching release-track in the Db, if any, and merge
-                // it. Same as above except now we include the release as a
-                // link requirement.
-                let mf_track = media_file.track();
-                let mut track: Option<Track> = None;
-                if let Some(release) = release.clone() {
-                    if let Some(db_track) = Self::find_release_track(&self, &db, &release, &mf_track) {
-                        let merged = Track::merge(db_track, mf_track);
-                        track = Some(db.insert(&merged.model()).unwrap().into());
-                    }
-                    else {
-                        // TODO Ids
-                        if mf_track.title.is_some() {
-                            track = Some(db.insert(&mf_track.model()).unwrap().into());
-                            log::debug!("Created release track: {:?}-{:?}", 
-                                release.title,
-                                track.clone().unwrap().title
-                            );
-                        }
-                    }
-
-                    if track.is_some() {
-                        db.link(&track.unwrap().model(), &release.model()).unwrap();
-                    }
+                for genre in media_file.genres() {
+                    let genre = Self::db_merge_model(&db, &genre.model(), &None);
+                    Self::lazy_link(&db, &genre, &artist);
+                    Self::lazy_link(&db, &genre, &release_group);
+                    Self::lazy_link(&db, &genre, &release);
+                    Self::lazy_link(&db, &genre, &medium);
+                    Self::lazy_link(&db, &genre, &track);
                 }
 
                 if release.is_none() {
@@ -228,12 +149,6 @@ impl MediaFilesPlugin {
                     // think about that.
                 }
 
-                // TODO maybe patch in medium and release group after the fact?
-                // or just rid of them?
-
-                // let path = vec![artist.model(), release.model(), track.model()];
-                // let path_result = db.find_path(path);
-
                 count += 1;
             }
         }
@@ -243,52 +158,17 @@ impl MediaFilesPlugin {
             now.elapsed().as_millis());
     }
 
-    fn find_artist(&self, db: &dyn Db, artist: &Artist) -> Option<Artist> {
-        db.list(&Artist::default().model(), None).unwrap()
-            .map(Into::<Artist>::into)
-            .filter(|artist_opt| {
-                artist.name.is_some() && artist.name == artist_opt.name
-            })
-            .next()
+    fn lazy_link(db: &dyn Db, l: &Option<Model>, r: &Option<Model>) {
+        if l.is_some() && r.is_some() {
+            db.link(&l.clone().unwrap(), &r.clone().unwrap()).unwrap()
+        }
     }
 
-    fn find_artist_release_group(&self, db: &dyn Db, artist: &Artist, release_group: &ReleaseGroup) -> Option<ReleaseGroup> {
-        db.list(&ReleaseGroup::default().model(), Some(&artist.model())).unwrap()
-            .map(Into::<ReleaseGroup>::into)
-            .filter(|release_group_opt| {
-                release_group.title.is_some() && release_group.title == release_group_opt.title
-            })
-            .next()
-    }
-
-    fn find_artist_release(&self, db: &dyn Db, artist: &Artist, release: &Release) -> Option<Release> {
-        db.list(&Release::default().model(), Some(&artist.model())).unwrap()
-            .map(Into::<Release>::into)
-            .filter(|release_opt| {
-                release.title.is_some() && release.title == release_opt.title
-            })
-            .next()
-    }
-
-    fn find_release_track(&self, db: &dyn Db, release: &Release, track: &Track) -> Option<Track> {
-        db.list(&Track::default().model(), Some(&release.model())).unwrap()
-            .map(Into::<Track>::into)
-            .filter(|track_opt| {
-                track.title.is_some() && track.title == track_opt.title
-            })
-            .next()
-    }
-
-
-
-    // let artist = self.merge_model(media_file.artist().model(), None);
-    // let artist_release_group = self.merge_model(media_file.release_group(), artist);
     fn db_merge_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
         // find a matching model to the specified, merge, save
         let matching = Self::find_matching_model(db, model, parent);
         if let Some(matching) = matching {
             let merged = Self::merge_model(&model, &matching);
-            // TODO return it
             return Some(db.insert(&merged).unwrap())
         }
         // if not, insert the new one and link it to the parent
@@ -301,21 +181,65 @@ impl MediaFilesPlugin {
     }
 
     fn find_matching_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
+        // This needs to use the scoring and sorting, but yea.
         db.list(&model, parent.as_ref()).unwrap()
             .filter(|model_opt| Self::compare_models(&model, model_opt))
             .next()
     }
 
     fn compare_models(l: &Model, r: &Model) -> bool {
-        todo!()
+        match (l, r) {
+            (Model::Artist(l), Model::Artist(r)) => {
+                // TODO needs to include disambiguation - I think we're getting back to mergability.
+                (l.name.is_some() && l.name == r.name)
+                || (l.known_ids.musicbrainz_id.is_some() && l.known_ids.musicbrainz_id == r.known_ids.musicbrainz_id)
+            },
+            (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => {
+                (l.title.is_some() && l.title == r.title)
+            },
+            (Model::Release(l), Model::Release(r)) => {
+                (l.title.is_some() && l.title == r.title)
+            },
+            (Model::Medium(l), Model::Medium(r)) => {
+                (l.position == r.position)
+            },
+            (Model::Track(l), Model::Track(r)) => {
+                (l.title.is_some() && l.title == r.title)
+            },
+            (Model::Genre(l), Model::Genre(r)) => {
+                (l.name.is_some() && l.name == r.name)
+            },
+            _ => todo!()
+        }
     }
 
     fn merge_model(l: &Model, r: &Model) -> Model {
-        todo!()
+        match (l, r) {
+            (Model::Artist(l), Model::Artist(r)) => Artist::merge(l.clone(), r.clone()).model(),
+            (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
+            (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
+            (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
+            (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
+            (Model::Genre(l), Model::Genre(r)) => Genre::merge(l.clone(), r.clone()).model(),
+            _ => todo!()
+        }
     }
 
     fn model_valid(model: &Model) -> bool {
-        todo!()
+        match model {
+            Model::Artist(a) => a.name.is_some() || a.known_ids.musicbrainz_id.is_some(),
+            Model::ArtistCredit(_) => todo!(),
+            Model::Genre(g) => g.name.is_some(),
+            Model::Medium(m) => true,
+            Model::Recording(_) => todo!(),
+            Model::RecordingSource(_) => todo!(),
+            Model::ReleaseGroup(rg) => rg.title.is_some(),
+            Model::Release(r) => r.title.is_some(),
+            Model::Track(t) => t.title.is_some(),
+            Model::Picture(_) => todo!(),
+            Model::Playlist(_) => todo!(),
+            Model::PlaylistItem(_) => todo!(),
+        }
     }
 }
 

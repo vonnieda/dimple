@@ -1,4 +1,4 @@
-use dimple_core::model::{Artist, KnownIds, Recording, RecordingSource, Release, ReleaseGroup, Track};
+use dimple_core::model::{Artist, Genre, KnownIds, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track};
 
 pub trait Merge {
     /// Commutative: A v B = B v A
@@ -108,18 +108,15 @@ impl Merge for Release {
     }
 }
 
-impl Merge for Recording {
+impl Merge for Medium {
     fn merge(l: Self, r: Self) -> Self {
         Self {
-            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
-            key: Option::merge(l.key, r.key),
-            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
-            links: l.links.union(&r.links).cloned().collect(),
-            title: Option::merge(l.title, r.title),
-            summary: Option::merge(l.summary, r.summary),
-            annotation: Option::merge(l.annotation, r.annotation),
-            // TODO
-            ..Default::default()
+            disc_count: l.disc_count.or(r.disc_count),
+            format: l.format.or(r.format),
+            key: l.key.or(r.key),
+            position: l.position.or(r.position),
+            title: l.title.or(r.title),
+            track_count: l.track_count.or(r.track_count),
         }
     }
 
@@ -137,6 +134,43 @@ impl Merge for Track {
             length: Option::merge(l.length, r.length),
             number: Option::merge(l.number, r.number),
             position: Option::merge(l.position, r.position),
+        }
+    }
+
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        todo!()
+    }
+}
+
+impl Merge for Genre {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
+            key: Option::merge(l.key, r.key),
+            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            links: l.links.union(&r.links).cloned().collect(),
+            name: Option::merge(l.name, r.name),
+            summary: Option::merge(l.summary, r.summary),
+        }
+    }
+
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        todo!()
+    }
+}
+
+impl Merge for Recording {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
+            key: Option::merge(l.key, r.key),
+            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            links: l.links.union(&r.links).cloned().collect(),
+            title: Option::merge(l.title, r.title),
+            summary: Option::merge(l.summary, r.summary),
+            annotation: Option::merge(l.annotation, r.annotation),
+            // TODO
+            ..Default::default()
         }
     }
 
