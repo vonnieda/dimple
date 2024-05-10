@@ -1,4 +1,4 @@
-use dimple_core::model::{Artist, Entity, Genre, Medium, Model, Recording, RecordingSource, Release, ReleaseGroup, Track};
+use dimple_core::model::{Artist, Entity, Genre, Medium, Model, Picture, Recording, RecordingSource, Release, ReleaseGroup, Track};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::{conv::IntoSample, formats::FormatOptions, io::MediaSourceStream, meta::{self, MetadataOptions, StandardTagKey, Tag}, probe::Hint, util::bits::contains_ones_byte_u16};
 use walkdir::{WalkDir, DirEntry};
@@ -140,13 +140,34 @@ impl MediaFilesPlugin {
                     Self::lazy_link(&db, &genre, &track);
                 }
 
-                if release.is_none() {
-                    // TODO if no release was found, maybe check if there is a
-                    // track linked to an existing recording source? Indicating
-                    // a track we'd created before? Otherwise, I'm not quite
-                    // sure how we'll import tracks that don't have artist and
-                    // release. We want them, cause we can play them. So need to
-                    // think about that.
+                for visual in media_file.visuals.iter() {
+                    // The picture is kinda like the artist, it stands on it's
+                    // own. I always want to create it, if we have one, but
+                    // I don't want to duplicate it. So how do I check if it
+                    // already exists?
+                    // - add a checksum field and search by that
+                    // - link it to recording source as a hint?
+                    //   I think this makes sense, and sets the stage for other
+                    //   ways to reuse this interface.
+                    // - give it a sourceid?
+                    // - give it a key I control?
+                    let image = image::load_from_memory(&visual.data);
+                    if image.is_err() {
+                        continue;
+                    }
+                    let image = image.unwrap();
+                    // TODO this is temporary, just checking if no image has been
+                    // set on the release at all, and if so, linking it up to everything
+                    // we've created.
+                    if release.is_some() && db.list(&Picture::default().model(), release.as_ref()).unwrap().count() == 0 {
+                        let mut picture = Picture::default();
+                        picture.set_image(&image);
+                        let picture = db.insert(&picture.model()).unwrap();
+                        Self::lazy_link(&db, &Some(picture.clone()), &artist);
+                        Self::lazy_link(&db, &Some(picture.clone()), &release_group);
+                        Self::lazy_link(&db, &Some(picture.clone()), &release);
+                        Self::lazy_link(&db, &Some(picture.clone()), &track);
+                    }
                 }
 
                 count += 1;

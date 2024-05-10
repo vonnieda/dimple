@@ -13,7 +13,7 @@ pub struct Picture {
     // TODO I think this moves to it's own object, as we'll want more metadata
     // here eventually and don't want to pay the load penalty just to read
     // metadata.
-    compressed_image: Vec<u8>,
+    pub data: Vec<u8>,
 }
 
 impl Picture {
@@ -24,11 +24,11 @@ impl Picture {
     }
 
     pub fn set_image(&mut self, image: &DynamicImage) {
-        let mut cursor = Cursor::new(&mut self.compressed_image);
+        let mut cursor = Cursor::new(&mut self.data);
         image.write_to(&mut cursor, ImageOutputFormat::Png).unwrap()
     }
 
     pub fn get_image(&self) -> DynamicImage {
-        image::load_from_memory(&self.compressed_image).unwrap()
+        image::load_from_memory(&self.data).unwrap()
     }
 }
