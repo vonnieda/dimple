@@ -43,39 +43,37 @@ impl Merge for Artist {
     }
 }
 
-// TODO Note maybe going a different direction than this. The two below are not
-// finished.
+// TODO most are unfinished - still experimenting
+impl Merge for ReleaseGroup {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
+            key: Option::merge(l.key, r.key),
+            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            links: l.links.union(&r.links).cloned().collect(),
+            title: Option::merge(l.title, r.title),
+            summary: Option::merge(l.summary, r.summary),
+            first_release_date: Option::merge(l.first_release_date, r.first_release_date),
+            primary_type: Option::merge(l.primary_type, r.primary_type),
+        }
+    }
 
-// impl Merge for ReleaseGroup {
-//     fn merge(l: Self, r: Self) -> Self {
-//         Self {
-//             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
-//             key: Option::merge(l.key, r.key),
-//             known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
-//             links: l.links.union(&r.links).cloned().collect(),
-//             title: Option::merge(l.title, r.title),
-//             summary: Option::merge(l.summary, r.summary),
-//             first_release_date: Option::merge(l.first_release_date, r.first_release_date),
-//             primary_type: Option::merge(l.primary_type, r.primary_type),
-//         }
-//     }
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        let mut score: f32 = 0.0;
 
-//     fn mergability(l: &Self, r: &Self) -> f32 {
-//         let mut score: f32 = 0.0;
+        score += Option::mergability(&l.key, &r.key);
+        // score += KnownIds::mergability(&l.known_ids, &r.known_ids);
 
-//         score += Option::mergability(&l.key, &r.key);
-//         // score += KnownIds::mergability(&l.known_ids, &r.known_ids);
+        // TODO need more than title! age old problem.
+        let mut name_score = Option::mergability(&l.title, &r.title);
+        if name_score >= 1.0 {
+            name_score += Option::mergability(&l.disambiguation, &r.disambiguation);
+        }
+        score += name_score;
 
-//         // TODO need more than title! age old problem.
-//         let mut name_score = Option::mergability(&l.title, &r.title);
-//         if name_score >= 1.0 {
-//             name_score += Option::mergability(&l.disambiguation, &r.disambiguation);
-//         }
-//         score += name_score;
-
-//         score
-//     }
-// }
+        score
+    }
+}
 
 impl Merge for Release {
     fn merge(l: Self, r: Self) -> Self {

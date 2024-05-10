@@ -169,8 +169,4 @@ impl Db for Librarian {
     fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         self.db.search(query)
     }
-    
-    fn find_path(&self, path: Vec<Model>, ) -> Vec<Model> {
-        self.db.find_path(path)
-    }
 }
