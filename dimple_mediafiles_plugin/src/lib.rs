@@ -1,9 +1,7 @@
-use dimple_core::model::{Artist, Entity, Genre, Medium, Model, Picture, Recording, RecordingSource, Release, ReleaseGroup, Track};
-use rayon::iter::{ParallelBridge, ParallelIterator};
-use symphonia::core::{conv::IntoSample, formats::FormatOptions, io::MediaSourceStream, meta::{self, MetadataOptions, StandardTagKey, Tag}, probe::Hint, util::bits::contains_ones_byte_u16};
-use walkdir::{WalkDir, DirEntry};
+use dimple_core::model::{Artist, Entity, Genre, Medium, Model, Picture, RecordingSource, Release, ReleaseGroup, Track};
+use walkdir::WalkDir;
 
-use std::{collections::{HashMap, HashSet}, fs::{File, FileType}, os::unix::fs::MetadataExt, path::PathBuf, sync::{mpsc::{channel, Sender}, Arc, Mutex}, thread, time::{Duration, Instant}};
+use std::{collections::HashSet, path::PathBuf, sync::{mpsc::{channel, Sender}, Arc, Mutex}, thread, time::Instant};
 
 use dimple_librarian::{librarian::Librarian, merge::Merge, plugin::{NetworkMode, Plugin}};
 
@@ -216,19 +214,19 @@ impl MediaFilesPlugin {
                 || (l.known_ids.musicbrainz_id.is_some() && l.known_ids.musicbrainz_id == r.known_ids.musicbrainz_id)
             },
             (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => {
-                (l.title.is_some() && l.title == r.title)
+                l.title.is_some() && l.title == r.title
             },
             (Model::Release(l), Model::Release(r)) => {
-                (l.title.is_some() && l.title == r.title)
+                l.title.is_some() && l.title == r.title
             },
             (Model::Medium(l), Model::Medium(r)) => {
-                (l.position == r.position)
+                l.position == r.position
             },
             (Model::Track(l), Model::Track(r)) => {
-                (l.title.is_some() && l.title == r.title)
+                l.title.is_some() && l.title == r.title
             },
             (Model::Genre(l), Model::Genre(r)) => {
-                (l.name.is_some() && l.name == r.name)
+                l.name.is_some() && l.name == r.name
             },
             _ => todo!()
         }
@@ -251,7 +249,7 @@ impl MediaFilesPlugin {
             Model::Artist(a) => a.name.is_some() || a.known_ids.musicbrainz_id.is_some(),
             Model::ArtistCredit(_) => todo!(),
             Model::Genre(g) => g.name.is_some(),
-            Model::Medium(m) => true,
+            Model::Medium(_m) => true,
             Model::Recording(_) => todo!(),
             Model::RecordingSource(_) => todo!(),
             Model::ReleaseGroup(rg) => rg.title.is_some(),

@@ -167,8 +167,6 @@ impl MediaFile {
         }
     }
     
-    // TODO eeeeeerp. genres, with semi-colons, clearly.
-
     pub fn genres(&self) -> Vec<Genre> {
         if let Some(genre_name) = self.tag(StandardTagKey::Genre) {
             let genres: Vec<_> = genre_name.split(";")
@@ -187,24 +185,3 @@ impl MediaFile {
     }
 }
 
-
-// Genre {
-//     name: self.tag(StandardTagKey::Genre),
-//     // disambiguation: self.tag(StandardTagKey::TrackSubtitle),
-//     // TODO length
-//     // length: Default::default(),
-//     // annotation: self.tag(StandardTagKey::Comment),
-//     // isrc: self.tag(StandardTagKey::IdentIsrc),
-//     // TODO sus in a genre(S) world
-//     known_ids: self.tag(StandardTagKey::MusicBrainzGenreId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
-//         // .chain(self.tag(StandardTagKey::MusicBrainzRecordingId).iter().map(|id| KnownId::MusicBrainzId(id.to_string())))
-//         // .chain(self.tag(StandardTagKey::IdentIsrc).iter().map(|id| KnownId::ISRC(id.to_string())))
-//         // .chain(self.tag(StandardTagKey::IdentAsin).iter().map(|id| KnownId::ASIN(id.to_string())))
-//         .collect(),
-//     // links: self.tag(StandardTagKey::Url).iter()
-//     //     .chain(self.tag(StandardTagKey::UrlOfficial).iter())
-//     //     .chain(self.tag(StandardTagKey::UrlPurchase).iter())
-//     //     .cloned()
-//     //     .collect(),
-//     ..Default::default()
-// }

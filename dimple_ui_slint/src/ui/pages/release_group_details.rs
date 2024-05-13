@@ -1,7 +1,10 @@
+use dimple_core::model::Artist;
 use dimple_core::model::Entity;
 use dimple_core::model::Genre;
+use dimple_core::model::Medium;
 use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
+use dimple_core::model::Track;
 use slint::ComponentHandle;
 use slint::Model as _;
 use slint::ModelRc;
@@ -13,6 +16,8 @@ use dimple_core::db::Db;
 use crate::ui::CardAdapter;
 use crate::ui::LinkAdapter;
 use crate::ui::ReleaseGroupDetailsAdapter;
+use crate::ui::TrackAdapter;
+use crate::ui::MediumAdapter;
 
 pub fn release_group_details(url: &str, app: &App) {
     let url = url.to_owned();
@@ -27,6 +32,13 @@ pub fn release_group_details(url: &str, app: &App) {
             key: Some(key.to_string()),
             ..Default::default()
         }.into()).unwrap().unwrap().into();
+
+        let mut artists: Vec<Artist> = librarian
+            .list(&Artist::default().into(), Some(&release_group.model()))
+            .unwrap()
+            .map(Into::into)
+            .collect();
+        artists.sort_by_key(|f| f.name.to_owned());
 
         let mut genres: Vec<Genre> = librarian
             .list(&Genre::default().into(), Some(&release_group.model()))
@@ -43,6 +55,13 @@ pub fn release_group_details(url: &str, app: &App) {
         releases.sort_by_key(|f| f.date.to_owned());
         releases.reverse();
 
+        let release = releases.get(0).unwrap();
+        let mut media: Vec<Medium> = librarian
+            .list(&Medium::default().into(), Some(&release.model()))
+            .unwrap()
+            .map(Into::into)
+            .collect();
+
         ui.upgrade_in_event_loop(move |ui| {
             let releases: Vec<CardAdapter> = releases.iter().cloned()
                 .enumerate()
@@ -56,6 +75,13 @@ pub fn release_group_details(url: &str, app: &App) {
                     card
                 })
                 .collect();
+
+            let artists: Vec<LinkAdapter> = artists.iter().cloned().map(|artist| {
+                LinkAdapter {
+                    name: artist.name.unwrap().into(),
+                    url: format!("dimple://artist/{}", artist.key.unwrap()).into(),
+                }
+            }).collect();
 
             let genres: Vec<LinkAdapter> = genres.iter().cloned().map(|genre| {
                 LinkAdapter {
@@ -71,14 +97,22 @@ pub fn release_group_details(url: &str, app: &App) {
                 }
             }).collect();
 
+            // let media: Vec<MediumAdapter> = media.iter().map(|medium| {
+            //     MediumAdapter {
+
+            //     }
+            // });
+
             let mut adapter = ReleaseGroupDetailsAdapter {
                 card: release_group.clone().into(),
+                artists: ModelRc::from(artists.as_slice()),
                 disambiguation: release_group.disambiguation.clone().unwrap_or_default().into(),
                 summary: release_group.summary.clone().unwrap_or_default().into(),
                 releases: ModelRc::from(releases.as_slice()),
                 genres: ModelRc::from(genres.as_slice()),
                 links: ModelRc::from(links.as_slice()),
-                dump: serde_json::to_string_pretty(&release_group).unwrap().into(),
+                primary_type: release_group.primary_type.clone().unwrap_or_default().into(),
+                dump: serde_json::to_string_pretty(&release_group).unwrap().into(),                
                 ..Default::default()
             };
             adapter.card.image.image = images.get(release_group.model(), 275, 275);
@@ -90,6 +124,32 @@ pub fn release_group_details(url: &str, app: &App) {
 }
 
 
+// fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
+//     let adapters: Vec<_> = tracks.iter()
+//         .map(|t| TrackAdapter {
+//             title: LinkAdapter {
+//                 name: t.title.clone().into(),
+//                 url: format!("dimple://recording/{}", t.recording.key.str()).into(),
+//             },
+//             track_number: t.number.clone().into(),
+//             length: length_to_string(t.length).into(),
+//             artists: Default::default(),
+//             plays: 0,
+//             source_count: t.sources.len() as i32,
+//         })
+//         .collect();
+//     ModelRc::from(adapters.as_slice())
+// }
+
+// fn media_adapters(media: Vec<Medium>) -> ModelRc<MediumAdapter> {
+//     let adapters: Vec<_> = media.iter()
+//         .map(|m| MediumAdapter {
+//             title: format!("{} {} of {}", m.format, m.position, m.disc_count).into(),
+//             tracks: track_adapters(m.tracks.clone()),
+//         })
+//         .collect();
+//     ModelRc::from(adapters.as_slice())
+// }
 
 
 // fn release_group_details(url: &str, librarian: &Librarian, ui: slint::Weak<AppWindow>) {
