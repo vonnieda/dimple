@@ -108,7 +108,7 @@ impl App {
             crate::ui::pages::release_list::release_list(self);
         }
         else if url.starts_with("dimple://release/") {
-            self.set_page(Page::ReleaseDetails);
+            crate::ui::pages::release_details::release_details(&url, self);
         }
         else if url.starts_with("dimple://tracks") {
             crate::ui::pages::track_list::track_list(self);

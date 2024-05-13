@@ -5,6 +5,7 @@ pub mod settings;
 pub mod release_group_list;
 pub mod release_group_details;
 pub mod release_list;
+pub mod release_details;
 pub mod genre_list;
 pub mod genre_details;
 pub mod playlist_list;

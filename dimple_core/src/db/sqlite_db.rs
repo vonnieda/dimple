@@ -115,7 +115,6 @@ impl Db for SqliteDb {
         self._insert(&key, related_key.as_bytes())?;
 
         // model -> related_to
-        // TODO not sure if I want this to be bi-dir by default or not
         let key = Self::edge_key(related_to, model);
         let related_key = Self::node_key(related_to);
         self._insert(&key, related_key.as_bytes())?;
@@ -173,9 +172,9 @@ trait Entity {
 impl Entity for Model {
     fn entity_name(&self) -> String {
         match self {
-            Model::Picture(_) => "Picture".to_string(),
             Model::Artist(_) => "Artist".to_string(),
             Model::ArtistCredit(_) => "ArtistCredit".to_string(),
+            Model::Blob(_) => "Blob".to_string(),
             Model::Genre(_) => "Genre".to_string(),
             Model::Medium(_) => "Medium".to_string(),
             Model::Recording(_) => "Recording".to_string(),
@@ -183,6 +182,7 @@ impl Entity for Model {
             Model::Release(_) => "Release".to_string(),
             Model::ReleaseGroup(_) => "ReleaseGroup".to_string(),
             Model::Track(_) => "Track".to_string(),
+            Model::Picture(_) => "Picture".to_string(),
             Model::Playlist(_) => "Playlist".to_string(),
             Model::PlaylistItem(_) => "PlaylistItem".to_string(),
         }
@@ -193,6 +193,7 @@ impl Entity for Model {
             Model::Picture(value) => value.key.clone(),
             Model::Artist(value) => value.key.clone(),
             Model::ArtistCredit(value) => value.key.clone(),
+            Model::Blob(value) => value.key.clone(),
             Model::Genre(value) => value.key.clone(),
             Model::Medium(value) => value.key.clone(),
             Model::Recording(value) => value.key.clone(),
@@ -210,6 +211,7 @@ impl Entity for Model {
             Model::Picture(value) => value.key = key,
             Model::Artist(value) => value.key = key,
             Model::ArtistCredit(value) => value.key = key,
+            Model::Blob(value) => value.key = key,
             Model::Genre(value) => value.key = key,
             Model::Medium(value) => value.key = key,
             Model::Recording(value) => value.key = key,

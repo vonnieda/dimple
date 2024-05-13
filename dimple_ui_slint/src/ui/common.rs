@@ -13,7 +13,9 @@ use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
+use slint::ModelRc;
 use crate::ui::CardAdapter;
+use crate::ui::TrackAdapter;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
 
@@ -250,10 +252,11 @@ impl From<Track> for CardAdapter {
 //                 url: format!("dimple://recording/{}", t.recording.key.str()).into(),
 //             },
 //             track_number: t.number.clone().into(),
-//             length: length_to_string(t.length).into(),
-//             artists: Default::default(),
-//             plays: 0,
-//             source_count: t.sources.len() as i32,
+//             // length: length_to_string(t.length).into(),
+//             // artists: Default::default(),
+//             // plays: 0,
+//             // source_count: t.sources.len() as i32,
+//             ..Default::default()
 //         })
 //         .collect();
 //     ModelRc::from(adapters.as_slice())

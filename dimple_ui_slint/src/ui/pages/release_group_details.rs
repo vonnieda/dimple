@@ -56,10 +56,17 @@ pub fn release_group_details(url: &str, app: &App) {
         releases.reverse();
 
         let release = releases.get(0).unwrap();
-        let mut media: Vec<Medium> = librarian
+        let media_and_tracks: Vec<_> = librarian
             .list(&Medium::default().into(), Some(&release.model()))
             .unwrap()
-            .map(Into::into)
+            .map(Into::<Medium>::into)
+            .map(|medium| {
+                let tracks: Vec<Track> = librarian.list(&Track::default().model(), Some(&medium.model()))
+                    .unwrap()
+                    .map(Into::<Track>::into)
+                    .collect();
+                (medium, tracks)
+            })
             .collect();
 
         ui.upgrade_in_event_loop(move |ui| {
@@ -97,11 +104,13 @@ pub fn release_group_details(url: &str, app: &App) {
                 }
             }).collect();
 
-            // let media: Vec<MediumAdapter> = media.iter().map(|medium| {
-            //     MediumAdapter {
-
-            //     }
-            // });
+            let media: Vec<MediumAdapter> = media_and_tracks.iter().map(|(medium, tracks)| {
+                MediumAdapter {
+                    title: medium.title.clone().unwrap_or_default().into(),
+                    tracks: track_adapters(tracks.to_vec()),
+                    ..Default::default()
+                }
+            }).collect();
 
             let mut adapter = ReleaseGroupDetailsAdapter {
                 card: release_group.clone().into(),
@@ -112,8 +121,8 @@ pub fn release_group_details(url: &str, app: &App) {
                 genres: ModelRc::from(genres.as_slice()),
                 links: ModelRc::from(links.as_slice()),
                 primary_type: release_group.primary_type.clone().unwrap_or_default().into(),
+                media: ModelRc::from(media.as_slice()),
                 dump: serde_json::to_string_pretty(&release_group).unwrap().into(),                
-                ..Default::default()
             };
             adapter.card.image.image = images.get(release_group.model(), 275, 275);
             ui.set_release_group_details(adapter);
@@ -123,33 +132,30 @@ pub fn release_group_details(url: &str, app: &App) {
     });
 }
 
+fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
+    let adapters: Vec<_> = tracks.iter()
+        .map(|t| TrackAdapter {
+            title: LinkAdapter {
+                name: t.title.clone().unwrap_or_default().into(),
+                url: format!("dimple://track/{}", t.key.clone().unwrap_or_default()).into(),
+                ..Default::default()
+            },
+            track_number: format!("{}", t.number.clone().unwrap_or_default()).into(),
+            length: length_to_string(t.length.clone().unwrap_or_default()).into(),
+            // artists: Default::default(),
+            // plays: 0,
+            // source_count: t.sources.len() as i32,
+            ..Default::default()
+        })
+        .collect();
+    ModelRc::from(adapters.as_slice())
+}
 
-// fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
-//     let adapters: Vec<_> = tracks.iter()
-//         .map(|t| TrackAdapter {
-//             title: LinkAdapter {
-//                 name: t.title.clone().into(),
-//                 url: format!("dimple://recording/{}", t.recording.key.str()).into(),
-//             },
-//             track_number: t.number.clone().into(),
-//             length: length_to_string(t.length).into(),
-//             artists: Default::default(),
-//             plays: 0,
-//             source_count: t.sources.len() as i32,
-//         })
-//         .collect();
-//     ModelRc::from(adapters.as_slice())
-// }
-
-// fn media_adapters(media: Vec<Medium>) -> ModelRc<MediumAdapter> {
-//     let adapters: Vec<_> = media.iter()
-//         .map(|m| MediumAdapter {
-//             title: format!("{} {} of {}", m.format, m.position, m.disc_count).into(),
-//             tracks: track_adapters(m.tracks.clone()),
-//         })
-//         .collect();
-//     ModelRc::from(adapters.as_slice())
-// }
+fn length_to_string(length: u32) -> String {
+    format!("{}:{:02}", 
+        length / (60 * 1000), 
+        length % (60 * 1000) / 1000)
+}
 
 
 // fn release_group_details(url: &str, librarian: &Librarian, ui: slint::Weak<AppWindow>) {

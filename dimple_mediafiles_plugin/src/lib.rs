@@ -51,6 +51,8 @@ impl MediaFilesPlugin {
         }
     }
 
+    // TODO query performance
+    // TODO recording and rec source
     fn scan(&self) {
         let directories = self.directories.lock().unwrap().clone();
         let db = self.librarian.lock().unwrap().clone();
@@ -139,16 +141,6 @@ impl MediaFilesPlugin {
                 }
 
                 for visual in media_file.visuals.iter() {
-                    // The picture is kinda like the artist, it stands on it's
-                    // own. I always want to create it, if we have one, but
-                    // I don't want to duplicate it. So how do I check if it
-                    // already exists?
-                    // - add a checksum field and search by that
-                    // - link it to recording source as a hint?
-                    //   I think this makes sense, and sets the stage for other
-                    //   ways to reuse this interface.
-                    // - give it a sourceid?
-                    // - give it a key I control?
                     let image = image::load_from_memory(&visual.data);
                     if image.is_err() {
                         continue;
@@ -168,6 +160,8 @@ impl MediaFilesPlugin {
                     }
                 }
 
+
+
                 count += 1;
             }
         }
@@ -177,6 +171,7 @@ impl MediaFilesPlugin {
             now.elapsed().as_millis());
     }
 
+    /// Links the two Models if they are both Some. Reduces boilerplate.
     fn lazy_link(db: &dyn Db, l: &Option<Model>, r: &Option<Model>) {
         if l.is_some() && r.is_some() {
             db.link(&l.clone().unwrap(), &r.clone().unwrap()).unwrap()
@@ -235,11 +230,11 @@ impl MediaFilesPlugin {
     fn merge_model(l: &Model, r: &Model) -> Model {
         match (l, r) {
             (Model::Artist(l), Model::Artist(r)) => Artist::merge(l.clone(), r.clone()).model(),
-            (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
-            (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
-            (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
-            (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
             (Model::Genre(l), Model::Genre(r)) => Genre::merge(l.clone(), r.clone()).model(),
+            (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
+            (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
+            (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
+            (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
             _ => todo!()
         }
     }
@@ -247,17 +242,12 @@ impl MediaFilesPlugin {
     fn model_valid(model: &Model) -> bool {
         match model {
             Model::Artist(a) => a.name.is_some() || a.known_ids.musicbrainz_id.is_some(),
-            Model::ArtistCredit(_) => todo!(),
             Model::Genre(g) => g.name.is_some(),
             Model::Medium(_m) => true,
-            Model::Recording(_) => todo!(),
-            Model::RecordingSource(_) => todo!(),
-            Model::ReleaseGroup(rg) => rg.title.is_some(),
             Model::Release(r) => r.title.is_some(),
+            Model::ReleaseGroup(rg) => rg.title.is_some(),
             Model::Track(t) => t.title.is_some(),
-            Model::Picture(_) => todo!(),
-            Model::Playlist(_) => todo!(),
-            Model::PlaylistItem(_) => todo!(),
+            _ => todo!()
         }
     }
 }

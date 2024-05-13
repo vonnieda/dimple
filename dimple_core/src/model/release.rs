@@ -22,6 +22,7 @@ pub struct Release {
     pub barcode: Option<String>,
     pub country: Option<String>,
     pub date: Option<String>, // TODO should be chronos, probably.
+    pub primary_type: Option<String>,
     pub packaging: Option<String>,
     pub status: Option<String>,
 }

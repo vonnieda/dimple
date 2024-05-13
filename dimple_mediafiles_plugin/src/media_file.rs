@@ -103,6 +103,7 @@ impl MediaFile {
         Release {
             title: self.tag(StandardTagKey::Album),
             status: self.tag(StandardTagKey::MusicBrainzReleaseStatus),
+            primary_type: self.tag(StandardTagKey::MusicBrainzReleaseType),
             country: self.tag(StandardTagKey::ReleaseCountry),
             date: self.tag(StandardTagKey::Date),
             barcode: self.tag(StandardTagKey::IdentBarcode),
