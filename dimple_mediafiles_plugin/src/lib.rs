@@ -1,4 +1,5 @@
 use dimple_core::model::{Artist, Entity, Genre, Medium, Model, Picture, RecordingSource, Release, ReleaseGroup, Track};
+use rayon::iter::{ParallelBridge, ParallelIterator};
 use walkdir::WalkDir;
 
 use std::{collections::HashSet, path::PathBuf, sync::{mpsc::{channel, Sender}, Arc, Mutex}, thread, time::Instant};
@@ -61,114 +62,115 @@ impl MediaFilesPlugin {
         }
         let db = db.unwrap();
         let now = Instant::now();
-        let mut count = 0;
-        let mut skipped = 0;
-        for dir in directories {
-            for dir_entry in WalkDir::new(dir).into_iter() {
-                if dir_entry.is_err() { continue }
+        for dir in directories {            
+            WalkDir::new(dir).into_iter().par_bridge().for_each(|dir_entry| {
+                if dir_entry.is_err() { return }
 
                 let path = dir_entry.unwrap().into_path();
-                if !path.is_file() { continue }
+                if !path.is_file() { return }
 
-                // Find the matching RecordingSource in the Db, if any.
-                let source_id = format!("dmfp://{}", path.to_str().unwrap_or_default());
-                let rec_source = db.list(&RecordingSource::default().model(), None).unwrap()
-                    .map(Into::<RecordingSource>::into)
-                    .find(|rec_source| rec_source.source_id == source_id);
+                Self::scan_path(&db, &path);
+            });
+        }
+        // log::info!("Scanned {}, skipped {} in {}ms", 
+        //     count, 
+        //     skipped, 
+        //     now.elapsed().as_millis());
+        log::info!("Scan complete.");
+    }
 
-                // Compare last modified of the file and the rec source
-                // and if the file is older, continue / skip.
-                // TODO currently broken cause we're not creating the rec source
-                let mtime = path.metadata().unwrap().modified().unwrap();
-                if let Some(rec_source) = &rec_source {
-                    if let Some(last_modified) = rec_source.last_modified {
-                        if last_modified >= mtime {
-                            log::debug!("Skipping {:?}, {:?} {:?} is the same or newer than {:?}", 
-                                path, 
-                                rec_source.key, 
-                                last_modified, 
-                                mtime);
-                            skipped += 1;
-                            continue;
-                        }
-                    }
+    fn scan_path(db: &dyn Db, path: &PathBuf) {
+        // Find the matching RecordingSource in the Db, if any.
+        let source_id = format!("dmfp://{}", path.to_str().unwrap_or_default());
+        let rec_source = db.list(&RecordingSource::default().model(), None).unwrap()
+            .map(Into::<RecordingSource>::into)
+            .find(|rec_source| rec_source.source_id == source_id);
+
+        // Compare last modified of the file and the rec source
+        // and if the file is older, continue / skip.
+        // TODO currently broken cause we're not creating the rec source
+        let mtime = path.metadata().unwrap().modified().unwrap();
+        if let Some(rec_source) = &rec_source {
+            if let Some(last_modified) = rec_source.last_modified {
+                if last_modified >= mtime {
+                    log::debug!("Skipping {:?}, {:?} {:?} is the same or newer than {:?}", 
+                        path, 
+                        rec_source.key, 
+                        last_modified, 
+                        mtime);
+                    // skipped += 1;
+                    // continue;
+                    return
                 }
-
-                // Read the media file.
-                let media_file = MediaFile::new(&path);
-                if media_file.is_err() { continue }
-                let media_file = media_file.unwrap();
-            
-                // Merge, create, and link objects
-                let artist = Self::db_merge_model(&db, &media_file.artist().model(), &None);
-
-                let mut release_group = None;
-                if artist.is_some() {
-                    release_group = Self::db_merge_model(&db, &media_file.release_group().model(), &artist);
-                    Self::lazy_link(&db, &release_group, &artist);
-                }
-
-                let mut release = None;
-                if release_group.is_some() {
-                    release = Self::db_merge_model(&db, &media_file.release().model(), &release_group);
-                    Self::lazy_link(&db, &release, &release_group);
-                    Self::lazy_link(&db, &release, &artist); // TODO should be album artist probably
-                }
-
-                let mut medium = None;
-                if release.is_some() {
-                    medium = Self::db_merge_model(&db, &media_file.medium().model(), &release);
-                    Self::lazy_link(&db, &medium, &release);
-                    Self::lazy_link(&db, &medium, &artist);
-                }
-
-                // TODO can improve further by say allowing creation when there is a mbid
-                // even if there is no release/medium
-                let mut track = None;
-                if medium.is_some() {
-                    track = Self::db_merge_model(&db, &media_file.track().model(), &medium);
-                    Self::lazy_link(&db, &track, &medium);
-                    Self::lazy_link(&db, &track, &artist);
-                }
-
-                for genre in media_file.genres() {
-                    let genre = Self::db_merge_model(&db, &genre.model(), &None);
-                    Self::lazy_link(&db, &genre, &artist);
-                    Self::lazy_link(&db, &genre, &release_group);
-                    Self::lazy_link(&db, &genre, &release);
-                    Self::lazy_link(&db, &genre, &medium);
-                    Self::lazy_link(&db, &genre, &track);
-                }
-
-                for visual in media_file.visuals.iter() {
-                    let image = image::load_from_memory(&visual.data);
-                    if image.is_err() {
-                        continue;
-                    }
-                    let image = image.unwrap();
-                    // TODO this is temporary, just checking if no image has been
-                    // set on the release at all, and if so, linking it up to everything
-                    // we've created.
-                    if release.is_some() && db.list(&Picture::default().model(), release.as_ref()).unwrap().count() == 0 {
-                        let mut picture = Picture::default();
-                        picture.set_image(&image);
-                        let picture = db.insert(&picture.model()).unwrap();
-                        Self::lazy_link(&db, &Some(picture.clone()), &artist);
-                        Self::lazy_link(&db, &Some(picture.clone()), &release_group);
-                        Self::lazy_link(&db, &Some(picture.clone()), &release);
-                        Self::lazy_link(&db, &Some(picture.clone()), &track);
-                    }
-                }
-
-
-
-                count += 1;
             }
         }
-        log::info!("Scanned {}, skipped {} in {}ms", 
-            count, 
-            skipped, 
-            now.elapsed().as_millis());
+
+        // Read the media file.
+        let media_file = MediaFile::new(&path);
+        if media_file.is_err() { return }
+        let media_file = media_file.unwrap();
+    
+        // Merge, create, and link objects
+        // TODO this is where we are. This needs to be faster.
+        let artist = Self::db_merge_model(db, &media_file.artist().model(), &None);
+
+        let mut release_group = None;
+        if artist.is_some() {
+            release_group = Self::db_merge_model(db, &media_file.release_group().model(), &artist);
+            Self::lazy_link(db, &release_group, &artist);
+        }
+
+        let mut release = None;
+        if release_group.is_some() {
+            release = Self::db_merge_model(db, &media_file.release().model(), &release_group);
+            Self::lazy_link(db, &release, &release_group);
+            Self::lazy_link(db, &release, &artist); // TODO should be album artist probably
+        }
+
+        let mut medium = None;
+        if release.is_some() {
+            medium = Self::db_merge_model(db, &media_file.medium().model(), &release);
+            Self::lazy_link(db, &medium, &release);
+            Self::lazy_link(db, &medium, &artist);
+        }
+
+        // TODO can improve further by say allowing creation when there is a mbid
+        // even if there is no release/medium
+        let mut track = None;
+        if medium.is_some() {
+            track = Self::db_merge_model(db, &media_file.track().model(), &medium);
+            Self::lazy_link(db, &track, &medium);
+            Self::lazy_link(db, &track, &artist);
+        }
+
+        for genre in media_file.genres() {
+            let genre = Self::db_merge_model(db, &genre.model(), &None);
+            Self::lazy_link(db, &genre, &artist);
+            Self::lazy_link(db, &genre, &release_group);
+            Self::lazy_link(db, &genre, &release);
+            Self::lazy_link(db, &genre, &medium);
+            Self::lazy_link(db, &genre, &track);
+        }
+
+        for visual in media_file.visuals.iter() {
+            let image = image::load_from_memory(&visual.data);
+            if image.is_err() {
+                continue;
+            }
+            let image = image.unwrap();
+            // TODO this is temporary, just checking if no image has been
+            // set on the release at all, and if so, linking it up to everything
+            // we've created.
+            if release.is_some() && db.list(&Picture::default().model(), release.as_ref()).unwrap().count() == 0 {
+                let mut picture = Picture::default();
+                picture.set_image(&image);
+                let picture = db.insert(&picture.model()).unwrap();
+                Self::lazy_link(db, &Some(picture.clone()), &artist);
+                Self::lazy_link(db, &Some(picture.clone()), &release_group);
+                Self::lazy_link(db, &Some(picture.clone()), &release);
+                Self::lazy_link(db, &Some(picture.clone()), &track);
+            }
+        }
     }
 
     /// Links the two Models if they are both Some. Reduces boilerplate.
