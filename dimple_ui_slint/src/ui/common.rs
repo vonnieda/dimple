@@ -13,7 +13,9 @@ use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
+use slint::ModelRc;
 use crate::ui::CardAdapter;
+use crate::ui::TrackAdapter;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
 
@@ -143,6 +145,7 @@ impl From<Track> for CardAdapter {
 }
 
 
+
 // fn recording_card(recording: &Recording, width: u32, height: u32, lib: &Librarian) -> Card {
 //     Card {
 //         image: ImageLink {
@@ -250,10 +253,11 @@ impl From<Track> for CardAdapter {
 //                 url: format!("dimple://recording/{}", t.recording.key.str()).into(),
 //             },
 //             track_number: t.number.clone().into(),
-//             length: length_to_string(t.length).into(),
-//             artists: Default::default(),
-//             plays: 0,
-//             source_count: t.sources.len() as i32,
+//             // length: length_to_string(t.length).into(),
+//             // artists: Default::default(),
+//             // plays: 0,
+//             // source_count: t.sources.len() as i32,
+//             ..Default::default()
 //         })
 //         .collect();
 //     ModelRc::from(adapters.as_slice())
@@ -338,23 +342,23 @@ pub fn create_artist(db: &dyn Db) -> Artist {
         country: Some(fakeit::address::country_abr()),
         disambiguation: Some(fakeit::address::country()),
         links: create_links(fakeit::misc::random(0, 5)),
-        known_ids: create_known_ids(),
+        // known_ids: create_known_ids(),
         ..Default::default()
     }.model()).unwrap();
     
     let artist_pic = db.insert(&Picture::new(&gen_fuzzy_circles(1000, 1000)).model()).unwrap();
     db.link(&artist_pic, &artist).unwrap();
 
-    for _ in 0..3 {
-        let genre = db.insert(&Genre {
-            name: Some(format!("{} {}", fakeit::hipster::word(), 
-                fakeit::words::word())),
-            ..Default::default()
-        }.model()).unwrap();
-        let genre_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
-        db.link(&genre_pic, &genre).unwrap();
-        db.link(&genre, &artist).unwrap();
-    }
+    // for _ in 0..3 {
+    //     let genre = db.insert(&Genre {
+    //         name: Some(format!("{} {}", fakeit::hipster::word(), 
+    //             fakeit::words::word())),
+    //         ..Default::default()
+    //     }.model()).unwrap();
+    //     let genre_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
+    //     db.link(&genre_pic, &genre).unwrap();
+    //     db.link(&genre, &artist).unwrap();
+    // }
     
     artist.into()
 }

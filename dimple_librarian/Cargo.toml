@@ -15,5 +15,5 @@ image = { version = "0.24.5", features = ["jpeg", "png"] }
 # sled = "0.34.7"
 # dimple_sled_library = { path = "../dimple_sled_library" }
 # rayon = "1.8.0"
-# strsim = "0.11.0"
-# unicode-normalization = "0.1.23"
+strsim = "0.11.0"
+unicode-normalization = "0.1.23"

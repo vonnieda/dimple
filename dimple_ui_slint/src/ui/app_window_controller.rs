@@ -1,5 +1,6 @@
 use dimple_core::model::Artist;
 use dimple_mediafiles_plugin::MediaFilesPlugin;
+use dimple_musicbrainz_plugin::MusicBrainzPlugin;
 use dimple_player::player::Player;
 
 use std::{borrow::BorrowMut, collections::VecDeque, path::PathBuf, sync::{Arc, Mutex}};
@@ -39,9 +40,12 @@ impl AppWindowController {
         let dir = dirs.data_dir().to_str().unwrap();
         let librarian = Librarian::new(dir);
         
-        let mediafiles_plugin = MediaFilesPlugin::new();
-        mediafiles_plugin.monitor_directory(&PathBuf::from("/Users/jason/Music"));
-        librarian.add_plugin(Box::new(mediafiles_plugin));
+        // let mediafiles_plugin = MediaFilesPlugin::new();
+        // mediafiles_plugin.monitor_directory(&PathBuf::from("/Users/jason/Music"));
+        // librarian.add_plugin(Box::new(mediafiles_plugin));
+
+        let musicbrainz_plugin = MusicBrainzPlugin::default();
+        librarian.add_plugin(Box::new(musicbrainz_plugin));
         
         let player = Player::new(Arc::new(librarian.clone()));
         let ui_weak = ui.as_weak();
@@ -87,7 +91,7 @@ impl App {
             self.refresh();
         }
         else if url.starts_with("dimple://search") {
-            self.set_page(Page::Search);
+            crate::ui::pages::search::search(&url, self);
         }
         else if url.starts_with("dimple://home") {
             self.set_page(Page::Home);
@@ -108,7 +112,7 @@ impl App {
             crate::ui::pages::release_list::release_list(self);
         }
         else if url.starts_with("dimple://release/") {
-            self.set_page(Page::ReleaseDetails);
+            crate::ui::pages::release_details::release_details(&url, self);
         }
         else if url.starts_with("dimple://tracks") {
             crate::ui::pages::track_list::track_list(self);

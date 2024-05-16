@@ -1,267 +1,284 @@
-use dimple_core::model::{Artist, Entities, Entity, Recording, RecordingSource, Release, ReleaseGroup};
+use dimple_core::model::{Artist, Genre, KnownIds, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track};
 
-pub trait Merge<T> {
+pub trait Merge {
     /// Commutative: A v B = B v A
     /// Associative: (A v B) v C = A v (B v C)
     /// Idempotent : A v A = A
-    fn merge(l: T, r: T) -> T;
-    fn mergability(l: &T, r: &T) -> f32;
+    fn merge(l: Self, r: Self) -> Self;
+
+    /// -INFINITY <= conflict <= 0.0 no match 1.0 <= +INFINITY
+    /// TODO this should probably just be a Result<f32> where Err is conflict
+    /// and Ok() gives the score.
+    fn mergability(l: &Self, r: &Self) -> f32;
 }
 
-impl Merge<Entities> for Entities {
-    fn merge(left: Entities, right: Entities) -> Self {
-        match (left, right) {
-            (Entities::Artist(left), Entities::Artist(right)) => {
-                Artist::merge(left, right).entity()
-            },
-            (Entities::ReleaseGroup(left), Entities::ReleaseGroup(right)) => {
-                ReleaseGroup::merge(left, right).entity()
-            },
-            (Entities::Release(left), Entities::Release(right)) => {
-                Release::merge(left, right).entity()
-            },
-            (Entities::Recording(left), Entities::Recording(right)) => {
-                Recording::merge(left, right).entity()
-            },
-            (Entities::RecordingSource(left), Entities::RecordingSource(right)) => {
-                RecordingSource::merge(left, right).entity()
-            },
-            _ => todo!()
-        }
-    }
 
-    fn mergability(left: &Entities, right: &Entities) -> f32 {
-        match (left, right) {
-            (Entities::Artist(left), Entities::Artist(right)) => {
-                Artist::mergability(&left, &right)
-            },
-            (Entities::ReleaseGroup(left), Entities::ReleaseGroup(right)) => {
-                ReleaseGroup::mergability(left, right)
-            },
-            (Entities::Release(left), Entities::Release(right)) => {
-                Release::mergability(left, right)
-            },
-            (Entities::Recording(left), Entities::Recording(right)) => {
-                Recording::mergability(left, right)
-            },
-            (Entities::RecordingSource(left), Entities::RecordingSource(right)) => {
-                RecordingSource::mergability(left, right)
-            },
-            _ => todo!()
-        }
-    }
-}
-
-// TODO leaning towards making all these use longer instead of or, which will
-// help with a move towards CRDT.
-// What if merge just returns an option?
-// Oh, one thing I was thinking about was equality, so we could de-dupe that way,
-// and I was also thinking about clustering in the file library. I think that's a
-// dead end because I need clustering for s3 and other systems, too. 
-// Do I? Or is S3 just a specialization of file, but otherwise different from the
-// rest.
-impl Merge<Self> for Artist {
-    fn merge(a: Self, b: Self) -> Self {
+impl Merge for Artist {
+    fn merge(l: Self, r: Self) -> Self {
         Self {
-            disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            links: a.links.union(&b.links).cloned().collect(),
-            name: a.name.or(b.name),
-            summary: a.summary.or(b.summary),
-            country: a.country.or(b.country),
+            country: Option::merge(l.country, r.country),
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
+            key: Option::merge(l.key, r.key),
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
+            links: l.links.union(&r.links).cloned().collect(),
+            name: Option::merge(l.name, r.name),
+            summary: Option::merge(l.summary, r.summary),
         }
     }
 
     fn mergability(l: &Self, r: &Self) -> f32 {
-        if let (Some(l), Some(r)) = (l.key(), r.key()) {
-            if l == r {
-                return 1.0
-            }
-        }
+        let mut score: f32 = 0.0;
 
-        // TODO I think we want to check for all clashing KnownIds, but to do
-        // that I either need to hand cod ethem all cause enum, or change that
-        // enum into a struct and give it a type.
-        if let (Some(l), Some(r)) = (l.mbid(), r.mbid()) {
-            if l == r {
-                return 1.0
-            }
-            else {
-                return 0.0
-            }
-        }
+        score += Option::mergability(&l.key, &r.key);
+        score += KnownIds::mergability(&l.known_ids, &r.known_ids);
 
-        if !l.known_ids.is_disjoint(&r.known_ids) {
-            return 1.0
+        let mut name_score = Option::mergability(&l.name, &r.name);
+        if name_score >= 1.0 {
+            name_score += Option::mergability(&l.country, &r.country);
+            name_score += Option::mergability(&l.disambiguation, &r.disambiguation);
         }
+        score += name_score;
 
-        if !l.source_ids.is_disjoint(&r.source_ids) {
-            return 1.0
-        }
-
-        (unicode_fuzzy(&l.name, &r.name)
-            + unicode_fuzzy(&l.disambiguation, &r.disambiguation)
-            + unicode_fuzzy(&l.country, &r.country)) / 3.0
+        score
     }
 }
 
-impl Merge<Self> for ReleaseGroup {
-    fn merge(a: Self, b: Self) -> Self {
+// TODO most are unfinished - still experimenting
+impl Merge for ReleaseGroup {
+    fn merge(l: Self, r: Self) -> Self {
         Self {
-            disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            links: a.links.union(&b.links).cloned().collect(),
-            title: a.title.or(b.title),
-            summary: a.summary.or(b.summary),
-
-            first_release_date: a.first_release_date.or(b.first_release_date),
-            primary_type: a.primary_type.or(b.primary_type),
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
+            key: Option::merge(l.key, r.key),
+            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            links: l.links.union(&r.links).cloned().collect(),
+            title: Option::merge(l.title, r.title),
+            summary: Option::merge(l.summary, r.summary),
+            first_release_date: Option::merge(l.first_release_date, r.first_release_date),
+            primary_type: Option::merge(l.primary_type, r.primary_type),
         }
     }
-    
+
     fn mergability(l: &Self, r: &Self) -> f32 {
-        if let (Some(l), Some(r)) = (l.key(), r.key()) {
-            if l == r {
-                return 1.0
-            }
-        }
+        let mut score: f32 = 0.0;
 
-        // TODO I think we want to check for all clashing KnownIds, but to do
-        // that I either need to hand cod ethem all cause enum, or change that
-        // enum into a struct and give it a type.
-        if let (Some(l), Some(r)) = (l.mbid(), r.mbid()) {
-            if l == r {
-                return 1.0
-            }
-            else {
-                return 0.0
-            }
-        }
+        score += Option::mergability(&l.key, &r.key);
+        // score += KnownIds::mergability(&l.known_ids, &r.known_ids);
 
-        if !l.known_ids.is_disjoint(&r.known_ids) {
-            return 1.0
+        // TODO need more than title! age old problem.
+        let mut name_score = Option::mergability(&l.title, &r.title);
+        if name_score >= 1.0 {
+            name_score += Option::mergability(&l.disambiguation, &r.disambiguation);
         }
+        score += name_score;
 
-        if !l.source_ids.is_disjoint(&r.source_ids) {
-            return 1.0
-        }
-
-        (unicode_fuzzy(&l.title, &r.title)
-            + unicode_fuzzy(&l.disambiguation, &r.disambiguation)) / 2.0
+        score
     }
 }
 
-impl Merge<Self> for Release {
-    fn merge(a: Self, b: Self) -> Self {
+impl Merge for Release {
+    fn merge(l: Self, r: Self) -> Self {
         Self {
-            disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            links: a.links.union(&b.links).cloned().collect(),
-            title: a.title.or(b.title),
-            summary: a.summary.or(b.summary),
-
-            barcode: a.barcode.or(b.barcode),
-            country: a.country.or(b.country),
-            date: a.date.or(b.date),
-            packaging: a.packaging.or(b.packaging),
-            status: a.status.or(b.status),
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
+            key: Option::merge(l.key, r.key),
+            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            links: l.links.union(&r.links).cloned().collect(),
+            title: Option::merge(l.title, r.title),
+            summary: Option::merge(l.summary, r.summary),
+            // first_release_date: Option::merge(l.first_release_date, r.first_release_date),
+            // primary_type: Option::merge(l.primary_type, r.primary_type),
+            // TODO
+            ..Default::default()
         }
     }
-    
+
     fn mergability(l: &Self, r: &Self) -> f32 {
-        if let (Some(l), Some(r)) = (l.key(), r.key()) {
-            if l == r {
-                return 1.0
-            }
-        }
+        let mut score: f32 = 0.0;
 
-        // TODO I think we want to check for all clashing KnownIds, but to do
-        // that I either need to hand cod ethem all cause enum, or change that
-        // enum into a struct and give it a type.
-        if let (Some(l), Some(r)) = (l.mbid(), r.mbid()) {
-            if l == r {
-                return 1.0
-            }
-            else {
-                return 0.0
-            }
-        }
+        score += Option::mergability(&l.key, &r.key);
+        // score += KnownIds::mergability(&l.known_ids, &r.known_ids);
 
-        if !l.known_ids.is_disjoint(&r.known_ids) {
-            return 1.0
+        // TODO need more than title! age old problem.
+        let mut name_score = Option::mergability(&l.title, &r.title);
+        if name_score >= 1.0 {
+            name_score += Option::mergability(&l.disambiguation, &r.disambiguation);
         }
+        score += name_score;
 
-        if !l.source_ids.is_disjoint(&r.source_ids) {
-            return 1.0
-        }
-
-        (unicode_fuzzy(&l.title, &r.title)
-            + unicode_fuzzy(&l.disambiguation, &r.disambiguation)) / 2.0
+        score
     }
 }
 
-impl Merge<Self> for Recording {
-    fn merge(a: Self, b: Self) -> Self {
+impl Merge for Medium {
+    fn merge(l: Self, r: Self) -> Self {
         Self {
-            disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            links: a.links.union(&b.links).cloned().collect(),
-            title: a.title.or(b.title),
-            summary: a.summary.or(b.summary),
-
-            annotation: a.annotation.or(b.annotation),
-            isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
-            length: a.length.or(b.length)
+            disc_count: l.disc_count.or(r.disc_count),
+            format: l.format.or(r.format),
+            key: l.key.or(r.key),
+            position: l.position.or(r.position),
+            title: l.title.or(r.title),
+            track_count: l.track_count.or(r.track_count),
         }
     }
-    
-    fn mergability(l: &Self, r: &Self) -> f32 {
-        todo!()
-    }    
-}
 
-impl Merge<Self> for RecordingSource {
-    fn merge(a: Self, b: Self) -> Self {
-        Self {
-            // disambiguation: a.disambiguation.or(b.disambiguation),
-            key: a.key.or(b.key),
-            known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-            source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-            format: a.format.or(b.format),
-            extension: a.extension.or(b.extension),
-            // links: a.links.union(&b.links).cloned().collect(),
-            // title: a.title.or(b.title),
-            // summary: a.summary.or(b.summary),
-
-            // annotation: a.annotation.or(b.annotation),
-            // isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
-            // length: a.length.or(b.length)
-        }
-    }
-    
     fn mergability(l: &Self, r: &Self) -> f32 {
         todo!()
     }
 }
 
-
-fn unicode_fuzzy(l: &Option<String>, r: &Option<String>) -> f32 {
-    use unicode_normalization::UnicodeNormalization;
-    if let (Some(l), Some(r)) = (l, r) {
-        let l = l.to_string().nfkd().to_string().to_uppercase();
-        let r = r.to_string().nfkd().to_string().to_uppercase();
-        strsim::sorensen_dice(&l, &r) as f32
+impl Merge for Track {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            key: Option::merge(l.key, r.key),
+            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            title: Option::merge(l.title, r.title),
+            length: Option::merge(l.length, r.length),
+            number: Option::merge(l.number, r.number),
+            position: Option::merge(l.position, r.position),
+        }
     }
-    else {
-        1.0
+
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        todo!()
     }
 }
 
+impl Merge for Genre {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
+            key: Option::merge(l.key, r.key),
+            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            links: l.links.union(&r.links).cloned().collect(),
+            name: Option::merge(l.name, r.name),
+            summary: Option::merge(l.summary, r.summary),
+        }
+    }
+
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        todo!()
+    }
+}
+
+impl Merge for Recording {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
+            key: Option::merge(l.key, r.key),
+            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            links: l.links.union(&r.links).cloned().collect(),
+            title: Option::merge(l.title, r.title),
+            summary: Option::merge(l.summary, r.summary),
+            annotation: Option::merge(l.annotation, r.annotation),
+            // TODO
+            ..Default::default()
+        }
+    }
+
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        todo!()
+    }
+}
+
+impl Merge for Option<u32> {
+    fn merge(l: Self, r: Self) -> Self {
+        l.or(r)
+    }
+
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        todo!()
+    }
+}
+
+impl Merge for Option<String> {
+    fn merge(l: Self, r: Self) -> Self {
+        l.or(r)
+    }
+
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        match (l, r) {
+            (Some(l), Some(r)) => {
+                if l.to_lowercase() == r.to_lowercase() {
+                    1.0
+                }
+                else {
+                    f32::NEG_INFINITY
+                }
+            },
+            _ => 0.0
+        }
+    }
+}
+
+impl Merge for KnownIds {
+    fn merge(l: Self, r: Self) -> Self {
+        KnownIds {
+            musicbrainz_id: Option::merge(l.musicbrainz_id, r.musicbrainz_id),
+            discogs_id: Option::merge(l.discogs_id, r.discogs_id),
+            lastfm_id: Option::merge(l.lastfm_id, r.lastfm_id),
+        }
+    }
+
+    fn mergability(l: &Self, r: &Self) -> f32 {
+        Option::mergability(&l.musicbrainz_id, &r.musicbrainz_id)
+        + Option::mergability(&l.discogs_id, &r.discogs_id)
+        + Option::mergability(&l.lastfm_id, &r.lastfm_id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn artist_merge() {
+        let a1 = Artist {
+            name: Some("Sorta Charger".to_string()),
+            country: Some("us".to_string()),
+            disambiguation: None,
+            known_ids: KnownIds {
+                musicbrainz_id: Some("123-123-123-123".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let a2 = Artist {
+            name: Some("Sorta Charger".to_string()),
+            ..Default::default()
+        };
+
+        let a3 = Artist {
+            name: Some("sorta charger".to_string()),
+            known_ids: KnownIds {
+                musicbrainz_id: Some("123-123-123-123".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let a4 = Artist {
+            name: Some("slorta charger".to_string()),
+            known_ids: KnownIds {
+                musicbrainz_id: Some("123-123-123-123".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let a5 = Artist {
+            name: Some("Sorta Charger".to_string()),
+            country: Some("us".to_string()),
+            disambiguation: Some("the other one".to_string()),
+            known_ids: KnownIds {
+                musicbrainz_id: Some("123-123-123-123".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        dbg!(Artist::mergability(&a1, &a2));
+        dbg!(Artist::mergability(&a1, &a3));
+        dbg!(Artist::mergability(&a1, &a4));
+        dbg!(Artist::mergability(&a1, &a5));
+    }
+}

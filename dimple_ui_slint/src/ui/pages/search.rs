@@ -1,32 +1,71 @@
-// fn search(url: &str, librarian: &Librarian, ui: slint::Weak<AppWindow>) {
-//     let url = url.to_owned();
-//     // std::thread::spawn(move || {
-//     //     ui.upgrade_in_event_loop(move |ui| {
-//     //         ui.global::<Navigator>().set_busy(true);
-//     //     }).unwrap();
+use dimple_core::model::Artist;
+use dimple_core::model::Entity;
+use dimple_core::model::Genre;
+use dimple_core::model::Medium;
+use dimple_core::model::Model;
+use dimple_core::model::Release;
+use dimple_core::model::ReleaseGroup;
+use dimple_core::model::Track;
+use slint::ComponentHandle;
+use slint::Model as _;
+use slint::ModelRc;
+use url::Url;
+use crate::ui::app_window_controller::App;
+use crate::ui::Navigator;
+use crate::ui::Page;
+use dimple_core::db::Db;
+use crate::ui::CardAdapter;
+use crate::ui::CardGridAdapter;
 
-//     //     let url = Url::parse(&url).unwrap();
-//     //     let query = url.path_segments()
-//     //         // TODO is this pattern wrong? Shouldn't the or be an error?
-//     //         .ok_or("missing path").unwrap()
-//     //         .nth(0)
-//     //         .ok_or("missing query").unwrap();
-//     //     let search_results: Vec<_> = librarian.search(query).collect();
-//     //     // TODO woops, was sorting by name when they are returned by
-//     //     // relevance. Once more sources are merged I'll need to bring
-//     //     // rel to the front and sort on it.
-//     //     // search_results.sort_by_key(|e| e.name().to_lowercase());
-//     //     let cards = entity_cards(search_results, &librarian, 
-//     //         Self::THUMBNAIL_WIDTH, 
-//     //         Self::THUMBNAIL_WIDTH);
-//     //     ui.upgrade_in_event_loop(move |ui| {
-//     //         let adapter = CardGridAdapter {
-//     //             cards: card_adapters(cards),
-//     //         };
-//     //         ui.set_card_grid_adapter(adapter);
-//     //         ui.set_page(0);
+pub fn search(url: &str, app: &App) {
+    let url = url.to_owned();
+    let librarian = app.librarian.clone();
+    let ui = app.ui.clone();
+    let images = app.images.clone();
 
-//     //         ui.global::<Navigator>().set_busy(false);
-//     //     }).unwrap();
-//     // });
-// }
+    /// So this will be the first new model controller with the intention of
+    /// being reactive. The goal will be to get an iterator from the search
+    /// and feed those objects in realtime over to the UI as they come in.
+    /// This will require adding a sort model, and figuring out that stuff
+    /// so that the results stay sorted in the UI.
+
+    std::thread::spawn(move || {        
+        let url = Url::parse(&url).unwrap();
+        let query = url.path_segments().unwrap().nth(0).unwrap();
+
+        let results: Vec<Model> = librarian
+            .search(query)
+            .unwrap()
+            .collect();
+
+        ui.upgrade_in_event_loop(move |ui| {
+            let cards: Vec<CardAdapter> = results.iter().cloned().enumerate()
+                .map(|(index, result)| {
+                    let mut card: CardAdapter = model_card(&result);
+                    card.image.image = images.lazy_get(result, 200, 200, move |ui, image| {
+                        let mut card = ui.get_search().cards.row_data(index).unwrap();
+                        card.image.image = image;
+                        ui.get_search().cards.set_row_data(index, card);
+                    });
+                    card
+                })
+                .collect();
+            let adapter = CardGridAdapter {
+                cards: ModelRc::from(cards.as_slice()),
+            };
+            ui.set_search(adapter);
+            ui.set_page(Page::Search);
+            ui.global::<Navigator>().set_busy(false);
+        }).unwrap();
+    });
+}
+
+
+fn model_card(model: &Model) -> CardAdapter {
+    match model {
+        Model::Artist(artist) => artist.clone().into(),
+        Model::Release(release) => release.clone().into(),
+        Model::Genre(genre) => genre.clone().into(),
+        _ => todo!(),
+    }
+}

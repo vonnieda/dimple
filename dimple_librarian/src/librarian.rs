@@ -1,12 +1,12 @@
 use std::{fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}
+    db::{Db, SqliteDb}, model::{Artist, Entity, Model, Release, ReleaseGroup}
 };
 
 use anyhow::Result;
 
-use crate::plugin::{NetworkMode, Plugin};
+use crate::{merge::Merge, plugin::{NetworkMode, Plugin}};
 
 #[derive(Clone)]
 pub struct Librarian {

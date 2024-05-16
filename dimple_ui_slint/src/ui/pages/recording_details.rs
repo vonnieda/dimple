@@ -55,5 +55,5 @@ fn recording_details(url: &str, librarian: &Librarian, ui: slint::Weak<AppWindow
     //             ui.set_page(4)
     //         }).unwrap();
     //     });
-    }
+    // }
 }
