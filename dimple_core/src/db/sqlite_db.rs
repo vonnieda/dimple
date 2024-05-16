@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use uuid::Uuid;
 
-use crate::model::Model;
+use crate::model::{Artist, Genre, Model, Release, Track};
 
 use super::Db;
 
@@ -158,7 +158,10 @@ impl Db for SqliteDb {
     }
     
     fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = Model>>> {
-        todo!()
+        let iter = self.list(&crate::model::Entity::model(&Artist::default()), None).unwrap().take(10)
+            .chain(self.list(&crate::model::Entity::model(&Release::default()), None).unwrap().take(10))
+            .chain(self.list(&crate::model::Entity::model(&Genre::default()), None).unwrap().take(10));
+        Ok(Box::new(iter))
     }
 }
 

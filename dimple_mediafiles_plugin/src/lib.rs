@@ -263,5 +263,25 @@ impl Plugin for MediaFilesPlugin {
     fn set_network_mode(&self, _network_mode: &NetworkMode) {
         // Don't care, local only.
     }
+    
+    fn get(&self, entity: &dyn Entity, network_mode: NetworkMode) -> anyhow::Result<Option<Box<dyn Entity>>> {
+        todo!()
+    }
+    
+    fn list(
+        &self,
+        list_of: &dyn Entity,
+        related_to: Option<&dyn Entity>,
+        network_mode: NetworkMode,
+    ) -> anyhow::Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+        todo!()
+    }
+    
+    fn search(&self, query: &str, network_mode: NetworkMode) 
+        -> anyhow::Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+        todo!()
+    }
+    
 }
+
 
