@@ -1365,6 +1365,7 @@ dependencies = [
  "dimple_core",
  "image",
  "log",
+ "rayon",
  "strsim",
  "unicode-normalization",
 ]

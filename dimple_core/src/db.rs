@@ -3,8 +3,10 @@ use anyhow::Result;
 use crate::model::{Entity, Model};
 
 mod sqlite_db;
+mod memory_db;
 
 pub use sqlite_db::SqliteDb;
+pub use memory_db::MemoryDb;
 
 // TODO I think this will get the ability to notify of changes
 pub trait Db: Send + Sync {

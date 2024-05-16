@@ -1,3 +1,5 @@
+use std::{collections::HashMap, sync::{Arc, RwLock}};
+
 use anyhow::Result;
 
 use uuid::Uuid;
@@ -6,50 +8,13 @@ use crate::model::{Artist, Genre, Model, Release, Track};
 
 use super::Db;
 
-use sqlite::{Connection, ConnectionThreadSafe, State};
-
-pub struct SqliteDb {
-    con: ConnectionThreadSafe,
+#[derive(Default)]
+pub struct MemoryDb {
+    nodes: Arc<RwLock<HashMap<String, Model>>>,
+    edges: Arc<RwLock<HashMap<String, String>>>,
 }
 
-impl SqliteDb {
-    pub fn new(path: &str) -> Self {
-        let con = Connection::open_thread_safe(path).unwrap();
-        con.execute("CREATE TABLE IF NOT EXISTS kv (key TEXT NOT NULL PRIMARY KEY, value BLOB NOT NULL)").unwrap();
-        Self {
-            con,
-        }
-    }
-
-    fn _get(&self, key: &str) -> Result<Option<Vec<u8>>> {
-        let mut statement = self.con.prepare("SELECT value FROM kv WHERE key = :key")?;
-        statement.bind((":key", key))?;
-        if let Ok(State::Row) = statement.next() {
-            let value = statement.read::<Vec<u8>, _>("value")?;
-            return Ok(Some(value));
-        }
-        Ok(None)
-    }
-
-    fn _insert(&self, key: &str, value: &[u8]) -> Result<()> {
-        let mut statement = self.con.prepare("REPLACE INTO kv (key, value) VALUES (:key, :value)")?;
-        statement.bind((":key", key))?;
-        statement.bind((":value", value))?;
-        statement.next()?;
-        Ok(())
-    }
-
-    fn _list(&self, prefix: &str) -> Result<Box<dyn Iterator<Item = Vec<u8>>>> {
-        let mut statement = self.con.prepare("SELECT value FROM kv WHERE key LIKE :prefix")?;
-        statement.bind((":prefix", prefix))?;
-        let mut results: Vec<Vec<u8>> = vec![];
-        while let Ok(State::Row) = statement.next() {
-            let value = statement.read::<Vec<u8>, _>("value")?;
-            results.push(value);
-        }
-        Ok(Box::new(results.into_iter()))
-    }
-
+impl MemoryDb {
     fn node_key(model: &Model) -> String {
         // type:key
         format!("node:{}:{}", model.entity_name(), model.key().unwrap())
@@ -82,7 +47,7 @@ impl SqliteDb {
     }
 }
 
-impl Db for SqliteDb {
+impl Db for MemoryDb {
     fn insert(&self, model: &Model) -> Result<Model> {
         let model = match model.key() {
             Some(_) => model.clone(),
@@ -93,31 +58,25 @@ impl Db for SqliteDb {
             }
         };
         let key = Self::node_key(&model);
-        let value = bincode::serialize(&model).unwrap();
-        self._insert(&key, &value)?;
+        self.nodes.write().unwrap().insert(key, model.clone());
         Ok(model)
     }
 
     fn get(&self, model: &Model) -> Result<Option<Model>> {
         let key = Self::node_key(model);
-        let value = self._get(&key)?;
-        if value.is_none() {
-            return Ok(None);
-        }
-        let model: Model = bincode::deserialize(&value.unwrap()).unwrap();
-        Ok(Some(model))
+        Ok(self.nodes.read().unwrap().get(&key).cloned())
     }
 
     fn link(&self, model: &Model, related_to: &Model) -> Result<()> {
         // related_to -> model
         let key = Self::edge_key(model, related_to);
         let related_key = Self::node_key(model);
-        self._insert(&key, related_key.as_bytes())?;
+        self.edges.write().unwrap().insert(key, related_key);
 
         // model -> related_to
         let key = Self::edge_key(related_to, model);
         let related_key = Self::node_key(related_to);
-        self._insert(&key, related_key.as_bytes())?;
+        self.edges.write().unwrap().insert(key, related_key);
 
         Ok(())
     }
@@ -130,30 +89,35 @@ impl Db for SqliteDb {
         if let Some(related_to) = related_to {
             let prefix = Self::edge_prefix(list_of, related_to);
             let mut models: Vec<Model> = vec![];
-            let like_prefix = format!("{}%", prefix);
-            for related_key in self._list(&like_prefix)? {
-                let value = self._get(&String::from_utf8(related_key)?)?;
-                if value.is_none() {
-                    continue;
+            for related_key in self.edges.read().unwrap().keys() {
+                if related_key.starts_with(&prefix) {
+                    if let Some(key) = self.edges.read().unwrap().get(related_key) {
+                        // TODO might be a deadlock, maybe need to lock both
+                        if let Some(model) = self.nodes.read().unwrap().get(key) {
+                            models.push(model.clone())
+                        }
+                    }
                 }
-                let model: Model = bincode::deserialize(&value.unwrap()).unwrap();
-                models.push(model);
             }
             Ok(Box::new(models.into_iter()))
         } else {
             let prefix = Self::node_prefix(list_of);
             let mut models: Vec<Model> = vec![];
-            let like_prefix = format!("{}%", prefix);
-            for value in self._list(&like_prefix)? {
-                let model: Model = bincode::deserialize(&value).unwrap();
-                models.push(model);
+            // TODO change to an if let so we only lock once
+            for key in self.nodes.read().unwrap().keys() {
+                if key.starts_with(&prefix) {
+                    if let Some(model) = self.nodes.read().unwrap().get(key) {
+                        models.push(model.clone());
+                    }
+                }
             }
             Ok(Box::new(models.into_iter()))
         }
     }
 
     fn reset(&self) -> Result<()> {
-        self.con.execute("DELETE FROM kv")?;
+        self.nodes.write().unwrap().clear();
+        self.edges.write().unwrap().clear();
         Ok(())
     }
     
@@ -238,7 +202,7 @@ mod tests {
 
     #[test]
     fn basics() {
-        let db = SqliteDb::new(":memory:");
+        let db = MemoryDb::default();
         let a1 = db.insert(&Artist::default().model()).unwrap();
         let a2 = db.insert(&Artist::default().model()).unwrap();
         let r1 = db.insert(&Release::default().model()).unwrap();
@@ -256,7 +220,7 @@ mod tests {
 
     #[test]
     fn more() {
-        let db = SqliteDb::new(":memory:");
+        let db = MemoryDb::default();
         for i in 0..10000 {
             let artist = Artist {
                 name: Some(format!("{} {} {} {} {}", i, i, i, i, i)),

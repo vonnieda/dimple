@@ -81,7 +81,7 @@ impl Plugin for MusicBrainzPlugin {
 
 fn api_artist_to_dimple_artist(value: MBArtist) -> Artist {
     Artist {
-        key: Some(value.id),
+        // key: Some(value.id),
         name: none_if_empty(value.name),
         disambiguation: none_if_empty(value.disambiguation),
         country: value.country,
