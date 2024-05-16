@@ -6,6 +6,8 @@ use dimple_core::model::{Artist, Entity, Model};
 use dimple_librarian::plugin::Plugin;
 use musicbrainz_rs::entity::artist::ArtistSearchQuery;
 use musicbrainz_rs::entity::artist::Artist as MBArtist;
+use musicbrainz_rs::entity::release::Release as MBRelease;
+use musicbrainz_rs::entity::release::ReleaseSearchQuery;
 use musicbrainz_rs::Search;
 use serde::de;
 
@@ -16,7 +18,7 @@ pub struct MusicBrainzPlugin {
 
 impl Default for MusicBrainzPlugin {
     fn default() -> Self {
-        // musicbrainz_rs::config::set_user_agent(dimple_core::USER_AGENT);
+        musicbrainz_rs::config::set_user_agent(dimple_core::USER_AGENT);
         Self {
             rate_limit_lock: Mutex::new(Instant::now()),
         }
@@ -38,14 +40,6 @@ impl MusicBrainzPlugin {
         // Update the last request time
         *last_request_time = Instant::now();
     }
-
-    fn get_entities() -> Box<dyn Iterator<Item = Box<dyn Entity>>> {
-        let entities: Vec<Box<dyn Entity>> = vec![
-            Box::new(Artist { ..Default::default() }),
-            Box::new(Artist { ..Default::default() }),
-        ];
-        Box::new(entities.into_iter())
-    }
 }
 
 impl Plugin for MusicBrainzPlugin {
@@ -58,25 +52,6 @@ impl Plugin for MusicBrainzPlugin {
     fn get(&self, entity: &dyn dimple_core::model::Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn dimple_core::model::Entity>>> {
         todo!()
     }
-
-    
-    // fn search(&self, query: &str, network_mode: dimple_librarian::plugin::NetworkMode)
-    //     -> Result<std::boxed::Box<(dyn Iterator<Item = Box<(dyn Entity)>>)>, anyhow::Error> {
-    //         self.enforce_rate_limit();
-
-    //         // TODO And releases, tracks, etc.
-    //         let search_query = ArtistSearchQuery::query_builder()
-    //             .artist(&query)
-    //             .build();
-    //         let results = MBArtist::search(search_query)
-    //             .execute()
-    //             .unwrap()
-    //             .entities.into_iter()
-    //             .map(api_artist_to_dimple_artist);
-    //         Ok(Box::new(results))
-    // }
-
-    
     
     fn list(
         &self,
@@ -93,6 +68,7 @@ impl Plugin for MusicBrainzPlugin {
         let search_query = ArtistSearchQuery::query_builder()
             .artist(&query)
             .build();
+
         Ok(Box::new(MBArtist::search(search_query)
             .execute()?
             .entities
@@ -105,7 +81,10 @@ impl Plugin for MusicBrainzPlugin {
 
 fn api_artist_to_dimple_artist(value: MBArtist) -> Artist {
     Artist {
-        key: Default::default(),
+        key: Some(value.id),
+        name: none_if_empty(value.name),
+        disambiguation: none_if_empty(value.disambiguation),
+        country: value.country,
         // name: none_if_empty(value.0.name),
         // source_ids: Default::default(),
         // known_ids: iter::once(&value.0.id).map(|mbid| KnownId::MusicBrainzId(mbid.to_string())).collect::<HashSet<_>>(),
@@ -397,14 +376,14 @@ fn api_artist_to_dimple_artist(value: MBArtist) -> Artist {
 // // the entire struct. This is to help avoid skipping fields when new ones
 // // are added.
 
-// fn none_if_empty(s: String) -> Option<String> {
-//     if s.is_empty() {
-//         None
-//     }
-//     else {
-//         Some(s)
-//     }
-// }
+fn none_if_empty(s: String) -> Option<String> {
+    if s.is_empty() {
+        None
+    }
+    else {
+        Some(s)
+    }
+}
 
 // pub struct ArtistConverter(musicbrainz_rs::entity::artist::Artist);
 

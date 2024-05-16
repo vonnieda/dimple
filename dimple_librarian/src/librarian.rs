@@ -70,7 +70,15 @@ impl Db for Librarian {
         self.db.reset()
     }
     
+    /// Searches all plugins using the query string, filters the results down
+    /// to artists, releases, and tracks, merges those results into the database
+    /// and returns the merged, de-duplicated objects.
     fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
-        self.db.search(query)
+        let mut iter = self.db.search(query)?;
+        for plugin in self.plugins.read().unwrap().iter() {
+            iter = Box::new(iter.chain(plugin.search(query, self.network_mode())?
+                .map(|entity| entity.model())));
+        }
+        Ok(Box::new(iter))
     }
 }
