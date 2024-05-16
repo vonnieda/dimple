@@ -1,1 +1,0 @@
-pub mod s3_compatible_storage_library;
