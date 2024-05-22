@@ -4,7 +4,10 @@ use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::model::KnownId;
+use super::ArtistCredit;
+use super::Genre;
+use super::KnownIds;
+use super::Release;
 
 
 // https://musicbrainz.org/doc/ReleaseGroup
@@ -14,11 +17,16 @@ use crate::model::KnownId;
 pub struct ReleaseGroup {
     pub key: Option<String>,
     pub title: Option<String>,
-    pub known_ids: HashSet<KnownId>,
+    pub known_ids: KnownIds,
     pub disambiguation: Option<String>,
+    pub annotation: Option<String>,
     pub summary: Option<String>,
     pub links: HashSet<String>,
 
     pub first_release_date: Option<String>,
     pub primary_type: Option<String>,
+
+    pub artist_credits: Vec<ArtistCredit>,
+    pub genres: Vec<Genre>,
+    pub releases: Vec<Release>,
 }

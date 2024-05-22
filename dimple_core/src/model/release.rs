@@ -4,7 +4,10 @@ use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
-use super::KnownId;
+use super::ArtistCredit;
+use super::Genre;
+use super::KnownIds;
+use super::Medium;
 
 // https://musicbrainz.org/doc/Release
 // https://musicbrainz.org/release/a4864e94-6d75-4ade-bc93-0dabf3521453
@@ -14,16 +17,20 @@ use super::KnownId;
 pub struct Release {
     pub key: Option<String>,
     pub title: Option<String>,
-    pub known_ids: HashSet<KnownId>,
+    pub known_ids: KnownIds,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
     pub links: HashSet<String>,
 
     pub barcode: Option<String>,
     pub country: Option<String>,
-    pub date: Option<String>, // TODO should be chronos, probably.
+    pub date: Option<String>,
     pub primary_type: Option<String>,
     pub packaging: Option<String>,
     pub status: Option<String>,
+
+    pub artist_credits: Vec<ArtistCredit>,
+    pub genres: Vec<Genre>,
+    pub media: Vec<Medium>,
 }
 

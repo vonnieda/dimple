@@ -2,6 +2,8 @@ use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
+use super::Track;
+
 /// References
 /// https://musicbrainz.org/doc/Artist
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
@@ -17,4 +19,6 @@ pub struct Medium {
     pub format: Option<String>,
     pub position: Option<u32>,
     pub track_count: Option<u32>,
+
+    pub tracks: Vec<Track>,
 }
