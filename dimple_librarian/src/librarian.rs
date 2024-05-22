@@ -12,9 +12,7 @@ use rayon::prelude::{*};
 
 #[derive(Clone)]
 pub struct Librarian {
-    // TODO STOPSHIP
-    // db: Arc<SqliteDb>,
-    db: Arc<MemoryDb>,
+    db: Arc<Box<dyn Db>>,
     plugins: Arc<RwLock<Vec<Box<dyn Plugin>>>>,
     network_mode: Arc<Mutex<NetworkMode>>,
 }
@@ -22,11 +20,10 @@ pub struct Librarian {
 impl Librarian {
     pub fn new(path: &str) -> Self {
         fs::create_dir_all(path).unwrap();
-        // TODO STOPSHIP
-        // let db_path = Path::new(path).join("dimple.db");
+        let db_path = Path::new(path).join("dimple.db");
         let librarian = Self {
-            // db: Arc::new(SqliteDb::new(db_path.to_str().unwrap())),
-            db: Arc::new(MemoryDb::default()),
+            db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()))),
+            // db: Arc::new(MemoryDb::default()),
             plugins: Default::default(),
             network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
         };
@@ -45,22 +42,28 @@ impl Librarian {
         *self.network_mode.lock().unwrap() = network_mode.clone();
     }
 
+    // TODO last thing to decide here is how we're store the sub-objects
+    // in the db.
     fn merge(&self, model: &Model) -> Option<Model> {
         match model {
             Model::Artist(artist) => self.merge_artist(artist),
             Model::Release(release) => self.merge_release(release),
+            Model::ReleaseGroup(release_group) => self.merge_release_group(release_group),
             Model::Recording(recording) => self.merge_recording(recording),
             _ => todo!(),
         }
     }
 
     fn merge_artist(&self, artist: &Artist) -> Option<Model> {
-        log::info!("merge_artist: {:?}", artist);
-        None
+        Self::db_merge_model(self, &artist.model(), &None)
+    }
+
+    fn merge_release_group(&self, release_group: &ReleaseGroup) -> Option<Model> {
+        Self::db_merge_model(self, &release_group.model(), &None)
     }
 
     fn merge_release(&self, release: &Release) -> Option<Model> {
-        None
+        Self::db_merge_model(self, &release.model(), &None)
     }
 
     fn merge_recording(&self, recording: &Recording) -> Option<Model> {
