@@ -49,12 +49,13 @@ impl Merge for ReleaseGroup {
         Self {
             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
             key: Option::merge(l.key, r.key),
-            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            // known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
             links: l.links.union(&r.links).cloned().collect(),
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
             first_release_date: Option::merge(l.first_release_date, r.first_release_date),
             primary_type: Option::merge(l.primary_type, r.primary_type),
+            ..Default::default()
         }
     }
 
@@ -80,7 +81,7 @@ impl Merge for Release {
         Self {
             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
             key: Option::merge(l.key, r.key),
-            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            // known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
             links: l.links.union(&r.links).cloned().collect(),
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
@@ -117,6 +118,7 @@ impl Merge for Medium {
             position: l.position.or(r.position),
             title: l.title.or(r.title),
             track_count: l.track_count.or(r.track_count),
+            ..Default::default()
         }
     }
 
@@ -129,11 +131,12 @@ impl Merge for Track {
     fn merge(l: Self, r: Self) -> Self {
         Self {
             key: Option::merge(l.key, r.key),
-            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            // known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
             title: Option::merge(l.title, r.title),
             length: Option::merge(l.length, r.length),
             number: Option::merge(l.number, r.number),
             position: Option::merge(l.position, r.position),
+            ..Default::default()
         }
     }
 

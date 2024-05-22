@@ -1,7 +1,7 @@
 use std::{fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, MemoryDb, SqliteDb}, model::{self, Artist, Entity, Genre, Medium, Model, Release, ReleaseGroup, Track}
+    db::{Db, MemoryDb, SqliteDb}, model::{self, Artist, Entity, Genre, Medium, Model, Recording, Release, ReleaseGroup, Track}
 };
 
 use anyhow::Result;
@@ -34,8 +34,6 @@ impl Librarian {
     }
 
     pub fn add_plugin(&self, plugin: Box<dyn Plugin>) {
-        plugin.init(self);
-        plugin.set_network_mode(&self.network_mode());
         self.plugins.write().unwrap().push(plugin);
     }
 
@@ -45,14 +43,28 @@ impl Librarian {
 
     pub fn set_network_mode(&self, network_mode: &NetworkMode) {
         *self.network_mode.lock().unwrap() = network_mode.clone();
-        for plugin in self.plugins.write().unwrap().iter_mut() {
-            plugin.set_network_mode(network_mode);
+    }
+
+    fn merge(&self, model: &Model) -> Option<Model> {
+        match model {
+            Model::Artist(artist) => self.merge_artist(artist),
+            Model::Release(release) => self.merge_release(release),
+            Model::Recording(recording) => self.merge_recording(recording),
+            _ => todo!(),
         }
     }
 
-    pub fn merge(&self, path: &[Model]) -> Vec<Model> {
-        // Self::db_merge_model(self, model, related_to)
-        vec![]
+    fn merge_artist(&self, artist: &Artist) -> Option<Model> {
+        log::info!("merge_artist: {:?}", artist);
+        None
+    }
+
+    fn merge_release(&self, release: &Release) -> Option<Model> {
+        None
+    }
+
+    fn merge_recording(&self, recording: &Recording) -> Option<Model> {
+        None
     }
 
     fn db_merge_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
@@ -164,9 +176,7 @@ impl Db for Librarian {
     fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         for plugin in self.plugins.read().unwrap().iter() {
             for result in plugin.search(query, self.network_mode())? {
-                if let Some(artist) = result.as_any().downcast_ref::<Artist>() {
-                    println!("artist {:?}", artist.name);
-                }
+                self.merge(&result.model());
             }
         }
         self.db.search(query)

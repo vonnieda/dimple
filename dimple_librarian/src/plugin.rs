@@ -1,16 +1,7 @@
-use std::path::PathBuf;
-
-use anyhow::{Error, Result};
+use anyhow::Result;
 use dimple_core::model::Entity;
 
-use crate::librarian::Librarian;
-
 pub trait Plugin: Send + Sync {
-    // TODO gonna change this up, hate the init thing
-    fn init(&self, librarian: &Librarian);
-    // TODO won't need this because will always have librarian, and can check there
-    fn set_network_mode(&self, _network_mode: &NetworkMode);
-
     /// Load the model using its key. Returns None if no key is set, or if the
     /// key doesn't exist in the database.
     fn get(&self, entity: &dyn Entity, network_mode: NetworkMode) -> Result<Option<Box<dyn Entity>>>;

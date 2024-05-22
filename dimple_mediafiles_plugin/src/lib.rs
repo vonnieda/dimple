@@ -255,15 +255,6 @@ impl MediaFilesPlugin {
 }
 
 impl Plugin for MediaFilesPlugin {
-    fn init(&self, librarian: &Librarian) {
-        *self.librarian.lock().unwrap() = Some(librarian.clone());
-        self.rescan();
-    }
-
-    fn set_network_mode(&self, _network_mode: &NetworkMode) {
-        // Don't care, local only.
-    }
-    
     fn get(&self, entity: &dyn Entity, network_mode: NetworkMode) -> anyhow::Result<Option<Box<dyn Entity>>> {
         todo!()
     }

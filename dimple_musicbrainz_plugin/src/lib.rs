@@ -2,10 +2,11 @@ use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
 use anyhow::Result;
-use dimple_core::model::{Artist, Entity, Model, Release};
+use dimple_core::model::{Artist, Entity, KnownIds, Model, Release};
 use dimple_librarian::plugin::Plugin;
 use musicbrainz_rs::entity::artist::ArtistSearchQuery;
 use musicbrainz_rs::entity::artist::Artist as MBArtist;
+use musicbrainz_rs::entity::relations::RelationContent;
 use musicbrainz_rs::entity::release::Release as MBRelease;
 use musicbrainz_rs::entity::release::ReleaseSearchQuery;
 use musicbrainz_rs::Search;
@@ -43,12 +44,6 @@ impl MusicBrainzPlugin {
 }
 
 impl Plugin for MusicBrainzPlugin {
-    fn init(&self, librarian: &dimple_librarian::librarian::Librarian) {        
-    }
-
-    fn set_network_mode(&self, _network_mode: &dimple_librarian::plugin::NetworkMode) {
-    }
-    
     fn get(&self, entity: &dyn dimple_core::model::Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn dimple_core::model::Entity>>> {
         todo!()
     }
@@ -80,31 +75,61 @@ impl Plugin for MusicBrainzPlugin {
 
 fn to_artist(value: MBArtist) -> Artist {
     Artist {
-        // key: Some(value.id),
+        key: None,
         name: none_if_empty(value.name),
         disambiguation: none_if_empty(value.disambiguation),
         country: value.country,
-        // name: none_if_empty(value.0.name),
-        // source_ids: Default::default(),
-        // known_ids: iter::once(&value.0.id).map(|mbid| KnownId::MusicBrainzId(mbid.to_string())).collect::<HashSet<_>>(),
-        // disambiguation: none_if_empty(value.0.disambiguation),
-        // links: value.0.relations.iter().flatten()
-        //     .filter_map(|r| match &r.content {
-        //         RelationContent::Url(u) => Some(u.resource.to_string()),
-        //         _ => None,
-        //     })
-        //     .collect(),
-        // summary: Default::default(),
-        // country: value.0.country,
-        ..Default::default()
+        known_ids: KnownIds {
+            musicbrainz_id: Some(value.id),
+            ..Default::default()
+        },
+        links: value.relations.iter().flatten()
+            .filter_map(|r| match &r.content {
+                RelationContent::Url(u) => Some(u.resource.to_string()),
+                _ => None,
+            })
+            .collect(),
+        summary: Default::default(),        
     }
 }
 
 fn to_release(value: MBRelease) -> Release {
     Release {
-        // key: Default::default(),
+        key: None,
         title: none_if_empty(value.title),
         disambiguation: value.disambiguation,
+        country: value.country,
+        known_ids: KnownIds {
+            musicbrainz_id: Some(value.id),
+            ..Default::default()
+        },
+        links: value.relations.iter().flatten()
+            .filter_map(|r| match &r.content {
+                RelationContent::Url(u) => Some(u.resource.to_string()),
+                _ => None,
+            })
+            .collect(),
+        summary: Default::default(),        
+        // artists: value.0.artist_credit.iter().flatten()
+        //     .map(|f| Artist::from(ArtistCreditConverter::from(f.to_owned())))
+        //     .collect(),
+        barcode: value.barcode,
+        date: value.date.map(|f| f.to_string()),
+        // genres: value.0.genres.iter().flatten()
+        //     .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
+        //     .collect(),
+        packaging: value.packaging.map(|f| format!("{:?}", f)),
+        status: value.status.map(|f| format!("{:?}", f)),
+        // // TODO unwrap
+        // release_group: value.0.release_group
+        //     .map(|f| DimpleReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
+        // relations: value.0.relations.iter().flatten()
+        //     .map(|f| Relation::from(RelationConverter::from(f.to_owned())))
+        //     .collect(),
+        // media: value.0.media.iter().flatten()
+        //     .map(|f| Medium::from(MediumConverter::from(f.to_owned())))
+        //     .collect(),
+        // release_group: Default::default(),
         ..Default::default()
     }
 }
