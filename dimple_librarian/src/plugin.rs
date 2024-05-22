@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use dimple_core::model::Entity;
 
 use crate::librarian::Librarian;

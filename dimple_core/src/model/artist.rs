@@ -4,8 +4,6 @@ use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::model::KnownId;
-
 use super::known_id::KnownIds;
 
 // https://musicbrainz.org/doc/Artist
@@ -13,12 +11,10 @@ use super::known_id::KnownIds;
 pub struct Artist {
     pub key: Option<String>,
     pub name: Option<String>,
-    // pub known_ids: HashSet<KnownId>,
+    pub known_ids: KnownIds,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
     pub links: HashSet<String>,
 
     pub country: Option<String>,
-
-    pub known_ids: KnownIds,
 }

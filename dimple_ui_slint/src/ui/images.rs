@@ -86,11 +86,7 @@ impl ImageMangler {
             self.threadpool.execute(move || {
                 // TODO DRY(osdfhaosdhfoiuaysdiofuhaoisfd)
                 if let Some(dyn_image) = images.load_model_image(&model) {
-                    // TODO note, this resize is so slow in some cases that it
-                    // might be worth doing a way scaled down version first, setting it,
-                    // and then doing the real one.
-                    let dyn_image = dyn_image.resize(width, height, 
-                        image::imageops::FilterType::Nearest);
+                    let dyn_image = resize(dyn_image, width, height);
                     let buffer = dynamic_to_buffer(&dyn_image);
                     images.cache.lock().unwrap().insert(cache_key, buffer.clone());
                     // TODO go to network?
@@ -214,4 +210,9 @@ pub fn gen_fuzzy_rects(width: u32, height: u32) -> DynamicImage {
     
     let dyn_image = DynamicImage::ImageRgba8(image);
     dyn_image.resize(output_width, output_height, image::imageops::FilterType::Nearest)
+}
+
+// TODO putting this here as a note to try https://github.com/cykooz/fast_image_resize
+pub fn resize(image: DynamicImage, width: u32, height: u32) -> DynamicImage {
+    image.resize(width, height, image::imageops::FilterType::Nearest)
 }

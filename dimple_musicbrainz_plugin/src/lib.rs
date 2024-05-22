@@ -2,7 +2,7 @@ use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
 use anyhow::Result;
-use dimple_core::model::{Artist, Entity, Model};
+use dimple_core::model::{Artist, Entity, Model, Release};
 use dimple_librarian::plugin::Plugin;
 use musicbrainz_rs::entity::artist::ArtistSearchQuery;
 use musicbrainz_rs::entity::artist::Artist as MBArtist;
@@ -73,13 +73,12 @@ impl Plugin for MusicBrainzPlugin {
             .execute()?
             .entities
             .into_iter()
-            .map(api_artist_to_dimple_artist)
+            .map(to_artist)
             .map(|artist| Box::new(artist) as Box::<dyn Entity>)))
     }
-    
 }
 
-fn api_artist_to_dimple_artist(value: MBArtist) -> Artist {
+fn to_artist(value: MBArtist) -> Artist {
     Artist {
         // key: Some(value.id),
         name: none_if_empty(value.name),
@@ -97,6 +96,15 @@ fn api_artist_to_dimple_artist(value: MBArtist) -> Artist {
         //     .collect(),
         // summary: Default::default(),
         // country: value.0.country,
+        ..Default::default()
+    }
+}
+
+fn to_release(value: MBRelease) -> Release {
+    Release {
+        // key: Default::default(),
+        title: none_if_empty(value.title),
+        disambiguation: value.disambiguation,
         ..Default::default()
     }
 }

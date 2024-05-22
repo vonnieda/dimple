@@ -158,6 +158,7 @@ impl Db for SqliteDb {
     }
     
     fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = Model>>> {
+        // TODO
         let iter = self.list(&crate::model::Entity::model(&Artist::default()), None).unwrap().take(10)
             .chain(self.list(&crate::model::Entity::model(&Release::default()), None).unwrap().take(10))
             .chain(self.list(&crate::model::Entity::model(&Genre::default()), None).unwrap().take(10));

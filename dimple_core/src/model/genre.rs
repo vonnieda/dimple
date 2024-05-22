@@ -6,6 +6,7 @@ use serde::Serialize;
 
 use crate::model::KnownId;
 
+// https://musicbrainz.org/doc/Genre
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
 pub struct Genre {
     pub key: Option<String>,
