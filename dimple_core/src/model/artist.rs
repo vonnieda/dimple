@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use super::known_id::KnownIds;
+use super::Genre;
 
 // https://musicbrainz.org/doc/Artist
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
@@ -17,6 +18,6 @@ pub struct Artist {
     pub links: HashSet<String>,
 
     pub country: Option<String>,
-
-    // type, area, gender
+    #[serde(skip)]
+    pub genres: Vec<Genre>,
 }

@@ -23,6 +23,7 @@ impl Merge for Artist {
             links: l.links.union(&r.links).cloned().collect(),
             name: Option::merge(l.name, r.name),
             summary: Option::merge(l.summary, r.summary),
+            ..Default::default()
         }
     }
 
@@ -49,7 +50,7 @@ impl Merge for ReleaseGroup {
         Self {
             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
             key: Option::merge(l.key, r.key),
-            // known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
             links: l.links.union(&r.links).cloned().collect(),
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
@@ -81,7 +82,7 @@ impl Merge for Release {
         Self {
             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
             key: Option::merge(l.key, r.key),
-            // known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
             links: l.links.union(&r.links).cloned().collect(),
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
@@ -131,7 +132,7 @@ impl Merge for Track {
     fn merge(l: Self, r: Self) -> Self {
         Self {
             key: Option::merge(l.key, r.key),
-            // known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
             title: Option::merge(l.title, r.title),
             length: Option::merge(l.length, r.length),
             number: Option::merge(l.number, r.number),
@@ -167,7 +168,7 @@ impl Merge for Recording {
         Self {
             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
             key: Option::merge(l.key, r.key),
-            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
             links: l.links.union(&r.links).cloned().collect(),
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),

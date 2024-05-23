@@ -23,7 +23,6 @@ impl Librarian {
         let db_path = Path::new(path).join("dimple.db");
         let librarian = Self {
             db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()))),
-            // db: Arc::new(MemoryDb::default()),
             plugins: Default::default(),
             network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
         };
@@ -157,7 +156,17 @@ impl Db for Librarian {
     }
 
     fn get(&self, model: &dimple_core::model::Model) -> Result<Option<dimple_core::model::Model>> {
-        self.db.get(model)
+        let model = self.db.get(model)?.unwrap_or(model.clone());
+
+        for plugin in self.plugins.read().unwrap().iter() {
+            // TODO I don't think this should return on a plugin error, as
+            // we can still go local.
+            if let Some(result) = plugin.get(model.entity(), self.network_mode())? {
+                self.merge(&result.model());
+            }
+        }
+
+        self.db.get(&model)
     }
 
     fn link(&self, model: &dimple_core::model::Model, related_to: &dimple_core::model::Model) -> Result<()> {
@@ -178,6 +187,8 @@ impl Db for Librarian {
 
     fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         for plugin in self.plugins.read().unwrap().iter() {
+            // TODO I don't think this should return on a plugin error, as
+            // we can still go local.
             for result in plugin.search(query, self.network_mode())? {
                 self.merge(&result.model());
             }
@@ -185,90 +196,6 @@ impl Db for Librarian {
         self.db.search(query)
     }
 }
-
-
-// /// Links the two Models if they are both Some. Reduces boilerplate.
-// fn lazy_link(db: &dyn Db, l: &Option<Model>, r: &Option<Model>) {
-//     if l.is_some() && r.is_some() {
-//         db.link(&l.clone().unwrap(), &r.clone().unwrap()).unwrap()
-//     }
-// }
-
-// fn db_merge_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
-//     // find a matching model to the specified, merge, save
-//     let matching = Self::find_matching_model(db, model, parent);
-//     if let Some(matching) = matching {
-//         let merged = Self::merge_model(&model, &matching);
-//         return Some(db.insert(&merged).unwrap())
-//     }
-//     // if not, insert the new one and link it to the parent
-//     else {
-//         if Self::model_valid(model) {
-//             return Some(db.insert(model).unwrap())
-//         }
-//     }
-//     None
-// }
-
-// fn find_matching_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
-//     // This needs to use the scoring and sorting, but yea.
-//     db.list(&model, parent.as_ref()).unwrap()
-//         .filter(|model_opt| Self::compare_models(&model, model_opt))
-//         .next()
-// }
-
-// fn compare_models(l: &Model, r: &Model) -> bool {
-//     match (l, r) {
-//         (Model::Artist(l), Model::Artist(r)) => {
-//             // TODO needs to include disambiguation - I think we're getting back to mergability.
-//             (l.name.is_some() && l.name == r.name)
-//             || (l.known_ids.musicbrainz_id.is_some() && l.known_ids.musicbrainz_id == r.known_ids.musicbrainz_id)
-//         },
-//         (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => {
-//             l.title.is_some() && l.title == r.title
-//         },
-//         (Model::Release(l), Model::Release(r)) => {
-//             l.title.is_some() && l.title == r.title
-//         },
-//         (Model::Medium(l), Model::Medium(r)) => {
-//             l.position == r.position
-//         },
-//         (Model::Track(l), Model::Track(r)) => {
-//             l.title.is_some() && l.title == r.title
-//         },
-//         (Model::Genre(l), Model::Genre(r)) => {
-//             l.name.is_some() && l.name == r.name
-//         },
-//         _ => todo!()
-//     }
-// }
-
-// fn merge_model(l: &Model, r: &Model) -> Model {
-//     match (l, r) {
-//         (Model::Artist(l), Model::Artist(r)) => Artist::merge(l.clone(), r.clone()).model(),
-//         (Model::Genre(l), Model::Genre(r)) => Genre::merge(l.clone(), r.clone()).model(),
-//         (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
-//         (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
-//         (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
-//         (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
-//         _ => todo!()
-//     }
-// }
-
-// fn model_valid(model: &Model) -> bool {
-//     match model {
-//         Model::Artist(a) => a.name.is_some() || a.known_ids.musicbrainz_id.is_some(),
-//         Model::Genre(g) => g.name.is_some(),
-//         Model::Medium(_m) => true,
-//         Model::Release(r) => r.title.is_some(),
-//         Model::ReleaseGroup(rg) => rg.title.is_some(),
-//         Model::Track(t) => t.title.is_some(),
-//         _ => todo!()
-//     }
-// }
-
-
-
 
 
 // use std::{collections::HashSet, sync::{Mutex, RwLock}};
@@ -503,126 +430,4 @@ impl Db for Librarian {
 //         }
 //         None
 //     }    
-// }
-
-// trait Merge<T> {
-//     // TODO should probably be references.
-//     // 
-//     fn merge(a: T, b: T) -> T;
-// }
-
-// impl Merge<Entities> for Entities {
-//     fn merge(left: Entities, right: Entities) -> Self {
-//         match (left, right) {
-//             (Entities::Artist(left), Entities::Artist(right)) => {
-//                 Artist::merge(left, right).entity()
-//             },
-//             (Entities::ReleaseGroup(left), Entities::ReleaseGroup(right)) => {
-//                 ReleaseGroup::merge(left, right).entity()
-//             },
-//             (Entities::Release(left), Entities::Release(right)) => {
-//                 Release::merge(left, right).entity()
-//             },
-//             (Entities::Recording(left), Entities::Recording(right)) => {
-//                 Recording::merge(left, right).entity()
-//             },
-//             (Entities::RecordingSource(left), Entities::RecordingSource(right)) => {
-//                 RecordingSource::merge(left, right).entity()
-//             },
-//             _ => todo!()
-//         }
-//     }
-// }
-
-// // TODO leaning towards making all these use longer instead of or, which will
-// // help with a move towards CRDT.
-// impl Merge<Self> for Artist {
-//     fn merge(a: Self, b: Self) -> Self {
-//         Self {
-//             disambiguation: a.disambiguation.or(b.disambiguation),
-//             key: a.key.or(b.key),
-//             known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-//             source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-//             links: a.links.union(&b.links).cloned().collect(),
-//             name: a.name.or(b.name),
-//             summary: a.summary.or(b.summary),
-//             country: a.country.or(b.country),
-//         }
-//     }
-// }
-
-// impl Merge<Self> for ReleaseGroup {
-//     fn merge(a: Self, b: Self) -> Self {
-//         Self {
-//             disambiguation: a.disambiguation.or(b.disambiguation),
-//             key: a.key.or(b.key),
-//             known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-//             source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-//             links: a.links.union(&b.links).cloned().collect(),
-//             title: a.title.or(b.title),
-//             summary: a.summary.or(b.summary),
-
-//             first_release_date: a.first_release_date.or(b.first_release_date),
-//             primary_type: a.primary_type.or(b.primary_type),
-//         }
-//     }
-// }
-
-// impl Merge<Self> for Release {
-//     fn merge(a: Self, b: Self) -> Self {
-//         Self {
-//             disambiguation: a.disambiguation.or(b.disambiguation),
-//             key: a.key.or(b.key),
-//             known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-//             source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-//             links: a.links.union(&b.links).cloned().collect(),
-//             title: a.title.or(b.title),
-//             summary: a.summary.or(b.summary),
-
-
-//             barcode: a.barcode.or(b.barcode),
-//             country: a.country.or(b.country),
-//             date: a.date.or(b.date),
-//             packaging: a.packaging.or(b.packaging),
-//             status: a.status.or(b.status),
-//         }
-//     }
-// }
-
-// impl Merge<Self> for Recording {
-//     fn merge(a: Self, b: Self) -> Self {
-//         Self {
-//             disambiguation: a.disambiguation.or(b.disambiguation),
-//             key: a.key.or(b.key),
-//             known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-//             source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-//             links: a.links.union(&b.links).cloned().collect(),
-//             title: a.title.or(b.title),
-//             summary: a.summary.or(b.summary),
-
-//             annotation: a.annotation.or(b.annotation),
-//             isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
-//             length: a.length.or(b.length)
-//         }
-//     }
-// }
-
-// impl Merge<Self> for RecordingSource {
-//     fn merge(a: Self, b: Self) -> Self {
-//         Self {
-//             // disambiguation: a.disambiguation.or(b.disambiguation),
-//             key: a.key.or(b.key),
-//             known_ids: a.known_ids.union(&b.known_ids).cloned().collect(),
-//             source_ids: a.source_ids.union(&b.source_ids).cloned().collect(),
-//             format: a.format.or(b.format),
-//             extension: a.extension.or(b.extension),
-//             // links: a.links.union(&b.links).cloned().collect(),
-//             // title: a.title.or(b.title),
-//             // summary: a.summary.or(b.summary),
-
-//             // annotation: a.annotation.or(b.annotation),
-//             // isrcs: a.isrcs.union(&b.isrcs).cloned().collect(),
-//             // length: a.length.or(b.length)
-//         }
-//     }
 // }

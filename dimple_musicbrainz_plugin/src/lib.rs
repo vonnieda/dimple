@@ -2,15 +2,15 @@ use std::iter;
 use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
-use anyhow::Result;
-use dimple_core::model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Recording, ReleaseGroup, Track};
+use anyhow::{Error, Result};
+use dimple_core::model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Recording, ReleaseGroup, Track};
 use dimple_librarian::plugin::{NetworkMode, Plugin};
 use musicbrainz_rs::entity::artist::ArtistSearchQuery;
 use musicbrainz_rs::entity::artist::Artist as MBArtist;
 use musicbrainz_rs::entity::release_group::ReleaseGroup as MBReleaseGroup;
 use musicbrainz_rs::entity::relations::RelationContent;
 use musicbrainz_rs::entity::release_group::ReleaseGroupSearchQuery;
-use musicbrainz_rs::Search;
+use musicbrainz_rs::{Fetch, Search};
 
 #[derive(Debug)]
 pub struct MusicBrainzPlugin {
@@ -45,7 +45,22 @@ impl MusicBrainzPlugin {
 
 impl Plugin for MusicBrainzPlugin {
     fn get(&self, entity: &dyn dimple_core::model::Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn dimple_core::model::Entity>>> {
-        todo!()
+        let model = entity.model();
+        match model {
+            Model::Artist(artist) => {
+                let mbid = artist.known_ids.musicbrainz_id.ok_or(Error::msg("mbid missing"))?;
+                // let request_token = LibrarySupport::start_request(self, 
+                //     &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", mbid));
+                self.enforce_rate_limit();
+                let result = MBArtist::fetch().id(&mbid)
+                    .with_aliases().with_annotations().with_genres().with_rating()
+                    .with_tags().with_release_groups().with_url_relations()
+                    .execute()?;
+                let artist = Artist::from(ArtistConverter::from(result.clone()));
+                Ok(Some(Box::new(artist)))
+            },
+            _ => todo!(),
+        }
     }
     
     fn list(
@@ -131,6 +146,9 @@ impl From<ArtistConverter> for dimple_core::model::Artist {
         dimple_core::model::Artist {
             country: value.0.country,
             disambiguation: none_if_empty(value.0.disambiguation),
+            genres: value.0.genres.iter().flatten()
+                .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
+                .collect(),
             key: None,
             known_ids: KnownIds {
                 musicbrainz_id: Some(value.0.id),
