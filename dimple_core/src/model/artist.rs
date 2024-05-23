@@ -17,4 +17,6 @@ pub struct Artist {
     pub links: HashSet<String>,
 
     pub country: Option<String>,
+
+    // type, area, gender
 }

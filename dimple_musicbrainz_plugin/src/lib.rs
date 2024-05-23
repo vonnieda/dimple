@@ -3,17 +3,14 @@ use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
 use anyhow::Result;
-use dimple_core::model::{Artist, Entity, Genre, KnownIds, Medium, Model, Release, ReleaseGroup};
+use dimple_core::model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Recording, ReleaseGroup, Track};
 use dimple_librarian::plugin::{NetworkMode, Plugin};
 use musicbrainz_rs::entity::artist::ArtistSearchQuery;
 use musicbrainz_rs::entity::artist::Artist as MBArtist;
 use musicbrainz_rs::entity::release_group::ReleaseGroup as MBReleaseGroup;
 use musicbrainz_rs::entity::relations::RelationContent;
-use musicbrainz_rs::entity::release::Release as MBRelease;
-use musicbrainz_rs::entity::release::ReleaseSearchQuery;
 use musicbrainz_rs::entity::release_group::ReleaseGroupSearchQuery;
 use musicbrainz_rs::Search;
-use serde::de;
 
 #[derive(Debug)]
 pub struct MusicBrainzPlugin {
@@ -69,6 +66,9 @@ impl Plugin for MusicBrainzPlugin {
 
         self.enforce_rate_limit();
 
+        let iter = std::iter::empty();
+
+        // https://musicbrainz.org/ws/2/artist/?query=metallica&fmt=json
         let search_query = ArtistSearchQuery::query_builder()
             .artist(&query)
             .build();
@@ -76,8 +76,9 @@ impl Plugin for MusicBrainzPlugin {
             .execute()?
             .entities
             .into_iter()
-            .map(|result| Into::<Artist>::into(ArtistConverter::from(result)))
+            .map(|result| Artist::from(ArtistConverter::from(result)))
             .map(|artist| Box::new(artist) as Box::<dyn Entity>);
+        let iter = iter.chain(artists);
 
         let search_query = ReleaseGroupSearchQuery::query_builder()
             .release_group(&query)
@@ -88,17 +89,18 @@ impl Plugin for MusicBrainzPlugin {
             .into_iter()
             .map(|result| Into::<ReleaseGroup>::into(ReleaseGroupConverter::from(result)))
             .map(|release_group| Box::new(release_group) as Box::<dyn Entity>);
+        let iter = iter.chain(release_groups);
 
-        let search_query = ReleaseSearchQuery::query_builder()
-            .release(&query)
-            .build();
-        let releases = MBRelease::search(search_query)
-            .execute()?
-            .entities
-            .into_iter()
-            .map(|result| Into::<Release>::into(ReleaseConverter::from(result)))
-            .map(|release| Box::new(release) as Box::<dyn Entity>);
-        Ok(Box::new(artists.chain(release_groups).chain(releases)))
+        // let search_query = ReleaseSearchQuery::query_builder()
+        //     .release(&query)
+        //     .build();
+        // let releases = MBRelease::search(search_query)
+        //     .execute()?
+        //     .entities
+        //     .into_iter()
+        //     .map(|result| Into::<Release>::into(ReleaseConverter::from(result)))
+        //     .map(|release| Box::new(release) as Box::<dyn Entity>);
+        Ok(Box::new(iter))
     }
 }
 
@@ -127,22 +129,47 @@ impl From<musicbrainz_rs::entity::artist::Artist> for ArtistConverter {
 impl From<ArtistConverter> for dimple_core::model::Artist {
     fn from(value: ArtistConverter) -> Self {
         dimple_core::model::Artist {
+            country: value.0.country,
+            disambiguation: none_if_empty(value.0.disambiguation),
             key: None,
-            name: none_if_empty(value.0.name),
             known_ids: KnownIds {
                 musicbrainz_id: Some(value.0.id),
                 ..Default::default()
             },
-            disambiguation: none_if_empty(value.0.disambiguation),
             links: value.0.relations.iter().flatten()
                 .filter_map(|r| match &r.content {
                     RelationContent::Url(u) => Some(u.resource.to_string()),
                     _ => None,
                 })
                 .collect(),
+            name: none_if_empty(value.0.name),
             summary: None,
-            country: value.0.country,
         }
+    }
+}
+
+pub struct ArtistCreditConverter(musicbrainz_rs::entity::artist_credit::ArtistCredit);
+
+impl From<musicbrainz_rs::entity::artist_credit::ArtistCredit> for ArtistCreditConverter {
+    fn from(value: musicbrainz_rs::entity::artist_credit::ArtistCredit) -> Self {
+        ArtistCreditConverter(value)
+    }
+}
+
+impl From<ArtistCreditConverter> for dimple_core::model::ArtistCredit {
+    fn from(value: ArtistCreditConverter) -> Self {
+        ArtistCredit {
+            artist: Artist::from(ArtistConverter::from(value.0.artist)),
+            join_phrase: value.0.joinphrase,
+            key: None,
+            name: Some(value.0.name),
+        }
+    }
+}
+
+impl From<ArtistCreditConverter> for dimple_core::model::Artist {
+    fn from(value: ArtistCreditConverter) -> Self {
+        Artist::from(ArtistConverter::from(value.0.artist))
     }
 }
 
@@ -157,26 +184,29 @@ impl From<musicbrainz_rs::entity::release_group::ReleaseGroup> for ReleaseGroupC
 impl From<ReleaseGroupConverter> for dimple_core::model::ReleaseGroup {
     fn from(value: ReleaseGroupConverter) -> Self {
         dimple_core::model::ReleaseGroup {
+            annotation: value.0.annotation,
+            artist_credits: value.0.artist_credit.iter().flatten()
+                .map(|artist_credit| ArtistCredit::from(ArtistCreditConverter::from(artist_credit.to_owned())))
+                .collect(),
+            disambiguation: none_if_empty(value.0.disambiguation),
+            first_release_date: value.0.first_release_date.map(|f| f.to_string()),
+            genres: value.0.genres.iter().flatten()
+                .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
+                .collect(),
             key: None,
-            title: none_if_empty(value.0.title),
             known_ids: KnownIds {
                 musicbrainz_id: Some(value.0.id),
                 ..Default::default()
             },
-            disambiguation: none_if_empty(value.0.disambiguation),
-            primary_type: value.0.primary_type.map(|f| format!("{:?}", f)),
-            first_release_date: value.0.first_release_date.map(|f| f.to_string()),
             links: value.0.relations.iter().flatten()
                 .filter_map(|r| match &r.content {
                     RelationContent::Url(u) => Some(u.resource.to_string()),
                     _ => None,
                 })
                 .collect(),
-            summary: Default::default(),
-            annotation: value.0.annotation,
-            artist_credits: vec![],
-            genres: vec![],
-            releases: vec![],
+            primary_type: value.0.primary_type.map(|f| format!("{:?}", f)),
+            summary: None,
+            title: none_if_empty(value.0.title),
         }
     }
 }
@@ -192,12 +222,9 @@ impl From<musicbrainz_rs::entity::release::Release> for ReleaseConverter {
 impl From<ReleaseConverter> for dimple_core::model::Release {
     fn from(value: ReleaseConverter) -> Self {
         dimple_core::model::Release {
-            key: None,
-            title: none_if_empty(value.0.title),
-            known_ids: KnownIds {
-                musicbrainz_id: Some(value.0.id),
-                ..Default::default()
-            },
+            artist_credits: value.0.artist_credit.iter().flatten()
+                .map(|artist_credit| ArtistCredit::from(ArtistCreditConverter::from(artist_credit.to_owned())))
+                .collect(),
             barcode: value.0.barcode,
             country: value.0.country,
             date: value.0.date.map(|f| f.to_string()),
@@ -205,61 +232,28 @@ impl From<ReleaseConverter> for dimple_core::model::Release {
             genres: value.0.genres.iter().flatten()
                 .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
                 .collect(),
-            packaging: value.0.packaging.map(|f| format!("{:?}", f)),
-            status: value.0.status.map(|f| format!("{:?}", f)),
-            media: value.0.media.iter().flatten()
-                .map(|medium| MediumConverter::from(medium.to_owned()).into())
-                .collect(),
-            summary: Default::default(),
+            key: None,
+            known_ids: KnownIds {
+                musicbrainz_id: Some(value.0.id),
+                ..Default::default()
+            },
             links: value.0.relations.iter().flatten()
                 .filter_map(|r| match &r.content {
                     RelationContent::Url(u) => Some(u.resource.to_string()),
                     _ => None,
                 })
                 .collect(),
+            title: none_if_empty(value.0.title),
+            packaging: value.0.packaging.map(|f| format!("{:?}", f)),
             primary_type: None,
-            artist_credits: vec![],
-            // release_group: value.0.release_group
-            //     .map(|f| DimpleReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
-            // artists: value.0.artist_credit.iter().flatten()
-            //     .map(|f| Artist::from(ArtistCreditConverter::from(f.to_owned())))
-            //     .collect(),
-        }
-    }
-}
-
-pub struct GenreConverter(musicbrainz_rs::entity::genre::Genre);
-
-impl From<musicbrainz_rs::entity::genre::Genre> for GenreConverter {
-    fn from(value: musicbrainz_rs::entity::genre::Genre) -> Self {
-        GenreConverter(value)
-    }
-}
-
-impl From<GenreConverter> for dimple_core::model::Genre {
-    fn from(value: GenreConverter) -> Self {
-        dimple_core::model::Genre {
-            key: None,
-            name: none_if_empty(value.0.name),
+            release_group: value.0.release_group
+                .map(|f| ReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
+            status: value.0.status.map(|f| format!("{:?}", f)),
             summary: None,
-            disambiguation: None,
-            known_ids: Default::default(),
-            links: Default::default(),
+            media: value.0.media.iter().flatten()
+                .map(|f| Medium::from(MediumConverter::from(f.to_owned())))
+                .collect(),
         }
-    }
-}
-
-pub struct ArtistCreditConverter(musicbrainz_rs::entity::artist_credit::ArtistCredit);
-
-impl From<musicbrainz_rs::entity::artist_credit::ArtistCredit> for ArtistCreditConverter {
-    fn from(value: musicbrainz_rs::entity::artist_credit::ArtistCredit) -> Self {
-        ArtistCreditConverter(value)
-    }
-}
-
-impl From<ArtistCreditConverter> for dimple_core::model::Artist {
-    fn from(value: ArtistCreditConverter) -> Self {
-        Artist::from(ArtistConverter::from(value.0.artist))
     }
 }
 
@@ -274,16 +268,15 @@ impl From<musicbrainz_rs::entity::release::Media> for MediumConverter {
 impl From<MediumConverter> for dimple_core::model::Medium {
     fn from(value: MediumConverter) -> Self {
         dimple_core::model::Medium {
-            title: value.0.title,
-            
+            key: None,
+            title: value.0.title,            
             disc_count: value.0.disc_count,
             format: value.0.format,
             position: value.0.position,
-            tracks: value.0.tracks.iter().flatten()
-                .map(|track| TrackConverter::from(track.to_owned()).into())
-                .collect(),
             track_count: Some(value.0.track_count),
-            key: None,
+            tracks: value.0.tracks.iter().flatten()
+                .map(|f| Track::from(TrackConverter::from(f.to_owned())))
+                .collect(),
         }
     }
 }
@@ -299,68 +292,84 @@ impl From<musicbrainz_rs::entity::release::Track> for TrackConverter {
 impl From<TrackConverter> for dimple_core::model::Track {
     fn from(value: TrackConverter) -> Self {
         dimple_core::model::Track {
+            artist_credits: value.0.recording.artist_credit.iter().flatten()
+                .map(|artist_credit| ArtistCredit::from(ArtistCreditConverter::from(artist_credit.to_owned())))
+                .collect(),
+            genres: value.0.recording.genres.iter().flatten()
+                .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
+                .collect(),
             key: None,
             known_ids: KnownIds {
                 musicbrainz_id: Some(value.0.id),
                 ..Default::default()
             },
-            title: none_if_empty(value.0.title),
-            number: u32::from_str_radix(&value.0.number, 10).ok(),
             length: value.0.length,
+            number: u32::from_str_radix(&value.0.number, 10).ok(),
             position: Some(value.0.position),
-            // recording: Recording::from(RecordingConverter::from(value.0.recording)),
-            recording: None,
+            recording: Recording::from(RecordingConverter::from(value.0.recording.to_owned())),
+            title: none_if_empty(value.0.title),
         }
     }
 }
 
-//length: value.0.length.and_then(|length| u32::from_str_radix(length, 10).ok()),
+pub struct RecordingConverter(musicbrainz_rs::entity::recording::Recording);
 
-// pub struct RecordingConverter(musicbrainz_rs::entity::recording::Recording);
+impl From<musicbrainz_rs::entity::recording::Recording> for RecordingConverter {
+    fn from(value: musicbrainz_rs::entity::recording::Recording) -> Self {
+        RecordingConverter(value)
+    }
+}
 
-// impl From<musicbrainz_rs::entity::recording::Recording> for RecordingConverter {
-//     fn from(value: musicbrainz_rs::entity::recording::Recording) -> Self {
-//         RecordingConverter(value)
-//     }
-// }
+impl From<RecordingConverter> for dimple_core::model::Recording {
+    fn from(value: RecordingConverter) -> Self {
+        dimple_core::model::Recording {
+            annotation: value.0.annotation,
+            artist_credits: value.0.artist_credit.iter().flatten()
+                .map(|artist_credit| ArtistCredit::from(ArtistCreditConverter::from(artist_credit.to_owned())))
+                .collect(),
+            disambiguation: value.0.disambiguation,
+            genres: value.0.genres.iter().flatten()
+                .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
+                .collect(),
+            isrc: value.0.isrcs.into_iter().flatten().next(),
+            key: None,
+            known_ids: KnownIds {
+                musicbrainz_id: Some(value.0.id),
+                ..Default::default()
+            },
+            length: value.0.length,
+            links: value.0.relations.iter().flatten()
+                .filter_map(|r| match &r.content {
+                    RelationContent::Url(u) => Some(u.resource.to_string()),
+                    _ => None,
+                })
+                .collect(),
+            summary: None,
+            title: none_if_empty(value.0.title),
+        }
+    }
+}
 
-// impl From<RecordingConverter> for dimple_core::model::Recording {
-//     fn from(value: RecordingConverter) -> Self {
-//         dimple_core::model::Recording {
-//             key: Default::default(),
-//             title: none_if_empty(value.0.title),
-//             source_ids: Default::default(),
-//             known_ids: iter::once(&value.0.id).map(|mbid| KnownId::MusicBrainzId(mbid.to_string())).collect::<HashSet<_>>(),
+pub struct GenreConverter(musicbrainz_rs::entity::genre::Genre);
 
-//             annotation: value.0.annotation,
-//             disambiguation: value.0.disambiguation,
-//             // genres: value.0.genres.iter().flatten()
-//             //     .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
-//             //     .collect(),
-//             isrcs: value.0.isrcs.into_iter().flatten().collect(),
-//             length: value.0.length,
-//             // relations: value.0.relations.iter().flatten()
-//             //     .map(|f| Relation::from(RelationConverter::from(f.to_owned())))
-//             //     .collect(),
-//             // releases: value.0.releases.iter()
-//             //     .flatten()
-//             //     .map(|f| Release::from(ReleaseConverter::from(f.to_owned())))
-//             //     .collect(),
-//             // artist_credits: value.0.artist_credit.iter()
-//             //     .flatten()
-//             //     .map(|f| Artist::from(ArtistCreditConverter::from(f.to_owned())))
-//             //     .collect(),
+impl From<musicbrainz_rs::entity::genre::Genre> for GenreConverter {
+    fn from(value: musicbrainz_rs::entity::genre::Genre) -> Self {
+        GenreConverter(value)
+    }
+}
 
-//             summary: Default::default(),
-//             links: value.0.relations.iter().flatten()
-//                 .filter_map(|r| match &r.content {
-//                     RelationContent::Url(u) => Some(u.resource.to_string()),
-//                     _ => None,
-//                 })
-//                 .collect(),
-//         }
-//     }
-// }
+impl From<GenreConverter> for dimple_core::model::Genre {
+    fn from(value: GenreConverter) -> Self {
+        dimple_core::model::Genre {
+            disambiguation: None,
+            key: None,
+            known_ids: Default::default(),
+            links: Default::default(),
+            name: none_if_empty(value.0.name),
+            summary: None,
+        }
+    }
+}
 
 // impl Collection for MusicBrainzLibrary {
 //     fn name(&self) -> String {

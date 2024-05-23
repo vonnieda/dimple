@@ -7,7 +7,6 @@ use serde::Serialize;
 use super::ArtistCredit;
 use super::Genre;
 use super::KnownIds;
-use super::Release;
 
 
 // https://musicbrainz.org/doc/ReleaseGroup
@@ -26,7 +25,8 @@ pub struct ReleaseGroup {
     pub first_release_date: Option<String>,
     pub primary_type: Option<String>,
 
+    #[serde(skip)]
     pub artist_credits: Vec<ArtistCredit>,
+    #[serde(skip)]
     pub genres: Vec<Genre>,
-    pub releases: Vec<Release>,
 }

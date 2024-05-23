@@ -55,6 +55,7 @@ pub fn release_group_details(url: &str, app: &App) {
         releases.sort_by_key(|f| f.date.to_owned());
         releases.reverse();
 
+        
         let release = releases.get(0).unwrap();
         let media_and_tracks: Vec<_> = librarian
             .list(&Medium::default().into(), Some(&release.model()))

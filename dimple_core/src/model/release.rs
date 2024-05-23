@@ -8,6 +8,7 @@ use super::ArtistCredit;
 use super::Genre;
 use super::KnownIds;
 use super::Medium;
+use super::ReleaseGroup;
 
 // https://musicbrainz.org/doc/Release
 // https://musicbrainz.org/release/a4864e94-6d75-4ade-bc93-0dabf3521453
@@ -29,8 +30,13 @@ pub struct Release {
     pub packaging: Option<String>,
     pub status: Option<String>,
 
+    #[serde(skip)]
     pub artist_credits: Vec<ArtistCredit>,
+    #[serde(skip)]
     pub genres: Vec<Genre>,
+    #[serde(skip)]
+    pub release_group: ReleaseGroup,
+    #[serde(skip)]
     pub media: Vec<Medium>,
 }
 
