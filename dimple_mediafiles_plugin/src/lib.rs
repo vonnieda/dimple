@@ -255,6 +255,8 @@ impl MediaFilesPlugin {
 }
 
 impl Plugin for MediaFilesPlugin {
+
+    
     fn get(&self, entity: &dyn Entity, network_mode: NetworkMode) -> anyhow::Result<Option<Box<dyn Entity>>> {
         todo!()
     }
@@ -273,6 +275,9 @@ impl Plugin for MediaFilesPlugin {
         todo!()
     }
     
+    fn name(&self) -> String {
+        "MediaFilesPlugin".to_string()
+    }
     
 }
 

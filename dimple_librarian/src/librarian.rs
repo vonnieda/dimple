@@ -41,8 +41,9 @@ impl Librarian {
         *self.network_mode.lock().unwrap() = network_mode.clone();
     }
 
-    // TODO last thing to decide here is how we're store the sub-objects
-    // in the db.
+    // TODO Still struggling mightily with this, but I think it's worth the
+    // effort to just go down this path, even if it gets thrown away, just to
+    // get it working.
     fn merge(&self, model: &Model) -> Option<Model> {
         match model {
             Model::Artist(artist) => self.merge_artist(artist),
@@ -54,19 +55,34 @@ impl Librarian {
     }
 
     fn merge_artist(&self, artist: &Artist) -> Option<Model> {
-        Self::db_merge_model(self, &artist.model(), &None)
+        let artist: Artist = Self::db_merge_model(self, &artist.model(), &None)?.into();
+        for genre in &artist.genres {
+            let _genre = Self::db_merge_model(self, &genre.model(), &Some(artist.model()));
+        }
+        Some(artist.model())
     }
 
     fn merge_release_group(&self, release_group: &ReleaseGroup) -> Option<Model> {
         Self::db_merge_model(self, &release_group.model(), &None)
     }
 
+    /// get, merge, update the release properties
+    /// for each genre
+    ///     merge(genre, release)
+    ///     link(release, genre)
+    /// for each artist_credit
+    ///     merge(artist_credit)
+    ///     link(release, artist_credit)
+    ///     link(release, artist)
+    /// for each medium
+    ///     for each track
+    ///         merge(release, medium, track)
     fn merge_release(&self, release: &Release) -> Option<Model> {
         Self::db_merge_model(self, &release.model(), &None)
     }
 
     fn merge_recording(&self, recording: &Recording) -> Option<Model> {
-        None
+        todo!()
     }
 
     fn db_merge_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
@@ -193,6 +209,7 @@ impl Db for Librarian {
                 self.merge(&result.model());
             }
         }
+        // TODO fts lol
         self.db.search(query)
     }
 }
