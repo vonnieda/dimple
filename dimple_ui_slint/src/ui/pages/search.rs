@@ -64,6 +64,7 @@ pub fn search(url: &str, app: &App) {
 fn model_card(model: &Model) -> CardAdapter {
     match model {
         Model::Artist(artist) => artist.clone().into(),
+        Model::ReleaseGroup(release_group) => release_group.clone().into(),
         Model::Release(release) => release.clone().into(),
         Model::Genre(genre) => genre.clone().into(),
         _ => todo!(),

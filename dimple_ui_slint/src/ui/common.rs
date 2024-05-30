@@ -4,7 +4,7 @@ use dimple_core::db::Db;
 use dimple_core::model::Artist;
 use dimple_core::model::Entity;
 use dimple_core::model::Genre;
-use dimple_core::model::KnownId;
+use dimple_core::model::KnownIds;
 use dimple_core::model::Medium;
 use dimple_core::model::Picture;
 use dimple_core::model::Playlist;
@@ -329,10 +329,11 @@ pub fn create_links(count: usize) -> HashSet<String> {
     links
 }
 
-pub fn create_known_ids() -> HashSet<KnownId> {
-    let mut known_ids = HashSet::new();
-    known_ids.insert(KnownId::MusicBrainzId(fakeit::unique::uuid_v4()));
-    known_ids
+pub fn create_known_ids() -> KnownIds {
+    KnownIds {
+        musicbrainz_id: Some(fakeit::unique::uuid_v4()),
+        ..Default::default()
+    }
 }
 
 pub fn create_artist(db: &dyn Db) -> Artist {

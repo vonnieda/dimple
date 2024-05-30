@@ -1,6 +1,6 @@
 use std::{fs::File, path::PathBuf};
 
-use dimple_core::model::{Artist, Genre, KnownId, KnownIds, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track};
+use dimple_core::model::{Artist, Genre, KnownIds, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track};
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Visual}, probe::Hint};
 
 #[derive(Clone, Debug)]
@@ -93,8 +93,8 @@ impl MediaFile {
             title: self.tag(StandardTagKey::Album),
             primary_type: self.tag(StandardTagKey::MusicBrainzReleaseType),
             first_release_date: self.tag(StandardTagKey::ReleaseDate),
-            known_ids: self.tag(StandardTagKey::MusicBrainzReleaseGroupId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
-                .collect(),
+            // known_ids: self.tag(StandardTagKey::MusicBrainzReleaseGroupId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
+            //     .collect(),
             ..Default::default()
         }
     }
@@ -107,9 +107,9 @@ impl MediaFile {
             country: self.tag(StandardTagKey::ReleaseCountry),
             date: self.tag(StandardTagKey::Date),
             barcode: self.tag(StandardTagKey::IdentBarcode),
-            known_ids: self.tag(StandardTagKey::MusicBrainzAlbumId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
-                .chain(self.tag(StandardTagKey::IdentBarcode).iter().map(|id| KnownId::Barcode(id.to_string())))
-                .collect(),
+            // known_ids: self.tag(StandardTagKey::MusicBrainzAlbumId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
+            //     .chain(self.tag(StandardTagKey::IdentBarcode).iter().map(|id| KnownId::Barcode(id.to_string())))
+            //     .collect(),
             ..Default::default()
         }
     }
@@ -132,8 +132,8 @@ impl MediaFile {
             length: Default::default(),
             number: self.tag(StandardTagKey::TrackNumber).and_then(|s| u32::from_str_radix(&s, 10).ok()),
             position: self.tag(StandardTagKey::DiscNumber).and_then(|s| u32::from_str_radix(&s, 10).ok()),
-            known_ids: self.tag(StandardTagKey::MusicBrainzReleaseTrackId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
-                .collect(),
+            // known_ids: self.tag(StandardTagKey::MusicBrainzReleaseTrackId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
+            //     .collect(),
             ..Default::default()
         }
     }
@@ -146,11 +146,11 @@ impl MediaFile {
             length: Default::default(),
             annotation: self.tag(StandardTagKey::Comment),
             isrc: self.tag(StandardTagKey::IdentIsrc),
-            known_ids: self.tag(StandardTagKey::MusicBrainzTrackId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
-                .chain(self.tag(StandardTagKey::MusicBrainzRecordingId).iter().map(|id| KnownId::MusicBrainzId(id.to_string())))
-                .chain(self.tag(StandardTagKey::IdentIsrc).iter().map(|id| KnownId::ISRC(id.to_string())))
-                .chain(self.tag(StandardTagKey::IdentAsin).iter().map(|id| KnownId::ASIN(id.to_string())))
-                .collect(),
+            // known_ids: self.tag(StandardTagKey::MusicBrainzTrackId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
+            //     .chain(self.tag(StandardTagKey::MusicBrainzRecordingId).iter().map(|id| KnownId::MusicBrainzId(id.to_string())))
+            //     .chain(self.tag(StandardTagKey::IdentIsrc).iter().map(|id| KnownId::ISRC(id.to_string())))
+            //     .chain(self.tag(StandardTagKey::IdentAsin).iter().map(|id| KnownId::ASIN(id.to_string())))
+            //     .collect(),
             links: self.tag(StandardTagKey::Url).iter()
                 .chain(self.tag(StandardTagKey::UrlOfficial).iter())
                 .chain(self.tag(StandardTagKey::UrlPurchase).iter())

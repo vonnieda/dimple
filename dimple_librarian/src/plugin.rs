@@ -1,15 +1,12 @@
-use std::path::PathBuf;
+use std::time::Instant;
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use dimple_core::model::Entity;
 
-use crate::librarian::Librarian;
+pub const USER_AGENT: &str = "Dimple/0.0.1 +https://github.com/vonnieda/dimple +jason@vonnieda.org";
 
 pub trait Plugin: Send + Sync {
-    // TODO gonna change this up, hate the init thing
-    fn init(&self, librarian: &Librarian);
-    // TODO won't need this because will always have librarian, and can check there
-    fn set_network_mode(&self, _network_mode: &NetworkMode);
+    fn name(&self) -> String;
 
     /// Load the model using its key. Returns None if no key is set, or if the
     /// key doesn't exist in the database.
@@ -32,4 +29,32 @@ pub trait Plugin: Send + Sync {
 pub enum NetworkMode {
     Online,
     Offline,
+}
+
+pub struct LibrarySupport {
+}
+
+pub struct RequestToken {
+    tag: String,
+    start_time: Instant,
+    url: String,
+}
+
+impl LibrarySupport {
+    pub fn start_request(plugin: &dyn Plugin, url: &str) -> RequestToken {
+        RequestToken {
+            tag: plugin.name(),
+            start_time: Instant::now(),
+            url: url.to_owned(),
+        }
+    }
+
+    pub fn end_request(token: RequestToken, status_code: Option<u16>, length: Option<u64>) {
+        log::warn!("{} [{:?}] {}ms {:?} {}", 
+            token.tag, 
+            status_code, 
+            token.start_time.elapsed().as_millis(), 
+            length,
+            token.url);
+    }
 }
