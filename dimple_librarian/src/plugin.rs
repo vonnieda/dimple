@@ -3,6 +3,8 @@ use std::time::Instant;
 use anyhow::Result;
 use dimple_core::model::Entity;
 
+use colored::Colorize;
+
 pub const USER_AGENT: &str = "Dimple/0.0.1 +https://github.com/vonnieda/dimple +jason@vonnieda.org";
 
 pub trait Plugin: Send + Sync {
@@ -50,8 +52,8 @@ impl LibrarySupport {
     }
 
     pub fn end_request(token: RequestToken, status_code: Option<u16>, length: Option<u64>) {
-        log::warn!("{} [{:?}] {}ms {:?} {}", 
-            token.tag, 
+        log::info!("{} [{:?}] {}ms {:?} {}", 
+            token.tag.yellow(), 
             status_code, 
             token.start_time.elapsed().as_millis(), 
             length,

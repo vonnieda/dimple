@@ -1,7 +1,7 @@
 use std::{fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, MemoryDb, SqliteDb}, model::{self, Artist, Entity, Genre, Medium, Model, Recording, Release, ReleaseGroup, Track}
+    db::{Db, MemoryDb, SqliteDb}, model::{self, Artist, ArtistCredit, Entity, Genre, Medium, Model, Recording, Release, ReleaseGroup, Track}
 };
 
 use anyhow::Result;
@@ -9,6 +9,8 @@ use anyhow::Result;
 use crate::{merge::Merge, plugin::{NetworkMode, Plugin}};
 
 use rayon::prelude::{*};
+
+use colored::Colorize;
 
 #[derive(Clone)]
 pub struct Librarian {
@@ -55,15 +57,38 @@ impl Librarian {
     }
 
     fn merge_artist(&self, artist: &Artist) -> Option<Model> {
-        let artist: Artist = Self::db_merge_model(self, &artist.model(), &None)?.into();
+        // TODO This db thing is a footgun, because if I accidentally pass
+        // Librarian it will take it, and use the Librarian Db interface
+        // which does remotes. Maybe that means Librarian should not be
+        // Db, to be safe.
+        let db: &dyn Db = self.db.as_ref().as_ref();
+        let artist: Artist = Self::db_merge_model(db, &artist.model(), &None)?.into();
         for genre in &artist.genres {
-            let _genre = Self::db_merge_model(self, &genre.model(), &Some(artist.model()));
+            let genre = self.merge_genre(genre);
+            Self::lazy_link(db, &genre, &Some(artist.model()))
         }
         Some(artist.model())
     }
 
     fn merge_release_group(&self, release_group: &ReleaseGroup) -> Option<Model> {
-        Self::db_merge_model(self, &release_group.model(), &None)
+        let db: &dyn Db = self.db.as_ref().as_ref();
+
+        let release_group: ReleaseGroup = 
+            Self::db_merge_model(db, &release_group.model(), &None)?.into();
+
+        for genre in &release_group.genres {
+            let genre = self.merge_genre(genre);
+            Self::lazy_link(db, &genre, &Some(release_group.model()))
+        }
+
+        // TODO temporary bypass artist credit for artist to get some testing
+        // done
+        for artist_credit in &release_group.artist_credits {
+            let artist = self.merge_artist(&artist_credit.artist);
+            Self::lazy_link(db, &artist, &Some(release_group.model()))
+        }
+
+        Some(release_group.model())
     }
 
     /// get, merge, update the release properties
@@ -78,28 +103,46 @@ impl Librarian {
     ///     for each track
     ///         merge(release, medium, track)
     fn merge_release(&self, release: &Release) -> Option<Model> {
-        Self::db_merge_model(self, &release.model(), &None)
+        let db: &dyn Db = self.db.as_ref().as_ref();
+        Self::db_merge_model(db, &release.model(), &None)
     }
 
     fn merge_recording(&self, recording: &Recording) -> Option<Model> {
         todo!()
     }
 
+    fn merge_artist_credit(&self, artist_credit: &ArtistCredit, parent: &Model) -> Option<Model> {
+        // TODO not done, gonna bypass to artist for now
+        let db: &dyn Db = self.db.as_ref().as_ref();
+        Self::db_merge_model(db, &artist_credit.model(), &Some(parent.clone()))
+    }
+
+    fn merge_genre(&self, genre: &Genre) -> Option<Model> {
+        let db: &dyn Db = self.db.as_ref().as_ref();
+        Self::db_merge_model(db, &genre.model(), &None)
+    }
+
     fn db_merge_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
+        log::info!("db_merge_model {:?} ({:?})", model, parent);
         // find a matching model to the specified, merge, save
         let matching = Self::find_matching_model(db, model, parent);
         if let Some(matching) = matching {
+            log::info!("  found matching {:?}", matching);
             let merged = Self::merge_model(&model, &matching);
+            log::info!("  merged to {:?}", merged);
             return Some(db.insert(&merged).unwrap())
         }
         // if not, insert the new one and link it to the parent
         else {
+            log::info!("  no match");
             if Self::model_valid(model) {
+                log::info!("  model valid, creating");
                 let model = Some(db.insert(model).unwrap());
                 Self::lazy_link(db, &model, parent);
                 return model
             }
         }
+        log::info!("  failed");
         None
     }
 
@@ -111,9 +154,34 @@ impl Librarian {
     }
 
     fn find_matching_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
-        // This needs to use the scoring and sorting, but yea.
-        db.list(&model, parent.as_ref()).unwrap()
-            .find(|model_opt| Self::compare_models(&model, model_opt))
+        match model {
+            Model::ReleaseGroup(release_group) => Self::find_release_group(db, release_group),
+            _ => db.list(&model, parent.as_ref()).unwrap().find(|model_opt| Self::compare_models(&model, model_opt))
+        }
+    }
+
+    fn find_release_group(db: &dyn Db, release_group: &ReleaseGroup) -> Option<Model> {
+        // find by key
+        if let Some(_key) = &release_group.key {
+            return db.get(&release_group.model()).unwrap()
+        }
+
+        // find by known id
+        let matched = db.list(&release_group.model(), None).unwrap()
+            .map(Into::<ReleaseGroup>::into)
+            .find(|opt| {
+                Self::is_some_and_equal(&release_group.known_ids.musicbrainz_id, &opt.known_ids.musicbrainz_id)
+            });
+        if let Some(matched) = matched {
+            return Some(matched.model())
+        }
+
+        // find by artist + title
+        None
+    }
+
+    fn is_some_and_equal(l: &Option<String>, r: &Option<String>) -> bool {
+        l.is_some() && l == r
     }
 
     fn compare_models(l: &Model, r: &Model) -> bool {
@@ -123,7 +191,8 @@ impl Librarian {
                 || (l.known_ids.musicbrainz_id.is_some() && l.known_ids.musicbrainz_id == r.known_ids.musicbrainz_id)
             },
             (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => {
-                l.title.is_some() && l.title == r.title
+                (l.title.is_some() && l.title == r.title)
+                || (l.known_ids.musicbrainz_id.is_some() && l.known_ids.musicbrainz_id == r.known_ids.musicbrainz_id)
             },
             (Model::Release(l), Model::Release(r)) => {
                 l.title.is_some() && l.title == r.title
@@ -137,6 +206,9 @@ impl Librarian {
             (Model::Genre(l), Model::Genre(r)) => {
                 l.name.is_some() && l.name == r.name
             },
+            (Model::ArtistCredit(l), Model::ArtistCredit(r)) => {
+                l.name.is_some() && l.name == r.name
+            },
             _ => todo!()
         }
     }
@@ -148,6 +220,7 @@ impl Librarian {
             (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
             (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
             (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
+            // (Model::ArtistCredit(l), Model::ArtistCredit(r)) => ArtistCredit::merge(l.clone(), r.clone()).model(),
             (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
             _ => todo!()
         }
@@ -172,6 +245,9 @@ impl Db for Librarian {
     }
 
     fn get(&self, model: &dimple_core::model::Model) -> Result<Option<dimple_core::model::Model>> {
+        let msg = format!("Librarian::get {} {:?}", model.entity().type_name(), model.entity().key()).bright_blue();
+        log::info!("{}", msg);
+
         let model = self.db.get(model)?.unwrap_or(model.clone());
 
         for plugin in self.plugins.read().unwrap().iter() {
@@ -194,6 +270,9 @@ impl Db for Librarian {
         list_of: &dimple_core::model::Model,
         related_to: Option<&dimple_core::model::Model>,
     ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
+        let msg = format!("Librarian::list {:?}", list_of).bright_blue();
+        log::info!("{}", msg);
+
         self.db.list(list_of, related_to)
     }
     
@@ -210,7 +289,14 @@ impl Db for Librarian {
             }
         }
         // TODO fts lol
-        self.db.search(query)
+        // self.db.search(query)
+        let results = self.db.list(&Artist::default().model(), None)?
+            .chain(self.db.list(&Release::default().model(), None)?)
+            .chain(self.db.list(&ReleaseGroup::default().model(), None)?)
+            .chain(self.db.list(&Genre::default().model(), None)?)
+            .chain(self.db.list(&Track::default().model(), None)?);
+            
+        Ok(Box::new(results))
     }
 }
 

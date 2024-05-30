@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
 use serde::Serialize;
@@ -15,4 +17,12 @@ pub struct ArtistCredit {
     
     #[serde(skip)]
     pub artist: Artist,
+}
+
+impl Hash for ArtistCredit {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key.hash(state);
+        self.name.hash(state);
+        self.join_phrase.hash(state);
+    }
 }

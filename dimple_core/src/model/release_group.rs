@@ -30,3 +30,4 @@ pub struct ReleaseGroup {
     #[serde(skip)]
     pub genres: Vec<Genre>,
 }
+

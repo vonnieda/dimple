@@ -12,7 +12,7 @@ use super::KnownIds;
 pub struct Genre {
     pub key: Option<String>,
     pub name: Option<String>,
-    pub known_ids: HashSet<KnownIds>,
+    pub known_ids: KnownIds,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
     pub links: HashSet<String>,

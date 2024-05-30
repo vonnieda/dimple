@@ -45,6 +45,11 @@ impl MusicBrainzPlugin {
 
 impl Plugin for MusicBrainzPlugin {
     fn get(&self, entity: &dyn dimple_core::model::Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn dimple_core::model::Entity>>> {
+
+        if network_mode == NetworkMode::Offline {
+            return Ok(None)
+        }
+
         let model = entity.model();
         match model {
             Model::Artist(artist) => {
@@ -60,18 +65,147 @@ impl Plugin for MusicBrainzPlugin {
                 let artist = Artist::from(ArtistConverter::from(result.clone()));
                 Ok(Some(Box::new(artist)))
             },
-            _ => todo!(),
+
+            Model::ReleaseGroup(r) => {
+                let mbid = r.known_ids.musicbrainz_id.ok_or(Error::msg("mbid missing"))?;
+                let request_token = LibrarySupport::start_request(self, 
+                    &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", mbid));
+                self.enforce_rate_limit();
+                let result = MBReleaseGroup::fetch().id(&mbid)
+                    .with_aliases().with_annotations().with_artists()
+                    .with_genres().with_ratings().with_releases().with_tags()
+                    .with_url_relations()
+                    .execute()?;
+                LibrarySupport::end_request(request_token, None, None);
+                let release_group = ReleaseGroup::from(ReleaseGroupConverter::from(result.clone()));
+                Ok(Some(Box::new(release_group)))
+            },
+
+            _ => Ok(None),
         }
     }
-    
+
     fn list(
         &self,
         list_of: &dyn Entity,
         related_to: Option<&dyn Entity>,
-        network_mode: dimple_librarian::plugin::NetworkMode,
+        network_mode: NetworkMode,
     ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+        
+        if network_mode == NetworkMode::Offline {
+            return Ok(Box::new(iter::empty()))
+        }
+
         todo!()
     }
+    
+    // fn list(
+    //     &self,
+    //     list_of: &dyn Entity,
+    //     related_to: Option<&dyn Entity>,
+    //     network_mode: dimple_librarian::plugin::NetworkMode,
+    // ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+    //     match (list_of.model(), related_to.map(|related_to| model()) {
+    //         (Model::ReleaseGroup(_), Some(Entities::Artist(a))) => {                
+    //             // // TODO handle paging
+    //             let mbid = a.mbid();
+    //             if mbid.is_none() {
+    //                 return Box::new(vec![].into_iter())
+    //             }
+    //             let mbid = mbid.unwrap();
+    //             let request_token = LibrarySupport::start_request(self, 
+    //                 &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", mbid));
+    //             self.enforce_rate_limit();
+    //             let results: Vec<_> = MBReleaseGroup::browse().by_artist(&mbid)
+    //                 .execute()
+    //                 .inspect(|_f| {
+    //                     LibrarySupport::end_request(request_token, None, None);
+    //                 })        
+    //                 .inspect_err(|f| log::error!("{}", f))
+    //                 .unwrap()
+    //                 .entities
+    //                 .iter()
+    //                 .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
+    //                 .map(Entities::ReleaseGroup)
+    //                 .collect();
+    //             Box::new(results.into_iter())
+    //         },
+    //         (Entities::Release(_), Some(Entities::Artist(a))) => {                
+    //             // TODO handle paging
+    //             let mbid = a.mbid();
+    //             if mbid.is_none() {
+    //                 return Box::new(vec![].into_iter())
+    //             }
+    //             let mbid = mbid.unwrap();
+    //             // https://musicbrainz.org/artist/65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab/releases
+    //             let request_token = LibrarySupport::start_request(self, 
+    //                 &format!("https://musicbrainz.org/ws/2/release?artist={}&fmt=json", &mbid));
+    //             self.enforce_rate_limit();
+    //             let results: Vec<_> = MBRelease::browse().by_artist(&mbid)
+    //                 .execute()
+    //                 .inspect(|_f| {
+    //                     LibrarySupport::end_request(request_token, None, None);
+    //                 })        
+    //                 .inspect_err(|f| log::error!("{}", f))
+    //                 .unwrap()
+    //                 .entities
+    //                 .iter()
+    //                 .map(|src| Release::from(ReleaseConverter::from(src.clone())))
+    //                 .map(Entities::Release)
+    //                 .collect();
+    //             Box::new(results.into_iter())
+    //         },
+    //         (Entities::Recording(_), Some(Entities::Release(a))) => {
+    //             // TODO handle paging
+    //             let mbid = a.mbid();
+    //             if mbid.is_none() {
+    //                 return Box::new(vec![].into_iter())
+    //             }
+    //             let mbid = mbid.unwrap();
+    //             let request_token = LibrarySupport::start_request(self, 
+    //                 &format!("https://musicbrainz.org/ws/2/recording/TODO TODO{}?fmt=json", &mbid));
+    //             self.enforce_rate_limit();
+    //             let results: Vec<_> = MBRecording::browse().by_release(&mbid)
+    //                 .execute()
+    //                 .inspect(|_f| {
+    //                     LibrarySupport::end_request(request_token, None, None);
+    //                 })        
+    //                 .inspect_err(|f| log::error!("{}", f))
+    //                 .unwrap()
+    //                 .entities
+    //                 .iter()
+    //                 .map(|src| Recording::from(RecordingConverter::from(src.clone())))
+    //                 .map(Entities::Recording)
+    //                 .collect();
+    //             Box::new(results.into_iter())
+    //         },
+    //         (Entities::Release(_), Some(Entities::ReleaseGroup(r))) => {
+    //             // TODO handle paging
+    //             let mbid = r.mbid();
+    //             if mbid.is_none() {
+    //                 return Box::new(vec![].into_iter())
+    //             }
+    //             let mbid = mbid.unwrap();
+    //             let request_token = LibrarySupport::start_request(self, 
+    //                 &format!("https://musicbrainz.org/ws/2/release/TODO TODO{}?fmt=json", &mbid));
+    //             self.enforce_rate_limit();
+    //             let results: Vec<_> = MBRelease::browse().by_release_group(&mbid)
+    //                 .execute()
+    //                 .inspect(|_f| {
+    //                     LibrarySupport::end_request(request_token, None, None);
+    //                 })        
+    //                 .inspect_err(|f| log::error!("{}", f))
+    //                 .unwrap()
+    //                 .entities
+    //                 .iter()
+    //                 .map(|src| Release::from(ReleaseConverter::from(src.clone())))
+    //                 .map(Entities::Release)
+    //                 .collect();
+    //             Box::new(results.into_iter())
+    //         },
+    //         _ => Box::new(vec![].into_iter()),
+    //     }
+    // }
     
     fn search(&self, query: &str, network_mode: dimple_librarian::plugin::NetworkMode) 
         -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
@@ -392,10 +526,19 @@ impl From<GenreConverter> for dimple_core::model::Genre {
         dimple_core::model::Genre {
             disambiguation: None,
             key: None,
-            known_ids: Default::default(),
-            links: Default::default(),
+            // known_ids: KnownIds {
+            //     musicbrainz_id: Some(value.0.id),
+            //     ..Default::default()
+            // },
+            // links: value.0.relations.iter().flatten()
+            //     .filter_map(|r| match &r.content {
+            //         RelationContent::Url(u) => Some(u.resource.to_string()),
+            //         _ => None,
+            //     })
+            //     .collect(),
             name: none_if_empty(value.0.name),
             summary: None,
+            ..Default::default()
         }
     }
 }

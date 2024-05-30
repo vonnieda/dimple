@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use dimple_core::model::{Artist, Genre, KnownIds, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track};
+use dimple_core::model::{Artist, ArtistCredit, Genre, KnownIds, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track};
 
 pub trait Merge {
     /// Commutative: A v B = B v A
@@ -37,7 +37,9 @@ impl Merge for ReleaseGroup {
             summary: Option::merge(l.summary, r.summary),
             first_release_date: Option::merge(l.first_release_date, r.first_release_date),
             primary_type: Option::merge(l.primary_type, r.primary_type),
-            ..Default::default()
+            annotation: Option::merge(l.annotation, r.annotation),
+            genres: l.genres.iter().chain(r.genres.iter()).cloned().collect::<HashSet<Genre>>().into_iter().collect(),
+            artist_credits: l.artist_credits.iter().chain(r.artist_credits.iter()).cloned().collect::<HashSet<ArtistCredit>>().into_iter().collect(),
         }
     }
 }
@@ -92,7 +94,7 @@ impl Merge for Genre {
         Self {
             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
             key: Option::merge(l.key, r.key),
-            known_ids: l.known_ids.union(&r.known_ids).cloned().collect(),
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
             links: l.links.union(&r.links).cloned().collect(),
             name: Option::merge(l.name, r.name),
             summary: Option::merge(l.summary, r.summary),
