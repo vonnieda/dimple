@@ -2,6 +2,7 @@ use dimple_core::model::Artist;
 use dimple_mediafiles_plugin::MediaFilesPlugin;
 use dimple_musicbrainz_plugin::MusicBrainzPlugin;
 use dimple_player::player::Player;
+use dimple_wikidata_plugin::WikidataPlugin;
 
 use std::{borrow::BorrowMut, collections::VecDeque, path::PathBuf, sync::{Arc, Mutex}};
 
@@ -44,8 +45,8 @@ impl AppWindowController {
         // mediafiles_plugin.monitor_directory(&PathBuf::from("/Users/jason/Music"));
         // librarian.add_plugin(Box::new(mediafiles_plugin));
 
-        let musicbrainz_plugin = MusicBrainzPlugin::default();
-        librarian.add_plugin(Box::new(musicbrainz_plugin));
+        librarian.add_plugin(Box::new(MusicBrainzPlugin::default()));
+        librarian.add_plugin(Box::new(WikidataPlugin::default()));
         
         let player = Player::new(Arc::new(librarian.clone()));
         let ui_weak = ui.as_weak();
@@ -73,7 +74,16 @@ impl AppWindowController {
         self.ui.global::<AppState>().on_settings_reset_database(
             move || settings::settings_reset_database(&app));
     
-            self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
+        let app = self.app.clone();
+        self.ui.global::<AppState>().on_settings_set_online(
+            move |online| settings::settings_set_online(&app, online));
+
+        let app = self.app.clone();
+        self.ui.global::<AppState>().on_settings_set_debug(
+            move |debug| settings::settings_set_debug(&app, debug));
+
+        self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
+
         self.ui.run()
     }
 }
@@ -94,6 +104,7 @@ impl App {
             crate::ui::pages::search::search(&url, self);
         }
         else if url.starts_with("dimple://home") {
+            // TODO
             self.set_page(Page::Home);
         } 
         else if url.starts_with("dimple://artists") {
@@ -118,6 +129,7 @@ impl App {
             crate::ui::pages::track_list::track_list(self);
         }
         else if url.starts_with("dimple://track/") {
+            // TODO
             self.set_page(Page::TrackDetails);
         }
         else if url.starts_with("dimple://genres") {

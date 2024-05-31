@@ -24,12 +24,11 @@ export global Navigator {
 }
 
 export global AppState {
-    in-out property <bool> online;
-    callback set_online(bool);
-
+    in-out property <bool> online: true;
     in-out property <bool> debug: true;
 
+    callback settings_set_online(bool);
+    callback settings_set_debug(bool);
     callback settings_generate_artists();
     callback settings_reset_database();
-
 }

@@ -12,6 +12,7 @@ use dimple_core::model::RecordingSource;
 use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
+use dimple_librarian::plugin::NetworkMode;
 use slint::{ModelRc, SharedString};
 
 use crate::ui::app_window_controller::App;
@@ -19,6 +20,9 @@ use crate::ui::app_window_controller::App;
 use crate::ui::common;
 use crate::ui::SettingsAdapter;
 use crate::ui::Page;
+use crate::ui::AppState;
+
+use slint::{ComponentHandle, Weak};
 
 pub fn settings(app: &App) {
     let app = app.clone();
@@ -85,15 +89,18 @@ pub fn settings_reset_database(app: &App) {
     });
 }
 
-// let ui = self.ui.as_weak();
-// let librarian = self.librarian.clone();
-// // TODO moves to settings, or side bar, or wherever it's supposed to go.
-// self.ui.global::<AppState>().on_set_online(move |online| {
-//     let librarian = librarian.clone();
-//     ui.upgrade_in_event_loop(move |ui| {
-//         let librarian = librarian.clone();
-//         librarian.set_access_mode(if online { &AccessMode::Online } else { &AccessMode::Offline });
-//         ui.global::<AppState>().set_online(librarian.access_mode() == AccessMode::Online);
-//     }).unwrap();
-// });
+pub fn settings_set_online(app: &App, online: bool) {
+    let app = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        app.librarian.set_network_mode(if online { &NetworkMode::Online } else { &NetworkMode::Offline });
+        ui.global::<AppState>().set_online(app.librarian.network_mode() == NetworkMode::Online);
+    }).unwrap();
+}
+
+pub fn settings_set_debug(app: &App, debug: bool) {
+    let app = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        ui.global::<AppState>().set_debug(debug);
+    }).unwrap();
+}
 

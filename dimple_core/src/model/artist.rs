@@ -1,4 +1,6 @@
 use std::collections::HashSet;
+use std::fmt::Display;
+use std::fmt::Write;
 
 use dimple_core_macro::ModelSupport;
 use serde::Deserialize;
@@ -22,3 +24,4 @@ pub struct Artist {
     #[serde(skip)]
     pub genres: Vec<Genre>,
 }
+

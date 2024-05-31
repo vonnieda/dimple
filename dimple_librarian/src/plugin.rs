@@ -12,7 +12,9 @@ pub trait Plugin: Send + Sync {
 
     /// Load the model using its key. Returns None if no key is set, or if the
     /// key doesn't exist in the database.
-    fn get(&self, entity: &dyn Entity, network_mode: NetworkMode) -> Result<Option<Box<dyn Entity>>>;
+    fn get(&self, entity: &dyn Entity, network_mode: NetworkMode) -> Result<Option<Box<dyn Entity>>> {
+        Ok(None)
+    }
 
     /// Get a list of models that are related to the specified model. If None is
     /// specified list all models of the specified type.
@@ -21,10 +23,14 @@ pub trait Plugin: Send + Sync {
         list_of: &dyn Entity,
         related_to: Option<&dyn Entity>,
         network_mode: NetworkMode,
-    ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>>;
+    ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+        Ok(Box::new(std::iter::empty()))
+    }
 
     fn search(&self, query: &str, network_mode: NetworkMode) 
-        -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>>;
+        -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+        Ok(Box::new(std::iter::empty()))
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

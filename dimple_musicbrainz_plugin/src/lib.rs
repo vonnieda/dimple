@@ -44,8 +44,11 @@ impl MusicBrainzPlugin {
 }
 
 impl Plugin for MusicBrainzPlugin {
-    fn get(&self, entity: &dyn dimple_core::model::Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn dimple_core::model::Entity>>> {
+    fn name(&self) -> String {
+        "MusicBrainzPlugin".to_string()
+    }
 
+    fn get(&self, entity: &dyn dimple_core::model::Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn dimple_core::model::Entity>>> {
         if network_mode == NetworkMode::Offline {
             return Ok(None)
         }
@@ -85,128 +88,6 @@ impl Plugin for MusicBrainzPlugin {
         }
     }
 
-    fn list(
-        &self,
-        list_of: &dyn Entity,
-        related_to: Option<&dyn Entity>,
-        network_mode: NetworkMode,
-    ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
-        
-        if network_mode == NetworkMode::Offline {
-            return Ok(Box::new(iter::empty()))
-        }
-
-        todo!()
-    }
-    
-    // fn list(
-    //     &self,
-    //     list_of: &dyn Entity,
-    //     related_to: Option<&dyn Entity>,
-    //     network_mode: dimple_librarian::plugin::NetworkMode,
-    // ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
-    //     match (list_of.model(), related_to.map(|related_to| model()) {
-    //         (Model::ReleaseGroup(_), Some(Entities::Artist(a))) => {                
-    //             // // TODO handle paging
-    //             let mbid = a.mbid();
-    //             if mbid.is_none() {
-    //                 return Box::new(vec![].into_iter())
-    //             }
-    //             let mbid = mbid.unwrap();
-    //             let request_token = LibrarySupport::start_request(self, 
-    //                 &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", mbid));
-    //             self.enforce_rate_limit();
-    //             let results: Vec<_> = MBReleaseGroup::browse().by_artist(&mbid)
-    //                 .execute()
-    //                 .inspect(|_f| {
-    //                     LibrarySupport::end_request(request_token, None, None);
-    //                 })        
-    //                 .inspect_err(|f| log::error!("{}", f))
-    //                 .unwrap()
-    //                 .entities
-    //                 .iter()
-    //                 .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-    //                 .map(Entities::ReleaseGroup)
-    //                 .collect();
-    //             Box::new(results.into_iter())
-    //         },
-    //         (Entities::Release(_), Some(Entities::Artist(a))) => {                
-    //             // TODO handle paging
-    //             let mbid = a.mbid();
-    //             if mbid.is_none() {
-    //                 return Box::new(vec![].into_iter())
-    //             }
-    //             let mbid = mbid.unwrap();
-    //             // https://musicbrainz.org/artist/65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab/releases
-    //             let request_token = LibrarySupport::start_request(self, 
-    //                 &format!("https://musicbrainz.org/ws/2/release?artist={}&fmt=json", &mbid));
-    //             self.enforce_rate_limit();
-    //             let results: Vec<_> = MBRelease::browse().by_artist(&mbid)
-    //                 .execute()
-    //                 .inspect(|_f| {
-    //                     LibrarySupport::end_request(request_token, None, None);
-    //                 })        
-    //                 .inspect_err(|f| log::error!("{}", f))
-    //                 .unwrap()
-    //                 .entities
-    //                 .iter()
-    //                 .map(|src| Release::from(ReleaseConverter::from(src.clone())))
-    //                 .map(Entities::Release)
-    //                 .collect();
-    //             Box::new(results.into_iter())
-    //         },
-    //         (Entities::Recording(_), Some(Entities::Release(a))) => {
-    //             // TODO handle paging
-    //             let mbid = a.mbid();
-    //             if mbid.is_none() {
-    //                 return Box::new(vec![].into_iter())
-    //             }
-    //             let mbid = mbid.unwrap();
-    //             let request_token = LibrarySupport::start_request(self, 
-    //                 &format!("https://musicbrainz.org/ws/2/recording/TODO TODO{}?fmt=json", &mbid));
-    //             self.enforce_rate_limit();
-    //             let results: Vec<_> = MBRecording::browse().by_release(&mbid)
-    //                 .execute()
-    //                 .inspect(|_f| {
-    //                     LibrarySupport::end_request(request_token, None, None);
-    //                 })        
-    //                 .inspect_err(|f| log::error!("{}", f))
-    //                 .unwrap()
-    //                 .entities
-    //                 .iter()
-    //                 .map(|src| Recording::from(RecordingConverter::from(src.clone())))
-    //                 .map(Entities::Recording)
-    //                 .collect();
-    //             Box::new(results.into_iter())
-    //         },
-    //         (Entities::Release(_), Some(Entities::ReleaseGroup(r))) => {
-    //             // TODO handle paging
-    //             let mbid = r.mbid();
-    //             if mbid.is_none() {
-    //                 return Box::new(vec![].into_iter())
-    //             }
-    //             let mbid = mbid.unwrap();
-    //             let request_token = LibrarySupport::start_request(self, 
-    //                 &format!("https://musicbrainz.org/ws/2/release/TODO TODO{}?fmt=json", &mbid));
-    //             self.enforce_rate_limit();
-    //             let results: Vec<_> = MBRelease::browse().by_release_group(&mbid)
-    //                 .execute()
-    //                 .inspect(|_f| {
-    //                     LibrarySupport::end_request(request_token, None, None);
-    //                 })        
-    //                 .inspect_err(|f| log::error!("{}", f))
-    //                 .unwrap()
-    //                 .entities
-    //                 .iter()
-    //                 .map(|src| Release::from(ReleaseConverter::from(src.clone())))
-    //                 .map(Entities::Release)
-    //                 .collect();
-    //             Box::new(results.into_iter())
-    //         },
-    //         _ => Box::new(vec![].into_iter()),
-    //     }
-    // }
-    
     fn search(&self, query: &str, network_mode: dimple_librarian::plugin::NetworkMode) 
         -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
 
@@ -257,11 +138,7 @@ impl Plugin for MusicBrainzPlugin {
         //     .map(|result| Into::<Release>::into(ReleaseConverter::from(result)))
         //     .map(|release| Box::new(release) as Box::<dyn Entity>);
         Ok(Box::new(iter))
-    }
-    
-    fn name(&self) -> String {
-        "MusicBrainzPlugin".to_string()
-    }
+    }    
 }
 
 // // Note that in the converters below ..Default is never used. If a Default
@@ -542,6 +419,118 @@ impl From<GenreConverter> for dimple_core::model::Genre {
         }
     }
 }
+
+
+
+// fn list(
+//     &self,
+//     list_of: &dyn Entity,
+//     related_to: Option<&dyn Entity>,
+//     network_mode: dimple_librarian::plugin::NetworkMode,
+// ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+//     match (list_of.model(), related_to.map(|related_to| model()) {
+//         (Model::ReleaseGroup(_), Some(Entities::Artist(a))) => {                
+//             // // TODO handle paging
+//             let mbid = a.mbid();
+//             if mbid.is_none() {
+//                 return Box::new(vec![].into_iter())
+//             }
+//             let mbid = mbid.unwrap();
+//             let request_token = LibrarySupport::start_request(self, 
+//                 &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", mbid));
+//             self.enforce_rate_limit();
+//             let results: Vec<_> = MBReleaseGroup::browse().by_artist(&mbid)
+//                 .execute()
+//                 .inspect(|_f| {
+//                     LibrarySupport::end_request(request_token, None, None);
+//                 })        
+//                 .inspect_err(|f| log::error!("{}", f))
+//                 .unwrap()
+//                 .entities
+//                 .iter()
+//                 .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
+//                 .map(Entities::ReleaseGroup)
+//                 .collect();
+//             Box::new(results.into_iter())
+//         },
+//         (Entities::Release(_), Some(Entities::Artist(a))) => {                
+//             // TODO handle paging
+//             let mbid = a.mbid();
+//             if mbid.is_none() {
+//                 return Box::new(vec![].into_iter())
+//             }
+//             let mbid = mbid.unwrap();
+//             // https://musicbrainz.org/artist/65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab/releases
+//             let request_token = LibrarySupport::start_request(self, 
+//                 &format!("https://musicbrainz.org/ws/2/release?artist={}&fmt=json", &mbid));
+//             self.enforce_rate_limit();
+//             let results: Vec<_> = MBRelease::browse().by_artist(&mbid)
+//                 .execute()
+//                 .inspect(|_f| {
+//                     LibrarySupport::end_request(request_token, None, None);
+//                 })        
+//                 .inspect_err(|f| log::error!("{}", f))
+//                 .unwrap()
+//                 .entities
+//                 .iter()
+//                 .map(|src| Release::from(ReleaseConverter::from(src.clone())))
+//                 .map(Entities::Release)
+//                 .collect();
+//             Box::new(results.into_iter())
+//         },
+//         (Entities::Recording(_), Some(Entities::Release(a))) => {
+//             // TODO handle paging
+//             let mbid = a.mbid();
+//             if mbid.is_none() {
+//                 return Box::new(vec![].into_iter())
+//             }
+//             let mbid = mbid.unwrap();
+//             let request_token = LibrarySupport::start_request(self, 
+//                 &format!("https://musicbrainz.org/ws/2/recording/TODO TODO{}?fmt=json", &mbid));
+//             self.enforce_rate_limit();
+//             let results: Vec<_> = MBRecording::browse().by_release(&mbid)
+//                 .execute()
+//                 .inspect(|_f| {
+//                     LibrarySupport::end_request(request_token, None, None);
+//                 })        
+//                 .inspect_err(|f| log::error!("{}", f))
+//                 .unwrap()
+//                 .entities
+//                 .iter()
+//                 .map(|src| Recording::from(RecordingConverter::from(src.clone())))
+//                 .map(Entities::Recording)
+//                 .collect();
+//             Box::new(results.into_iter())
+//         },
+//         (Entities::Release(_), Some(Entities::ReleaseGroup(r))) => {
+//             // TODO handle paging
+//             let mbid = r.mbid();
+//             if mbid.is_none() {
+//                 return Box::new(vec![].into_iter())
+//             }
+//             let mbid = mbid.unwrap();
+//             let request_token = LibrarySupport::start_request(self, 
+//                 &format!("https://musicbrainz.org/ws/2/release/TODO TODO{}?fmt=json", &mbid));
+//             self.enforce_rate_limit();
+//             let results: Vec<_> = MBRelease::browse().by_release_group(&mbid)
+//                 .execute()
+//                 .inspect(|_f| {
+//                     LibrarySupport::end_request(request_token, None, None);
+//                 })        
+//                 .inspect_err(|f| log::error!("{}", f))
+//                 .unwrap()
+//                 .entities
+//                 .iter()
+//                 .map(|src| Release::from(ReleaseConverter::from(src.clone())))
+//                 .map(Entities::Release)
+//                 .collect();
+//             Box::new(results.into_iter())
+//         },
+//         _ => Box::new(vec![].into_iter()),
+//     }
+// }
+    
+
 
 // impl Collection for MusicBrainzLibrary {
 //     fn name(&self) -> String {

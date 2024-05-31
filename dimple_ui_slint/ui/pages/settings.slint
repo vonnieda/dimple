@@ -1,5 +1,5 @@
 /**
-    - language: Will used to narrow wikidata queries, select bios, and for i18n.
+    - language: Will be used to narrow wikidata queries, select bios, and for i18n.
     - libraries: List of the enabled libraries. I guess this should really be a
       plugin system but we'll get there later. For now it's ReferenceMachine.
       These will likely include auth flows.
@@ -11,7 +11,7 @@
 
 
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, GroupBox, Button} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox} from "std-widgets.slint";
 import { AppState, Palette, Navigator } from "../common.slint";
 
 export struct SettingsAdapter {
@@ -24,16 +24,23 @@ export component Settings inherits ScrollView {
 
     VerticalLayout {
         alignment: start;
-        // VerticalBox {
-        //     Text {
-        //         text: "Libraries";
-        //         font-size: 2rem;
-        //         font-weight: Palette.font-weight-bold;
-        //     }
-        //     ListView {
-
-        //     }
-        // }
+        VerticalBox {
+            Text {
+                text: "General";
+                font-size: 2rem;
+                font-weight: Palette.font-weight-bold;
+            }
+            CheckBox {
+                checked: AppState.online;
+                toggled => { AppState.settings_set_online(self.checked); }
+                text: "Online?";
+            }
+            CheckBox {
+                checked: AppState.debug;
+                toggled => { AppState.settings_set_debug(self.checked); }
+                text: "Debug?";
+            }
+        }
         VerticalBox {
             Text {
                 text: "Database";
@@ -43,7 +50,6 @@ export component Settings inherits ScrollView {
             for stat in model.database-stats: 
                 Text {
                     text: stat;
-                    font-size: 1.3rem;
                 }
         }
         VerticalBox {
@@ -55,7 +61,6 @@ export component Settings inherits ScrollView {
             for stat in model.cache-stats: 
                 Text {
                     text: stat;
-                    font-size: 1.3rem;
                 }
         }
         VerticalBox {

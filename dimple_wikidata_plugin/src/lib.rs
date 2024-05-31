@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
-use dimple_core::{collection::{Collection, LibrarySupport}, model::{Artist, Entity, Recording, Release, ReleaseGroup}};
+use anyhow::Result;
+use dimple_core::model::{Entity, Artist, Model, Recording, Release, ReleaseGroup};
+use dimple_librarian::plugin::{LibrarySupport, Plugin};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
-use dimple_core::model::Entities;
 
 #[derive(Debug, Default)]
-pub struct WikidataLibrary {
+pub struct WikidataPlugin {
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -66,7 +67,7 @@ struct WpSummary {
 
 // TODO expand this to pull in all the alternate IDs and store them on objects.
 // https://www.wikidata.org/wiki/Q2549534
-impl WikidataLibrary {
+impl WikidataPlugin {
     fn get_summary(&self, links: &HashSet<String>) -> Option<String> {
         // Find a Wikidata link if one exists.
         let wikidata_url = links.iter()
@@ -83,7 +84,7 @@ impl WikidataLibrary {
 
         // Use the Wikidata API to fetch the item
         let client = Client::builder()
-            .user_agent(dimple_core::USER_AGENT)
+            .user_agent(dimple_librarian::plugin::USER_AGENT)
             .build().ok()?;
         let url = format!("https://www.wikidata.org/w/rest.php/wikibase/v0/entities/items/{}", wikidata_id);
         let request_token = LibrarySupport::start_request(self, &url);
@@ -106,7 +107,7 @@ impl WikidataLibrary {
 
 
         // Get the Wikipedia URL for the item
-        // TODO support languange priority, this is temp
+        // TODO support language priority, this is temp
         let wikipedia_url = non_empty(&wikidata_item.sitelinks.enwiki.url)
             .or(non_empty(&wikidata_item.sitelinks.eswiki.url))
             .or(non_empty(&wikidata_item.sitelinks.frwiki.url))
@@ -131,7 +132,7 @@ impl WikidataLibrary {
         // TODO should wikipedia be it's own library, perhaps after the ids have been extracted?
         let client = Client::builder()
             // .https_only(true)
-            .user_agent(dimple_core::USER_AGENT)
+            .user_agent(dimple_librarian::plugin::USER_AGENT)
             .build().ok()?;
         let url = format!("https://en.wikipedia.org/api/rest_v1/page/summary/{}", wikipedia_title);
         let request_token = LibrarySupport::start_request(self, &url);
@@ -161,38 +162,60 @@ impl WikidataLibrary {
 // https://en.wikipedia.org/api/rest_v1/page/summary/Brutus_(Belgian_band)                
 // https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles=Stack%20Overflow                
 // TODO can also get images here and wiki commons? or via here to wiki commons?
-impl Collection for WikidataLibrary {
+impl Plugin for WikidataPlugin {
     fn name(&self) -> String {
         "Wikidata".to_string()
     }
 
-    fn fetch(&self, entity: &Entities) -> Option<Entities> {
-        match entity.clone() {
-            Entities::Artist(artist) => self.get_summary(&artist.links)
-                .map(|summary| Artist {
-                    summary: Some(summary),
-                    ..Default::default()
-                }.entity()),
-                
-            Entities::ReleaseGroup(rg) => self.get_summary(&rg.links)
-                .map(|summary| ReleaseGroup {
-                    summary: Some(summary),
-                    ..Default::default()
-                }.entity()),
-
-            Entities::Release(rg) => self.get_summary(&rg.links)
-                .map(|summary| Release {
-                    summary: Some(summary),
-                    ..Default::default()
-                }.entity()),
-
-            Entities::Recording(r) => self.get_summary(&r.links)
-                .map(|summary| Recording {
-                    summary: Some(summary),
-                    ..Default::default()
-                }.entity()),
-
-            _ => None,
+    fn get(&self, entity: &dyn Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn Entity>>> {
+        let model = entity.model();
+        match model {
+            Model::Artist(artist) => {
+                let artist = self.get_summary(&artist.links)
+                    .map(|summary| Artist {
+                        summary: Some(summary),
+                        ..Default::default()
+                    });
+                if let Some(artist) = artist {
+                    Ok(Some(Box::new(artist)))
+                }
+                else {
+                    Ok(None)
+                }
+            },
+            _ => Ok(None),
         }
     }
 }
+
+
+// fn fetch(&self, entity: &Entities) -> Option<Entities> {
+//     match entity.clone() {
+//         Entities::Artist(artist) => self.get_summary(&artist.links)
+//             .map(|summary| Artist {
+//                 summary: Some(summary),
+//                 ..Default::default()
+//             }.entity()),
+            
+//         Entities::ReleaseGroup(rg) => self.get_summary(&rg.links)
+//             .map(|summary| ReleaseGroup {
+//                 summary: Some(summary),
+//                 ..Default::default()
+//             }.entity()),
+
+//         Entities::Release(rg) => self.get_summary(&rg.links)
+//             .map(|summary| Release {
+//                 summary: Some(summary),
+//                 ..Default::default()
+//             }.entity()),
+
+//         Entities::Recording(r) => self.get_summary(&r.links)
+//             .map(|summary| Recording {
+//                 summary: Some(summary),
+//                 ..Default::default()
+//             }.entity()),
+
+//         _ => None,
+//     }
+// }
+    

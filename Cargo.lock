@@ -1493,6 +1493,7 @@ dependencies = [
  "dimple_mediafiles_plugin",
  "dimple_musicbrainz_plugin",
  "dimple_player",
+ "dimple_wikidata_plugin",
  "directories",
  "env_logger",
  "fakeit",
@@ -1510,6 +1511,19 @@ dependencies = [
  "threadpool",
  "tiny-skia",
  "url",
+]
+
+[[package]]
+name = "dimple_wikidata_plugin"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dimple_core",
+ "dimple_librarian",
+ "image 0.24.9",
+ "log",
+ "reqwest",
+ "serde",
 ]
 
 [[package]]

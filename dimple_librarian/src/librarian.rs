@@ -123,26 +123,20 @@ impl Librarian {
     }
 
     fn db_merge_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
-        log::info!("db_merge_model {:?} ({:?})", model, parent);
         // find a matching model to the specified, merge, save
         let matching = Self::find_matching_model(db, model, parent);
         if let Some(matching) = matching {
-            log::info!("  found matching {:?}", matching);
             let merged = Self::merge_model(&model, &matching);
-            log::info!("  merged to {:?}", merged);
             return Some(db.insert(&merged).unwrap())
         }
         // if not, insert the new one and link it to the parent
         else {
-            log::info!("  no match");
             if Self::model_valid(model) {
-                log::info!("  model valid, creating");
                 let model = Some(db.insert(model).unwrap());
                 Self::lazy_link(db, &model, parent);
                 return model
             }
         }
-        log::info!("  failed");
         None
     }
 
@@ -245,14 +239,15 @@ impl Db for Librarian {
     }
 
     fn get(&self, model: &dimple_core::model::Model) -> Result<Option<dimple_core::model::Model>> {
-        let msg = format!("Librarian::get {} {:?}", model.entity().type_name(), model.entity().key()).bright_blue();
-        log::info!("{}", msg);
-
         let model = self.db.get(model)?.unwrap_or(model.clone());
 
         for plugin in self.plugins.read().unwrap().iter() {
             // TODO I don't think this should return on a plugin error, as
             // we can still go local.
+            // TODO I think this is wrong... doesn't seem right to merge with
+            // a bunch of lookups when we are doing, basically, a key lookup.
+            // If get() is a key lookup, I think using "fetch" on plugin is
+            // better to make it clear that it's NOT a key lookup.
             if let Some(result) = plugin.get(model.entity(), self.network_mode())? {
                 self.merge(&result.model());
             }
@@ -270,9 +265,6 @@ impl Db for Librarian {
         list_of: &dimple_core::model::Model,
         related_to: Option<&dimple_core::model::Model>,
     ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
-        let msg = format!("Librarian::list {:?}", list_of).bright_blue();
-        log::info!("{}", msg);
-
         self.db.list(list_of, related_to)
     }
     
