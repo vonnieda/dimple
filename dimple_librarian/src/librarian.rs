@@ -1,4 +1,4 @@
-use std::{fs, path::Path, sync::{Arc, Mutex, RwLock}};
+use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
     db::{Db, MemoryDb, SqliteDb}, model::{self, Artist, ArtistCredit, Entity, Genre, Medium, Model, Recording, Release, ReleaseGroup, Track}
@@ -231,6 +231,25 @@ impl Librarian {
             _ => todo!()
         }
     }
+
+    // fn local_library_search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
+    //     // const MAX_RESULTS_PER_TYPE: usize = 10;
+    //     // TODO sort by score
+    //     // TODO other entities
+    //     let pattern = query.to_string();
+    //     let matcher = SkimMatcherV2::default();
+    //     let artists = Artist::list(&self.local_library)
+    //         .filter(move |a| matcher.fuzzy_match(&a.name.clone().unwrap_or_default(), &pattern).is_some())
+    //         .map(Entities::Artist);
+    //         // .take(MAX_RESULTS_PER_TYPE);
+    //     let pattern = query.to_string();
+    //     let matcher = SkimMatcherV2::default();
+    //     let release_groups = ReleaseGroup::list(&self.local_library)
+    //         .filter(move |a| matcher.fuzzy_match(&a.title.clone().unwrap_or_default(), &pattern).is_some())
+    //         .map(Entities::ReleaseGroup);
+    //         // .take(MAX_RESULTS_PER_TYPE);
+    //     Box::new(artists.chain(release_groups))
+    // }
 }
 
 impl Db for Librarian {
@@ -238,22 +257,73 @@ impl Db for Librarian {
         self.db.insert(model)
     }
 
-    fn get(&self, model: &dimple_core::model::Model) -> Result<Option<dimple_core::model::Model>> {
-        let model = self.db.get(model)?.unwrap_or(model.clone());
+    // fn get(&self, model: &dimple_core::model::Model) -> Result<Option<dimple_core::model::Model>> {
+    //     let model = self.db.get(model)?.unwrap_or(model.clone());
 
+    //     for plugin in self.plugins.read().unwrap().iter() {
+    //         // TODO I don't think this should return on a plugin error, as
+    //         // we can still go local.
+    //         // TODO I think this is wrong... doesn't seem right to merge with
+    //         // a bunch of lookups when we are doing, basically, a key lookup.
+    //         // If get() is a key lookup, I think using "fetch" on plugin is
+    //         // better to make it clear that it's NOT a key lookup.
+    //         if let Some(result) = plugin.get(model.entity(), self.network_mode())? {
+    //             self.merge(&result.model());
+    //         }
+    //     }
+
+    //     self.db.get(&model)
+    // }
+
+    /// Get the specified model by a unique identifier. This will either be by
+    /// key for stored data, or via a plugin defined key for plugins. The data
+    /// from the local storage, if any, along with data returned by plugins
+    /// is merged together and then merged into the database before being
+    /// returned. 
+    /// 
+    /// If there are no results from storage or a plugin, returns Ok(None)
+    fn get(&self, model: &dimple_core::model::Model) -> Result<Option<dimple_core::model::Model>> {
+        // First load the model from local storage if it exists. If it doesn't
+        // we'll still query the plugins to see if we can put it together.
+        let mut merged = self.db.get(model).unwrap_or(Some(model.clone())).unwrap();
+
+        // Run the fetch on all of the libraries, keeping track of the ones
+        // that return a result. 
+        let mut skip_list: HashSet<String> = HashSet::new();
         for plugin in self.plugins.read().unwrap().iter() {
-            // TODO I don't think this should return on a plugin error, as
-            // we can still go local.
-            // TODO I think this is wrong... doesn't seem right to merge with
-            // a bunch of lookups when we are doing, basically, a key lookup.
-            // If get() is a key lookup, I think using "fetch" on plugin is
-            // better to make it clear that it's NOT a key lookup.
-            if let Some(result) = plugin.get(model.entity(), self.network_mode())? {
-                self.merge(&result.model());
+            let result = plugin.get(merged.entity(), self.network_mode());
+            if let Ok(Some(result)) = result {
+                match (merged, result.model()) {
+                    (Model::Artist(l), Model::Artist(r)) => {
+                        merged = Artist::merge(l.clone(), r.clone()).model();
+                        skip_list.insert(plugin.name());
+                    },
+                    _ => todo!(),
+                }
             }
         }
 
-        self.db.get(&model)
+        // Run the fetch on the remaining libraries that did not return a result
+        // the first time. This allows libraries that need metadata from
+        // for instance, Musicbrainz to skip the first fetch and run on
+        // this one instead.
+        for plugin in self.plugins.read().unwrap().iter() {
+            if skip_list.contains(&plugin.name()) {
+                continue;
+            }
+            let result = plugin.get(merged.entity(), self.network_mode());
+            if let Ok(Some(result)) = result {
+                match (merged, result.model()) {
+                    (Model::Artist(l), Model::Artist(r)) => {
+                        merged = Artist::merge(l.clone(), r.clone()).model();
+                        skip_list.insert(plugin.name());
+                    },
+                    _ => todo!(),
+                }
+            }
+        }
+
+        Ok(self.merge(&merged))
     }
 
     fn link(&self, model: &dimple_core::model::Model, related_to: &dimple_core::model::Model) -> Result<()> {

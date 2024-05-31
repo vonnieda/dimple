@@ -1435,6 +1435,7 @@ dependencies = [
  "anyhow",
  "colored",
  "dimple_core",
+ "fuzzy-matcher",
  "image 0.24.9",
  "log",
  "rayon",

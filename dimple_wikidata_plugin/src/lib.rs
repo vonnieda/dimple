@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use dimple_core::model::{Entity, Artist, Model, Recording, Release, ReleaseGroup};
-use dimple_librarian::plugin::{LibrarySupport, Plugin};
+use dimple_librarian::plugin::{LibrarySupport, NetworkMode, Plugin};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
 
@@ -168,6 +168,10 @@ impl Plugin for WikidataPlugin {
     }
 
     fn get(&self, entity: &dyn Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn Entity>>> {
+        if network_mode != NetworkMode::Online {
+            return Ok(None)
+        }
+
         let model = entity.model();
         match model {
             Model::Artist(artist) => {

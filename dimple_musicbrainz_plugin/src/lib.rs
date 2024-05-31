@@ -49,7 +49,7 @@ impl Plugin for MusicBrainzPlugin {
     }
 
     fn get(&self, entity: &dyn dimple_core::model::Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn dimple_core::model::Entity>>> {
-        if network_mode == NetworkMode::Offline {
+        if network_mode != NetworkMode::Online {
             return Ok(None)
         }
 
@@ -91,7 +91,7 @@ impl Plugin for MusicBrainzPlugin {
     fn search(&self, query: &str, network_mode: dimple_librarian::plugin::NetworkMode) 
         -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
 
-        if network_mode == NetworkMode::Offline {
+        if network_mode != NetworkMode::Online {
             return Ok(Box::new(iter::empty()))
         }
 
