@@ -10,7 +10,7 @@ use musicbrainz_rs::entity::artist::Artist as MBArtist;
 use musicbrainz_rs::entity::release_group::ReleaseGroup as MBReleaseGroup;
 use musicbrainz_rs::entity::relations::RelationContent;
 use musicbrainz_rs::entity::release_group::ReleaseGroupSearchQuery;
-use musicbrainz_rs::{Fetch, Search};
+use musicbrainz_rs::{Browse, Fetch, Search};
 
 #[derive(Debug)]
 pub struct MusicBrainzPlugin {
@@ -50,7 +50,7 @@ impl Plugin for MusicBrainzPlugin {
 
     fn get(&self, entity: &dyn dimple_core::model::Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn dimple_core::model::Entity>>> {
         if network_mode != NetworkMode::Online {
-            return Ok(None)
+            return Err(Error::msg("Offline."))
         }
 
         let model = entity.model();
@@ -88,13 +88,46 @@ impl Plugin for MusicBrainzPlugin {
         }
     }
 
+    fn list(
+        &self,
+        list_of: &dyn Entity,
+        related_to: Option<&dyn Entity>,
+        network_mode: NetworkMode,
+    ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+        // TODO handle paging
+        if network_mode != NetworkMode::Online {
+            return Err(Error::msg("Offline."))
+        }
+        match (list_of.model(), related_to.map(|related_to| related_to.model())) {
+            (Model::ReleaseGroup(_), Some(Model::Artist(artist))) => {                
+                let mbid = artist.known_ids.musicbrainz_id;
+                if mbid.is_none() {
+                    return Err(Error::msg("No mbid."))
+                }
+                let mbid = mbid.unwrap();
+
+                let request_token = LibrarySupport::start_request(self, 
+                    &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", mbid));
+                self.enforce_rate_limit();
+                let iter = MBReleaseGroup::browse().by_artist(&mbid).limit(100)
+                    .execute()?
+                    .entities
+                    .into_iter()
+                    .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
+                    .map(|artist| Box::new(artist) as Box::<dyn Entity>);
+                LibrarySupport::end_request(request_token, None, None);
+                Ok(Box::new(iter))
+            },
+            _ => Err(Error::msg("Not implemented.")),
+        }        
+    }
+
     fn search(&self, query: &str, network_mode: dimple_librarian::plugin::NetworkMode) 
         -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
-
         if network_mode != NetworkMode::Online {
-            return Ok(Box::new(iter::empty()))
+            return Err(Error::msg("Offline."))
         }
-
+    
         let iter = std::iter::empty();
 
         // https://musicbrainz.org/ws/2/artist/?query=metallica&fmt=json

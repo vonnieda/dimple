@@ -1,7 +1,7 @@
 use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, MemoryDb, SqliteDb}, model::{self, Artist, ArtistCredit, Entity, Genre, Medium, Model, Recording, Release, ReleaseGroup, Track}
+    db::{Db, SqliteDb}, model::{Artist, ArtistCredit, Entity, Genre, Medium, Model, Release, ReleaseGroup, Track}
 };
 
 use anyhow::Result;
@@ -9,8 +9,6 @@ use anyhow::Result;
 use crate::{merge::Merge, plugin::{NetworkMode, Plugin}};
 
 use rayon::prelude::{*};
-
-use colored::Colorize;
 
 #[derive(Clone)]
 pub struct Librarian {
@@ -48,10 +46,12 @@ impl Librarian {
     // get it working.
     fn merge(&self, model: &Model) -> Option<Model> {
         match model {
+            // TODO I think I can move this logic into db_merge_model, and specifically
+            // panic when asked to merge something without enough context. 
+            // Like an Media without a Release or whatever.
             Model::Artist(artist) => self.merge_artist(artist),
             Model::Release(release) => self.merge_release(release),
             Model::ReleaseGroup(release_group) => self.merge_release_group(release_group),
-            Model::Recording(recording) => self.merge_recording(recording),
             _ => todo!(),
         }
     }
@@ -107,22 +107,14 @@ impl Librarian {
         Self::db_merge_model(db, &release.model(), &None)
     }
 
-    fn merge_recording(&self, recording: &Recording) -> Option<Model> {
-        todo!()
-    }
-
-    fn merge_artist_credit(&self, artist_credit: &ArtistCredit, parent: &Model) -> Option<Model> {
-        // TODO not done, gonna bypass to artist for now
-        let db: &dyn Db = self.db.as_ref().as_ref();
-        Self::db_merge_model(db, &artist_credit.model(), &Some(parent.clone()))
-    }
-
     fn merge_genre(&self, genre: &Genre) -> Option<Model> {
         let db: &dyn Db = self.db.as_ref().as_ref();
         Self::db_merge_model(db, &genre.model(), &None)
     }
 
     fn db_merge_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
+        // TODO does this need to be merging parent as well?
+
         // find a matching model to the specified, merge, save
         let matching = Self::find_matching_model(db, model, parent);
         if let Some(matching) = matching {
@@ -214,7 +206,6 @@ impl Librarian {
             (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
             (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
             (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
-            // (Model::ArtistCredit(l), Model::ArtistCredit(r)) => ArtistCredit::merge(l.clone(), r.clone()).model(),
             (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
             _ => todo!()
         }
@@ -257,24 +248,6 @@ impl Db for Librarian {
         self.db.insert(model)
     }
 
-    // fn get(&self, model: &dimple_core::model::Model) -> Result<Option<dimple_core::model::Model>> {
-    //     let model = self.db.get(model)?.unwrap_or(model.clone());
-
-    //     for plugin in self.plugins.read().unwrap().iter() {
-    //         // TODO I don't think this should return on a plugin error, as
-    //         // we can still go local.
-    //         // TODO I think this is wrong... doesn't seem right to merge with
-    //         // a bunch of lookups when we are doing, basically, a key lookup.
-    //         // If get() is a key lookup, I think using "fetch" on plugin is
-    //         // better to make it clear that it's NOT a key lookup.
-    //         if let Some(result) = plugin.get(model.entity(), self.network_mode())? {
-    //             self.merge(&result.model());
-    //         }
-    //     }
-
-    //     self.db.get(&model)
-    // }
-
     /// Get the specified model by a unique identifier. This will either be by
     /// key for stored data, or via a plugin defined key for plugins. The data
     /// from the local storage, if any, along with data returned by plugins
@@ -293,9 +266,19 @@ impl Db for Librarian {
         for plugin in self.plugins.read().unwrap().iter() {
             let result = plugin.get(merged.entity(), self.network_mode());
             if let Ok(Some(result)) = result {
+                // TODO this match is test code, needs to be moved into Model::merge, I think.
+                // TODO and also replicated below.
                 match (merged, result.model()) {
                     (Model::Artist(l), Model::Artist(r)) => {
                         merged = Artist::merge(l.clone(), r.clone()).model();
+                        skip_list.insert(plugin.name());
+                    },
+                    (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => {
+                        merged = ReleaseGroup::merge(l.clone(), r.clone()).model();
+                        skip_list.insert(plugin.name());
+                    },
+                    (Model::Release(l), Model::Release(r)) => {
+                        merged = Release::merge(l.clone(), r.clone()).model();
                         skip_list.insert(plugin.name());
                     },
                     _ => todo!(),
@@ -323,8 +306,12 @@ impl Db for Librarian {
             }
         }
 
+        // Finally, merge the object into the database. If the original lookup
+        // failed, and we have not managed to collect enough information to
+        // merge this will return None. 
         Ok(self.merge(&merged))
     }
+
 
     fn link(&self, model: &dimple_core::model::Model, related_to: &dimple_core::model::Model) -> Result<()> {
         self.db.link(model, related_to)
@@ -335,21 +322,32 @@ impl Db for Librarian {
         list_of: &dimple_core::model::Model,
         related_to: Option<&dimple_core::model::Model>,
     ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
+        let db: &dyn Db = self.db.as_ref().as_ref();
+        for plugin in self.plugins.read().unwrap().iter() {
+            let results = plugin.list(list_of.entity(), related_to.map(|f| f.entity()), self.network_mode());
+            if let Ok(results) = results {
+                for result in results {
+                    // TODO noting the use of db_merge_model here vs. self.merge in search
+                    // because this asks for objects by relationship and thus needs to be
+                    // merged with that same relationship.
+                    Self::db_merge_model(db, &result.model(), &related_to.map(|f| f.clone()));
+                }
+            }
+        }
+
         self.db.list(list_of, related_to)
     }
     
-    fn reset(&self) -> Result<()> {
-        self.db.reset()
-    }
-
     fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         for plugin in self.plugins.read().unwrap().iter() {
-            // TODO I don't think this should return on a plugin error, as
-            // we can still go local.
-            for result in plugin.search(query, self.network_mode())? {
-                self.merge(&result.model());
+            let results = plugin.search(query, self.network_mode());
+            if let Ok(results) = results {
+                for result in results {
+                    self.merge(&result.model());
+                }
             }
         }
+
         // TODO fts lol
         // self.db.search(query)
         let results = self.db.list(&Artist::default().model(), None)?
@@ -359,6 +357,10 @@ impl Db for Librarian {
             .chain(self.db.list(&Track::default().model(), None)?);
             
         Ok(Box::new(results))
+    }
+
+    fn reset(&self) -> Result<()> {
+        self.db.reset()
     }
 }
 

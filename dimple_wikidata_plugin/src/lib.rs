@@ -181,7 +181,20 @@ impl Plugin for WikidataPlugin {
                         ..Default::default()
                     });
                 if let Some(artist) = artist {
-                    Ok(Some(Box::new(artist)))
+                    return Ok(Some(Box::new(artist)))
+                }
+                else {
+                    Ok(None)
+                }
+            },
+            Model::ReleaseGroup(release_group) => {
+                let release_group = self.get_summary(&release_group.links)
+                    .map(|summary| ReleaseGroup {
+                        summary: Some(summary),
+                        ..Default::default()
+                    });
+                if let Some(release_group) = release_group {
+                    return Ok(Some(Box::new(release_group)))
                 }
                 else {
                     Ok(None)
