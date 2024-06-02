@@ -34,25 +34,25 @@ pub fn release_details(url: &str, app: &App) {
         }.into()).unwrap().unwrap().into();
 
         let mut artists: Vec<Artist> = librarian
-            .list(&Artist::default().into(), Some(&release.model()))
+            .list(&Artist::default().into(), &Some(release.model()))
             .unwrap()
             .map(Into::into)
             .collect();
         artists.sort_by_key(|f| f.name.to_owned());
 
         let mut genres: Vec<Genre> = librarian
-            .list(&Genre::default().into(), Some(&release.model()))
+            .list(&Genre::default().into(), &Some(release.model()))
             .unwrap()
             .map(Into::into)
             .collect();
         genres.sort_by_key(|f| f.name.to_owned());
 
         let media_and_tracks: Vec<_> = librarian
-            .list(&Medium::default().into(), Some(&release.model()))
+            .list(&Medium::default().into(), &Some(release.model()))
             .unwrap()
             .map(Into::<Medium>::into)
             .map(|medium| {
-                let tracks: Vec<Track> = librarian.list(&Track::default().model(), Some(&medium.model()))
+                let tracks: Vec<Track> = librarian.list(&Track::default().model(), &Some(medium.model()))
                     .unwrap()
                     .map(Into::<Track>::into)
                     .collect();

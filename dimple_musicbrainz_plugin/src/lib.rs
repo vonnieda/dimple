@@ -11,6 +11,7 @@ use musicbrainz_rs::entity::release_group::ReleaseGroup as MBReleaseGroup;
 use musicbrainz_rs::entity::relations::RelationContent;
 use musicbrainz_rs::entity::release_group::ReleaseGroupSearchQuery;
 use musicbrainz_rs::{Browse, Fetch, Search};
+use serde_json::map;
 
 #[derive(Debug)]
 pub struct MusicBrainzPlugin {
@@ -48,15 +49,14 @@ impl Plugin for MusicBrainzPlugin {
         "MusicBrainzPlugin".to_string()
     }
 
-    fn get(&self, entity: &dyn dimple_core::model::Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn dimple_core::model::Entity>>> {
+    fn get(&self, model: &Model, network_mode: NetworkMode) -> Result<Option<Model>> {
         if network_mode != NetworkMode::Online {
             return Err(Error::msg("Offline."))
         }
 
-        let model = entity.model();
         match model {
             Model::Artist(artist) => {
-                let mbid = artist.known_ids.musicbrainz_id.ok_or(Error::msg("mbid missing"))?;
+                let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", mbid));
                 self.enforce_rate_limit();
@@ -66,11 +66,11 @@ impl Plugin for MusicBrainzPlugin {
                     .execute()?;
                 LibrarySupport::end_request(request_token, None, None);
                 let artist = Artist::from(ArtistConverter::from(result.clone()));
-                Ok(Some(Box::new(artist)))
+                Ok(Some(artist.model()))
             },
 
             Model::ReleaseGroup(r) => {
-                let mbid = r.known_ids.musicbrainz_id.ok_or(Error::msg("mbid missing"))?;
+                let mbid = r.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", mbid));
                 self.enforce_rate_limit();
@@ -81,7 +81,7 @@ impl Plugin for MusicBrainzPlugin {
                     .execute()?;
                 LibrarySupport::end_request(request_token, None, None);
                 let release_group = ReleaseGroup::from(ReleaseGroupConverter::from(result.clone()));
-                Ok(Some(Box::new(release_group)))
+                Ok(Some(release_group.model()))
             },
 
             _ => Ok(None),
@@ -90,17 +90,17 @@ impl Plugin for MusicBrainzPlugin {
 
     fn list(
         &self,
-        list_of: &dyn Entity,
-        related_to: Option<&dyn Entity>,
+        list_of: &Model,
+        related_to: &Option<Model>,
         network_mode: NetworkMode,
-    ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+    ) -> Result<Box<dyn Iterator<Item = Model>>> {
         // TODO handle paging
         if network_mode != NetworkMode::Online {
             return Err(Error::msg("Offline."))
         }
-        match (list_of.model(), related_to.map(|related_to| related_to.model())) {
+        match (list_of, related_to) {
             (Model::ReleaseGroup(_), Some(Model::Artist(artist))) => {                
-                let mbid = artist.known_ids.musicbrainz_id;
+                let mbid = artist.known_ids.musicbrainz_id.clone();
                 if mbid.is_none() {
                     return Err(Error::msg("No mbid."))
                 }
@@ -114,7 +114,8 @@ impl Plugin for MusicBrainzPlugin {
                     .entities
                     .into_iter()
                     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-                    .map(|artist| Box::new(artist) as Box::<dyn Entity>);
+                    .map(|src| src.model());
+                    // .map(|artist| Box::new(artist) as Box::<dyn Entity>);
                 LibrarySupport::end_request(request_token, None, None);
                 Ok(Box::new(iter))
             },
@@ -123,7 +124,7 @@ impl Plugin for MusicBrainzPlugin {
     }
 
     fn search(&self, query: &str, network_mode: dimple_librarian::plugin::NetworkMode) 
-        -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+        -> Result<Box<dyn Iterator<Item = Model>>> {
         if network_mode != NetworkMode::Online {
             return Err(Error::msg("Offline."))
         }
@@ -142,7 +143,7 @@ impl Plugin for MusicBrainzPlugin {
             .entities
             .into_iter()
             .map(|result| Artist::from(ArtistConverter::from(result)))
-            .map(|artist| Box::new(artist) as Box::<dyn Entity>);
+            .map(|result| result.model());
         LibrarySupport::end_request(request_token, None, None);
         let iter = iter.chain(artists);
 
@@ -157,7 +158,7 @@ impl Plugin for MusicBrainzPlugin {
             .entities
             .into_iter()
             .map(|result| Into::<ReleaseGroup>::into(ReleaseGroupConverter::from(result)))
-            .map(|release_group| Box::new(release_group) as Box::<dyn Entity>);
+            .map(|result| result.model());
         LibrarySupport::end_request(request_token, None, None);
         let iter = iter.chain(release_groups);
 
@@ -174,10 +175,10 @@ impl Plugin for MusicBrainzPlugin {
     }    
 }
 
-// // Note that in the converters below ..Default is never used. If a Default
-// // is temporarily needed it can be specified on the field itself, but not
-// // the entire struct. This is to help avoid skipping fields when new ones
-// // are added.
+// Note that in the converters below ..Default should never be used. If a Default
+// is temporarily needed it can be specified on the field itself, but not
+// the entire struct. This is to help avoid skipping fields when new ones
+// are added.
 
 fn none_if_empty(s: String) -> Option<String> {
     if s.is_empty() {

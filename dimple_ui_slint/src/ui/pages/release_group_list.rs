@@ -14,7 +14,7 @@ pub fn release_group_list(app: &App) {
     let images = app.images.clone();
     std::thread::spawn(move || {
         let mut release_groups: Vec<ReleaseGroup> = librarian
-            .list(&ReleaseGroup::default().into(), None)
+            .list(&ReleaseGroup::default().into(), &None)
             .unwrap()
             .map(Into::into)
             .collect();

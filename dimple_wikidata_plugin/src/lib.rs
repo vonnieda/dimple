@@ -167,12 +167,11 @@ impl Plugin for WikidataPlugin {
         "Wikidata".to_string()
     }
 
-    fn get(&self, entity: &dyn Entity, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Box<dyn Entity>>> {
+    fn get(&self, model: &Model, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Model>> {
         if network_mode != NetworkMode::Online {
             return Ok(None)
         }
 
-        let model = entity.model();
         match model {
             Model::Artist(artist) => {
                 let artist = self.get_summary(&artist.links)
@@ -181,7 +180,7 @@ impl Plugin for WikidataPlugin {
                         ..Default::default()
                     });
                 if let Some(artist) = artist {
-                    return Ok(Some(Box::new(artist)))
+                    return Ok(Some(artist.model()))
                 }
                 else {
                     Ok(None)
@@ -194,7 +193,7 @@ impl Plugin for WikidataPlugin {
                         ..Default::default()
                     });
                 if let Some(release_group) = release_group {
-                    return Ok(Some(Box::new(release_group)))
+                    return Ok(Some(release_group.model()))
                 }
                 else {
                     Ok(None)

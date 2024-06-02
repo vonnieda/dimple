@@ -14,7 +14,7 @@ pub fn artist_list(app: &App) {
     let images = app.images.clone();
     std::thread::spawn(move || {
         let mut artists: Vec<Artist> = librarian
-            .list(&Artist::default().into(), None)
+            .list(&Artist::default().into(), &None)
             .unwrap()
             .map(Into::into)
             .collect();

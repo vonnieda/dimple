@@ -31,25 +31,25 @@ pub fn settings(app: &App) {
 
         let mut database_stats: Vec<String> = vec![];
         database_stats.push(format!("Artists: {}", 
-            db.list(&Artist::default().model(), None).unwrap().count()));
+            db.list(&Artist::default().model(), &None).unwrap().count()));
         database_stats.push(format!("Release Groups: {}", 
-            db.list(&ReleaseGroup::default().model(), None).unwrap().count()));
+            db.list(&ReleaseGroup::default().model(), &None).unwrap().count()));
         database_stats.push(format!("Releases: {}", 
-            db.list(&Release::default().model(), None).unwrap().count()));
+            db.list(&Release::default().model(), &None).unwrap().count()));
         database_stats.push(format!("Media: {}", 
-            db.list(&Medium::default().model(), None).unwrap().count()));
+            db.list(&Medium::default().model(), &None).unwrap().count()));
         database_stats.push(format!("Tracks: {}", 
-            db.list(&Track::default().model(), None).unwrap().count()));
+            db.list(&Track::default().model(), &None).unwrap().count()));
         database_stats.push(format!("Recordings: {}", 
-            db.list(&Recording::default().model(), None).unwrap().count()));
+            db.list(&Recording::default().model(), &None).unwrap().count()));
         database_stats.push(format!("Recording Sources: {}", 
-            db.list(&RecordingSource::default().model(), None).unwrap().count()));
+            db.list(&RecordingSource::default().model(), &None).unwrap().count()));
         database_stats.push(format!("Genres: {}", 
-            db.list(&Genre::default().model(), None).unwrap().count()));
+            db.list(&Genre::default().model(), &None).unwrap().count()));
         database_stats.push(format!("Playlists: {}", 
-            db.list(&Playlist::default().model(), None).unwrap().count()));
+            db.list(&Playlist::default().model(), &None).unwrap().count()));
         database_stats.push(format!("Pictures: {}", 
-                db.list(&Picture::default().model(), None).unwrap().count()));
+                db.list(&Picture::default().model(), &None).unwrap().count()));
 
         let mut cache_stats = vec![];
         cache_stats.push(format!("Thumbnails: {}", app.images.cache_len()));

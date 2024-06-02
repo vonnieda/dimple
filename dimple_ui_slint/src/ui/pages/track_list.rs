@@ -16,7 +16,7 @@ use dimple_core::db::Db;
 pub fn track_list(app: &App) {
     let app = app.clone();
     let tracks: Vec<Track> = app.librarian
-        .list(&Track::default().model(), None)
+        .list(&Track::default().model(), &None)
         .unwrap().map(Into::<Track>::into).collect();
     thread::spawn(move || {
         app.ui.upgrade_in_event_loop(move |ui| {

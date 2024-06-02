@@ -82,7 +82,7 @@ impl MediaFilesPlugin {
     fn scan_path(db: &dyn Db, path: &PathBuf) {
         // Find the matching RecordingSource in the Db, if any.
         let source_id = format!("dmfp://{}", path.to_str().unwrap_or_default());
-        let rec_source = db.list(&RecordingSource::default().model(), None).unwrap()
+        let rec_source = db.list(&RecordingSource::default().model(), &None).unwrap()
             .map(Into::<RecordingSource>::into)
             .find(|rec_source| rec_source.source_id == source_id);
 
@@ -161,7 +161,7 @@ impl MediaFilesPlugin {
             // TODO this is temporary, just checking if no image has been
             // set on the release at all, and if so, linking it up to everything
             // we've created.
-            if release.is_some() && db.list(&Picture::default().model(), release.as_ref()).unwrap().count() == 0 {
+            if release.is_some() && db.list(&Picture::default().model(), &release).unwrap().count() == 0 {
                 let mut picture = Picture::default();
                 picture.set_image(&image);
                 let picture = db.insert(&picture.model()).unwrap();
@@ -198,7 +198,7 @@ impl MediaFilesPlugin {
 
     fn find_matching_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
         // This needs to use the scoring and sorting, but yea.
-        db.list(&model, parent.as_ref()).unwrap()
+        db.list(&model, parent).unwrap()
             .filter(|model_opt| Self::compare_models(&model, model_opt))
             .next()
     }
@@ -255,30 +255,9 @@ impl MediaFilesPlugin {
 }
 
 impl Plugin for MediaFilesPlugin {
-
-    
-    fn get(&self, entity: &dyn Entity, network_mode: NetworkMode) -> anyhow::Result<Option<Box<dyn Entity>>> {
-        todo!()
-    }
-    
-    fn list(
-        &self,
-        list_of: &dyn Entity,
-        related_to: Option<&dyn Entity>,
-        network_mode: NetworkMode,
-    ) -> anyhow::Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
-        todo!()
-    }
-    
-    fn search(&self, query: &str, network_mode: NetworkMode) 
-        -> anyhow::Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
-        todo!()
-    }
-    
     fn name(&self) -> String {
         "MediaFilesPlugin".to_string()
-    }
-    
+    }    
 }
 
 

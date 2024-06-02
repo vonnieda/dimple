@@ -84,7 +84,7 @@ impl Db for MemoryDb {
     fn list(
         &self,
         list_of: &Model,
-        related_to: Option<&Model>,
+        related_to: &Option<Model>,
     ) -> Result<Box<dyn Iterator<Item = Model>>> {
         if let Some(related_to) = related_to {
             let prefix = Self::edge_prefix(list_of, related_to);
@@ -123,9 +123,9 @@ impl Db for MemoryDb {
     
     fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = Model>>> {
         // TODO
-        let iter = self.list(&crate::model::Entity::model(&Artist::default()), None).unwrap().take(10)
-            .chain(self.list(&crate::model::Entity::model(&Release::default()), None).unwrap().take(10))
-            .chain(self.list(&crate::model::Entity::model(&Genre::default()), None).unwrap().take(10));
+        let iter = self.list(&crate::model::Entity::model(&Artist::default()), &None).unwrap().take(10)
+            .chain(self.list(&crate::model::Entity::model(&Release::default()), &None).unwrap().take(10))
+            .chain(self.list(&crate::model::Entity::model(&Genre::default()), &None).unwrap().take(10));
         Ok(Box::new(iter))
     }
 }
@@ -208,11 +208,11 @@ mod tests {
         let a2 = db.insert(&Artist::default().model()).unwrap();
         let r1 = db.insert(&Release::default().model()).unwrap();
         db.link(&a2, &r1).unwrap();
-        for artist in db.list(&Artist::default().model(), None).unwrap() {
+        for artist in db.list(&Artist::default().model(), &None).unwrap() {
             println!("artist");
-            for release in db.list(&Release::default().model(), Some(&artist)).unwrap() {
+            for release in db.list(&Release::default().model(), &Some(artist)).unwrap() {
                 println!("  release");
-                for track in db.list(&Track::default().model(), Some(&release)).unwrap() {
+                for track in db.list(&Track::default().model(), &Some(release)).unwrap() {
                     println!("    track");
                 }
             }    
@@ -238,7 +238,7 @@ mod tests {
             db.link(&artist, &release).unwrap();
         }
         let now = Instant::now();
-        let artist = db.list(&Artist::default().model(), None).unwrap()
+        let artist = db.list(&Artist::default().model(), &None).unwrap()
             .map(Into::<Artist>::into)
             .find(|artist| {
                 artist.name == Some("357 357 357 357 357".to_string())

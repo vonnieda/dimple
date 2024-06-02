@@ -34,7 +34,7 @@ pub trait Db: Send + Sync {
     fn list(
         &self,
         list_of: &Model,
-        related_to: Option<&Model>,
+        related_to: &Option<Model>,
     ) -> Result<Box<dyn Iterator<Item = Model>>>;
 
     fn reset(&self) -> Result<()>;

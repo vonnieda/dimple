@@ -142,7 +142,7 @@ impl Librarian {
     fn find_matching_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
         match model {
             Model::ReleaseGroup(release_group) => Self::find_release_group(db, release_group),
-            _ => db.list(&model, parent.as_ref()).unwrap().find(|model_opt| Self::compare_models(&model, model_opt))
+            _ => db.list(&model, parent).unwrap().find(|model_opt| Self::compare_models(&model, model_opt))
         }
     }
 
@@ -153,7 +153,7 @@ impl Librarian {
         }
 
         // find by known id
-        let matched = db.list(&release_group.model(), None).unwrap()
+        let matched = db.list(&release_group.model(), &None).unwrap()
             .map(Into::<ReleaseGroup>::into)
             .find(|opt| {
                 Self::is_some_and_equal(&release_group.known_ids.musicbrainz_id, &opt.known_ids.musicbrainz_id)
@@ -264,11 +264,11 @@ impl Db for Librarian {
         // that return a result. 
         let mut skip_list: HashSet<String> = HashSet::new();
         for plugin in self.plugins.read().unwrap().iter() {
-            let result = plugin.get(merged.entity(), self.network_mode());
+            let result = plugin.get(&merged, self.network_mode());
             if let Ok(Some(result)) = result {
                 // TODO this match is test code, needs to be moved into Model::merge, I think.
                 // TODO and also replicated below.
-                match (merged, result.model()) {
+                match (merged, result) {
                     (Model::Artist(l), Model::Artist(r)) => {
                         merged = Artist::merge(l.clone(), r.clone()).model();
                         skip_list.insert(plugin.name());
@@ -294,9 +294,9 @@ impl Db for Librarian {
             if skip_list.contains(&plugin.name()) {
                 continue;
             }
-            let result = plugin.get(merged.entity(), self.network_mode());
+            let result = plugin.get(&merged, self.network_mode());
             if let Ok(Some(result)) = result {
-                match (merged, result.model()) {
+                match (merged, result) {
                     (Model::Artist(l), Model::Artist(r)) => {
                         merged = Artist::merge(l.clone(), r.clone()).model();
                         skip_list.insert(plugin.name());
@@ -319,18 +319,18 @@ impl Db for Librarian {
 
     fn list(
         &self,
-        list_of: &dimple_core::model::Model,
-        related_to: Option<&dimple_core::model::Model>,
+        list_of: &Model,
+        related_to: &Option<Model>,
     ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         let db: &dyn Db = self.db.as_ref().as_ref();
         for plugin in self.plugins.read().unwrap().iter() {
-            let results = plugin.list(list_of.entity(), related_to.map(|f| f.entity()), self.network_mode());
+            let results = plugin.list(list_of, related_to, self.network_mode());
             if let Ok(results) = results {
                 for result in results {
                     // TODO noting the use of db_merge_model here vs. self.merge in search
                     // because this asks for objects by relationship and thus needs to be
                     // merged with that same relationship.
-                    Self::db_merge_model(db, &result.model(), &related_to.map(|f| f.clone()));
+                    Self::db_merge_model(db, &result, related_to);
                 }
             }
         }
@@ -343,18 +343,18 @@ impl Db for Librarian {
             let results = plugin.search(query, self.network_mode());
             if let Ok(results) = results {
                 for result in results {
-                    self.merge(&result.model());
+                    self.merge(&result);
                 }
             }
         }
 
         // TODO fts lol
         // self.db.search(query)
-        let results = self.db.list(&Artist::default().model(), None)?
-            .chain(self.db.list(&Release::default().model(), None)?)
-            .chain(self.db.list(&ReleaseGroup::default().model(), None)?)
-            .chain(self.db.list(&Genre::default().model(), None)?)
-            .chain(self.db.list(&Track::default().model(), None)?);
+        let results = self.db.list(&Artist::default().model(), &None)?
+            .chain(self.db.list(&Release::default().model(), &None)?)
+            .chain(self.db.list(&ReleaseGroup::default().model(), &None)?)
+            .chain(self.db.list(&Genre::default().model(), &None)?)
+            .chain(self.db.list(&Track::default().model(), &None)?);
             
         Ok(Box::new(results))
     }

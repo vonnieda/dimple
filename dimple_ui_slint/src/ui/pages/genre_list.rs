@@ -14,7 +14,7 @@ pub fn genre_list(app: &App) {
     let images = app.images.clone();
     std::thread::spawn(move || {
         let mut genres: Vec<Genre> = librarian
-            .list(&Genre::default().into(), None)
+            .list(&Genre::default().into(), &None)
             .unwrap()
             .map(Into::into)
             .collect();

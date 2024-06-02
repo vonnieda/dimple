@@ -14,7 +14,7 @@ pub fn playlist_list(app: &App) {
     let images = app.images.clone();
     std::thread::spawn(move || {
         let mut playlists: Vec<Playlist> = librarian
-            .list(&Playlist::default().into(), None)
+            .list(&Playlist::default().into(), &None)
             .unwrap()
             .map(Into::into)
             .collect();

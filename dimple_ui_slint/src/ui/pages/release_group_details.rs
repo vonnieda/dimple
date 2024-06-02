@@ -34,21 +34,21 @@ pub fn release_group_details(url: &str, app: &App) {
         }.into()).unwrap().unwrap().into();
 
         let mut artists: Vec<Artist> = librarian
-            .list(&Artist::default().into(), Some(&release_group.model()))
+            .list(&Artist::default().into(), &Some(release_group.model()))
             .unwrap()
             .map(Into::into)
             .collect();
         artists.sort_by_key(|f| f.name.to_owned());
 
         let mut genres: Vec<Genre> = librarian
-            .list(&Genre::default().into(), Some(&release_group.model()))
+            .list(&Genre::default().into(), &Some(release_group.model()))
             .unwrap()
             .map(Into::into)
             .collect();
         genres.sort_by_key(|f| f.name.to_owned());
 
         let mut releases: Vec<Release> = librarian
-            .list(&Release::default().into(), Some(&release_group.model()))
+            .list(&Release::default().into(), &Some(release_group.model()))
             .unwrap()
             .map(Into::into)
             .collect();

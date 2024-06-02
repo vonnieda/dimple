@@ -101,7 +101,7 @@ impl ImageMangler {
     }
 
     pub fn load_model_image(&self, model: &Model) -> Option<DynamicImage> {
-        let picture = self.librarian.list(&Picture::default().into(), Some(&model))
+        let picture = self.librarian.list(&Picture::default().into(), &Some(model.clone()))
             .unwrap()
             .map(Into::<Picture>::into)
             .next();

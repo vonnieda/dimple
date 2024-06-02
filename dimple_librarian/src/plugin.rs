@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use anyhow::Result;
-use dimple_core::model::Entity;
+use dimple_core::model::{Entity, Model};
 
 use colored::Colorize;
 
@@ -12,7 +12,7 @@ pub trait Plugin: Send + Sync {
 
     /// Load the model using its key. Returns None if no key is set, or if the
     /// key doesn't exist in the database.
-    fn get(&self, entity: &dyn Entity, network_mode: NetworkMode) -> Result<Option<Box<dyn Entity>>> {
+    fn get(&self, model: &Model, network_mode: NetworkMode) -> Result<Option<Model>> {
         Ok(None)
     }
 
@@ -20,15 +20,15 @@ pub trait Plugin: Send + Sync {
     /// specified list all models of the specified type.
     fn list(
         &self,
-        list_of: &dyn Entity,
-        related_to: Option<&dyn Entity>,
+        list_of: &Model,
+        related_to: &Option<Model>,
         network_mode: NetworkMode,
-    ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+    ) -> Result<Box<dyn Iterator<Item = Model>>> {
         Ok(Box::new(std::iter::empty()))
     }
 
     fn search(&self, query: &str, network_mode: NetworkMode) 
-        -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
+        -> Result<Box<dyn Iterator<Item = Model>>> {
         Ok(Box::new(std::iter::empty()))
     }
 }

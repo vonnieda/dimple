@@ -32,7 +32,7 @@ pub fn genre_details(url: &str, app: &App) {
         }.into()).unwrap().unwrap().into();
 
         let mut artists: Vec<Artist> = librarian
-            .list(&Artist::default().into(), Some(&genre.model()))
+            .list(&Artist::default().into(), &Some(genre.model()))
             .unwrap()
             .map(Into::into)
             .collect();
@@ -40,7 +40,7 @@ pub fn genre_details(url: &str, app: &App) {
         // artists.reverse();
 
         let mut release_groups: Vec<ReleaseGroup> = librarian
-            .list(&ReleaseGroup::default().into(), Some(&genre.model()))
+            .list(&ReleaseGroup::default().into(), &Some(genre.model()))
             .unwrap()
             .map(Into::into)
             .collect();
@@ -48,7 +48,7 @@ pub fn genre_details(url: &str, app: &App) {
         // release_groups.reverse();
 
         let mut tracks: Vec<Track> = librarian
-            .list(&Track::default().into(), Some(&genre.model()))
+            .list(&Track::default().into(), &Some(genre.model()))
             .unwrap()
             .map(Into::into)
             .collect();
@@ -56,7 +56,7 @@ pub fn genre_details(url: &str, app: &App) {
         // artists.reverse();
 
         let mut playlists: Vec<Playlist> = librarian
-            .list(&Playlist::default().model(), Some(&genre.model()))
+            .list(&Playlist::default().model(), &Some(genre.model()))
             .unwrap()
             .map(Into::into)
             .collect();

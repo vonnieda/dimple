@@ -30,7 +30,7 @@ pub fn artist_details(url: &str, app: &App) {
         }.into()).unwrap().unwrap().into();
 
         let mut release_groups: Vec<ReleaseGroup> = librarian
-            .list(&ReleaseGroup::default().into(), Some(&Model::Artist(artist.clone())))
+            .list(&ReleaseGroup::default().into(), &Some(artist.model()))
             .unwrap()
             .map(Into::into)
             .collect();
@@ -38,7 +38,7 @@ pub fn artist_details(url: &str, app: &App) {
         release_groups.reverse();
 
         let genres: Vec<Genre> = librarian
-            .list(&Genre::default().into(), Some(&Model::Artist(artist.clone())))
+            .list(&Genre::default().into(), &Some(artist.model()))
             .unwrap()
             .map(Into::into)
             .collect();
