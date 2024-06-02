@@ -66,6 +66,8 @@ impl AppWindowController {
         let app = self.app.clone();
         self.ui.global::<Navigator>().on_navigate(move |url| app.navigate(url));
 
+        // TODO I think this stuff moves into init on settings or something,
+        // and we use that pattern for each page?
         let app = self.app.clone();
         self.ui.global::<AppState>().on_settings_generate_artists(
             move || settings::settings_generate_artists(&app));
