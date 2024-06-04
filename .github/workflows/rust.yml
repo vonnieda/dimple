@@ -17,14 +17,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
-      - name: Build
-        run: cargo build --release
-      - name: Run tests
-        run: cargo test
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+      - run: rustup update nightly && rustup default nightly
+      - run: cargo build
+      - run: cargo test
+      - uses: actions/upload-artifact@v2
         with: 
           name: ${{ matrix.os }}
           path: |
-            target/release/dimple_ui_slint
-            target/release/dimple_ui_slint.exe
+            target/debug/dimple_ui_slint
+            target/debug/dimple_ui_slint.exe
