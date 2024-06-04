@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 
-use dimple_core::model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Recording, RecordingSource, Release, ReleaseGroup, Track};
+use dimple_core::{db::Db, model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Recording, RecordingSource, Release, ReleaseGroup, Track}};
+
+use crate::matching;
 
 pub trait Merge {
     /// Commutative: A v B = B v A
@@ -8,7 +10,6 @@ pub trait Merge {
     /// Idempotent : A v A = A
     fn merge(l: Self, r: Self) -> Self;
 }
-
 
 impl Merge for Artist {
     fn merge(l: Self, r: Self) -> Self {
@@ -154,6 +155,104 @@ impl Merge for KnownIds {
     }
 }
 
+fn merge_artist(db: &dyn Db, artist: &Artist) -> Option<Model> {
+    let artist: Artist = db_merge_model(db, &artist.model(), &None)?.into();
+    for genre in &artist.genres {
+        let genre = merge_genre(db, genre);
+        lazy_link(db, &genre, &Some(artist.model()))
+    }
+    Some(artist.model())
+}
+
+fn merge_release_group(db: &dyn Db, release_group: &ReleaseGroup) -> Option<Model> {
+    let release_group: ReleaseGroup = 
+        db_merge_model(db, &release_group.model(), &None)?.into();
+
+    for genre in &release_group.genres {
+        let genre = merge_genre(db, genre);
+        lazy_link(db, &genre, &Some(release_group.model()))
+    }
+
+    // TODO temporary bypass artist credit for artist to get some testing
+    // done
+    for artist_credit in &release_group.artist_credits {
+        let artist = merge_artist(db, &artist_credit.artist);
+        lazy_link(db, &artist, &Some(release_group.model()))
+    }
+
+    Some(release_group.model())
+}
+
+/// get, merge, update the release properties
+/// for each genre
+///     merge(genre, release)
+///     link(release, genre)
+/// for each artist_credit
+///     merge(artist_credit)
+///     link(release, artist_credit)
+///     link(release, artist)
+/// for each medium
+///     for each track
+///         merge(release, medium, track)
+fn merge_release(db: &dyn Db, release: &Release) -> Option<Model> {
+    db_merge_model(db, &release.model(), &None)
+}
+
+fn merge_genre(db: &dyn Db, genre: &Genre) -> Option<Model> {
+    db_merge_model(db, &genre.model(), &None)
+}
+
+pub fn db_merge_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
+    // TODO does this need to be merging parent as well?
+
+    // find a matching model to the specified, merge, save
+    let matching = matching::find_matching_model(db, model, parent);
+    if let Some(matching) = matching {
+        let merged = Model::merge(model.clone(), matching);
+        return Some(db.insert(&merged).unwrap())
+    }
+    // if not, insert the new one and link it to the parent
+    else {
+        if model_valid(model) {
+            let model = Some(db.insert(model).unwrap());
+            lazy_link(db, &model, parent);
+            return model
+        }
+    }
+    None
+}
+
+/// Links the two Models if they are both Some. Reduces boilerplate.
+fn lazy_link(db: &dyn Db, l: &Option<Model>, r: &Option<Model>) {
+    if l.is_some() && r.is_some() {
+        db.link(&l.clone().unwrap(), &r.clone().unwrap()).unwrap()
+    }
+}
+
+fn model_valid(model: &Model) -> bool {
+    match model {
+        Model::Artist(a) => a.name.is_some() || a.known_ids.musicbrainz_id.is_some(),
+        Model::Genre(g) => g.name.is_some(),
+        Model::Medium(_m) => true,
+        Model::Release(r) => r.title.is_some(),
+        Model::ReleaseGroup(rg) => rg.title.is_some(),
+        Model::Track(t) => t.title.is_some(),
+        _ => todo!()
+    }
+}
+
+pub fn merge(db: &dyn Db, model: &Model) -> Option<Model> {
+    match model {
+        // TODO I think I can move this logic into db_merge_model, and specifically
+        // panic when asked to merge something without enough context. 
+        // Like an Media without a Release or whatever.
+        Model::Artist(artist) => merge_artist(db, artist),
+        Model::Release(release) => merge_release(db, release),
+        Model::ReleaseGroup(release_group) => merge_release_group(db, release_group),
+        _ => todo!(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -211,3 +310,4 @@ mod tests {
         // dbg!(Artist::mergability(&a1, &a5));
     }
 }
+
