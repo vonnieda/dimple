@@ -5,6 +5,7 @@ use dimple_core::{
 };
 
 use anyhow::Result;
+use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
 use crate::{matching, merge::{self, Merge}, plugin::{NetworkMode, Plugin}};
 
@@ -58,35 +59,34 @@ impl Librarian {
             }
         }
 
-        // TODO fts lol
-        // self.db.search(query)
-        let results = self.db.list(&Artist::default().model(), &None)?
-            .chain(self.db.list(&Release::default().model(), &None)?)
-            .chain(self.db.list(&ReleaseGroup::default().model(), &None)?)
-            .chain(self.db.list(&Genre::default().model(), &None)?)
-            .chain(self.db.list(&Track::default().model(), &None)?);
-            
-        Ok(Box::new(results))
+        self.local_library_search(query)
     }
 
-    // fn local_library_search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
-    //     // const MAX_RESULTS_PER_TYPE: usize = 10;
-    //     // TODO sort by score
-    //     // TODO other entities
-    //     let pattern = query.to_string();
-    //     let matcher = SkimMatcherV2::default();
-    //     let artists = Artist::list(&self.local_library)
-    //         .filter(move |a| matcher.fuzzy_match(&a.name.clone().unwrap_or_default(), &pattern).is_some())
-    //         .map(Entities::Artist);
-    //         // .take(MAX_RESULTS_PER_TYPE);
-    //     let pattern = query.to_string();
-    //     let matcher = SkimMatcherV2::default();
-    //     let release_groups = ReleaseGroup::list(&self.local_library)
-    //         .filter(move |a| matcher.fuzzy_match(&a.title.clone().unwrap_or_default(), &pattern).is_some())
-    //         .map(Entities::ReleaseGroup);
-    //         // .take(MAX_RESULTS_PER_TYPE);
-    //     Box::new(artists.chain(release_groups))
-    // }
+    fn local_library_search(&self, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
+        const MAX_RESULTS_PER_TYPE: usize = 10;
+
+        // TODO sort by score
+
+        let pattern = query.to_string();
+        let matcher = SkimMatcherV2::default();
+        let artists = self.db.list(&Artist::default().model(), &None)?
+            .filter(move |artist| {
+                let artist: Artist = artist.clone().into();
+                matcher.fuzzy_match(&artist.name.clone().unwrap_or_default(), &pattern).is_some()
+            })
+            .take(MAX_RESULTS_PER_TYPE);
+
+        let pattern = query.to_string();
+        let matcher = SkimMatcherV2::default();
+        let release_groups = self.db.list(&ReleaseGroup::default().model(), &None)?
+            .filter(move |rg| {
+                let rg: ReleaseGroup = rg.clone().into();
+                matcher.fuzzy_match(&rg.title.clone().unwrap_or_default(), &pattern).is_some()
+            })
+            .take(MAX_RESULTS_PER_TYPE);
+
+        Ok(Box::new(artists.chain(release_groups)))
+    }
 }
 
 impl Db for Librarian {

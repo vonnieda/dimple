@@ -29,12 +29,15 @@ pub fn search(url: &str, app: &App) {
     /// This will require adding a sort model, and figuring out that stuff
     /// so that the results stay sorted in the UI.
 
-    std::thread::spawn(move || {        
+    std::thread::spawn(move || {
+        log::info!("{}", url);
         let url = Url::parse(&url).unwrap();
-        let query = url.path_segments().unwrap().nth(0).unwrap();
+        let query = url.path_segments().unwrap().next().unwrap();
+        // TODO wtf? really?
+        let query = percent_encoding::percent_decode_str(query).decode_utf8_lossy().to_string();
 
         let results: Vec<Model> = librarian
-            .search(query)
+            .search(&query)
             .unwrap()
             .collect();
 
