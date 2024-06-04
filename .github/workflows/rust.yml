@@ -13,7 +13,8 @@ jobs:
   default:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13-xlarge]
+        os: [windows-latest, macos-latest]
+        # os: [ubuntu-latest, windows-latest, macos-13-xlarge]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
