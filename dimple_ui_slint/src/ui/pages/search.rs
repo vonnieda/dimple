@@ -1,11 +1,4 @@
-use dimple_core::model::Artist;
-use dimple_core::model::Entity;
-use dimple_core::model::Genre;
-use dimple_core::model::Medium;
 use dimple_core::model::Model;
-use dimple_core::model::Release;
-use dimple_core::model::ReleaseGroup;
-use dimple_core::model::Track;
 use slint::ComponentHandle;
 use slint::Model as _;
 use slint::ModelRc;
@@ -13,7 +6,6 @@ use url::Url;
 use crate::ui::app_window_controller::App;
 use crate::ui::Navigator;
 use crate::ui::Page;
-use dimple_core::db::Db;
 use crate::ui::CardAdapter;
 use crate::ui::CardGridAdapter;
 
@@ -36,6 +28,9 @@ pub fn search(url: &str, app: &App) {
         // TODO wtf? really?
         let query = percent_encoding::percent_decode_str(query).decode_utf8_lossy().to_string();
 
+        ui.upgrade_in_event_loop(move |ui| {
+            ui.global::<Navigator>().set_busy(true);
+        }).unwrap();
         let results: Vec<Model> = librarian
             .search(&query)
             .unwrap()

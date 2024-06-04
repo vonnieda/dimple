@@ -1,15 +1,14 @@
 use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Artist, ArtistCredit, Entity, Genre, Medium, Model, Release, ReleaseGroup, Track}
+    db::{Db, SqliteDb}, model::{Artist, Entity, Model, ReleaseGroup}
 };
 
 use anyhow::Result;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 
-use crate::{matching, merge::{self, Merge}, plugin::{NetworkMode, Plugin}};
+use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin}};
 
-use rayon::prelude::{*};
 
 #[derive(Clone)]
 pub struct Librarian {

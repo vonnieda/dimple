@@ -25,16 +25,36 @@ pub struct Artist {
     pub genres: Vec<Genre>,
 }
 
+impl Display for Artist {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(format!("{}{}", 
+            self.name.clone().unwrap_or_default(),
+            self.disambiguation.clone().map(|d| format!(" ({})", d)).unwrap_or_default()
+        ).as_str())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use std::time::Instant;
-
-    use crate::model::{Entity, ReleaseGroup};
-
     use super::*;
 
     #[test]
     fn basics() {
         assert!(Artist::default().model().entity().type_name() == "Artist")
+    }
+
+    #[test]
+    fn display() {
+        let artist = Artist {
+            name: Some("Blue Plate".to_string()),
+            disambiguation: Some("Small one".to_string()),
+            ..Default::default()
+        };
+        assert!(artist.to_string() == "Blue Plate (Small one)");
+        let artist = Artist {
+            name: Some("Red Plate".to_string()),
+            ..Default::default()
+        };
+        assert!(artist.to_string() == "Red Plate");
     }
 }
