@@ -27,8 +27,6 @@ pub trait Db: Send + Sync {
     /// to retrieve a list of models related to the specified model.
     fn link(&self, model: &Model, related_to: &Model) -> Result<()>;
 
-    fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = Model>>>;
-
     /// Get a list of models that are related to the specified model. If None is
     /// specified list all models of the specified type.
     fn list(

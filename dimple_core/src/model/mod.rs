@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::borrow::BorrowMut;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -68,10 +69,29 @@ impl Model {
             Model::PlaylistItem(v) => v,
         }
     }
+
+    pub fn set_key(&mut self, key: Option<String>) {
+        match self {
+            Model::Playlist(v) => v.key = key,
+            Model::Artist(v) => v.key = key,
+            Model::ArtistCredit(v) => v.key = key,
+            Model::Blob(v) => v.key = key,
+            Model::Genre(v) => v.key = key,
+            Model::Medium(v) => v.key = key,
+            Model::Recording(v) => v.key = key,
+            Model::RecordingSource(v) => v.key = key,
+            Model::ReleaseGroup(v) => v.key = key,
+            Model::Release(v) => v.key = key,
+            Model::Track(v) => v.key = key,
+            Model::Picture(v) => v.key = key,
+            Model::PlaylistItem(v) => v.key = key,
+        }
+    }
 }
 
 pub trait Entity {
     fn key(&self) -> Option<String>;
+    fn set_key(&mut self, key: Option<String>);
     fn type_name(&self) -> String;
     fn as_any(&self) -> &dyn Any;
     fn model(&self) -> Model;

@@ -8,6 +8,7 @@ pub fn my_macro(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     let name = input.ident;
+    let name_str = name.to_string();
 
     // Build the output, possibly using quasi-quotation
     let expanded = quote! {
@@ -42,8 +43,12 @@ pub fn my_macro(input: TokenStream) -> TokenStream {
                 self.key.clone()
             }
 
+            fn set_key(&mut self, key: Option<String>) {
+                self.key = key;
+            }
+
             fn type_name(&self) -> String {
-                "#name".to_string()
+                #name_str.to_string()
             }
 
             fn as_any(&self) -> &dyn Any {

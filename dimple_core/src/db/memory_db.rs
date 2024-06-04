@@ -4,7 +4,7 @@ use anyhow::Result;
 
 use uuid::Uuid;
 
-use crate::model::{Artist, Genre, Model, Release, Track};
+use crate::model::{Artist, Entity, Genre, Model, Release, Track};
 
 use super::Db;
 
@@ -17,22 +17,23 @@ pub struct MemoryDb {
 impl MemoryDb {
     fn node_key(model: &Model) -> String {
         // type:key
-        format!("node:{}:{}", model.entity_name(), model.key().unwrap())
+        format!("node:{}:{}", model.entity().type_name(), 
+            model.entity().key().unwrap())
     }
 
     fn node_prefix(model: &Model) -> String {
         // type:
-        format!("node:{}:", model.entity_name())
+        format!("node:{}:", model.entity().type_name())
     }
 
     fn edge_key(model: &Model, related_to: &Model) -> String {
         // edge_key(release, artist) -> atype:btype:akey:bkey
         format!(
             "edge:{}:{}:{}:{}",
-            related_to.entity_name(),
-            related_to.key().unwrap(),
-            model.entity_name(),
-            model.key().unwrap(),
+            related_to.entity().type_name(),
+            related_to.entity().key().unwrap(),
+            model.entity().type_name(),
+            model.entity().key().unwrap(),
         )
     }
 
@@ -40,16 +41,16 @@ impl MemoryDb {
         // edge_prefix(release, artist) -> atype:btype:akey:
         format!(
             "edge:{}:{}:{}:",
-            related_to.entity_name(),
-            related_to.key().unwrap(),
-            model.entity_name(),
+            related_to.entity().type_name(),
+            related_to.entity().key().unwrap(),
+            model.entity().type_name(),
         )
     }
 }
 
 impl Db for MemoryDb {
     fn insert(&self, model: &Model) -> Result<Model> {
-        let model = match model.key() {
+        let model = match model.entity().key() {
             Some(_) => model.clone(),
             None => {
                 let mut model = model.clone();
@@ -120,77 +121,6 @@ impl Db for MemoryDb {
         self.edges.write().unwrap().clear();
         Ok(())
     }
-    
-    fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = Model>>> {
-        // TODO
-        let iter = self.list(&crate::model::Entity::model(&Artist::default()), &None).unwrap().take(10)
-            .chain(self.list(&crate::model::Entity::model(&Release::default()), &None).unwrap().take(10))
-            .chain(self.list(&crate::model::Entity::model(&Genre::default()), &None).unwrap().take(10));
-        Ok(Box::new(iter))
-    }
-}
-
-// TODO now that we have Entity in core this can all go away
-trait Entity {
-    fn entity_name(&self) -> String;
-    fn key(&self) -> Option<String>;
-    fn set_key(&mut self, key: Option<String>);
-}
-
-impl Entity for Model {
-    fn entity_name(&self) -> String {
-        match self {
-            Model::Artist(_) => "Artist".to_string(),
-            Model::ArtistCredit(_) => "ArtistCredit".to_string(),
-            Model::Blob(_) => "Blob".to_string(),
-            Model::Genre(_) => "Genre".to_string(),
-            Model::Medium(_) => "Medium".to_string(),
-            Model::Recording(_) => "Recording".to_string(),
-            Model::RecordingSource(_) => "RecordingSource".to_string(),
-            Model::Release(_) => "Release".to_string(),
-            Model::ReleaseGroup(_) => "ReleaseGroup".to_string(),
-            Model::Track(_) => "Track".to_string(),
-            Model::Picture(_) => "Picture".to_string(),
-            Model::Playlist(_) => "Playlist".to_string(),
-            Model::PlaylistItem(_) => "PlaylistItem".to_string(),
-        }
-    }
-
-    fn key(&self) -> Option<String> {
-        match self {
-            Model::Picture(value) => value.key.clone(),
-            Model::Artist(value) => value.key.clone(),
-            Model::ArtistCredit(value) => value.key.clone(),
-            Model::Blob(value) => value.key.clone(),
-            Model::Genre(value) => value.key.clone(),
-            Model::Medium(value) => value.key.clone(),
-            Model::Recording(value) => value.key.clone(),
-            Model::RecordingSource(value) => value.key.clone(),
-            Model::Release(value) => value.key.clone(),
-            Model::ReleaseGroup(value) => value.key.clone(),
-            Model::Track(value) => value.key.clone(),
-            Model::Playlist(value) => value.key.clone(),
-            Model::PlaylistItem(value) => value.key.clone(),
-        }
-    }
-
-    fn set_key(&mut self, key: Option<String>) {
-        match self {
-            Model::Picture(value) => value.key = key,
-            Model::Artist(value) => value.key = key,
-            Model::ArtistCredit(value) => value.key = key,
-            Model::Blob(value) => value.key = key,
-            Model::Genre(value) => value.key = key,
-            Model::Medium(value) => value.key = key,
-            Model::Recording(value) => value.key = key,
-            Model::RecordingSource(value) => value.key = key,
-            Model::Release(value) => value.key = key,
-            Model::ReleaseGroup(value) => value.key = key,
-            Model::Track(value) => value.key = key,
-            Model::Playlist(value) => value.key = key,
-            Model::PlaylistItem(value) => value.key = key,
-        }
-    }
 }
 
 #[cfg(test)]
@@ -238,11 +168,11 @@ mod tests {
             db.link(&artist, &release).unwrap();
         }
         let now = Instant::now();
-        let artist = db.list(&Artist::default().model(), &None).unwrap()
-            .map(Into::<Artist>::into)
-            .find(|artist| {
-                artist.name == Some("357 357 357 357 357".to_string())
-            });
-        println!("found {:?} in {}", artist, Instant::now().duration_since(now).as_millis());
+        // let artist = db.list(&Artist::default().model(), &None).unwrap()
+        //     .map(Into::<Artist>::into)
+        //     .find(|artist| {
+        //         artist.name == Some("357 357 357 357 357".to_string())
+        //     });
+        // println!("found {:?} in {}", artist, Instant::now().duration_since(now).as_millis());
     }
 }

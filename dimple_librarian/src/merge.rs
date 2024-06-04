@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use dimple_core::model::{Artist, ArtistCredit, Genre, KnownIds, Medium, Recording, RecordingSource, Release, ReleaseGroup, Track};
+use dimple_core::model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Recording, RecordingSource, Release, ReleaseGroup, Track};
 
 pub trait Merge {
     /// Commutative: A v B = B v A
@@ -114,6 +114,20 @@ impl Merge for Recording {
             annotation: Option::merge(l.annotation, r.annotation),
             // TODO
             ..Default::default()
+        }
+    }
+}
+
+impl Merge for Model {
+    fn merge(l: Self, r: Self) -> Self {
+        match (l, r) {
+            (Model::Artist(l), Model::Artist(r)) => Artist::merge(l.clone(), r.clone()).model(),
+            (Model::Genre(l), Model::Genre(r)) => Genre::merge(l.clone(), r.clone()).model(),
+            (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
+            (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
+            (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
+            (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
+            _ => todo!()
         }
     }
 }

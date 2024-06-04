@@ -25,3 +25,16 @@ pub struct Artist {
     pub genres: Vec<Genre>,
 }
 
+#[cfg(test)]
+mod tests {
+    use std::time::Instant;
+
+    use crate::model::{Entity, ReleaseGroup};
+
+    use super::*;
+
+    #[test]
+    fn basics() {
+        assert!(Artist::default().model().entity().type_name() == "Artist")
+    }
+}
