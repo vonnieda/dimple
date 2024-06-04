@@ -1,7 +1,6 @@
 pub mod ui;
 
 use ui::app_window_controller::AppWindowController;
-use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, PlatformConfig};
 
 fn main() -> Result<(), slint::PlatformError> {
     let mut builder = env_logger::Builder::new();
@@ -21,44 +20,45 @@ fn main() -> Result<(), slint::PlatformError> {
     // [2024-01-24T21:06:24.917Z INFO  symphonia_format_isomp4::demuxer] stream is seekable with len=3037538 bytes.
     builder.filter(Some("symphonia_format_isomp4"), log::LevelFilter::Off);
 
-
     builder.init();
-
-
-    #[cfg(not(target_os = "windows"))]
-    let hwnd = None;
-
-    #[cfg(target_os = "windows")]
-    let hwnd = {
-        use raw_window_handle::windows::WindowsHandle;
-
-        let handle: WindowsHandle = unimplemented!();
-        Some(handle.hwnd)
-    };
-
-    let config = PlatformConfig {
-        dbus_name: "dimple",
-        display_name: "Dimple",
-        hwnd,
-    };
-
-    let mut controls = MediaControls::new(config).unwrap();
-
-    // The closure must be Send and have a static lifetime.
-    controls
-        .attach(|event: MediaControlEvent| println!("Event received: {:?}", event))
-        .unwrap();
-
-    // Update the media metadata.
-    controls
-        .set_metadata(MediaMetadata {
-            title: Some("Time to get Dimply"),
-            artist: Some("Dimple"),
-            album: Some("Dimple Time"),
-            ..Default::default()
-        })
-        .unwrap();
 
     let ui = AppWindowController::new();
     ui.run()
 }
+
+// TODO desktop integration using souvlaki. currently broken on Windows.
+// fn desktop_integration() {
+//     #[cfg(not(target_os = "windows"))]
+//     let hwnd = None;
+
+//     #[cfg(target_os = "windows")]
+//     let hwnd = {
+//         use raw_window_handle::windows::WindowsHandle;
+
+//         let handle: WindowsHandle = unimplemented!();
+//         Some(handle.hwnd)
+//     };
+
+//     let config = PlatformConfig {
+//         dbus_name: "dimple",
+//         display_name: "Dimple",
+//         hwnd,
+//     };
+
+//     let mut controls = MediaControls::new(config).unwrap();
+
+//     // The closure must be Send and have a static lifetime.
+//     controls
+//         .attach(|event: MediaControlEvent| println!("Event received: {:?}", event))
+//         .unwrap();
+
+//     // Update the media metadata.
+//     controls
+//         .set_metadata(MediaMetadata {
+//             title: Some("Time to get Dimply"),
+//             artist: Some("Dimple"),
+//             album: Some("Dimple Time"),
+//             ..Default::default()
+//         })
+//         .unwrap();
+// }
