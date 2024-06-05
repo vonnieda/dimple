@@ -1,4 +1,5 @@
-use dimple_core::model::Artist;
+use dimple_core::model::{Artist, Entity, KnownIds};
+use dimple_fanart_tv_plugin::FanartTvPlugin;
 use dimple_mediafiles_plugin::MediaFilesPlugin;
 use dimple_musicbrainz_plugin::MusicBrainzPlugin;
 use dimple_player::player::Player;
@@ -47,7 +48,23 @@ impl AppWindowController {
 
         librarian.add_plugin(Box::new(MusicBrainzPlugin::default()));
         librarian.add_plugin(Box::new(WikidataPlugin::default()));
-        
+        librarian.add_plugin(Box::new(FanartTvPlugin::default()));
+
+        // librarian.get(&Artist {
+        //     known_ids: KnownIds {
+        //         musicbrainz_id: Some("65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab".to_string()),
+        //         ..Default::default()
+        //     },
+        //     ..Default::default()
+        // }.model()).unwrap();
+        // librarian.get(&Artist {
+        //     known_ids: KnownIds {
+        //         musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
+        //         ..Default::default()
+        //     },
+        //     ..Default::default()
+        // }.model()).unwrap();
+
         let player = Player::new(Arc::new(librarian.clone()));
         let ui_weak = ui.as_weak();
         Self {

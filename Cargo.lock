@@ -1429,6 +1429,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dimple_fanart_tv_plugin"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dimple_core",
+ "dimple_librarian",
+ "image 0.25.1",
+ "log",
+ "reqwest",
+ "serde",
+]
+
+[[package]]
 name = "dimple_librarian"
 version = "0.1.0"
 dependencies = [
@@ -1490,6 +1503,7 @@ name = "dimple_ui_slint"
 version = "0.1.0"
 dependencies = [
  "dimple_core",
+ "dimple_fanart_tv_plugin",
  "dimple_librarian",
  "dimple_mediafiles_plugin",
  "dimple_musicbrainz_plugin",

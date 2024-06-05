@@ -13,18 +13,18 @@ log = "0.4.19"
 slint = { version = "= 1.4.1", default-features = true }
 env_logger = "0.10.0"
 dimple_core = { path = "../dimple_core" }
+dimple_librarian = { path = "../dimple_librarian" }
 dimple_player = { path = "../dimple_player" }
 dimple_mediafiles_plugin = { path = "../dimple_mediafiles_plugin" }
+dimple_musicbrainz_plugin = { path = "../dimple_musicbrainz_plugin" }
+dimple_fanart_tv_plugin = { path = "../dimple_fanart_tv_plugin" }
+dimple_wikidata_plugin = { path = "../dimple_wikidata_plugin" }
+# dimple_theaudiodb_library = { path = "../dimple_theaudiodb_library" }
 # dimple_navidrome_library = { path = "../dimple_navidrome_library" }
 # dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
 # dimple_coverartarchive_library = { path = "../dimple_coverartarchive_library" }
-dimple_musicbrainz_plugin = { path = "../dimple_musicbrainz_plugin" }
 # dimple_lastfm_library = { path = "../dimple_lastfm_library" }
 # dimple_deezer_library = { path = "../dimple_deezer_library" }
-# dimple_fanart_tv_library = { path = "../dimple_fanart_tv_library" }
-# dimple_theaudiodb_library = { path = "../dimple_theaudiodb_library" }
-dimple_wikidata_plugin = { path = "../dimple_wikidata_plugin" }
-dimple_librarian = { path = "../dimple_librarian" }
 serde = "1.0.175"
 serde_json = "1.0.94"
 image = "0.25.1"

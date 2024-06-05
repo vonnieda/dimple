@@ -102,6 +102,9 @@ impl Db for SqliteDb {
     }
 
     fn get(&self, model: &Model) -> Result<Option<Model>> {
+        if model.entity().key().is_none() {
+            return Ok(None)
+        }
         let key = Self::node_key(model);
         let value = self._get(&key)?;
         if value.is_none() {

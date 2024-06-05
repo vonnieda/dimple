@@ -1,0 +1,111 @@
+use std::{env, iter};
+
+use anyhow::{Error, Result};
+use dimple_core::model::{Entity, Model, Picture};
+use dimple_librarian::plugin::{LibrarySupport, NetworkMode, Plugin};
+use reqwest::blocking::Client;
+use serde::Deserialize;
+
+// TODO consider using https://crates.io/crates/fuzzy-matcher to try to find
+// albums that might match the name of the artist to use as a back up for
+// artist artwork.
+
+// https://wiki.fanart.tv/General/personal%20api/
+// https://fanart.tv/api-docs/api-v3/
+#[derive(Debug)]
+pub struct FanartTvPlugin {
+    api_key: String,
+}
+
+impl Default for FanartTvPlugin {
+    fn default() -> Self {
+        Self::new(&env::var("FANART_TV_API_KEY").expect("Missing FANART_TV_API_KEY environment variable."))
+    }
+}
+
+impl FanartTvPlugin {
+    pub fn new(api_key: &str) -> Self {
+        Self {
+            api_key: api_key.to_string(),
+        }
+    }
+}
+
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(default)]
+struct ArtistResponse {
+    name: String,
+    artistthumb: Vec<ImageResponse>,
+    musiclogo: Vec<ImageResponse>,
+    hdmusiclogo: Vec<ImageResponse>,
+    artistbackground: Vec<ImageResponse>,
+    status: String,
+    error_message: String,
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(default)]
+struct ImageResponse {
+    id: String,
+    url: String,
+    likes: String,
+}
+
+impl Plugin for FanartTvPlugin {
+    fn name(&self) -> String {
+        "fanart.tv".to_string()
+    }
+    
+    fn list(
+        &self,
+        list_of: &dimple_core::model::Model,
+        related_to: &Option<dimple_core::model::Model>,
+        network_mode: dimple_librarian::plugin::NetworkMode,
+    ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
+        if network_mode != NetworkMode::Online {
+            return Err(Error::msg("Offline."))
+        }
+
+        if related_to.is_none() {
+            return Ok(Box::new(std::iter::empty()))
+        }
+
+        let related_to = related_to.clone().unwrap();
+        match related_to {
+            Model::Artist(artist) => {
+                let mbid = artist.known_ids.musicbrainz_id.ok_or_else(|| Error::msg("mbid required"))?;
+
+                let client = Client::builder()
+                    .https_only(true)
+                    .user_agent(dimple_librarian::plugin::USER_AGENT)
+                    .build()?;
+
+                let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", 
+                    mbid, self.api_key);
+                let request_token = LibrarySupport::start_request(self, &url);
+                let response = client.get(url).send()?;
+                LibrarySupport::end_request(request_token, 
+                    Some(response.status().as_u16()), 
+                    response.content_length());
+
+                let artist_resp = response.json::<ArtistResponse>()?;
+                let thumb = artist_resp.artistthumb.first().ok_or_else(|| Error::msg("No images"))?;
+                
+                let request_token = LibrarySupport::start_request(self, &thumb.url);
+                let thumb_resp = client.get(&thumb.url).send()?;
+                LibrarySupport::end_request(request_token, 
+                    Some(thumb_resp.status().as_u16()),
+                    thumb_resp.content_length());
+
+                let bytes = thumb_resp.bytes()?;
+                let image = image::load_from_memory(&bytes)?;
+                let mut picture = Picture::default();
+                picture.set_image(&image);
+                
+                Ok(Box::new(std::iter::once(picture.model())))
+            },
+            _ => Ok(Box::new(std::iter::empty())),
+        }
+    }
+}

@@ -237,6 +237,7 @@ fn model_valid(model: &Model) -> bool {
         Model::Release(r) => r.title.is_some(),
         Model::ReleaseGroup(rg) => rg.title.is_some(),
         Model::Track(t) => t.title.is_some(),
+        Model::Picture(p) => true,
         _ => todo!()
     }
 }
