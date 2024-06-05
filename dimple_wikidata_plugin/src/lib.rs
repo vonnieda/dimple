@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use dimple_core::model::{Entity, Artist, Model, Recording, Release, ReleaseGroup};
-use dimple_librarian::plugin::{LibrarySupport, NetworkMode, Plugin};
+use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
 use reqwest::{blocking::Client, Url};
 use serde::Deserialize;
 
@@ -89,10 +89,10 @@ impl WikidataPlugin {
             .user_agent(dimple_librarian::plugin::USER_AGENT)
             .build().ok()?;
         let url = format!("https://www.wikidata.org/w/rest.php/wikibase/v0/entities/items/{}", wikidata_id);
-        let request_token = LibrarySupport::start_request(self, &url);
+        let request_token = PluginSupport::start_request(self, &url);
         let response = client.get(url).send().ok()
             .inspect(|f| {
-                LibrarySupport::end_request(request_token, 
+                PluginSupport::end_request(request_token, 
                     Some(f.status().as_u16()), 
                     f.content_length());
             })?;
@@ -137,10 +137,10 @@ impl WikidataPlugin {
             .user_agent(dimple_librarian::plugin::USER_AGENT)
             .build().ok()?;
         let url = format!("https://en.wikipedia.org/api/rest_v1/page/summary/{}", wikipedia_title);
-        let request_token = LibrarySupport::start_request(self, &url);
+        let request_token = PluginSupport::start_request(self, &url);
         let response = client.get(url).send().ok()
             .inspect(|f| {
-                LibrarySupport::end_request(request_token, 
+                PluginSupport::end_request(request_token, 
                     Some(f.status().as_u16()), 
                     f.content_length());
             })?;

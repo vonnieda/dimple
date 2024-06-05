@@ -2,7 +2,7 @@ use std::{env, iter};
 
 use anyhow::{Error, Result};
 use dimple_core::model::{Entity, Model, Picture};
-use dimple_librarian::plugin::{LibrarySupport, NetworkMode, Plugin};
+use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
@@ -84,18 +84,18 @@ impl Plugin for FanartTvPlugin {
 
                 let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", 
                     mbid, self.api_key);
-                let request_token = LibrarySupport::start_request(self, &url);
+                let request_token = PluginSupport::start_request(self, &url);
                 let response = client.get(url).send()?;
-                LibrarySupport::end_request(request_token, 
+                PluginSupport::end_request(request_token, 
                     Some(response.status().as_u16()), 
                     response.content_length());
 
                 let artist_resp = response.json::<ArtistResponse>()?;
                 let thumb = artist_resp.artistthumb.first().ok_or_else(|| Error::msg("No images"))?;
                 
-                let request_token = LibrarySupport::start_request(self, &thumb.url);
+                let request_token = PluginSupport::start_request(self, &thumb.url);
                 let thumb_resp = client.get(&thumb.url).send()?;
-                LibrarySupport::end_request(request_token, 
+                PluginSupport::end_request(request_token, 
                     Some(thumb_resp.status().as_u16()),
                     thumb_resp.content_length());
 

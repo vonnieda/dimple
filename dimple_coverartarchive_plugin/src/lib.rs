@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::{Error, Result};
 use dimple_core::model::{Entity, Model, Picture};
-use dimple_librarian::plugin::{LibrarySupport, NetworkMode, Plugin};
+use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
 use image::DynamicImage;
 use musicbrainz_rs::entity::{CoverartResponse, release_group::ReleaseGroup, release::Release};
 use musicbrainz_rs::FetchCoverart;
@@ -23,7 +23,7 @@ impl CoverArtArchivePlugin {
         match resp {
             musicbrainz_rs::entity::CoverartResponse::Json(_) => todo!(),
             musicbrainz_rs::entity::CoverartResponse::Url(url) => {
-                let request_token = LibrarySupport::start_request(self, &url);
+                let request_token = PluginSupport::start_request(self, &url);
                 let client = Client::builder()
                     .user_agent(dimple_librarian::plugin::USER_AGENT)
                     .build().unwrap();
@@ -31,7 +31,7 @@ impl CoverArtArchivePlugin {
                 let status = response.status();
                 let content_length = response.content_length();
                 let bytes = response.bytes().ok()?;
-                LibrarySupport::end_request(request_token, 
+                PluginSupport::end_request(request_token, 
                     Some(status.as_u16()), 
                     content_length);
                 let image = image::load_from_memory(&bytes).ok()?;
@@ -60,7 +60,7 @@ impl Plugin for CoverArtArchivePlugin {
             (Model::Picture(_), Some(Model::ReleaseGroup(rg))) => {
                 let mbid = rg.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
 
-                let request_token = LibrarySupport::start_request(self, 
+                let request_token = PluginSupport::start_request(self, 
                     &format!("http://coverartarchive.org/release-group/{}", mbid));
                 let mb = ReleaseGroup {
                     id: mbid,
@@ -72,7 +72,7 @@ impl Plugin for CoverArtArchivePlugin {
                     // .res_1200()
                     .execute()?;
                 let image = self.get_coverart(response).ok_or(Error::msg("download failed"))?;
-                LibrarySupport::end_request(request_token, None, None);
+                PluginSupport::end_request(request_token, None, None);
 
                 let mut picture = Picture::default();
                 picture.set_image(&image);

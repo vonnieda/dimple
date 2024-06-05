@@ -39,7 +39,7 @@ pub enum NetworkMode {
     Offline,
 }
 
-pub struct LibrarySupport {
+pub struct PluginSupport {
 }
 
 pub struct RequestToken {
@@ -48,7 +48,7 @@ pub struct RequestToken {
     url: String,
 }
 
-impl LibrarySupport {
+impl PluginSupport {
     pub fn start_request(plugin: &dyn Plugin, url: &str) -> RequestToken {
         RequestToken {
             tag: plugin.name(),
