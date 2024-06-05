@@ -179,4 +179,3 @@ impl Db for Librarian {
         self.db.reset()
     }
 }
-

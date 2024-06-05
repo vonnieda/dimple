@@ -48,8 +48,9 @@ pub fn settings(app: &App) {
             db.list(&Genre::default().model(), &None).unwrap().count()));
         database_stats.push(format!("Playlists: {}", 
             db.list(&Playlist::default().model(), &None).unwrap().count()));
-        database_stats.push(format!("Pictures: {}", 
-                db.list(&Picture::default().model(), &None).unwrap().count()));
+        // TODO disabled until performance is better
+        // database_stats.push(format!("Pictures: {}", 
+        //         db.list(&Picture::default().model(), &None).unwrap().count()));
 
         let mut cache_stats = vec![];
         cache_stats.push(format!("Thumbnails: {}", app.images.cache_len()));

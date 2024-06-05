@@ -10,8 +10,14 @@ use serde::Deserialize;
 // albums that might match the name of the artist to use as a back up for
 // artist artwork.
 
+// TODO fanart.tv does have album art, but it seems like you have to query it
+// by artist mbid, and I don't have a good way to do this with the plugin
+// API right now.
+
 // https://wiki.fanart.tv/General/personal%20api/
 // https://fanart.tv/api-docs/api-v3/
+// https://fanarttv.docs.apiary.io/#
+// GET http://webservice.fanart.tv/v3/music/albums/id?api_key=6fa42b0ef3b5f3aab6a7edaa78675ac2
 #[derive(Debug)]
 pub struct FanartTvPlugin {
     api_key: String,

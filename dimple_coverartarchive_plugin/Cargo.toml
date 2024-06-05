@@ -14,3 +14,4 @@ dimple_core = { path = "../dimple_core" }
 dimple_librarian = { path = "../dimple_librarian" }
 musicbrainz_rs = { version = "0.5.0", default-features = false, features = ["blocking"] }
 reqwest = { version = "0.11.23", features = ["json"] }
+anyhow = "1.0.81"

@@ -1432,6 +1432,7 @@ dependencies = [
 name = "dimple_coverartarchive_plugin"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "dimple_core",
  "dimple_librarian",
  "image 0.25.1",

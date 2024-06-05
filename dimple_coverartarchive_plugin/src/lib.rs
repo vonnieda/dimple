@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 
-use dimple_librarian::plugin::{LibrarySupport, Plugin};
+use anyhow::{Error, Result};
+use dimple_core::model::{Entity, Model, Picture};
+use dimple_librarian::plugin::{LibrarySupport, NetworkMode, Plugin};
 use image::DynamicImage;
 use musicbrainz_rs::entity::{CoverartResponse, release_group::ReleaseGroup, release::Release};
 use musicbrainz_rs::FetchCoverart;
@@ -43,6 +45,44 @@ impl Plugin for CoverArtArchivePlugin {
     fn name(&self) -> String {
         "CoverArtArchive".to_string()
     }
+    
+    fn list(
+        &self,
+        list_of: &dimple_core::model::Model,
+        related_to: &Option<dimple_core::model::Model>,
+        network_mode: dimple_librarian::plugin::NetworkMode,
+    ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
+        if network_mode != NetworkMode::Online {
+            return Err(Error::msg("Offline."))
+        }
+
+        match (list_of, related_to) {
+            (Model::Picture(_), Some(Model::ReleaseGroup(rg))) => {
+                let mbid = rg.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
+
+                let request_token = LibrarySupport::start_request(self, 
+                    &format!("http://coverartarchive.org/release-group/{}", mbid));
+                let mb = ReleaseGroup {
+                    id: mbid,
+                    ..Default::default()
+                };
+                // TODO replace with reqwest
+                let response = mb.get_coverart()
+                    .front()
+                    // .res_1200()
+                    .execute()?;
+                let image = self.get_coverart(response).ok_or(Error::msg("download failed"))?;
+                LibrarySupport::end_request(request_token, None, None);
+
+                let mut picture = Picture::default();
+                picture.set_image(&image);
+                Ok(Box::new(std::iter::once(picture.model())))
+            },
+            _ => Ok(Box::new(std::iter::empty())),
+        }
+    }
+
+    
 
     // fn image(&self, _entity: &Entities) -> Option<image::DynamicImage> {
     //     match _entity {

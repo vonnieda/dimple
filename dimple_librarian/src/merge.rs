@@ -264,6 +264,7 @@ pub fn merge(db: &dyn Db, model: &Model) -> Option<Model> {
         Model::Artist(artist) => merge_artist(db, artist),
         Model::Release(release) => merge_release(db, release),
         Model::ReleaseGroup(release_group) => merge_release_group(db, release_group),
+        Model::Genre(genre) => merge_genre(db, genre),
         _ => todo!(),
     }
 }
