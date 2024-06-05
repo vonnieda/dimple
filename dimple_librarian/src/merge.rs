@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use dimple_core::{db::Db, model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Recording, RecordingSource, Release, ReleaseGroup, Track}};
+use dimple_core::{db::Db, model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Picture, Recording, RecordingSource, Release, ReleaseGroup, Track}};
 
 use crate::matching;
 
@@ -119,6 +119,15 @@ impl Merge for Recording {
     }
 }
 
+impl Merge for Picture {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            key: Option::merge(l.key, r.key),
+            data: if l.data.len() >= r.data.len() { l.data } else { r.data },
+        }
+    }
+}
+
 impl Merge for Model {
     fn merge(l: Self, r: Self) -> Self {
         match (l, r) {
@@ -128,6 +137,7 @@ impl Merge for Model {
             (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
             (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
             (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
+            (Model::Picture(l), Model::Picture(r)) => Picture::merge(l.clone(), r.clone()).model(),
             _ => todo!()
         }
     }
@@ -204,6 +214,10 @@ fn merge_genre(db: &dyn Db, genre: &Genre) -> Option<Model> {
 
 pub fn db_merge_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
     // TODO does this need to be merging parent as well?
+
+    if let (Model::Picture(_), None) = (model, parent) {
+        panic!("Can't merge Picture with no relation.");
+    }
 
     // find a matching model to the specified, merge, save
     let matching = matching::find_matching_model(db, model, parent);

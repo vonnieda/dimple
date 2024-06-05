@@ -66,6 +66,8 @@ struct WpSummary {
 }
 
 // TODO expand this to pull in all the alternate IDs and store them on objects.
+// TODO plugins should look in links they know how to parse for IDs, and then
+// set those IDs on KnownIds when possible.
 // https://www.wikidata.org/wiki/Q2549534
 impl WikidataPlugin {
     fn get_summary(&self, links: &HashSet<String>) -> Option<String> {

@@ -68,12 +68,10 @@ impl ImageMangler {
             return Image::from_rgba8_premultiplied(buffer.clone())
         }
         // TODO DRY(osdfhaosdhfoiuaysdiofuhaoisfd)
-        if let Some(dyn_image) = self.load_model_image(&model) {
+        if let Some(dyn_image) = self.librarian.image(&model) {
             let dyn_image = resize(dyn_image, width, height);
             let buffer = dynamic_to_buffer(&dyn_image);
             self.cache.lock().unwrap().insert(cache_key, buffer.clone());
-            // TODO go to network, or more likely we'll just use a different
-            // library request that also goes to the network if needed?
             return Image::from_rgba8_premultiplied(buffer)
         }
         Image::from_rgba8_premultiplied(self.default_model_image(&model))
@@ -93,11 +91,10 @@ impl ImageMangler {
             let ui = self.ui.clone();
             self.threadpool.execute(move || {
                 // TODO DRY(osdfhaosdhfoiuaysdiofuhaoisfd)
-                if let Some(dyn_image) = images.load_model_image(&model) {
+                if let Some(dyn_image) = images.librarian.image(&model) {
                     let dyn_image = resize(dyn_image, width, height);
                     let buffer = dynamic_to_buffer(&dyn_image);
                     images.cache.lock().unwrap().insert(cache_key, buffer.clone());
-                    // TODO go to network?
                     ui.upgrade_in_event_loop(move |ui| {
                         let image = Image::from_rgba8_premultiplied(buffer);
                         set_image(ui, image);
@@ -106,17 +103,6 @@ impl ImageMangler {
             });
         }
         Image::from_rgba8_premultiplied(self.default_model_image(&model))
-    }
-
-    pub fn load_model_image(&self, model: &Model) -> Option<DynamicImage> {
-        let picture = self.librarian.list(&Picture::default().into(), &Some(model.clone()))
-            .unwrap()
-            .map(Into::<Picture>::into)
-            .next();
-        match picture {
-            Some(picture) => Some(picture.get_image()),
-            None => None,
-        }
     }
 
     pub fn default_model_image(&self, model: &Model) -> SharedPixelBuffer<Rgba8Pixel> {
@@ -200,15 +186,15 @@ pub fn gen_fuzzy_rects(width: u32, height: u32) -> DynamicImage {
 
 
 pub fn resize(image: DynamicImage, width: u32, height: u32) -> DynamicImage {
-    // image.resize(width, height, image::imageops::FilterType::Nearest)
+    image.resize(width, height, image::imageops::FilterType::Nearest)
 
-    let src_image = image;
+    // let src_image = image;
 
-    let mut dst_image = DynamicImage::new(width, height, 
-        image::ColorType::Rgba8);
+    // let mut dst_image = DynamicImage::new(width, height, 
+    //     image::ColorType::Rgba8);
 
-    let mut resizer = Resizer::new();
-    resizer.resize(&src_image, &mut dst_image, None).unwrap();
+    // let mut resizer = Resizer::new();
+    // resizer.resize(&src_image, &mut dst_image, None).unwrap();
 
-    dst_image
+    // dst_image
 }

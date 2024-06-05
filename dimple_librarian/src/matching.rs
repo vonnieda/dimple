@@ -56,6 +56,11 @@ fn compare_models(l: &Model, r: &Model) -> bool {
         (Model::ArtistCredit(l), Model::ArtistCredit(r)) => {
             l.name.is_some() && l.name == r.name
         },
+        (Model::Picture(l), Model::Picture(r)) => {
+            // TODO STOPSHIP temp, eventually we'll compare type, size, maybe
+            // hash etc. This is just to get things moving.
+            l.data.len() == r.data.len()
+        },
         _ => todo!()
     }
 }

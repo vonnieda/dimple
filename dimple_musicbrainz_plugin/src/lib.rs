@@ -46,7 +46,7 @@ impl MusicBrainzPlugin {
 
 impl Plugin for MusicBrainzPlugin {
     fn name(&self) -> String {
-        "MusicBrainzPlugin".to_string()
+        "MusicBrainz".to_string()
     }
 
     fn get(&self, model: &Model, network_mode: NetworkMode) -> Result<Option<Model>> {
@@ -100,11 +100,7 @@ impl Plugin for MusicBrainzPlugin {
         }
         match (list_of, related_to) {
             (Model::ReleaseGroup(_), Some(Model::Artist(artist))) => {                
-                let mbid = artist.known_ids.musicbrainz_id.clone();
-                if mbid.is_none() {
-                    return Err(Error::msg("No mbid."))
-                }
-                let mbid = mbid.unwrap();
+                let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
 
                 let request_token = LibrarySupport::start_request(self, 
                     &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", mbid));

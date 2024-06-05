@@ -67,14 +67,9 @@ impl Plugin for FanartTvPlugin {
             return Err(Error::msg("Offline."))
         }
 
-        if related_to.is_none() {
-            return Ok(Box::new(std::iter::empty()))
-        }
-
-        let related_to = related_to.clone().unwrap();
-        match related_to {
-            Model::Artist(artist) => {
-                let mbid = artist.known_ids.musicbrainz_id.ok_or_else(|| Error::msg("mbid required"))?;
+        match (list_of, related_to) {
+            (Model::Picture(_), Some(Model::Artist(artist))) => {
+                let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
 
                 let client = Client::builder()
                     .https_only(true)

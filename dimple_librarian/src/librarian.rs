@@ -1,11 +1,12 @@
 use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Artist, Entity, Model, ReleaseGroup}
+    db::{Db, SqliteDb}, model::{Artist, Entity, Model, Picture, ReleaseGroup}
 };
 
 use anyhow::Result;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
+use image::DynamicImage;
 
 use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin}};
 
@@ -86,6 +87,26 @@ impl Librarian {
 
         Ok(Box::new(artists.chain(release_groups)))
     }
+
+    // TODO don't use list, go directly to plugins for the second phase
+    // and abort when we get one.
+    pub fn image(&self, model: &Model) -> Option<DynamicImage> {
+        let picture = self.db.list(&Picture::default().into(), &Some(model.clone()))
+            .unwrap()
+            .map(Into::<Picture>::into)
+            .next();
+        if let Some(picture) = picture {
+            return Some(picture.get_image())
+        }
+        let picture = self.list(&Picture::default().into(), &Some(model.clone()))
+            .unwrap()
+            .map(Into::<Picture>::into)
+            .next();
+        if let Some(picture) = picture {
+            return Some(picture.get_image())
+        }
+        None
+    }
 }
 
 impl Db for Librarian {
@@ -136,7 +157,8 @@ impl Db for Librarian {
                 for result in results {
                     // TODO noting the use of db_merge_model here vs. self.merge in search
                     // because this asks for objects by relationship and thus needs to be
-                    // merged with that same relationship.
+                    // merged with that same relationship. Probably self.merge needs to just
+                    // be modified to take a relation and then these combined.
                     merge::db_merge_model(db, &result, related_to);
                 }
             }

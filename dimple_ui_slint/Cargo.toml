@@ -19,6 +19,7 @@ dimple_mediafiles_plugin = { path = "../dimple_mediafiles_plugin" }
 dimple_musicbrainz_plugin = { path = "../dimple_musicbrainz_plugin" }
 dimple_fanart_tv_plugin = { path = "../dimple_fanart_tv_plugin" }
 dimple_wikidata_plugin = { path = "../dimple_wikidata_plugin" }
+dimple_coverartarchive_plugin = { path = "../dimple_coverartarchive_plugin" }
 # dimple_theaudiodb_library = { path = "../dimple_theaudiodb_library" }
 # dimple_navidrome_library = { path = "../dimple_navidrome_library" }
 # dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }

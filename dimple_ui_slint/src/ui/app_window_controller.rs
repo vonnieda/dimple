@@ -1,4 +1,5 @@
 use dimple_core::model::{Artist, Entity, KnownIds};
+use dimple_coverartarchive_plugin::CoverArtArchivePlugin;
 use dimple_fanart_tv_plugin::FanartTvPlugin;
 use dimple_mediafiles_plugin::MediaFilesPlugin;
 use dimple_musicbrainz_plugin::MusicBrainzPlugin;
@@ -49,6 +50,7 @@ impl AppWindowController {
         librarian.add_plugin(Box::new(MusicBrainzPlugin::default()));
         librarian.add_plugin(Box::new(WikidataPlugin::default()));
         librarian.add_plugin(Box::new(FanartTvPlugin::default()));
+        librarian.add_plugin(Box::new(CoverArtArchivePlugin::default()));
 
         // librarian.get(&Artist {
         //     known_ids: KnownIds {
