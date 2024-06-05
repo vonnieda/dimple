@@ -111,7 +111,6 @@ impl Plugin for MusicBrainzPlugin {
                     .into_iter()
                     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
                     .map(|src| src.model());
-                    // .map(|artist| Box::new(artist) as Box::<dyn Entity>);
                 LibrarySupport::end_request(request_token, None, None);
                 Ok(Box::new(iter))
             },

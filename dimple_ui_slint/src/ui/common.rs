@@ -19,8 +19,8 @@ use crate::ui::TrackAdapter;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
 
-use super::images::gen_fuzzy_circles;
-use super::images::gen_fuzzy_rects;
+use super::image_gen::gen_fuzzy_circles;
+use super::image_gen::gen_fuzzy_rects;
 
 impl From<Artist> for CardAdapter {
     fn from(value: Artist) -> Self {

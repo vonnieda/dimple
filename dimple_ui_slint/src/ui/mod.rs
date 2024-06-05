@@ -5,4 +5,5 @@ pub mod player_bar;
 pub mod side_bar;
 pub mod pages;
 pub mod images;
+pub mod image_gen;
 pub mod common;

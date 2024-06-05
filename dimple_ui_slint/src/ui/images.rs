@@ -14,6 +14,9 @@ use threadpool::ThreadPool;
 use tiny_skia::Rect;
 use crate::ui::AppWindow;
 
+use super::image_gen::gen_fuzzy_circles;
+use super::image_gen::gen_fuzzy_rects;
+
 /// Handles image loading, placeholders, caching, scaling, generation, etc.
 /// Primary job is to quickly return an image for a Model, and be able to
 /// notify the view when a better one is available.
@@ -36,8 +39,8 @@ impl ImageMangler {
             ui,
             librarian: librarian.clone(),
             cache: Default::default(),
-            default_artist: Self::load_default_image("images/users-three_1000x1000.png"),
-            default_release_group: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
+            default_artist: Self::load_default_image("images/artist_placeholder.png"),
+            default_release_group: Self::load_default_image("images/release_group_placeholder.png"),
             default_release: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
             default_genre: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
             default_other: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_rects(128, 128)))),
@@ -48,19 +51,15 @@ impl ImageMangler {
     }
 
     fn load_default_image(path: &str) -> Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>> {
-        let image = Self::load_image(path).unwrap();
+        let image = image::open(path).ok().unwrap();
         Arc::new(Mutex::new(dynamic_to_buffer(&image)))
-    }
-
-    fn load_image(path: &str) -> Option<DynamicImage> {
-        image::open(path).ok()
     }
 
     pub fn cache_len(&self) -> usize {
         self.cache.lock().unwrap().len()
     }
 
-    pub fn get(&self, model: dimple_core::model::Model, width: u32, height: u32) -> slint::Image {
+    pub fn get(&self, model: Model, width: u32, height: u32) -> slint::Image {
         let entity = model.entity();
         let cache_key = format!("{}:{}:{}:{}", 
             entity.type_name(), entity.key().unwrap(), width, height);
@@ -77,7 +76,7 @@ impl ImageMangler {
         Image::from_rgba8_premultiplied(self.default_model_image(&model))
     }
 
-    pub fn lazy_get<F>(&self, model: dimple_core::model::Model, width: u32, height: u32, set_image: F) -> slint::Image
+    pub fn lazy_get<F>(&self, model: Model, width: u32, height: u32, set_image: F) -> slint::Image
             where F: Fn(AppWindow, Image) + Send + Copy + 'static {
         let entity = model.entity();
         let cache_key = format!("{}:{}:{}:{}", 
@@ -124,66 +123,6 @@ pub fn dynamic_to_buffer(dynamic_image: &DynamicImage) -> SharedPixelBuffer<Rgba
         rgba8_image.height(),
     )
 }
-
-pub fn gen_fuzzy_circles(width: u32, height: u32) -> DynamicImage {
-    let output_width = width;
-    let output_height = height;
-    let width = 128;
-    let height = 128;
-    let mut pixmap = tiny_skia::Pixmap::new(width, height).unwrap();
-    let mut paint = tiny_skia::Paint::default();
-    for i in 0..50 {
-        paint.set_color_rgba8(
-            fakeit::misc::random(0, 255),
-            fakeit::misc::random(0, 255),
-            fakeit::misc::random(0, 255),
-            fakeit::misc::random(0, 255),
-        );
-        let circle = tiny_skia::PathBuilder::from_circle(
-            fakeit::misc::random(0., width as f32), 
-            fakeit::misc::random(0., height as f32), 
-            fakeit::misc::random(2., width as f32 / 3.), 
-        ).unwrap();
-        pixmap.fill_path(&circle, &paint, tiny_skia::FillRule::Winding, Default::default(), None);
-    }
-
-    let image: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> = image::ImageBuffer::from_raw(width, height, pixmap.data().to_vec()).unwrap();
-    let image = image::imageops::blur(&image, 9.0);
-
-    let dyn_image = DynamicImage::ImageRgba8(image);
-    dyn_image.resize(output_width, output_height, image::imageops::FilterType::Nearest)
-}
-
-pub fn gen_fuzzy_rects(width: u32, height: u32) -> DynamicImage {
-    let output_width = width;
-    let output_height = height;
-    let width = 128;
-    let height = 128;
-    let mut pixmap = tiny_skia::Pixmap::new(width, height).unwrap();
-    let mut paint = tiny_skia::Paint::default();
-    for i in 0..50 {
-        paint.set_color_rgba8(
-            fakeit::misc::random(0, 255),
-            fakeit::misc::random(0, 255),
-            fakeit::misc::random(0, 255),
-            fakeit::misc::random(0, 255),
-        );
-        let rect = tiny_skia::PathBuilder::from_rect(Rect::from_xywh(
-            fakeit::misc::random(0., width as f32), 
-            fakeit::misc::random(0., height as f32), 
-            fakeit::misc::random(2., width as f32 / 3.), 
-            fakeit::misc::random(2., height as f32 / 3.), 
-        ).unwrap());
-        pixmap.fill_path(&rect, &paint, tiny_skia::FillRule::Winding, Default::default(), None);
-    }
-
-    let image: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> = image::ImageBuffer::from_raw(width, height, pixmap.data().to_vec()).unwrap();
-    let image = image::imageops::blur(&image, 7.0);
-    
-    let dyn_image = DynamicImage::ImageRgba8(image);
-    dyn_image.resize(output_width, output_height, image::imageops::FilterType::Nearest)
-}
-
 
 pub fn resize(image: DynamicImage, width: u32, height: u32) -> DynamicImage {
     image.resize(width, height, image::imageops::FilterType::Nearest)
