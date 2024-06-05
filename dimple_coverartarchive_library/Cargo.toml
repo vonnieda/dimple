@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 serde = { version = "1.0.158", features = ["derive"] }
 serde_json = "1.0.94"
-image = { version = "0.24.5", features = ["jpeg", "png"] }
+image = { version = "0.25.1", features = ["jpeg", "png"] }
 log = "0.4.17"
 dimple_core = { path = "../dimple_core" }
 musicbrainz_rs = { version = "0.5.0", default-features = false, features = ["blocking"] }

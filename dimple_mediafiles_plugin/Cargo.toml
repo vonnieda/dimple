@@ -9,7 +9,7 @@ edition = "2021"
 walkdir = "2.3.3"
 dimple_core = { path = "../dimple_core" }
 dimple_librarian = { path = "../dimple_librarian" }
-image = { version = "0.24.5", features = ["jpeg", "png"] }
+image = { version = "0.25.1", features = ["jpeg", "png"] }
 serde = { version = "1.0.158", features = ["derive"] }
 log = "0.4.17"
 symphonia = { version = "0.5.3", features = ["all"] }

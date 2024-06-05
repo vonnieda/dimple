@@ -27,7 +27,7 @@ dimple_wikidata_plugin = { path = "../dimple_wikidata_plugin" }
 dimple_librarian = { path = "../dimple_librarian" }
 serde = "1.0.175"
 serde_json = "1.0.94"
-image = "0.24.6"
+image = "0.25.1"
 url = "2.5.0"
 opener = "0.6.1"
 rayon = "1.8.0"

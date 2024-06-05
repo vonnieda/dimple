@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use dimple_core::model::{Model, Picture};
 use dimple_librarian::librarian::Librarian;
 use dimple_core::db::Db;
+use fast_image_resize::Resizer;
 use image::DynamicImage;
 use slint::Image;
 use slint::Weak;
@@ -12,7 +13,6 @@ use slint::{Rgba8Pixel, SharedPixelBuffer};
 use threadpool::ThreadPool;
 use tiny_skia::Rect;
 use crate::ui::AppWindow;
-
 
 /// Handles image loading, placeholders, caching, scaling, generation, etc.
 /// Primary job is to quickly return an image for a Model, and be able to
@@ -212,7 +212,17 @@ pub fn gen_fuzzy_rects(width: u32, height: u32) -> DynamicImage {
     dyn_image.resize(output_width, output_height, image::imageops::FilterType::Nearest)
 }
 
-// TODO putting this here as a note to try https://github.com/cykooz/fast_image_resize
+
 pub fn resize(image: DynamicImage, width: u32, height: u32) -> DynamicImage {
-    image.resize(width, height, image::imageops::FilterType::Nearest)
+    // image.resize(width, height, image::imageops::FilterType::Nearest)
+
+    let src_image = image;
+
+    let mut dst_image = DynamicImage::new(width, height, 
+        image::ColorType::Rgba8);
+
+    let mut resizer = Resizer::new();
+    resizer.resize(&src_image, &mut dst_image, None).unwrap();
+
+    dst_image
 }
