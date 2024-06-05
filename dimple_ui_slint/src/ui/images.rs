@@ -36,7 +36,7 @@ impl ImageMangler {
             ui,
             librarian: librarian.clone(),
             cache: Default::default(),
-            default_artist: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
+            default_artist: Self::load_default_image("images/users-three_1000x1000.png"),
             default_release_group: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
             default_release: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
             default_genre: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
@@ -45,6 +45,15 @@ impl ImageMangler {
         };
 
         images
+    }
+
+    fn load_default_image(path: &str) -> Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>> {
+        let image = Self::load_image(path).unwrap();
+        Arc::new(Mutex::new(dynamic_to_buffer(&image)))
+    }
+
+    fn load_image(path: &str) -> Option<DynamicImage> {
+        image::open(path).ok()
     }
 
     pub fn cache_len(&self) -> usize {
