@@ -1514,6 +1514,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "dimple_theaudiodb_plugin"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dimple_core",
+ "dimple_librarian",
+ "image 0.25.1",
+ "log",
+ "reqwest",
+ "serde",
+]
+
+[[package]]
 name = "dimple_ui_slint"
 version = "0.1.0"
 dependencies = [
@@ -1524,6 +1537,7 @@ dependencies = [
  "dimple_mediafiles_plugin",
  "dimple_musicbrainz_plugin",
  "dimple_player",
+ "dimple_theaudiodb_plugin",
  "dimple_wikidata_plugin",
  "directories",
  "env_logger",

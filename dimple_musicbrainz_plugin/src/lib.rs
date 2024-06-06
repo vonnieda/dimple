@@ -1,17 +1,16 @@
-use std::iter;
 use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
 use anyhow::{Error, Result};
-use dimple_core::model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Recording, ReleaseGroup, Track};
+use dimple_core::model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Recording, Release, ReleaseGroup, Track};
 use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
 use musicbrainz_rs::entity::artist::ArtistSearchQuery;
 use musicbrainz_rs::entity::artist::Artist as MBArtist;
 use musicbrainz_rs::entity::release_group::ReleaseGroup as MBReleaseGroup;
+use musicbrainz_rs::entity::release::Release as MBRelease;
 use musicbrainz_rs::entity::relations::RelationContent;
 use musicbrainz_rs::entity::release_group::ReleaseGroupSearchQuery;
 use musicbrainz_rs::{Browse, Fetch, Search};
-use serde_json::map;
 
 #[derive(Debug)]
 pub struct MusicBrainzPlugin {
@@ -84,6 +83,27 @@ impl Plugin for MusicBrainzPlugin {
                 Ok(Some(release_group.model()))
             },
 
+            Model::Release(r) => {
+                let mbid = r.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;
+                let request_token = PluginSupport::start_request(self, 
+                    &format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", mbid));
+                self.enforce_rate_limit();
+                let result = MBRelease::fetch().id(&mbid)
+                    .with_aliases().with_annotations().with_artists()
+                    .with_genres().with_ratings().with_tags()
+                    .with_url_relations().with_recordings().with_release_groups()
+
+                    .with_aliases().with_annotations().with_artist_credits()
+                    .with_artist_relations().with_artists().with_genres()
+                    .with_labels().with_ratings().with_recordings()
+                    .with_release_groups().with_tags().with_url_relations()
+
+                    .execute()?;
+                PluginSupport::end_request(request_token, None, None);
+                let release = Release::from(ReleaseConverter::from(result.clone()));
+                Ok(Some(release.model()))
+            },
+
             _ => Ok(None),
         }
     }
@@ -110,6 +130,22 @@ impl Plugin for MusicBrainzPlugin {
                     .entities
                     .into_iter()
                     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
+                    .map(|src| src.model());
+                PluginSupport::end_request(request_token, None, None);
+                Ok(Box::new(iter))
+            },
+            (Model::Release(_), Some(Model::Artist(artist))) => {                
+                let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
+
+                let request_token = PluginSupport::start_request(self, 
+                    &format!("https://musicbrainz.org/ws/2/release/TODO TODO{}?fmt=json", mbid));
+                self.enforce_rate_limit();
+                let iter = MBRelease::browse().by_artist(&mbid).limit(100)
+                    .with_release_groups()
+                    .execute()?
+                    .entities
+                    .into_iter()
+                    .map(|src| Release::from(ReleaseConverter::from(src.clone())))
                     .map(|src| src.model());
                 PluginSupport::end_request(request_token, None, None);
                 Ok(Box::new(iter))
@@ -314,7 +350,7 @@ impl From<ReleaseConverter> for dimple_core::model::Release {
                 .collect(),
             title: none_if_empty(value.0.title),
             packaging: value.0.packaging.map(|f| format!("{:?}", f)),
-            primary_type: None,
+            primary_type: value.0.release_group.clone().and_then(|rg| rg.primary_type).and_then(|pt| Some(format!("{:?}", pt))),
             release_group: value.0.release_group
                 .map(|f| ReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
             status: value.0.status.map(|f| format!("{:?}", f)),

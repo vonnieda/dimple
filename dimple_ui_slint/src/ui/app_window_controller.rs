@@ -4,6 +4,7 @@ use dimple_fanart_tv_plugin::FanartTvPlugin;
 use dimple_mediafiles_plugin::MediaFilesPlugin;
 use dimple_musicbrainz_plugin::MusicBrainzPlugin;
 use dimple_player::player::Player;
+use dimple_theaudiodb_plugin::TheAudioDbPlugin;
 use dimple_wikidata_plugin::WikidataPlugin;
 
 use std::{borrow::BorrowMut, collections::VecDeque, path::PathBuf, sync::{Arc, Mutex}};
@@ -50,6 +51,7 @@ impl AppWindowController {
         librarian.add_plugin(Box::new(MusicBrainzPlugin::default()));
         librarian.add_plugin(Box::new(WikidataPlugin::default()));
         librarian.add_plugin(Box::new(FanartTvPlugin::default()));
+        librarian.add_plugin(Box::new(TheAudioDbPlugin::default()));
         librarian.add_plugin(Box::new(CoverArtArchivePlugin::default()));
 
         // librarian.get(&Artist {

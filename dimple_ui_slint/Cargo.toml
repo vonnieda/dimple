@@ -20,10 +20,9 @@ dimple_musicbrainz_plugin = { path = "../dimple_musicbrainz_plugin" }
 dimple_fanart_tv_plugin = { path = "../dimple_fanart_tv_plugin" }
 dimple_wikidata_plugin = { path = "../dimple_wikidata_plugin" }
 dimple_coverartarchive_plugin = { path = "../dimple_coverartarchive_plugin" }
-# dimple_theaudiodb_library = { path = "../dimple_theaudiodb_library" }
+dimple_theaudiodb_plugin = { path = "../dimple_theaudiodb_plugin" }
 # dimple_navidrome_library = { path = "../dimple_navidrome_library" }
 # dimple_s3_compatible_storage_library = { path = "../dimple_s3_compatible_storage_library" }
-# dimple_coverartarchive_library = { path = "../dimple_coverartarchive_library" }
 # dimple_lastfm_library = { path = "../dimple_lastfm_library" }
 # dimple_deezer_library = { path = "../dimple_deezer_library" }
 serde = "1.0.175"
