@@ -15,6 +15,7 @@ mod release_group;
 mod release;
 mod track;
 mod known_id;
+mod lyrics;
 mod picture;
 mod playlist_item;
 
@@ -29,6 +30,7 @@ pub use recording::Recording;
 pub use recording_source::RecordingSource;
 pub use genre::Genre;
 pub use known_id::KnownIds;
+pub use lyrics::Lyrics;
 pub use picture::Picture;
 pub use playlist::Playlist;
 pub use playlist_item::PlaylistItem;
@@ -48,6 +50,7 @@ pub enum Model {
     Picture(Picture),
     Playlist(Playlist),
     PlaylistItem(PlaylistItem),
+    Lyrics(Lyrics),
 }
 
 impl Model {
@@ -66,6 +69,7 @@ impl Model {
             Model::Track(v) => v,
             Model::Picture(v) => v,
             Model::PlaylistItem(v) => v,
+            Model::Lyrics(v) => v,
         }
     }
 
@@ -84,6 +88,7 @@ impl Model {
             Model::Track(v) => v.key = key,
             Model::Picture(v) => v.key = key,
             Model::PlaylistItem(v) => v.key = key,
+            Model::Lyrics(v) => v.key = key,
         }
     }
 }

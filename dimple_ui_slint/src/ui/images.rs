@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use dimple_core::model::{Model, Picture};
 use dimple_librarian::librarian::Librarian;
 use dimple_core::db::Db;
+use fast_image_resize::ImageView;
 use fast_image_resize::Resizer;
 use image::DynamicImage;
 use slint::Image;
@@ -125,15 +126,13 @@ pub fn dynamic_to_buffer(dynamic_image: &DynamicImage) -> SharedPixelBuffer<Rgba
 }
 
 pub fn resize(image: DynamicImage, width: u32, height: u32) -> DynamicImage {
-    image.resize(width, height, image::imageops::FilterType::Nearest)
+    let src_image = image;
 
-    // let src_image = image;
+    let mut dst_image = DynamicImage::new(width, height, 
+        src_image.color());
 
-    // let mut dst_image = DynamicImage::new(width, height, 
-    //     image::ColorType::Rgba8);
+    let mut resizer = Resizer::new();
+    resizer.resize(&src_image, &mut dst_image, None).unwrap();
 
-    // let mut resizer = Resizer::new();
-    // resizer.resize(&src_image, &mut dst_image, None).unwrap();
-
-    // dst_image
+    dst_image
 }

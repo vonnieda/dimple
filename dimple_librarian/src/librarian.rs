@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}};
+use std::{collections::{HashMap, HashSet}, fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
     db::{Db, SqliteDb}, model::{Artist, Entity, Model, Picture, ReleaseGroup}
@@ -16,6 +16,8 @@ pub struct Librarian {
     db: Arc<Box<dyn Db>>,
     plugins: Arc<RwLock<Vec<Box<dyn Plugin>>>>,
     network_mode: Arc<Mutex<NetworkMode>>,
+    get_cache: Arc<Mutex<HashMap<String, Model>>>,
+    list_cache: Arc<Mutex<HashMap<String, Vec<Model>>>>,
 }
 
 impl Librarian {
@@ -26,6 +28,8 @@ impl Librarian {
             db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()))),
             plugins: Default::default(),
             network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
+            get_cache: Default::default(),
+            list_cache: Default::default(),
         };
         librarian
     }
@@ -42,9 +46,6 @@ impl Librarian {
         *self.network_mode.lock().unwrap() = network_mode.clone();
     }
 
-    // TODO Still struggling mightily with this, but I think it's worth the
-    // effort to just go down this path, even if it gets thrown away, just to
-    // get it working.
     fn merge(&self, model: &Model) -> Option<Model> {
         merge::merge(self.db.clone().as_ref().as_ref(), model)
     }
@@ -98,6 +99,7 @@ impl Librarian {
         if let Some(picture) = picture {
             return Some(picture.get_image())
         }
+
         let picture = self.list(&Picture::default().into(), &Some(model.clone()))
             .unwrap()
             .map(Into::<Picture>::into)
@@ -105,7 +107,24 @@ impl Librarian {
         if let Some(picture) = picture {
             return Some(picture.get_image())
         }
+
         None
+    }
+
+    fn list_cache_key(list_of: &Model, related_to: &Option<Model>) -> String {
+        if let Some(related_to) = related_to {
+            let related_to_key = related_to.entity().key().unwrap();
+            format!("{}:{}:{}", 
+                list_of.entity().type_name(),
+                related_to.entity().type_name(),
+                related_to_key
+            )
+        }
+        else {
+            format!("{}", 
+                list_of.entity().type_name(),
+            )
+        }
     }
 }
 
@@ -119,6 +138,12 @@ impl Db for Librarian {
     /// 
     /// If there are no results from storage or any plugin, returns Ok(None)
     fn get(&self, model: &Model) -> Result<Option<Model>> {
+        if let Some(key) = model.entity().key() {
+            if let Some(model) = self.get_cache.lock().unwrap().get(&key) {
+                return Ok(Some(model.clone()))
+            }
+        }
+
         let mut model = model.clone();
 
         if let Ok(Some(db_model)) = self.db.get(&model) {
@@ -142,7 +167,14 @@ impl Db for Librarian {
             }
         }
 
-        Ok(self.merge(&model))
+        let result = self.merge(&model);
+        if let Some(result) = &result {
+            if let Some(key) = result.entity().key() {
+                self.get_cache.lock().unwrap().insert(key, result.clone());
+            }
+        }
+
+        Ok(result)
     }
 
     fn list(
@@ -151,6 +183,13 @@ impl Db for Librarian {
         related_to: &Option<Model>,
     ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         let db: &dyn Db = self.db.as_ref().as_ref();
+
+        let cache_key = Self::list_cache_key(list_of, related_to);
+        if let Some(models) = self.list_cache.lock().unwrap().get(&cache_key) {
+            let models = models.clone();
+            return Ok(Box::new(models.into_iter()))
+        }    
+
         for plugin in self.plugins.read().unwrap().iter() {
             let results = plugin.list(list_of, related_to, self.network_mode());
             if let Ok(results) = results {
@@ -164,7 +203,16 @@ impl Db for Librarian {
             }
         }
 
-        self.db.list(list_of, related_to)
+        let results = self.db.list(list_of, related_to);
+
+        if results.is_ok() {
+            let results: Vec<Model> = results.unwrap().collect();
+            let cache_key = Self::list_cache_key(list_of, related_to);
+            self.list_cache.lock().unwrap().insert(cache_key, results.clone());
+            return Ok(Box::new(results.into_iter()))
+        }
+
+        results
     }
 
     fn insert(&self, model: &dimple_core::model::Model) -> Result<dimple_core::model::Model> {
