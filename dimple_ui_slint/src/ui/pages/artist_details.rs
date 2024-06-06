@@ -2,6 +2,7 @@ use dimple_core::model::Artist;
 use dimple_core::model::Entity;
 use dimple_core::model::Genre;
 use dimple_core::model::Model;
+use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
 use slint::ComponentHandle;
 use slint::Model as _;
@@ -29,13 +30,14 @@ pub fn artist_details(url: &str, app: &App) {
             ..Default::default()
         }.into()).unwrap().unwrap().into();
 
-        let mut release_groups: Vec<ReleaseGroup> = librarian
-            .list(&ReleaseGroup::default().into(), &Some(artist.model()))
+        let mut releases: Vec<_> = librarian
+            .list(&Release::default().into(), &Some(artist.model()))
             .unwrap()
-            .map(Into::into)
+            .map(Into::<Release>::into)
+            .filter(|r| r.status == Some("Official".to_string()))
             .collect();
-        release_groups.sort_by_key(|f| f.first_release_date.to_owned());
-        release_groups.reverse();
+        releases.sort_by_key(|r| r.date.to_owned());
+        releases.reverse();
 
         let genres: Vec<Genre> = librarian
             .list(&Genre::default().into(), &Some(artist.model()))
@@ -48,12 +50,12 @@ pub fn artist_details(url: &str, app: &App) {
             // a different string, and then the closure needs to access a different
             // field. So, duplication.
             // TODO need to switch primary type to an enum
-            let albums: Vec<CardAdapter> = release_groups.iter().cloned()
-                .filter(|release_group| release_group.primary_type == Some("album".to_string()))
+            let albums: Vec<CardAdapter> = releases.iter().cloned()
+                .filter(|release| release.primary_type == Some("Album".to_string()))
                 .enumerate()
-                .map(|(index, release_group)| {
-                    let mut card: CardAdapter = release_group.clone().into();
-                    card.image.image = images.lazy_get(release_group.model(), 200, 200, move |ui, image| {
+                .map(|(index, release)| {
+                    let mut card: CardAdapter = release.clone().into();
+                    card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
                         let mut card = ui.get_artist_details().albums.row_data(index).unwrap();
                         card.image.image = image;
                         ui.get_artist_details().albums.set_row_data(index, card);
@@ -61,12 +63,12 @@ pub fn artist_details(url: &str, app: &App) {
                     card
                 })
                 .collect();
-            let eps: Vec<CardAdapter> = release_groups.iter().cloned()
-                .filter(|release_group| release_group.primary_type == Some("ep".to_string()))
+            let eps: Vec<CardAdapter> = releases.iter().cloned()
+                .filter(|release| release.primary_type == Some("Ep".to_string()))
                 .enumerate()
-                .map(|(index, release_group)| {
-                    let mut card: CardAdapter = release_group.clone().into();
-                    card.image.image = images.lazy_get(release_group.model(), 200, 200, move |ui, image| {
+                .map(|(index, release)| {
+                    let mut card: CardAdapter = release.clone().into();
+                    card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
                         let mut card = ui.get_artist_details().eps.row_data(index).unwrap();
                         card.image.image = image;
                         ui.get_artist_details().eps.set_row_data(index, card);
@@ -74,12 +76,12 @@ pub fn artist_details(url: &str, app: &App) {
                     card
                 })
                 .collect();
-            let singles: Vec<CardAdapter> = release_groups.iter().cloned()
-                .filter(|release_group| release_group.primary_type == Some("single".to_string()))
+            let singles: Vec<CardAdapter> = releases.iter().cloned()
+                .filter(|release| release.primary_type == Some("Single".to_string()))
                 .enumerate()
-                .map(|(index, release_group)| {
-                    let mut card: CardAdapter = release_group.clone().into();
-                    card.image.image = images.lazy_get(release_group.model(), 200, 200, move |ui, image| {
+                .map(|(index, release)| {
+                    let mut card: CardAdapter = release.clone().into();
+                    card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
                         let mut card = ui.get_artist_details().singles.row_data(index).unwrap();
                         card.image.image = image;
                         ui.get_artist_details().singles.set_row_data(index, card);
@@ -87,12 +89,15 @@ pub fn artist_details(url: &str, app: &App) {
                     card
                 })
                 .collect();
-            let others: Vec<CardAdapter> = release_groups.iter().cloned()
-                .filter(|release_group| release_group.primary_type != Some("album".to_string()) && release_group.primary_type != Some("ep".to_string()) && release_group.primary_type != Some("single".to_string()))
+            let others: Vec<CardAdapter> = releases.iter().cloned()
+                .filter(|release| {
+                    let pt = release.primary_type.clone();
+                    pt != Some("Album".to_string()) && pt != Some("Ep".to_string()) && pt != Some("Single".to_string())
+                })
                 .enumerate()
-                .map(|(index, release_group)| {
-                    let mut card: CardAdapter = release_group.clone().into();
-                    card.image.image = images.lazy_get(release_group.model(), 200, 200, move |ui, image| {
+                .map(|(index, release)| {
+                    let mut card: CardAdapter = release.clone().into();
+                    card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
                         let mut card = ui.get_artist_details().others.row_data(index).unwrap();
                         card.image.image = image;
                         ui.get_artist_details().others.set_row_data(index, card);

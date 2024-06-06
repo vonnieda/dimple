@@ -201,6 +201,19 @@ impl Plugin for WikidataPlugin {
                     Ok(None)
                 }
             },
+            Model::Release(release) => {
+                let release = self.get_summary(&release.links)
+                    .map(|summary| Release {
+                        summary: Some(summary),
+                        ..Default::default()
+                    });
+                if let Some(release) = release {
+                    return Ok(Some(release.model()))
+                }
+                else {
+                    Ok(None)
+                }
+            },
             _ => Ok(None),
         }
     }

@@ -54,10 +54,17 @@ impl Merge for Release {
             links: l.links.union(&r.links).cloned().collect(),
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
-            // first_release_date: Option::merge(l.first_release_date, r.first_release_date),
-            // primary_type: Option::merge(l.primary_type, r.primary_type),
-            // TODO
-            ..Default::default()
+            primary_type: Option::merge(l.primary_type, r.primary_type),
+            genres: l.genres.iter().chain(r.genres.iter()).cloned().collect::<HashSet<Genre>>().into_iter().collect(),
+            artist_credits: l.artist_credits.iter().chain(r.artist_credits.iter()).cloned().collect::<HashSet<ArtistCredit>>().into_iter().collect(),
+            barcode: Option::merge(l.barcode, r.barcode),
+            country: Option::merge(l.country, r.country),
+            date: Option::merge(l.date, r.date),
+            packaging: Option::merge(l.packaging, r.packaging),
+            status: Option::merge(l.status, r.status),
+            // TODO phew, not sure about this
+            release_group: ReleaseGroup::merge(l.release_group, r.release_group),
+            media: Default::default(),
         }
     }
 }
@@ -205,7 +212,22 @@ fn merge_release_group(db: &dyn Db, release_group: &ReleaseGroup) -> Option<Mode
 ///     for each track
 ///         merge(release, medium, track)
 fn merge_release(db: &dyn Db, release: &Release) -> Option<Model> {
-    db_merge_model(db, &release.model(), &None)
+    let release: Release = 
+        db_merge_model(db, &release.model(), &None)?.into();
+
+    for genre in &release.genres {
+        let genre = merge_genre(db, genre);
+        lazy_link(db, &genre, &Some(release.model()))
+    }
+
+    // TODO temporary bypass artist credit for artist to get some testing
+    // done
+    for artist_credit in &release.artist_credits {
+        let artist = merge_artist(db, &artist_credit.artist);
+        lazy_link(db, &artist, &Some(release.model()))
+    }
+
+    Some(release.model())
 }
 
 fn merge_genre(db: &dyn Db, genre: &Genre) -> Option<Model> {

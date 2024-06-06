@@ -78,6 +78,45 @@ impl Plugin for CoverArtArchivePlugin {
                 picture.set_image(&image);
                 Ok(Box::new(std::iter::once(picture.model())))
             },
+            (Model::Picture(_), Some(Model::Release(rg))) => {
+                let mbid = rg.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
+
+                let request_token = PluginSupport::start_request(self, 
+                    &format!("http://coverartarchive.org/release/{}", mbid));
+                let mb = Release {
+                    id: mbid,
+                    title: "".to_string(),
+                    aliases: None,
+                    annotation:  None,
+                    artist_credit: None,
+                    barcode: None,
+                    country: None,
+                    date: None,
+                    disambiguation: None,
+                    genres: None,
+                    label_info: None,
+                    status_id: None,
+                    status: None,
+                    quality: None,
+                    packaging_id: None,
+                    packaging: None,
+                    relations: None,
+                    release_group: None,
+                    media: None,
+                    tags: None,
+                };
+                // TODO replace with reqwest
+                let response = mb.get_coverart()
+                    .front()
+                    // .res_1200()
+                    .execute()?;
+                let image = self.get_coverart(response).ok_or(Error::msg("download failed"))?;
+                PluginSupport::end_request(request_token, None, None);
+
+                let mut picture = Picture::default();
+                picture.set_image(&image);
+                Ok(Box::new(std::iter::once(picture.model())))
+            },
             _ => Ok(Box::new(std::iter::empty())),
         }
     }
