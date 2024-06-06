@@ -37,6 +37,8 @@ pub trait Plugin: Send + Sync {
 pub enum NetworkMode {
     Online,
     Offline,
+    // This might be a great way to handle refresh / cache flush
+    Force,
 }
 
 pub struct PluginSupport {
@@ -66,3 +68,4 @@ impl PluginSupport {
             token.url);
     }
 }
+
