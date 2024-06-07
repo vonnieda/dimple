@@ -5,6 +5,8 @@ use dimple_core::model::{Entity, Model, Picture};
 use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
 use reqwest::blocking::Client;
 use serde::Deserialize;
+// TODO Note, I broke logging of errored requests during the conversion - I had
+// been doing it in inspect_err, and now I'm not. Need to fix.
 
 // TODO consider using https://crates.io/crates/fuzzy-matcher to try to find
 // albums that might match the name of the artist to use as a back up for

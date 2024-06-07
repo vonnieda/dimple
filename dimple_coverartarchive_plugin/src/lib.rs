@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use anyhow::{Error, Result};
 use dimple_core::model::{Entity, Model, Picture};
 use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
