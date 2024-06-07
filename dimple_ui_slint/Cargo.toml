@@ -48,7 +48,7 @@ slint-build = "= 1.4.1"
 [package.metadata.bundle]
 name = "Dimple"
 identifier = "lol.dimple.dimple_ui_slint"
-icon = ["images/icon_512x512.png"]
+icon = ["images/app_icon_512x512.png"]
 # version = "0.0.1"
 # resources = ["images/**", "icons/**", "fonts/**"]
 # copyright = "Copyright (c) Jason von Nieda 2023-2024. All rights reserved."
