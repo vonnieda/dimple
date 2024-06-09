@@ -172,65 +172,46 @@ impl Merge for KnownIds {
     }
 }
 
-fn merge_artist(db: &dyn Db, artist: &Artist) -> Option<Model> {
+fn db_merge_artist(db: &dyn Db, artist: &Artist) -> Option<Model> {
     let artist: Artist = db_merge_model(db, &artist.model(), &None)?.into();
-    for genre in &artist.genres {
-        let genre = merge_genre(db, genre);
-        lazy_link(db, &genre, &Some(artist.model()))
-    }
+    db_merge_genres(db, &artist.genres, &artist.model());
     Some(artist.model())
 }
 
-fn merge_release_group(db: &dyn Db, release_group: &ReleaseGroup) -> Option<Model> {
+fn db_merge_release_group(db: &dyn Db, release_group: &ReleaseGroup) -> Option<Model> {
     let release_group: ReleaseGroup = 
         db_merge_model(db, &release_group.model(), &None)?.into();
-
-    for genre in &release_group.genres {
-        let genre = merge_genre(db, genre);
-        lazy_link(db, &genre, &Some(release_group.model()))
-    }
-
-    // TODO temporary bypass artist credit for artist to get some testing
-    // done
-    for artist_credit in &release_group.artist_credits {
-        let artist = merge_artist(db, &artist_credit.artist);
-        lazy_link(db, &artist, &Some(release_group.model()))
-    }
-
+    db_merge_genres(db, &release_group.genres, &release_group.model());
+    db_merge_artist_credits(db, &release_group.artist_credits, &release_group.model());
     Some(release_group.model())
 }
 
-/// get, merge, update the release properties
-/// for each genre
-///     merge(genre, release)
-///     link(release, genre)
-/// for each artist_credit
-///     merge(artist_credit)
-///     link(release, artist_credit)
-///     link(release, artist)
-/// for each medium
-///     for each track
-///         merge(release, medium, track)
-fn merge_release(db: &dyn Db, release: &Release) -> Option<Model> {
+fn db_merge_release(db: &dyn Db, release: &Release) -> Option<Model> {
     let release: Release = 
         db_merge_model(db, &release.model(), &None)?.into();
-
-    for genre in &release.genres {
-        let genre = merge_genre(db, genre);
-        lazy_link(db, &genre, &Some(release.model()))
-    }
-
-    // TODO temporary bypass artist credit for artist to get some testing
-    // done
-    for artist_credit in &release.artist_credits {
-        let artist = merge_artist(db, &artist_credit.artist);
-        lazy_link(db, &artist, &Some(release.model()))
-    }
-
+    db_merge_genres(db, &release.genres, &release.model());
+    db_merge_artist_credits(db, &release.artist_credits, &release.model());
+    // TODO media
     Some(release.model())
 }
 
-fn merge_genre(db: &dyn Db, genre: &Genre) -> Option<Model> {
+fn db_merge_artist_credits(db: &dyn Db, artist_credits: &[ArtistCredit], related_to: &Model) {
+    for artist_credit in artist_credits {
+        // TODO temporary bypass artist credit for artist to get some testing
+        // done
+        let artist = db_merge_artist(db, &artist_credit.artist);
+        lazy_link(db, &artist, &Some(related_to.clone()))
+    }
+}
+
+fn db_merge_genres(db: &dyn Db, genres: &[Genre], related_to: &Model) {
+    for genre in genres {
+        let genre = db_merge_genre(db, genre);
+        lazy_link(db, &genre, &Some(related_to.clone()))
+    }
+}
+
+fn db_merge_genre(db: &dyn Db, genre: &Genre) -> Option<Model> {
     db_merge_model(db, &genre.model(), &None)
 }
 
@@ -283,10 +264,10 @@ pub fn merge(db: &dyn Db, model: &Model) -> Option<Model> {
         // TODO I think I can move this logic into db_merge_model, and specifically
         // panic when asked to merge something without enough context. 
         // Like an Media without a Release or whatever.
-        Model::Artist(artist) => merge_artist(db, artist),
-        Model::Release(release) => merge_release(db, release),
-        Model::ReleaseGroup(release_group) => merge_release_group(db, release_group),
-        Model::Genre(genre) => merge_genre(db, genre),
+        Model::Artist(artist) => db_merge_artist(db, artist),
+        Model::Release(release) => db_merge_release(db, release),
+        Model::ReleaseGroup(release_group) => db_merge_release_group(db, release_group),
+        Model::Genre(genre) => db_merge_genre(db, genre),
         _ => todo!(),
     }
 }
