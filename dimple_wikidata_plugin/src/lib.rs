@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
 use anyhow::Result;
-use dimple_core::model::{Entity, Artist, Model, Recording, Release, ReleaseGroup};
+use dimple_core::model::{Artist, Entity, Model, Recording, Release, ReleaseGroup};
 use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
-use reqwest::{blocking::Client, Url};
+use reqwest::{Url};
 use serde::Deserialize;
 
 #[derive(Debug, Default)]
@@ -65,6 +65,8 @@ struct WpSummary {
     extract: String,
 }
 
+
+
 // TODO expand this to pull in all the alternate IDs and store them on objects.
 // TODO plugins should look in links they know how to parse for IDs, and then
 // set those IDs on KnownIds when possible.
@@ -85,17 +87,8 @@ impl WikidataPlugin {
         let wikidata_id = parsed_url.path_segments()?.nth(1)?;
 
         // Use the Wikidata API to fetch the item
-        let client = Client::builder()
-            .user_agent(dimple_librarian::plugin::USER_AGENT)
-            .build().ok()?;
         let url = format!("https://www.wikidata.org/w/rest.php/wikibase/v0/entities/items/{}", wikidata_id);
-        let request_token = PluginSupport::start_request(self, &url);
-        let response = client.get(url).send().ok()
-            .inspect(|f| {
-                PluginSupport::end_request(request_token, 
-                    Some(f.status().as_u16()), 
-                    f.content_length());
-            })?;
+        let response = PluginSupport::get(self, &url).ok()?;
         let wikidata_item = response.json::<WdItem>().ok()?;
 
         fn non_empty(s: &String) -> Option<String> {
@@ -106,7 +99,6 @@ impl WikidataPlugin {
                 Some(s.to_string())
             }
         }
-
 
         // Get the Wikipedia URL for the item
         // TODO support language priority, this is temp
@@ -132,25 +124,12 @@ impl WikidataPlugin {
 
         // Use the Wikipedia API to fetch the summary
         // TODO should wikipedia be it's own library, perhaps after the ids have been extracted?
-        let client = Client::builder()
-            // .https_only(true)
-            .user_agent(dimple_librarian::plugin::USER_AGENT)
-            .build().ok()?;
         let url = format!("https://en.wikipedia.org/api/rest_v1/page/summary/{}", wikipedia_title);
-        let request_token = PluginSupport::start_request(self, &url);
-        let response = client.get(url).send().ok()
-            .inspect(|f| {
-                PluginSupport::end_request(request_token, 
-                    Some(f.status().as_u16()), 
-                    f.content_length());
-            })?;
-
+        let response = PluginSupport::get(self, &url).ok()?;
         let wikipedia_summary = response.json::<WpSummary>().ok()?;
-
         if wikipedia_summary.extract.is_empty() {
             return None;
         }
-
         Some(wikipedia_summary.extract)
     }
 }
@@ -214,39 +193,21 @@ impl Plugin for WikidataPlugin {
                     Ok(None)
                 }
             },
+            Model::Recording(recording) => {
+                let recording = self.get_summary(&recording.links)
+                    .map(|summary| Recording {
+                        summary: Some(summary),
+                        ..Default::default()
+                    });
+                if let Some(recording) = recording {
+                    return Ok(Some(recording.model()))
+                }
+                else {
+                    Ok(None)
+                }
+            },
             _ => Ok(None),
         }
     }
 }
 
-
-// fn fetch(&self, entity: &Entities) -> Option<Entities> {
-//     match entity.clone() {
-//         Entities::Artist(artist) => self.get_summary(&artist.links)
-//             .map(|summary| Artist {
-//                 summary: Some(summary),
-//                 ..Default::default()
-//             }.entity()),
-            
-//         Entities::ReleaseGroup(rg) => self.get_summary(&rg.links)
-//             .map(|summary| ReleaseGroup {
-//                 summary: Some(summary),
-//                 ..Default::default()
-//             }.entity()),
-
-//         Entities::Release(rg) => self.get_summary(&rg.links)
-//             .map(|summary| Release {
-//                 summary: Some(summary),
-//                 ..Default::default()
-//             }.entity()),
-
-//         Entities::Recording(r) => self.get_summary(&r.links)
-//             .map(|summary| Recording {
-//                 summary: Some(summary),
-//                 ..Default::default()
-//             }.entity()),
-
-//         _ => None,
-//     }
-// }
-    
