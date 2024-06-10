@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use anyhow::Result;
 use dimple_core::model::{Artist, Entity, Model, Recording, Release, ReleaseGroup};
 use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
-use reqwest::{Url};
 use serde::Deserialize;
+use url::Url;
 
 #[derive(Debug, Default)]
 pub struct WikidataPlugin {

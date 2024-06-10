@@ -75,7 +75,7 @@ impl PluginSupport {
     /// more complex tasks.
     pub fn get(plugin: &dyn Plugin, url: &str) -> Result<Response> {
         let client = Client::builder()
-            .https_only(true)
+            // .https_only(true)
             .user_agent(super::plugin::USER_AGENT)
             .build()?;
         let request_token = PluginSupport::start_request(plugin, &url);

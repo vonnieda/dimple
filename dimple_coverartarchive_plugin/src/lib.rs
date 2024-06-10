@@ -4,7 +4,6 @@ use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
 use image::DynamicImage;
 use musicbrainz_rs::entity::{CoverartResponse, release_group::ReleaseGroup, release::Release};
 use musicbrainz_rs::FetchCoverart;
-use reqwest::blocking::Client;
 
 #[derive(Debug, Default)]
 pub struct CoverArtArchivePlugin {
@@ -21,17 +20,8 @@ impl CoverArtArchivePlugin {
         match resp {
             musicbrainz_rs::entity::CoverartResponse::Json(_) => todo!(),
             musicbrainz_rs::entity::CoverartResponse::Url(url) => {
-                let request_token = PluginSupport::start_request(self, &url);
-                let client = Client::builder()
-                    .user_agent(dimple_librarian::plugin::USER_AGENT)
-                    .build().unwrap();
-                let response = client.get(&url).send().ok()?;
-                let status = response.status();
-                let content_length = response.content_length();
+                let response = PluginSupport::get(self, &url).ok()?;
                 let bytes = response.bytes().ok()?;
-                PluginSupport::end_request(request_token, 
-                    Some(status.as_u16()), 
-                    content_length);
                 let image = image::load_from_memory(&bytes).ok()?;
                 Some(image)
             },    
