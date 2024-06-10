@@ -1,13 +1,9 @@
-use std::{env, iter};
+use std::{env};
 
 use anyhow::{Error, Result};
 use dimple_core::model::{Entity, Model, Picture};
 use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
-use reqwest::blocking::Client;
 use serde::Deserialize;
-// TODO Note, I broke logging of errored requests during the conversion - I had
-// been doing it in inspect_err, and now I'm not. Need to fix.
-
 // TODO consider using https://crates.io/crates/fuzzy-matcher to try to find
 // albums that might match the name of the artist to use as a back up for
 // artist artwork.
@@ -79,30 +75,16 @@ impl Plugin for FanartTvPlugin {
             (Model::Picture(_), Some(Model::Artist(artist))) => {
                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
 
-                let client = Client::builder()
-                    .https_only(true)
-                    .user_agent(dimple_librarian::plugin::USER_AGENT)
-                    .build()?;
-
                 let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", 
                     mbid, self.api_key);
-                let request_token = PluginSupport::start_request(self, &url);
-                let response = client.get(url).send()?;
-                PluginSupport::end_request(request_token, 
-                    Some(response.status().as_u16()), 
-                    response.content_length());
-
+                let response = PluginSupport::get(self, &url)?;
                 let artist_resp = response.json::<ArtistResponse>()?;
                 let thumb = artist_resp.artistthumb.first().ok_or_else(|| Error::msg("No images"))?;
                 
-                let request_token = PluginSupport::start_request(self, &thumb.url);
-                let thumb_resp = client.get(&thumb.url).send()?;
-                PluginSupport::end_request(request_token, 
-                    Some(thumb_resp.status().as_u16()),
-                    thumb_resp.content_length());
-
+                let thumb_resp = PluginSupport::get(self, &thumb.url)?;
                 let bytes = thumb_resp.bytes()?;
                 let image = image::load_from_memory(&bytes)?;
+
                 let mut picture = Picture::default();
                 picture.set_image(&image);
                 

@@ -69,12 +69,15 @@ impl PluginSupport {
             token.url);
     }
 
+    /// The most common use of HTTP is going to be a simple get, so this
+    /// will be a shortcut for that. I think I'll also need a client()
+    /// that returns a pre-configured client that the plugin can use for
+    /// more complex tasks.
     pub fn get(plugin: &dyn Plugin, url: &str) -> Result<Response> {
         let client = Client::builder()
             .https_only(true)
             .user_agent(super::plugin::USER_AGENT)
             .build()?;
-
         let request_token = PluginSupport::start_request(plugin, &url);
         let response = client.get(url).send()?;
         PluginSupport::end_request(request_token, 
