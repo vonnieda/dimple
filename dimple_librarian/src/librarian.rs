@@ -16,10 +16,6 @@ pub struct Librarian {
     db: Arc<Box<dyn Db>>,
     plugins: Arc<RwLock<Vec<Box<dyn Plugin>>>>,
     network_mode: Arc<Mutex<NetworkMode>>,
-    get_cache: Arc<Mutex<HashMap<String, Model>>>,
-    list_cache: Arc<Mutex<HashMap<String, Vec<Model>>>>,
-    // TODO this cache stuff is trash, doesn't expire or flush on update. Just playing around.
-    cache: bool,
 }
 
 impl Librarian {
@@ -30,9 +26,6 @@ impl Librarian {
             db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()))),
             plugins: Default::default(),
             network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
-            get_cache: Default::default(),
-            list_cache: Default::default(),
-            cache: true,
         };
         librarian
     }
@@ -113,22 +106,6 @@ impl Librarian {
 
         None
     }
-
-    fn list_cache_key(list_of: &Model, related_to: &Option<Model>) -> String {
-        if let Some(related_to) = related_to {
-            let related_to_key = related_to.entity().key().unwrap();
-            format!("{}:{}:{}", 
-                list_of.entity().type_name(),
-                related_to.entity().type_name(),
-                related_to_key
-            )
-        }
-        else {
-            format!("{}", 
-                list_of.entity().type_name(),
-            )
-        }
-    }
 }
 
 impl Db for Librarian {
@@ -141,14 +118,6 @@ impl Db for Librarian {
     /// 
     /// If there are no results from storage or any plugin, returns Ok(None)
     fn get(&self, model: &Model) -> Result<Option<Model>> {
-        if self.cache {
-            if let Some(key) = model.entity().key() {
-                if let Some(model) = self.get_cache.lock().unwrap().get(&key) {
-                    return Ok(Some(model.clone()))
-                }
-            }
-        }
-
         let mut model = model.clone();
 
         if let Ok(Some(db_model)) = self.db.get(&model) {
@@ -174,14 +143,6 @@ impl Db for Librarian {
 
         let result = self.merge(&model);
 
-        if self.cache {
-            if let Some(result) = &result {
-                if let Some(key) = result.entity().key() {
-                    self.get_cache.lock().unwrap().insert(key, result.clone());
-                }
-            }
-        }
-
         Ok(result)
     }
 
@@ -191,14 +152,6 @@ impl Db for Librarian {
         related_to: &Option<Model>,
     ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         let db: &dyn Db = self.db.as_ref().as_ref();
-
-        if self.cache {
-            let cache_key = Self::list_cache_key(list_of, related_to);
-            if let Some(models) = self.list_cache.lock().unwrap().get(&cache_key) {
-                let models = models.clone();
-                return Ok(Box::new(models.into_iter()))
-            }    
-        }
 
         for plugin in self.plugins.read().unwrap().iter() {
             let results = plugin.list(list_of, related_to, self.network_mode());
@@ -214,15 +167,6 @@ impl Db for Librarian {
         }
 
         let results = self.db.list(list_of, related_to);
-
-        if self.cache {
-            if results.is_ok() {
-                let results: Vec<Model> = results.unwrap().collect();
-                let cache_key = Self::list_cache_key(list_of, related_to);
-                self.list_cache.lock().unwrap().insert(cache_key, results.clone());
-                return Ok(Box::new(results.into_iter()))
-            }
-        }
 
         results
     }

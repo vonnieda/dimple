@@ -3,7 +3,6 @@ use std::env;
 use anyhow::{Error, Result};
 use dimple_core::model::{Entity, Model, Picture};
 use dimple_librarian::plugin::{NetworkMode, Plugin, PluginSupport};
-use reqwest::blocking::Client;
 use serde::Deserialize;
 
 #[derive(Debug)]
@@ -72,18 +71,9 @@ impl Plugin for TheAudioDbPlugin {
             (Model::Picture(_), Some(Model::Artist(artist))) => {
                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
 
-                let client = Client::builder()
-                    .https_only(true)
-                    .user_agent(dimple_librarian::plugin::USER_AGENT)
-                    .build()?;
-
                 let url = format!("https://www.theaudiodb.com/api/v1/json/{}/artist-mb.php?i={}", 
                     self.api_key, mbid);
-                let request_token = PluginSupport::start_request(self, &url);
-                let response = client.get(url).send()?;
-                PluginSupport::end_request(request_token, 
-                    Some(response.status().as_u16()), 
-                    response.content_length());
+                let response = PluginSupport::get(self, &url)?;
                 let artists_resp = response.json::<ArtistsResponse>()?;
 
                 let artist_thumbnail_url = artists_resp.artists.first().ok_or(Error::msg("no thumbnail"))?
@@ -92,11 +82,7 @@ impl Plugin for TheAudioDbPlugin {
                     return Ok(Box::new(std::iter::empty()))
                 }
 
-                let request_token = PluginSupport::start_request(self, &artist_thumbnail_url);
-                let thumb_resp = client.get(&artist_thumbnail_url).send()?;
-                PluginSupport::end_request(request_token, 
-                    Some(thumb_resp.status().as_u16()),
-                    thumb_resp.content_length());
+                let thumb_resp = PluginSupport::get(self, &artist_thumbnail_url)?;
                 let bytes = thumb_resp.bytes()?;
                 let image = image::load_from_memory(&bytes)?;
 

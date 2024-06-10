@@ -14,6 +14,7 @@ mod recording;
 mod release_group;
 mod release;
 mod track;
+mod tag;
 mod known_id;
 mod lyrics;
 mod picture;
@@ -25,6 +26,7 @@ pub use blob::Blob;
 pub use release_group::ReleaseGroup;
 pub use release::Release;
 pub use track::Track;
+pub use tag::Tag;
 pub use medium::Medium;
 pub use recording::Recording;
 pub use recording_source::RecordingSource;
@@ -51,6 +53,7 @@ pub enum Model {
     Playlist(Playlist),
     PlaylistItem(PlaylistItem),
     Lyrics(Lyrics),
+    Tag(Tag),
 }
 
 impl Model {
@@ -70,6 +73,7 @@ impl Model {
             Model::Picture(v) => v,
             Model::PlaylistItem(v) => v,
             Model::Lyrics(v) => v,
+            Model::Tag(v) => v,
         }
     }
 
@@ -89,6 +93,7 @@ impl Model {
             Model::Picture(v) => v.key = key,
             Model::PlaylistItem(v) => v.key = key,
             Model::Lyrics(v) => v.key = key,
+            Model::Tag(v) => v.key = key,
         }
     }
 }

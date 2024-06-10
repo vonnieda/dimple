@@ -4,6 +4,7 @@ use anyhow::Result;
 use dimple_core::model::{Entity, Model};
 
 use colored::Colorize;
+use reqwest::blocking::{Client, Response};
 
 pub const USER_AGENT: &str = "Dimple/0.0.1 +https://github.com/vonnieda/dimple +jason@vonnieda.org";
 
@@ -66,6 +67,20 @@ impl PluginSupport {
             token.start_time.elapsed().as_millis(), 
             length,
             token.url);
+    }
+
+    pub fn get(plugin: &dyn Plugin, url: &str) -> Result<Response> {
+        let client = Client::builder()
+            .https_only(true)
+            .user_agent(super::plugin::USER_AGENT)
+            .build()?;
+
+        let request_token = PluginSupport::start_request(plugin, &url);
+        let response = client.get(url).send()?;
+        PluginSupport::end_request(request_token, 
+            Some(response.status().as_u16()), 
+            response.content_length());
+        Ok(response)
     }
 }
 
