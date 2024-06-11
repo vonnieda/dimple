@@ -4,13 +4,7 @@ use dimple_core::model::Medium;
 use dimple_core::model::Recording;
 use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
-use musicbrainz_rs::entity::artist::ArtistSearchQuery;
-use musicbrainz_rs::entity::artist::Artist as MBArtist;
-use musicbrainz_rs::entity::release_group::ReleaseGroup as MBReleaseGroup;
-use musicbrainz_rs::entity::release::Release as MBRelease;
 use musicbrainz_rs::entity::relations::RelationContent;
-use musicbrainz_rs::entity::release_group::ReleaseGroupSearchQuery;
-use musicbrainz_rs::{Browse, Fetch, Search};
 use dimple_core::model::{Genre, KnownIds};
 
 
