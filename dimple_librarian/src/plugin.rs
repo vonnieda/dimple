@@ -91,7 +91,11 @@ impl PluginSupport {
         // TODO use dirs, or better yet, the librarian path
         let cache = "./dimple-librarian-plugin-cache";
         if let Some(cached) = cacache::read_sync(cache, url).ok() {
-            return Ok(CacheResponse::new(cached))
+            log::debug!("{} {} (Cached) {}", 
+                plugin.name().blue(), 
+                cached.len(),
+                url);
+            return Ok(CacheResponse::new(cached, true))
         }
         let client = Client::builder()
             .user_agent(super::plugin::USER_AGENT)
@@ -103,19 +107,25 @@ impl PluginSupport {
             response.content_length());
         let bytes = response.bytes()?;
         cacache::write_sync(cache, url, &bytes)?;
-        return Ok(CacheResponse::new(bytes.to_vec()))
+        return Ok(CacheResponse::new(bytes.to_vec(), false))
     }
 }
 
 pub struct CacheResponse {
     response: Vec<u8>,
+    cached: bool,
 }
 
 impl CacheResponse {
-    pub fn new(response: Vec<u8>) -> Self {
+    pub fn new(response: Vec<u8>, cached: bool) -> Self {
         Self {
             response,
+            cached,
         }
+    }
+
+    pub fn cached(&self) -> bool {
+        self.cached
     }
 
     pub fn json<T: DeserializeOwned>(&self) -> Result<T> {

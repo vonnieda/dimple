@@ -39,7 +39,24 @@ pub struct ReleaseGroups {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all(deserialize = "kebab-case"))]
 pub struct Releases {
-    pub releases_offset: u32,
+    pub release_offset: u32,
     pub releases: Vec<musicbrainz_rs::entity::release::Release>,
-    pub releases_count: u32,
+    pub release_count: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[serde(rename_all(deserialize = "kebab-case"))]
+pub struct ArtistResults {
+    pub created: String,
+    pub offset: u32,
+    pub artists: Vec<musicbrainz_rs::entity::artist::Artist>,
+    pub count: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[serde(rename_all(deserialize = "kebab-case"))]
+pub struct ReleaseGroupResults {
+    pub offset: u32,
+    pub release_groups: Vec<musicbrainz_rs::entity::release_group::ReleaseGroup>,
+    pub count: u32,
 }

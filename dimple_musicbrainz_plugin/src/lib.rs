@@ -2,16 +2,16 @@ use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
 use anyhow::{Error, Result};
-use client::{ReleaseGroups, Releases};
+use client::{ArtistResults, ReleaseGroupResults, ReleaseGroups, Releases};
 use converters::{ArtistConverter, RecordingConverter, ReleaseConverter, ReleaseGroupConverter};
 use dimple_core::model::{Artist, Entity, Model, Recording, Release, ReleaseGroup};
 use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
-use musicbrainz_rs::entity::artist::ArtistSearchQuery;
-use musicbrainz_rs::entity::release_group::ReleaseGroupSearchQuery;
-use musicbrainz_rs::{Browse, Search};
 
 mod converters;
 mod client;
+
+// https://musicbrainz.org/doc/MusicBrainz_API
+// https://musicbrainz.org/doc/MusicBrainz_Entity
 
 #[derive(Debug)]
 pub struct MusicBrainzPlugin {
@@ -44,8 +44,6 @@ impl MusicBrainzPlugin {
     }
 }
 
-// https://musicbrainz.org/doc/MusicBrainz_Entity
-// https://musicbrainz.org/doc/MusicBrainz_API
 impl Plugin for MusicBrainzPlugin {
     fn name(&self) -> String {
         "MusicBrainz".to_string()
@@ -60,8 +58,10 @@ impl Plugin for MusicBrainzPlugin {
             Model::Artist(artist) => {
                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;                
                 let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases annotation genres ratings tags url-rels", mbid);
-                self.enforce_rate_limit();
                 let response = PluginSupport::get(self, &url)?;
+                if !response.cached() {
+                    self.enforce_rate_limit();
+                }
                 let artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
                 let artist = Artist::from(ArtistConverter::from(artist.clone()));
                 Ok(Some(artist.model()))
@@ -70,8 +70,10 @@ impl Plugin for MusicBrainzPlugin {
             Model::ReleaseGroup(r) => {
                 let mbid = r.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;
                 let url = format!("https://musicbrainz.org/ws/2/release-group/{}?fmt=json&inc=aliases annotation artists genres ratings tags url-rels", mbid);
-                self.enforce_rate_limit();
                 let response = PluginSupport::get(self, &url)?;
+                if !response.cached() {
+                    self.enforce_rate_limit();
+                }        
                 let release_group = response.json::<musicbrainz_rs::entity::release_group::ReleaseGroup>()?;
                 let release_group = ReleaseGroup::from(ReleaseGroupConverter::from(release_group.clone()));
                 Ok(Some(release_group.model()))
@@ -80,8 +82,10 @@ impl Plugin for MusicBrainzPlugin {
             Model::Release(r) => {
                 let mbid = r.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;
                 let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases annotation artists genres ratings recordings release-groups tags url-rels", mbid);
-                self.enforce_rate_limit();
                 let response = PluginSupport::get(self, &url)?;
+                if !response.cached() {
+                    self.enforce_rate_limit();
+                }        
                 let release = response.json::<musicbrainz_rs::entity::release::Release>()?;
                 let release = Release::from(ReleaseConverter::from(release.clone()));
                 Ok(Some(release.model()))
@@ -90,8 +94,10 @@ impl Plugin for MusicBrainzPlugin {
             Model::Recording(r) => {
                 let mbid = r.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;
                 let url = format!("https://musicbrainz.org/ws/2/recording/{}?fmt=json&inc=aliases annotation artists genres isrcs ratings releases release-groups tags url-rels", mbid);
-                self.enforce_rate_limit();
                 let response = PluginSupport::get(self, &url)?;
+                if !response.cached() {
+                    self.enforce_rate_limit();
+                }        
                 let recording = response.json::<musicbrainz_rs::entity::recording::Recording>()?;
                 let recording = Recording::from(RecordingConverter::from(recording.clone()));
                 Ok(Some(recording.model()))
@@ -115,8 +121,10 @@ impl Plugin for MusicBrainzPlugin {
             (Model::ReleaseGroup(_), Some(Model::Artist(artist))) => {                
                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
                 let url = format!("https://musicbrainz.org/ws/2/release-group?fmt=json&offset=0&limit=100&artist={}", mbid);
-                self.enforce_rate_limit();
                 let response = PluginSupport::get(self, &url)?;
+                if !response.cached() {
+                    self.enforce_rate_limit();
+                }        
                 let release_groups = response.json::<ReleaseGroups>()?;
                 let iter = release_groups.release_groups.into_iter()
                     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
@@ -125,9 +133,11 @@ impl Plugin for MusicBrainzPlugin {
             },
             (Model::Release(_), Some(Model::Artist(artist))) => {                
                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
-                let url = format!("https://musicbrainz.org/ws/2/release?fmt=json&offset=0&limit=100&artist={}", mbid);
-                self.enforce_rate_limit();
+                let url = format!("https://musicbrainz.org/ws/2/release?fmt=json&offset=0&limit=100&artist={}&inc=artist-credits labels recordings release-groups media discids isrcs", mbid);
                 let response = PluginSupport::get(self, &url)?;
+                if !response.cached() {
+                    self.enforce_rate_limit();
+                }
                 let releases = response.json::<Releases>()?;
                 let iter = releases.releases.into_iter()
                     .map(|src| Release::from(ReleaseConverter::from(src.clone())))
@@ -138,6 +148,7 @@ impl Plugin for MusicBrainzPlugin {
         }        
     }
 
+    // TODO I want to return scores, or at least filter by them.
     fn search(&self, query: &str, network_mode: dimple_librarian::plugin::NetworkMode) 
         -> Result<Box<dyn Iterator<Item = Model>>> {
         if network_mode != NetworkMode::Online {
@@ -146,53 +157,35 @@ impl Plugin for MusicBrainzPlugin {
     
         let iter = std::iter::empty();
 
-        // https://musicbrainz.org/ws/2/artist/?query=metallica&fmt=json
-        let search_query = ArtistSearchQuery::query_builder()
-            .artist(&query)
-            .build();
-        let request_token = PluginSupport::start_request(self, 
-            &format!("https://musicbrainz.org/ws/2/artist/?query={}&fmt=json", &query));
-        self.enforce_rate_limit();
-        let artists = musicbrainz_rs::entity::artist::Artist::search(search_query)
-            .execute()?
-            .entities
-            .into_iter()
-            .map(|result| Artist::from(ArtistConverter::from(result)))
-            .map(|result| result.model());
-        PluginSupport::end_request(request_token, None, None);
-        let iter = iter.chain(artists);
+        let url = format!("https://musicbrainz.org/ws/2/artist/?query={}&fmt=json", &query);
+        let response = PluginSupport::get(self, &url).unwrap();
+        if !response.cached() {
+            self.enforce_rate_limit();
+        }
+        let results = response.json::<ArtistResults>().unwrap();
+        let models = results.artists.into_iter()
+            .map(|src| Artist::from(ArtistConverter::from(src.clone())))
+            .map(|src| src.model());
+        let iter = iter.chain(models);
 
-        let search_query = ReleaseGroupSearchQuery::query_builder()
-            .release_group(&query)
-            .build();
-        let request_token = PluginSupport::start_request(self, 
-            &format!("https://musicbrainz.org/ws/2/release-group/?query={}&fmt=json", &query));
-        self.enforce_rate_limit();
-        let release_groups = musicbrainz_rs::entity::release_group::ReleaseGroup::search(search_query)
-            .execute()?
-            .entities
-            .into_iter()
-            .map(|result| Into::<ReleaseGroup>::into(ReleaseGroupConverter::from(result)))
-            .map(|result| result.model());
-        PluginSupport::end_request(request_token, None, None);
-        let iter = iter.chain(release_groups);
+        let url = format!("https://musicbrainz.org/ws/2/release-group/?query={}&fmt=json", &query);
+        if !response.cached() {
+            self.enforce_rate_limit();
+        }
+        let response = PluginSupport::get(self, &url)?;
+        let results = response.json::<ReleaseGroupResults>()?;
+        let models = results.release_groups.into_iter()
+            .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
+            .map(|src| src.model());
+        let iter = iter.chain(models);
 
-        // let search_query = ReleaseSearchQuery::query_builder()
-        //     .release(&query)
-        //     .build();
-        // let releases = MBRelease::search(search_query)
-        //     .execute()?
-        //     .entities
-        //     .into_iter()
-        //     .map(|result| Into::<Release>::into(ReleaseConverter::from(result)))
-        //     .map(|release| Box::new(release) as Box::<dyn Entity>);
         Ok(Box::new(iter))
     }    
 }
 
 #[cfg(test)]
 mod tests {
-    use dimple_core::model::{Artist, Entity, KnownIds, Recording, Release, ReleaseGroup};
+    use dimple_core::model::{Artist, Entity, KnownIds, Model, Recording, Release, ReleaseGroup};
     use dimple_librarian::plugin::{NetworkMode, Plugin};
 
     use crate::MusicBrainzPlugin;
@@ -251,6 +244,31 @@ mod tests {
         };
         let recording = plugin.get(&recording.model(), NetworkMode::Online).unwrap().unwrap();
         println!("{:#?}", recording);
+    }
+
+    #[test]
+    fn list_artist_releases() {
+        let plugin = MusicBrainzPlugin::default();
+        let artist = Artist {
+            known_ids: KnownIds {
+                musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let releases: Vec<Release> = plugin.list(&Release::default().model(), 
+            &Some(artist.model()), NetworkMode::Online)
+            .unwrap()
+            .map(|model| Release::from(model))
+            .collect();
+        println!("{:#?}", releases);
+    }
+
+    #[test]
+    fn search() {
+        let plugin = MusicBrainzPlugin::default();
+        let results: Vec<Model> = plugin.search("Nirvana", NetworkMode::Online).unwrap().collect();
+        println!("{:#?}", results);
     }
 }
 
