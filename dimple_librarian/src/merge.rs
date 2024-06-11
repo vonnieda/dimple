@@ -41,6 +41,7 @@ impl Merge for ReleaseGroup {
             annotation: Option::merge(l.annotation, r.annotation),
             genres: l.genres.iter().chain(r.genres.iter()).cloned().collect::<HashSet<Genre>>().into_iter().collect(),
             artist_credits: l.artist_credits.iter().chain(r.artist_credits.iter()).cloned().collect::<HashSet<ArtistCredit>>().into_iter().collect(),
+            secondary_types: l.secondary_types.union(&r.secondary_types).cloned().collect(),
         }
     }
 }

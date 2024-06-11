@@ -112,6 +112,9 @@ impl From<ReleaseGroupConverter> for dimple_core::model::ReleaseGroup {
                     _ => None,
                 })
                 .collect(),
+            secondary_types: value.0.secondary_types.iter()
+                .map(|f| format!("{:?}", f))
+                .collect(),
             primary_type: value.0.primary_type.map(|f| format!("{:?}", f)),
             summary: None,
             title: none_if_empty(value.0.title),

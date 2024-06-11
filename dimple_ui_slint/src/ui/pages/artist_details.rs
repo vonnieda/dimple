@@ -1,7 +1,6 @@
 use dimple_core::model::Artist;
 use dimple_core::model::Entity;
 use dimple_core::model::Genre;
-use dimple_core::model::Model;
 use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
 use slint::ComponentHandle;
@@ -30,20 +29,22 @@ pub fn artist_details(url: &str, app: &App) {
             ..Default::default()
         }.into()).unwrap().unwrap().into();
 
-        let mut releases: Vec<_> = librarian
-            .list(&Release::default().into(), &Some(artist.model()))
-            .unwrap()
-            .map(Into::<Release>::into)
-            .filter(|r| r.status == Some("Official".to_string()))
-            .collect();
-        releases.sort_by_key(|r| r.date.to_owned());
-        releases.reverse();
-
         let genres: Vec<Genre> = librarian
             .list(&Genre::default().into(), &Some(artist.model()))
             .unwrap()
             .map(Into::into)
             .collect();
+
+        let mut release_groups: Vec<_> = librarian
+            .list(&ReleaseGroup::default().into(), &Some(artist.model()))
+            .unwrap()
+            .map(ReleaseGroup::from)
+            .filter(|r| !r.secondary_types.contains("Live"))
+            .collect();
+        release_groups.sort_by_key(|r| r.first_release_date.to_owned());
+        release_groups.reverse();
+
+        let releases = release_groups;
 
         ui.upgrade_in_event_loop(move |ui| {
             // TODO I hate all this duplication, but each one needs to filter on

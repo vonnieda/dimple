@@ -24,6 +24,7 @@ pub struct ReleaseGroup {
 
     pub first_release_date: Option<String>,
     pub primary_type: Option<String>,
+    pub secondary_types: HashSet<String>,
 
     #[serde(skip)]
     pub artist_credits: Vec<ArtistCredit>,
