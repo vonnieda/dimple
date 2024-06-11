@@ -1,10 +1,24 @@
-use std::time::Instant;
+// #![forbid(unsafe_code, future_incompatible)]
+// #![deny(
+//     missing_docs,
+//     missing_debug_implementations,
+//     missing_copy_implementations,
+//     nonstandard_style,
+//     unused_qualifications,
+//     unused_import_braces,
+//     unused_extern_crates,
+//     trivial_casts,
+//     trivial_numeric_casts
+// )]
+
+use std::{io::Read, time::Instant};
 
 use anyhow::Result;
 use dimple_core::model::{Entity, Model};
 
 use colored::Colorize;
-use reqwest::blocking::{Client, Response};
+use reqwest::{blocking::{Client, Response}};
+use serde::de::DeserializeOwned;
 
 pub const USER_AGENT: &str = "Dimple/0.0.1 +https://github.com/vonnieda/dimple +jason@vonnieda.org";
 
@@ -73,17 +87,43 @@ impl PluginSupport {
     /// will be a shortcut for that. I think I'll also need a client()
     /// that returns a pre-configured client that the plugin can use for
     /// more complex tasks.
-    pub fn get(plugin: &dyn Plugin, url: &str) -> Result<Response> {
+    pub fn get(plugin: &dyn Plugin, url: &str) -> Result<CacheResponse> {
+        // TODO use dirs, or better yet, the librarian path
+        let cache = "./dimple-librarian-plugin-cache";
+        if let Some(cached) = cacache::read_sync(cache, url).ok() {
+            return Ok(CacheResponse::new(cached))
+        }
         let client = Client::builder()
-            // .https_only(true)
             .user_agent(super::plugin::USER_AGENT)
             .build()?;
-        let request_token = PluginSupport::start_request(plugin, &url);
+        let request_token = Self::start_request(plugin, &url);
         let response = client.get(url).send()?;
-        PluginSupport::end_request(request_token, 
+        Self::end_request(request_token, 
             Some(response.status().as_u16()), 
             response.content_length());
-        Ok(response)
+        let bytes = response.bytes()?;
+        cacache::write_sync(cache, url, &bytes)?;
+        return Ok(CacheResponse::new(bytes.to_vec()))
+    }
+}
+
+pub struct CacheResponse {
+    response: Vec<u8>,
+}
+
+impl CacheResponse {
+    pub fn new(response: Vec<u8>) -> Self {
+        Self {
+            response,
+        }
+    }
+
+    pub fn json<T: DeserializeOwned>(&self) -> Result<T> {
+        Ok(serde_json::from_slice(&self.response)?)
+    }    
+
+    pub fn bytes(&self) -> Result<Vec<u8>> {
+        return Ok(self.response.clone())
     }
 }
 

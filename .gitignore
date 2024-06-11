@@ -6,3 +6,4 @@ dumps
 config.toml
 dimple_sled_library/.sled
 draft
+dimple_ui_slint/dimple-librarian-plugin-cache
