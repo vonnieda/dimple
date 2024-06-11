@@ -120,7 +120,7 @@ impl Plugin for MusicBrainzPlugin {
         match (list_of, related_to) {
             (Model::ReleaseGroup(_), Some(Model::Artist(artist))) => {                
                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
-                let url = format!("https://musicbrainz.org/ws/2/release-group?fmt=json&offset=0&limit=100&artist={}", mbid);
+                let url = format!("https://musicbrainz.org/ws/2/release-group?fmt=json&offset=0&limit=100&artist={}&inc=artist-credits", mbid);
                 let response = PluginSupport::get(self, &url)?;
                 if !response.cached() {
                     self.enforce_rate_limit();
