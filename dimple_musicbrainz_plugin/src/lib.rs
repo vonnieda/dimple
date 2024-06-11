@@ -144,6 +144,19 @@ impl Plugin for MusicBrainzPlugin {
                     .map(|src| src.model());
                 Ok(Box::new(iter))
             },
+            (Model::Release(_), Some(Model::ReleaseGroup(release_group))) => {                
+                let mbid = release_group.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
+                let url = format!("https://musicbrainz.org/ws/2/release?fmt=json&offset=0&limit=100&release-group={}&inc=artist-credits labels recordings release-groups media discids isrcs", mbid);
+                let response = PluginSupport::get(self, &url)?;
+                if !response.cached() {
+                    self.enforce_rate_limit();
+                }
+                let releases = response.json::<Releases>()?;
+                let iter = releases.releases.into_iter()
+                    .map(|src| Release::from(ReleaseConverter::from(src.clone())))
+                    .map(|src| src.model());
+                Ok(Box::new(iter))
+            },
             _ => Err(Error::msg("Not implemented.")),
         }        
     }

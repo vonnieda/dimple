@@ -63,9 +63,8 @@ impl Merge for Release {
             date: Option::merge(l.date, r.date),
             packaging: Option::merge(l.packaging, r.packaging),
             status: Option::merge(l.status, r.status),
-            // TODO phew, not sure about this
             release_group: ReleaseGroup::merge(l.release_group, r.release_group),
-            media: Default::default(),
+            media: l.media.into_iter().chain(r.media.into_iter()).collect(),
         }
     }
 }
@@ -79,7 +78,7 @@ impl Merge for Medium {
             position: l.position.or(r.position),
             title: l.title.or(r.title),
             track_count: l.track_count.or(r.track_count),
-            ..Default::default()
+            tracks: l.tracks.into_iter().chain(r.tracks.into_iter()).collect(),
         }
     }
 }
@@ -93,7 +92,9 @@ impl Merge for Track {
             length: Option::merge(l.length, r.length),
             number: Option::merge(l.number, r.number),
             position: Option::merge(l.position, r.position),
-            ..Default::default()
+            artist_credits: l.artist_credits.iter().chain(r.artist_credits.iter()).cloned().collect::<HashSet<ArtistCredit>>().into_iter().collect(),
+            genres: l.genres.iter().chain(r.genres.iter()).cloned().collect::<HashSet<Genre>>().into_iter().collect(),
+            recording: Recording::merge(l.recording, r.recording),
         }
     }
 }
@@ -121,8 +122,10 @@ impl Merge for Recording {
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
             annotation: Option::merge(l.annotation, r.annotation),
-            // TODO
-            ..Default::default()
+            artist_credits: l.artist_credits.iter().chain(r.artist_credits.iter()).cloned().collect::<HashSet<ArtistCredit>>().into_iter().collect(),
+            genres: l.genres.iter().chain(r.genres.iter()).cloned().collect::<HashSet<Genre>>().into_iter().collect(),
+            isrc: Option::merge(l.isrc, r.isrc),
+            length: Option::merge(l.length, r.length),
         }
     }
 }
@@ -192,8 +195,32 @@ fn db_merge_release(db: &dyn Db, release: &Release) -> Option<Model> {
         db_merge_model(db, &release.model(), &None)?.into();
     db_merge_genres(db, &release.genres, &release.model());
     db_merge_artist_credits(db, &release.artist_credits, &release.model());
-    // TODO media
+    db_merge_media(db, &release.media, &release);
     Some(release.model())
+}
+
+fn db_merge_media(db: &dyn Db, media: &[Medium], release: &Release) {
+    for medium in media {
+        let medium = db_merge_medium(db, medium, release);
+        lazy_link(db, &medium, &Some(release.model()));
+    }
+}
+
+fn db_merge_medium(db: &dyn Db, medium: &Medium, release: &Release) -> Option<Model> {
+    let medium: Medium = db_merge_model(db, &medium.model(), &Some(release.model()))?.into();
+    db_merge_tracks(db, &medium.tracks, &medium);
+    Some(medium.model())
+}
+
+fn db_merge_tracks(db: &dyn Db, tracks: &[Track], medium: &Medium) {
+    for track in tracks {
+        let track = db_merge_track(db, track, medium);
+        lazy_link(db, &track, &Some(medium.model()));
+    }
+}
+
+fn db_merge_track(db: &dyn Db, track: &Track, medium: &Medium) -> Option<Model> {
+    db_merge_model(db, &track.model(), &Some(medium.model()))
 }
 
 fn db_merge_artist_credits(db: &dyn Db, artist_credits: &[ArtistCredit], related_to: &Model) {

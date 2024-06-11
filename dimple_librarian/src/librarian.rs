@@ -1,7 +1,7 @@
 use std::{collections::{HashMap, HashSet}, fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Artist, Entity, Model, Picture, ReleaseGroup}
+    db::{Db, SqliteDb}, model::{Artist, Entity, Genre, Model, Picture, ReleaseGroup, Track}
 };
 
 use anyhow::Result;
@@ -60,9 +60,9 @@ impl Librarian {
     }
 
     fn local_library_search(&self, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
-        const MAX_RESULTS_PER_TYPE: usize = 10;
+        const MAX_RESULTS_PER_TYPE: usize = 25;
 
-        // TODO sort by score
+        // TODO sort and filter by score
 
         let pattern = query.to_string();
         let matcher = SkimMatcherV2::default();
@@ -72,6 +72,7 @@ impl Librarian {
                 matcher.fuzzy_match(&artist.name.clone().unwrap_or_default(), &pattern).is_some()
             })
             .take(MAX_RESULTS_PER_TYPE);
+        let iter = artists;
 
         let pattern = query.to_string();
         let matcher = SkimMatcherV2::default();
@@ -81,8 +82,29 @@ impl Librarian {
                 matcher.fuzzy_match(&rg.title.clone().unwrap_or_default(), &pattern).is_some()
             })
             .take(MAX_RESULTS_PER_TYPE);
+        let iter = iter.chain(release_groups);
 
-        Ok(Box::new(artists.chain(release_groups)))
+        let pattern = query.to_string();
+        let matcher = SkimMatcherV2::default();
+        let tracks = self.db.list(&Track::default().model(), &None)?
+            .filter(move |track| {
+                let track: Track = track.clone().into();
+                matcher.fuzzy_match(&track.title.clone().unwrap_or_default(), &pattern).is_some()
+            })
+            .take(MAX_RESULTS_PER_TYPE);
+        let iter = iter.chain(tracks);
+
+        let pattern = query.to_string();
+        let matcher = SkimMatcherV2::default();
+        let release_groups = self.db.list(&Genre::default().model(), &None)?
+            .filter(move |genre| {
+                let genre: Genre = genre.clone().into();
+                matcher.fuzzy_match(&genre.name.clone().unwrap_or_default(), &pattern).is_some()
+            })
+            .take(MAX_RESULTS_PER_TYPE);
+        let iter = iter.chain(release_groups);
+
+        Ok(Box::new(iter))
     }
 
     // TODO don't use list, go directly to plugins for the second phase
@@ -157,10 +179,6 @@ impl Db for Librarian {
             let results = plugin.list(list_of, related_to, self.network_mode());
             if let Ok(results) = results {
                 for result in results {
-                    // TODO noting the use of db_merge_model here vs. self.merge in search
-                    // because this asks for objects by relationship and thus needs to be
-                    // merged with that same relationship. Probably self.merge needs to just
-                    // be modified to take a relation and then these combined.
                     merge::db_merge_model(db, &result, related_to);
                 }
             }

@@ -29,17 +29,19 @@ pub fn artist_details(url: &str, app: &App) {
             ..Default::default()
         }.into()).unwrap().unwrap().into();
 
-        let genres: Vec<Genre> = librarian
+        let mut genres: Vec<Genre> = librarian
             .list(&Genre::default().into(), &Some(artist.model()))
             .unwrap()
             .map(Into::into)
             .collect();
+        genres.sort_by_key(|genre| genre.name.clone().unwrap_or_default().to_lowercase());
 
         let mut release_groups: Vec<_> = librarian
             .list(&ReleaseGroup::default().into(), &Some(artist.model()))
             .unwrap()
             .map(ReleaseGroup::from)
-            .filter(|r| !r.secondary_types.contains("Live"))
+            // TODO Look more at this, check if empty secondary types is better.
+            .filter(|r| r.secondary_types.is_empty())
             .collect();
         release_groups.sort_by_key(|r| r.first_release_date.to_owned());
         release_groups.reverse();
@@ -52,7 +54,8 @@ pub fn artist_details(url: &str, app: &App) {
             // field. So, duplication.
             // TODO need to switch primary type to an enum
             let albums: Vec<CardAdapter> = releases.iter().cloned()
-                .filter(|release| release.primary_type == Some("Album".to_string()))
+                // TODO add the to_lower to others for now, then replace with enum.
+                .filter(|release| release.primary_type.clone().map(|s| s.to_lowercase()) == Some("album".to_string()))
                 .enumerate()
                 .map(|(index, release)| {
                     let mut card: CardAdapter = release.clone().into();
@@ -134,7 +137,10 @@ pub fn artist_details(url: &str, app: &App) {
                 dump: serde_json::to_string_pretty(&artist).unwrap().into(),
                 ..Default::default()
             };
+
+            // TODO make lazy, in all details. Blocks the UI.
             adapter.card.image.image = images.get(artist.model(), 275, 275);
+
             ui.set_artist_details(adapter);
             ui.set_page(Page::ArtistDetails);
             ui.global::<Navigator>().set_busy(false);

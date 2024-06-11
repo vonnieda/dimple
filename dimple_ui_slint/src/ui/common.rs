@@ -35,7 +35,7 @@ impl From<Artist> for CardAdapter {
                 url: format!("dimple://artist/{}", value.key.clone().unwrap_or_default()).into(),
             },
             sub_title: LinkAdapter {
-                name: value.disambiguation.clone().unwrap_or_default().into(),
+                name: value.disambiguation.clone().unwrap_or("Artist".to_string()).into(),
                 url: format!("dimple://artist/{}", value.key.clone().unwrap_or_default()).into(),
             },
         }
