@@ -168,7 +168,8 @@ impl App {
         }
 
         // Store history.
-        if url != "dimple://back" && url != "dimple://refresh" {
+        // TODO magic
+        if url != "dimple://back" && url != "dimple://refresh" && !url.starts_with("http") {
             self.history.lock().unwrap().push_back(url.into());
         }
     }

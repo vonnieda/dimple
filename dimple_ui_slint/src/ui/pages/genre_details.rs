@@ -149,7 +149,11 @@ pub fn genre_details(url: &str, app: &App) {
                 dump: serde_json::to_string_pretty(&genre).unwrap().into(),
                 ..Default::default()
             };
-            adapter.card.image.image = images.get(genre.model(), 275, 275);
+            adapter.card.image.image = images.lazy_get(genre.model(), 275, 275, |ui, image| {
+                let mut model = ui.get_genre_details();
+                model.card.image.image = image;
+                ui.set_genre_details(model);
+            });
             ui.set_genre_details(adapter);
             ui.set_page(Page::GenreDetails);
             ui.global::<Navigator>().set_busy(false);

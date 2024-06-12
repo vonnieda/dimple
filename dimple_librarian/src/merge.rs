@@ -63,6 +63,7 @@ impl Merge for Release {
             date: Option::merge(l.date, r.date),
             packaging: Option::merge(l.packaging, r.packaging),
             status: Option::merge(l.status, r.status),
+            quality: Option::merge(l.quality, r.quality),
             release_group: ReleaseGroup::merge(l.release_group, r.release_group),
             media: l.media.into_iter().chain(r.media.into_iter()).collect(),
         }

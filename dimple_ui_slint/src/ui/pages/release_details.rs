@@ -102,7 +102,11 @@ pub fn release_details(url: &str, app: &App) {
                 dump: serde_json::to_string_pretty(&release).unwrap().into(),                
                 ..Default::default()
             };
-            adapter.card.image.image = images.get(release.model(), 275, 275);
+            adapter.card.image.image = images.lazy_get(release.model(), 275, 275, |ui, image| {
+                let mut model = ui.get_release_details();
+                model.card.image.image = image;
+                ui.set_release_details(model);
+            });
             ui.set_release_details(adapter);
             ui.set_page(Page::ReleaseDetails);
             ui.global::<Navigator>().set_busy(false);

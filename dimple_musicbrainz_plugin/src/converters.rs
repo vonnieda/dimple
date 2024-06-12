@@ -166,6 +166,7 @@ impl From<ReleaseConverter> for dimple_core::model::Release {
             release_group: value.0.release_group
                 .map(|f| ReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
             status: value.0.status.map(|f| format!("{:?}", f)),
+            quality: value.0.quality.map(|f| format!("{:?}", f)),
             summary: None,
             media: value.0.media.iter().flatten()
                 .map(|f| Medium::from(MediumConverter::from(f.to_owned())))

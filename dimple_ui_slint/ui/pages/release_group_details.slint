@@ -1,7 +1,7 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, ComboBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
@@ -111,7 +111,23 @@ export component ReleaseGroupDetails inherits ScrollView {
             }
         }
 
-        // Releases
+        // Releases Combo
+        if model.releases.length > 0: VerticalLayout {
+            spacing: StyleMetrics.layout-spacing * 0.50;
+            Text {
+                text: "All Versions";
+                font-weight: Palette.font-weight-bold;
+                font-size: 2rem;
+            }
+            ComboBox {
+                width: self.preferred-width;
+                height: self.preferred-height;
+                model: ["first", "second", "third"];
+                current-value: "first";
+            }
+        }
+        
+        // Releases Grid
         if model.releases.length > 0: VerticalLayout {
             spacing: StyleMetrics.layout-spacing * 0.50;
             Text {

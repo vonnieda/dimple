@@ -137,8 +137,11 @@ pub fn artist_details(url: &str, app: &App) {
                 ..Default::default()
             };
 
-            // TODO make lazy, in all details. Blocks the UI.
-            adapter.card.image.image = images.get(artist.model(), 275, 275);
+            adapter.card.image.image = images.lazy_get(artist.model(), 275, 275, |ui, image| {
+                let mut model = ui.get_artist_details();
+                model.card.image.image = image;
+                ui.set_artist_details(model);
+            });
 
             ui.set_artist_details(adapter);
             ui.set_page(Page::ArtistDetails);

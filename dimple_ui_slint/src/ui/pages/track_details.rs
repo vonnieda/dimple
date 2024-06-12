@@ -138,8 +138,11 @@ pub fn track_details(url: &str, app: &App) {
                 ..Default::default()
             };
 
-            // TODO make lazy, in all details. Blocks the UI.
-            adapter.card.image.image = images.get(track.model(), 275, 275);
+            adapter.card.image.image = images.lazy_get(track.model(), 275, 275, |ui, image| {
+                let mut model = ui.get_track_details();
+                model.card.image.image = image;
+                ui.set_track_details(model);
+            });
 
             ui.set_track_details(adapter);
             ui.set_page(Page::TrackDetails);

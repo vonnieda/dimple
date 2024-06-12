@@ -11,7 +11,6 @@ pub struct CoverArtArchivePlugin {
 impl CoverArtArchivePlugin {
     fn get_coverart(&self, url: &str) -> Result<DynamicImage> {
         let response: CoverArtResponse = PluginSupport::get(self, url)?.json()?;
-        println!("{:#?}", response);
         for image in response.images {
             if image.approved && image.front {
                 let image_response = PluginSupport::get(self, &image.image)?;

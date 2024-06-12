@@ -29,6 +29,7 @@ pub struct Release {
     pub primary_type: Option<String>,
     pub packaging: Option<String>,
     pub status: Option<String>,
+    pub quality: Option<String>,
 
     #[serde(skip)]
     pub artist_credits: Vec<ArtistCredit>,
