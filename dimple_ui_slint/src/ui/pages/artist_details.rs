@@ -40,8 +40,7 @@ pub fn artist_details(url: &str, app: &App) {
             .list(&ReleaseGroup::default().into(), &Some(artist.model()))
             .unwrap()
             .map(ReleaseGroup::from)
-            // TODO Look more at this, check if empty secondary types is better.
-            .filter(|r| r.secondary_types.is_empty())
+            // .filter(|r| r.secondary_types.is_empty())
             .collect();
         release_groups.sort_by_key(|r| r.first_release_date.to_owned());
         release_groups.reverse();

@@ -41,7 +41,7 @@ impl From<ArtistConverter> for dimple_core::model::Artist {
                 .collect(),
             key: None,
             known_ids: KnownIds {
-                musicbrainz_id: Some(value.0.id),
+                musicbrainz_id: Some(value.0.id.clone()),
                 ..Default::default()
             },
             links: value.0.relations.iter().flatten()
@@ -49,6 +49,8 @@ impl From<ArtistConverter> for dimple_core::model::Artist {
                     RelationContent::Url(u) => Some(u.resource.to_string()),
                     _ => None,
                 })
+                .chain(std::iter::once(value.0.id.clone())
+                    .map(|mbid| format!("https://musicbrainz.org/artist/{}", mbid)))
                 .collect(),
             name: none_if_empty(value.0.name),
             summary: None,
@@ -103,7 +105,7 @@ impl From<ReleaseGroupConverter> for dimple_core::model::ReleaseGroup {
                 .collect(),
             key: None,
             known_ids: KnownIds {
-                musicbrainz_id: Some(value.0.id),
+                musicbrainz_id: Some(value.0.id.clone()),
                 ..Default::default()
             },
             links: value.0.relations.iter().flatten()
@@ -111,6 +113,8 @@ impl From<ReleaseGroupConverter> for dimple_core::model::ReleaseGroup {
                     RelationContent::Url(u) => Some(u.resource.to_string()),
                     _ => None,
                 })
+                .chain(std::iter::once(value.0.id.clone())
+                    .map(|mbid| format!("https://musicbrainz.org/release-group/{}", mbid)))
                 .collect(),
             secondary_types: value.0.secondary_types.iter()
                 .map(|f| format!("{:?}", f))
@@ -145,7 +149,7 @@ impl From<ReleaseConverter> for dimple_core::model::Release {
                 .collect(),
             key: None,
             known_ids: KnownIds {
-                musicbrainz_id: Some(value.0.id),
+                musicbrainz_id: Some(value.0.id.clone()),
                 ..Default::default()
             },
             links: value.0.relations.iter().flatten()
@@ -153,6 +157,8 @@ impl From<ReleaseConverter> for dimple_core::model::Release {
                     RelationContent::Url(u) => Some(u.resource.to_string()),
                     _ => None,
                 })
+                .chain(std::iter::once(value.0.id.clone())
+                    .map(|mbid| format!("https://musicbrainz.org/release/{}", mbid)))
                 .collect(),
             title: none_if_empty(value.0.title),
             packaging: value.0.packaging.map(|f| format!("{:?}", f)),

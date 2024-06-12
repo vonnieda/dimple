@@ -80,6 +80,7 @@ fn model_card(model: &Model) -> CardAdapter {
         Model::Artist(artist) => artist.clone().into(),
         Model::ReleaseGroup(release_group) => release_group_card(release_group),
         Model::Genre(genre) => genre_card(genre),
+        Model::Track(track) => track.clone().into(),
         _ => todo!(),
     }
 }

@@ -152,8 +152,7 @@ impl App {
             crate::ui::pages::track_list::track_list(self);
         }
         else if url.starts_with("dimple://track/") {
-            // TODO
-            self.set_page(Page::TrackDetails);
+            crate::ui::pages::track_details::track_details(&url, self);
         }
         else if url.starts_with("dimple://genres") {
             crate::ui::pages::genre_list::genre_list(self);

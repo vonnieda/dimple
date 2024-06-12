@@ -278,6 +278,26 @@ mod tests {
     }
 
     #[test]
+    fn list_release_group_releases() {
+        let plugin = MusicBrainzPlugin::default();
+        let release_group = ReleaseGroup {
+            known_ids: KnownIds {
+                musicbrainz_id: Some("f44f4f73-a714-31a1-a4b8-bfcaaf311f50".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let releases: Vec<Release> = plugin.list(&Release::default().model(), 
+            &Some(release_group.model()), NetworkMode::Online)
+            .unwrap()
+            .map(|model| Release::from(model))
+            .collect();
+        for release in releases.iter() {
+            println!("{:?} {:?} {:?} {:?}", release.country, release.date, release.status, release.title);
+        }
+    }
+
+    #[test]
     fn search() {
         let plugin = MusicBrainzPlugin::default();
         let results: Vec<Model> = plugin.search("Nirvana", NetworkMode::Online).unwrap().collect();
