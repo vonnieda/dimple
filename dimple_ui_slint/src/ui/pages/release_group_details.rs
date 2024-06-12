@@ -54,14 +54,15 @@ pub fn release_group_details(url: &str, app: &App) {
             .collect();
         releases.sort_by(|l, r| score_release(l).total_cmp(&score_release(r)));
         releases.reverse();
-        for release in releases.iter() {
-            println!("{} {:?} {:?} {:?} {:?}", 
-                score_release(release), 
-                release.country, 
-                release.date, 
-                release.status, 
-                release.title);
-        }
+
+        // for release in releases.iter() {
+        //     println!("{} {:?} {:?} {:?} {:?}", 
+        //         score_release(release), 
+        //         release.country, 
+        //         release.date, 
+        //         release.status, 
+        //         release.title);
+        // }
         
         let release = releases.get(0).unwrap();
         // TODO not sure how I feel about this yet. Makes it slow.

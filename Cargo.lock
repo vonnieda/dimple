@@ -1462,7 +1462,6 @@ dependencies = [
  "dimple_librarian",
  "image 0.25.1",
  "log",
- "musicbrainz_rs",
  "serde",
  "serde_json",
 ]
