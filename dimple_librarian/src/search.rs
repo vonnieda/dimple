@@ -11,7 +11,7 @@ use image::DynamicImage;
 use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin}};
 
 pub fn db_search(db: &dyn Db, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
-    const MAX_RESULTS_PER_TYPE: usize = 25;
+    const MAX_RESULTS_PER_TYPE: usize = 5;
 
     // TODO sort and filter by score
 

@@ -35,11 +35,6 @@ export component Settings inherits ScrollView {
                 toggled => { AppState.settings_set_online(self.checked); }
                 text: "Online?";
             }
-            CheckBox {
-                checked: AppState.debug;
-                toggled => { AppState.settings_set_debug(self.checked); }
-                text: "Debug?";
-            }
         }
         VerticalBox {
             Text {
@@ -69,9 +64,10 @@ export component Settings inherits ScrollView {
                 font-size: 2rem;
                 font-weight: Palette.font-weight-bold;
             }
-            Button {
-                text: "Generate Some Artists";
-                clicked => { AppState.settings_generate_artists() }
+            CheckBox {
+                checked: AppState.debug;
+                toggled => { AppState.settings_set_debug(self.checked); }
+                text: "Show object dumps?";
             }
             Button {
                 text: "Reset Database";

@@ -19,6 +19,8 @@ export struct ArtistDetailsAdapter {
 }
 
 export component ArtistDetails inherits ScrollView {
+    in property <ArtistDetailsAdapter> model: model_ph;
+
     VerticalBox {
         alignment: start;
         spacing: StyleMetrics.layout-spacing * 2;
@@ -155,5 +157,32 @@ export component ArtistDetails inherits ScrollView {
         }
     }
 
-    in property <ArtistDetailsAdapter> model;
+    property <LinkAdapter> link_ph: {
+        name: "A Reign of Fish",
+        url: "internal://release/1234"
+    };
+    
+    property <CardAdapter> card_ph: {
+        image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+        title: {name: "A Reign of Fish",url: "internal://release/1234"},
+        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+    };
+
+    property <ArtistDetailsAdapter> model_ph: {
+        card: card_ph,
+        summary: "Lorem ipsum lorem upsum ipsum ipsum lorem upsum ipsum ipsum lorem upsum ipsum.",
+        disambiguation: "The other one",
+        genres: 
+        [
+            {name: "metal",url: "internal://release/1234"},
+            {name: "heavy metal",url: "internal://release/1234"},
+            {name: "light metal",url: "internal://release/1234"},
+        ],
+        albums: [card_ph, card_ph, card_ph, card_ph, card_ph],
+        singles: [],
+        eps: [],
+        others: [],
+        links: [link_ph, link_ph],
+        dump: "aj asdkjha sdj haksjd jk ads",
+    };
 }
