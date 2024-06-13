@@ -51,10 +51,12 @@ pub fn artist_details(url: &str, app: &App) {
             // TODO I hate all this duplication, but each one needs to filter on
             // a different string, and then the closure needs to access a different
             // field. So, duplication.
+            // TODO the real answer is tags above the grid to let the user select
             // TODO need to switch primary type to an enum
-            let albums: Vec<CardAdapter> = releases.iter().cloned()
+            let albums: Vec<CardAdapter> = release_groups.iter().cloned()
                 // TODO add the to_lower to others for now, then replace with enum.
-                .filter(|release| release.primary_type.clone().map(|s| s.to_lowercase()) == Some("album".to_string()))
+                .filter(|release_group| release_group.secondary_types.is_empty())
+                .filter(|release_group| release_group.primary_type.clone().map(|s| s.to_lowercase()) == Some("album".to_string()))
                 .enumerate()
                 .map(|(index, release)| {
                     let mut card: CardAdapter = release.clone().into();
@@ -66,8 +68,8 @@ pub fn artist_details(url: &str, app: &App) {
                     card
                 })
                 .collect();
-            let eps: Vec<CardAdapter> = releases.iter().cloned()
-                .filter(|release| release.primary_type == Some("Ep".to_string()))
+            let eps: Vec<CardAdapter> = release_groups.iter().cloned()
+                .filter(|release| release.primary_type.clone().map(|s| s.to_lowercase()) == Some("ep".to_string()))
                 .enumerate()
                 .map(|(index, release)| {
                     let mut card: CardAdapter = release.clone().into();
@@ -79,8 +81,8 @@ pub fn artist_details(url: &str, app: &App) {
                     card
                 })
                 .collect();
-            let singles: Vec<CardAdapter> = releases.iter().cloned()
-                .filter(|release| release.primary_type == Some("Single".to_string()))
+            let singles: Vec<CardAdapter> = release_groups.iter().cloned()
+                .filter(|release| release.primary_type.clone().map(|s| s.to_lowercase()) == Some("single".to_string()))
                 .enumerate()
                 .map(|(index, release)| {
                     let mut card: CardAdapter = release.clone().into();
@@ -92,10 +94,10 @@ pub fn artist_details(url: &str, app: &App) {
                     card
                 })
                 .collect();
-            let others: Vec<CardAdapter> = releases.iter().cloned()
+            let others: Vec<CardAdapter> = release_groups.iter().cloned()
                 .filter(|release| {
-                    let pt = release.primary_type.clone();
-                    pt != Some("Album".to_string()) && pt != Some("Ep".to_string()) && pt != Some("Single".to_string())
+                    let pt = release.primary_type.clone().unwrap_or_default().to_lowercase();
+                    pt != "album" && pt != "ep" && pt != "single"
                 })
                 .enumerate()
                 .map(|(index, release)| {
