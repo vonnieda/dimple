@@ -1,6 +1,5 @@
 use std::thread;
 
-use dimple_core::db::Db;
 use dimple_core::model::Artist;
 use dimple_core::model::Entity;
 use dimple_core::model::Genre;
@@ -27,7 +26,8 @@ use slint::{ComponentHandle, Weak};
 pub fn settings(app: &App) {
     let app = app.clone();
     std::thread::spawn(move || {
-        let db: &dyn Db = &app.librarian as &dyn Db;
+        // let db: &dyn Db = &app.librarian as &dyn Db;
+        let db = app.librarian;
 
         let mut database_stats: Vec<String> = vec![];
         database_stats.push(format!("Artists: {}", 
@@ -69,15 +69,6 @@ pub fn settings(app: &App) {
             ui.set_settings(adapter);
             ui.set_page(Page::Settings);
         }).unwrap();
-    });
-}
-
-pub fn settings_generate_artists(app: &App) {
-    let app = app.clone();
-    thread::spawn(move || {
-        log::info!("Creating some random data.");
-        common::create_random_data(&app.librarian, 5);
-        log::info!("Done creating some random data.");
     });
 }
 

@@ -8,7 +8,7 @@ use anyhow::Result;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use image::DynamicImage;
 
-use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin}};
+use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin}, search};
 
 
 #[derive(Clone)]
@@ -56,81 +56,9 @@ impl Librarian {
             }
         }
 
-        self.local_library_search(query)
+        search::db_search(self.db.clone().as_ref().as_ref(), query)
     }
 
-    fn local_library_search(&self, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
-        const MAX_RESULTS_PER_TYPE: usize = 25;
-
-        // TODO sort and filter by score
-
-        let pattern = query.to_string();
-        let matcher = SkimMatcherV2::default();
-        let artists = self.db.list(&Artist::default().model(), &None)?
-            .filter(move |artist| {
-                let artist: Artist = artist.clone().into();
-                matcher.fuzzy_match(&artist.name.clone().unwrap_or_default(), &pattern).is_some()
-            })
-            .take(MAX_RESULTS_PER_TYPE);
-        let iter = artists;
-
-        let pattern = query.to_string();
-        let matcher = SkimMatcherV2::default();
-        let release_groups = self.db.list(&ReleaseGroup::default().model(), &None)?
-            .filter(move |rg| {
-                let rg: ReleaseGroup = rg.clone().into();
-                matcher.fuzzy_match(&rg.title.clone().unwrap_or_default(), &pattern).is_some()
-            })
-            .take(MAX_RESULTS_PER_TYPE);
-        let iter = iter.chain(release_groups);
-
-        let pattern = query.to_string();
-        let matcher = SkimMatcherV2::default();
-        let tracks = self.db.list(&Track::default().model(), &None)?
-            .filter(move |track| {
-                let track: Track = track.clone().into();
-                matcher.fuzzy_match(&track.title.clone().unwrap_or_default(), &pattern).is_some()
-            })
-            .take(MAX_RESULTS_PER_TYPE);
-        let iter = iter.chain(tracks);
-
-        let pattern = query.to_string();
-        let matcher = SkimMatcherV2::default();
-        let release_groups = self.db.list(&Genre::default().model(), &None)?
-            .filter(move |genre| {
-                let genre: Genre = genre.clone().into();
-                matcher.fuzzy_match(&genre.name.clone().unwrap_or_default(), &pattern).is_some()
-            })
-            .take(MAX_RESULTS_PER_TYPE);
-        let iter = iter.chain(release_groups);
-
-        Ok(Box::new(iter))
-    }
-
-    // TODO don't use list, go directly to plugins for the second phase
-    // and abort when we get one.
-    pub fn image(&self, model: &Model) -> Option<DynamicImage> {
-        let picture = self.db.list(&Picture::default().into(), &Some(model.clone()))
-            .unwrap()
-            .map(Into::<Picture>::into)
-            .next();
-        if let Some(picture) = picture {
-            return Some(picture.get_image())
-        }
-
-        let picture = self.list(&Picture::default().into(), &Some(model.clone()))
-            .unwrap()
-            .map(Into::<Picture>::into)
-            .next();
-        if let Some(picture) = picture {
-            return Some(picture.get_image())
-        }
-
-        None
-    }
-}
-
-impl Db for Librarian {
     /// Get a specific model using information (such as a key) in the
     /// specified model. The function first loads the model, if any,
     /// from the database and merges the input model. This model is
@@ -139,7 +67,7 @@ impl Db for Librarian {
     /// data that higher level plugins can use.
     /// 
     /// If there are no results from storage or any plugin, returns Ok(None)
-    fn get(&self, model: &Model) -> Result<Option<Model>> {
+    pub fn get(&self, model: &Model) -> Result<Option<Model>> {
         let mut model = model.clone();
 
         if let Ok(Some(db_model)) = self.db.get(&model) {
@@ -168,7 +96,7 @@ impl Db for Librarian {
         Ok(result)
     }
 
-    fn list(
+    pub fn list(
         &self,
         list_of: &Model,
         related_to: &Option<Model>,
@@ -189,15 +117,30 @@ impl Db for Librarian {
         results
     }
 
-    fn insert(&self, model: &dimple_core::model::Model) -> Result<dimple_core::model::Model> {
-        self.db.insert(model)
+    // TODO don't use list, go directly to plugins for the second phase
+    // and abort when we get one.
+    pub fn image(&self, model: &Model) -> Option<DynamicImage> {
+        let picture = self.db.list(&Picture::default().into(), &Some(model.clone()))
+            .unwrap()
+            .map(Into::<Picture>::into)
+            .next();
+        if let Some(picture) = picture {
+            return Some(picture.get_image())
+        }
+
+        let picture = self.list(&Picture::default().into(), &Some(model.clone()))
+            .unwrap()
+            .map(Into::<Picture>::into)
+            .next();
+        if let Some(picture) = picture {
+            return Some(picture.get_image())
+        }
+
+        None
     }
 
-    fn link(&self, model: &dimple_core::model::Model, related_to: &dimple_core::model::Model) -> Result<()> {
-        self.db.link(model, related_to)
-    }
-    
-    fn reset(&self) -> Result<()> {
+    pub fn reset(&self) -> Result<()> {
         self.db.reset()
-    }
+    } 
 }
+

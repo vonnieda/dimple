@@ -54,21 +54,6 @@ impl AppWindowController {
         librarian.add_plugin(Box::new(TheAudioDbPlugin::default()));
         librarian.add_plugin(Box::new(CoverArtArchivePlugin::default()));
 
-        // librarian.get(&Artist {
-        //     known_ids: KnownIds {
-        //         musicbrainz_id: Some("65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab".to_string()),
-        //         ..Default::default()
-        //     },
-        //     ..Default::default()
-        // }.model()).unwrap();
-        // librarian.get(&Artist {
-        //     known_ids: KnownIds {
-        //         musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
-        //         ..Default::default()
-        //     },
-        //     ..Default::default()
-        // }.model()).unwrap();
-
         let player = Player::new(Arc::new(librarian.clone()));
         let ui_weak = ui.as_weak();
         Self {
@@ -89,10 +74,6 @@ impl AppWindowController {
 
         // TODO I think this stuff moves into init on settings or something,
         // and we use that pattern for each page?
-        let app = self.app.clone();
-        self.ui.global::<AppState>().on_settings_generate_artists(
-            move || settings::settings_generate_artists(&app));
-
         let app = self.app.clone();
         self.ui.global::<AppState>().on_settings_reset_database(
             move || settings::settings_reset_database(&app));

@@ -69,7 +69,7 @@ impl MediaFilesPlugin {
                 let path = dir_entry.unwrap().into_path();
                 if !path.is_file() { return }
 
-                Self::scan_path(&db, &path);
+                // Self::scan_path(&db, &path);
             });
         }
         // log::info!("Scanned {}, skipped {} in {}ms", 

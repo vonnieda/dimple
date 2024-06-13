@@ -45,8 +45,6 @@ pub fn artist_details(url: &str, app: &App) {
         release_groups.sort_by_key(|r| r.first_release_date.to_owned());
         release_groups.reverse();
 
-        let releases = release_groups;
-
         ui.upgrade_in_event_loop(move |ui| {
             // TODO I hate all this duplication, but each one needs to filter on
             // a different string, and then the closure needs to access a different
