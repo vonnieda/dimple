@@ -1,7 +1,7 @@
 use std::{env};
 
 use anyhow::{Error, Result};
-use dimple_core::model::{Entity, Model, Picture};
+use dimple_core::model::{Entity, Model, Dimage};
 use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
 use serde::Deserialize;
 // TODO consider using https://crates.io/crates/fuzzy-matcher to try to find
@@ -72,7 +72,7 @@ impl Plugin for FanartTvPlugin {
         }
 
         match (list_of, related_to) {
-            (Model::Picture(_), Some(Model::Artist(artist))) => {
+            (Model::Dimage(_), Some(Model::Artist(artist))) => {
                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
 
                 let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", 
@@ -85,10 +85,10 @@ impl Plugin for FanartTvPlugin {
                 let bytes = thumb_resp.bytes()?;
                 let image = image::load_from_memory(&bytes)?;
 
-                let mut picture = Picture::default();
-                picture.set_image(&image);
+                let mut dimage = Dimage::default();
+                dimage.set_image(&image);
                 
-                Ok(Box::new(std::iter::once(picture.model())))
+                Ok(Box::new(std::iter::once(dimage.model())))
             },
             _ => Ok(Box::new(std::iter::empty())),
         }

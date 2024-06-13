@@ -20,6 +20,16 @@ pub fn artist_details(url: &str, app: &App) {
     let librarian = app.librarian.clone();
     let ui = app.ui.clone();
     let images = app.images.clone();
+
+    ui.upgrade_in_event_loop(|ui| {
+        let adapter = ArtistDetailsAdapter {
+            ..Default::default()
+        };
+
+        ui.set_artist_details(adapter);
+        ui.set_page(Page::ArtistDetails);
+    }).unwrap();
+
     std::thread::spawn(move || {        
         let url = Url::parse(&url).unwrap();
         let key = url.path_segments().unwrap().nth(0).unwrap();
@@ -40,7 +50,7 @@ pub fn artist_details(url: &str, app: &App) {
             .list(&ReleaseGroup::default().into(), &Some(artist.model()))
             .unwrap()
             .map(ReleaseGroup::from)
-            // .filter(|r| r.secondary_types.is_empty())
+            .filter(|r| r.secondary_types.is_empty())
             .collect();
         release_groups.sort_by_key(|r| r.first_release_date.to_owned());
         release_groups.reverse();
@@ -52,8 +62,6 @@ pub fn artist_details(url: &str, app: &App) {
             // TODO the real answer is tags above the grid to let the user select
             // TODO need to switch primary type to an enum
             let albums: Vec<CardAdapter> = release_groups.iter().cloned()
-                // TODO add the to_lower to others for now, then replace with enum.
-                .filter(|release_group| release_group.secondary_types.is_empty())
                 .filter(|release_group| release_group.primary_type.clone().map(|s| s.to_lowercase()) == Some("album".to_string()))
                 .enumerate()
                 .map(|(index, release)| {

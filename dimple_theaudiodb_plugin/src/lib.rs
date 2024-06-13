@@ -1,7 +1,7 @@
 use std::env;
 
 use anyhow::{Error, Result};
-use dimple_core::model::{Entity, Model, Picture};
+use dimple_core::model::{Entity, Model, Dimage};
 use dimple_librarian::plugin::{NetworkMode, Plugin, PluginSupport};
 use serde::Deserialize;
 
@@ -68,7 +68,7 @@ impl Plugin for TheAudioDbPlugin {
         }
 
         match (list_of, related_to) {
-            (Model::Picture(_), Some(Model::Artist(artist))) => {
+            (Model::Dimage(_), Some(Model::Artist(artist))) => {
                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
 
                 let url = format!("https://www.theaudiodb.com/api/v1/json/{}/artist-mb.php?i={}", 
@@ -86,9 +86,9 @@ impl Plugin for TheAudioDbPlugin {
                 let bytes = thumb_resp.bytes()?;
                 let image = image::load_from_memory(&bytes)?;
 
-                let mut picture = Picture::default();
-                picture.set_image(&image);
-                Ok(Box::new(std::iter::once(picture.model())))
+                let mut dimage = Dimage::default();
+                dimage.set_image(&image);
+                Ok(Box::new(std::iter::once(dimage.model())))
             },
             _ => Ok(Box::new(std::iter::empty())),
         }

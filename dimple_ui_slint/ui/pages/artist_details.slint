@@ -1,9 +1,11 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { CardAdapter } from "../components/card.slint";
-import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, Button} from "std-widgets.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { Palette, Navigator, AppState } from "../common.slint";
+import { Tag } from "../components/tag.slint";
+import {TagModel} from "../components/tag_card_grid.slint";
 
 export struct ArtistDetailsAdapter {
     card: CardAdapter,
@@ -20,6 +22,7 @@ export struct ArtistDetailsAdapter {
 
 export component ArtistDetails inherits ScrollView {
     in property <ArtistDetailsAdapter> model: model_ph;
+    in-out property <[TagModel]> tags: tags_ph;
 
     VerticalBox {
         alignment: start;
@@ -115,7 +118,7 @@ export component ArtistDetails inherits ScrollView {
                 cards: model.eps;
                 parent-width: root.width;
             }
-        }
+                }
 
         // Other Releases
         if model.others.length > 0: VerticalLayout {
@@ -185,4 +188,24 @@ export component ArtistDetails inherits ScrollView {
         links: [link_ph, link_ph],
         dump: "aj asdkjha sdj haksjd jk ads",
     };
+
+    in-out property <[TagModel]> tags_ph: [
+        { 
+            color: #75a222,
+            name: "Album",
+            selected: true,
+        },
+        { 
+            color: #5962e3,
+            name: "EP",
+        },
+        { 
+            color: #da8d29,
+            name: "Single",
+        },
+        { 
+            color: #d9455d,
+            name: "Other",
+        },
+    ];    
 }

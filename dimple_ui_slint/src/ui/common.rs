@@ -6,7 +6,7 @@ use dimple_core::model::Entity;
 use dimple_core::model::Genre;
 use dimple_core::model::KnownIds;
 use dimple_core::model::Medium;
-use dimple_core::model::Picture;
+use dimple_core::model::Dimage;
 use dimple_core::model::Playlist;
 use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
@@ -347,7 +347,7 @@ pub fn create_artist(db: &dyn Db) -> Artist {
         ..Default::default()
     }.model()).unwrap();
     
-    let artist_pic = db.insert(&Picture::new(&gen_fuzzy_circles(1000, 1000)).model()).unwrap();
+    let artist_pic = db.insert(&Dimage::new(&gen_fuzzy_circles(1000, 1000)).model()).unwrap();
     db.link(&artist_pic, &artist).unwrap();
 
     // for _ in 0..3 {
@@ -377,7 +377,7 @@ pub fn create_release_group(db: &dyn Db) -> ReleaseGroup {
         ..Default::default()
     }.model()).unwrap();
     
-    let release_group_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
+    let release_group_pic = db.insert(&Dimage::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
     db.link(&release_group_pic, &release_group).unwrap();
 
     for _ in 0..3 {
@@ -386,7 +386,7 @@ pub fn create_release_group(db: &dyn Db) -> ReleaseGroup {
                 fakeit::words::word())),
             ..Default::default()
         }.model()).unwrap();
-        let genre_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
+        let genre_pic = db.insert(&Dimage::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
         db.link(&genre_pic, &genre).unwrap();
         db.link(&genre, &release_group).unwrap();
     }
@@ -411,7 +411,7 @@ pub fn create_release(db: &dyn Db) -> Release {
         ..Default::default()
     }.model()).unwrap();
     
-    let release_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
+    let release_pic = db.insert(&Dimage::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
     db.link(&release_pic, &release).unwrap();
 
     for _ in 0..3 {
@@ -421,7 +421,7 @@ pub fn create_release(db: &dyn Db) -> Release {
             ..Default::default()
         }.model()).unwrap();
         db.link(&genre, &release).unwrap();
-        let genre_pic = db.insert(&Picture::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
+        let genre_pic = db.insert(&Dimage::new(&gen_fuzzy_rects(1000, 1000)).model()).unwrap();
         db.link(&genre_pic, &genre).unwrap();
     }
 

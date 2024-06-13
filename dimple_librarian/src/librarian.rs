@@ -1,11 +1,10 @@
-use std::{collections::{HashMap, HashSet}, fs, path::Path, sync::{Arc, Mutex, RwLock}};
+use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Artist, Entity, Genre, Model, Picture, ReleaseGroup, Track}
+    db::{Db, SqliteDb}, model::{Model, Dimage}
 };
 
 use anyhow::Result;
-use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use image::DynamicImage;
 
 use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin}, search};
@@ -120,20 +119,20 @@ impl Librarian {
     // TODO don't use list, go directly to plugins for the second phase
     // and abort when we get one.
     pub fn image(&self, model: &Model) -> Option<DynamicImage> {
-        let picture = self.db.list(&Picture::default().into(), &Some(model.clone()))
+        let dimage = self.db.list(&Dimage::default().into(), &Some(model.clone()))
             .unwrap()
-            .map(Into::<Picture>::into)
+            .map(Into::<Dimage>::into)
             .next();
-        if let Some(picture) = picture {
-            return Some(picture.get_image())
+        if let Some(dimage) = dimage {
+            return Some(dimage.get_image())
         }
 
-        let picture = self.list(&Picture::default().into(), &Some(model.clone()))
+        let dimage = self.list(&Dimage::default().into(), &Some(model.clone()))
             .unwrap()
-            .map(Into::<Picture>::into)
+            .map(Into::<Dimage>::into)
             .next();
-        if let Some(picture) = picture {
-            return Some(picture.get_image())
+        if let Some(dimage) = dimage {
+            return Some(dimage.get_image())
         }
 
         None

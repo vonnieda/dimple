@@ -1,7 +1,7 @@
 use std::{collections::{HashMap, HashSet}, fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Artist, Entity, Genre, Model, Picture, ReleaseGroup, Track}
+    db::{Db, SqliteDb}, model::{Artist, Entity, Genre, Model, Dimage, ReleaseGroup, Track}
 };
 
 use anyhow::Result;

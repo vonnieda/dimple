@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use dimple_core::{db::Db, model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Picture, Recording, RecordingSource, Release, ReleaseGroup, Track}};
+use dimple_core::{db::Db, model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Dimage, Recording, RecordingSource, Release, ReleaseGroup, Track}};
 
 use crate::matching;
 
@@ -26,7 +26,6 @@ impl Merge for Artist {
     }
 }
 
-// TODO most are unfinished - still experimenting
 impl Merge for ReleaseGroup {
     fn merge(l: Self, r: Self) -> Self {
         Self {
@@ -131,7 +130,7 @@ impl Merge for Recording {
     }
 }
 
-impl Merge for Picture {
+impl Merge for Dimage {
     fn merge(l: Self, r: Self) -> Self {
         Self {
             key: Option::merge(l.key, r.key),
@@ -149,7 +148,7 @@ impl Merge for Model {
             (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
             (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
             (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
-            (Model::Picture(l), Model::Picture(r)) => Picture::merge(l.clone(), r.clone()).model(),
+            (Model::Dimage(l), Model::Dimage(r)) => Dimage::merge(l.clone(), r.clone()).model(),
             _ => todo!()
         }
     }
@@ -247,8 +246,8 @@ fn db_merge_genre(db: &dyn Db, genre: &Genre) -> Option<Model> {
 pub fn db_merge_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
     // TODO does this need to be merging parent as well?
 
-    if let (Model::Picture(_), None) = (model, parent) {
-        panic!("Can't merge Picture with no relation.");
+    if let (Model::Dimage(_), None) = (model, parent) {
+        panic!("Can't merge Dimage with no relation.");
     }
 
     // find a matching model to the specified, merge, save
@@ -283,7 +282,7 @@ fn model_valid(model: &Model) -> bool {
         Model::Release(r) => r.title.is_some(),
         Model::ReleaseGroup(rg) => rg.title.is_some(),
         Model::Track(t) => t.title.is_some(),
-        Model::Picture(p) => true,
+        Model::Dimage(p) => true,
         _ => todo!()
     }
 }
@@ -297,6 +296,7 @@ pub fn merge(db: &dyn Db, model: &Model) -> Option<Model> {
         Model::Release(release) => db_merge_release(db, release),
         Model::ReleaseGroup(release_group) => db_merge_release_group(db, release_group),
         Model::Genre(genre) => db_merge_genre(db, genre),
+        // TODO Track, but no. Right? I need this for track get in track details.
         _ => todo!(),
     }
 }

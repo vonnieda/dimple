@@ -4,7 +4,7 @@ use dimple_core::model::Artist;
 use dimple_core::model::Entity;
 use dimple_core::model::Genre;
 use dimple_core::model::Medium;
-use dimple_core::model::Picture;
+use dimple_core::model::Dimage;
 use dimple_core::model::Playlist;
 use dimple_core::model::Recording;
 use dimple_core::model::RecordingSource;

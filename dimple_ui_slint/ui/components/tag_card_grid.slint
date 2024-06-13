@@ -1,0 +1,60 @@
+import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
+import { Card, CardAdapter } from "card.slint";
+import { Palette, Navigator } from "../common.slint";
+import { StyleMetrics } from "std-widgets.slint";
+import { CardGrid } from "card_grid.slint";
+import { Tag } from "tag.slint";
+
+export struct TagModel {
+    name: string,
+    color: color,
+    selected: bool,
+}
+
+export component TagCardGrid inherits VerticalLayout {
+    in-out property <[CardAdapter]> cards: cards_ph;
+    in-out property <[TagModel]> tags: tags_ph;
+
+    HorizontalLayout {
+        spacing: 20px;
+        padding: 16px;
+        padding-left: 8px;
+        alignment: start;
+        for tag in root.tags: Tag {
+            color: tag.color;
+            name: tag.name;   
+        }
+    }
+
+    CardGrid {
+        cards: root.cards;
+    }
+
+    property <CardAdapter> card_ph: {
+        image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+        title: {name: "A Reign of Fish",url: "internal://release/1234"},
+        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+    };
+
+    property <[CardAdapter]> cards_ph: [card_ph, card_ph, card_ph, card_ph];
+
+    in-out property <[TagModel]> tags_ph: [
+        { 
+            color: #75a222,
+            name: "heavy metal",
+        },
+        { 
+            color: #5962e3,
+            name: "pop rock",
+        },
+        { 
+            color: #da8d29,
+            name: "hair guitar",
+        },
+        { 
+            color: #d9455d,
+            name: "ballads",
+        },
+    ];    
+}
+

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use dimple_core::model::{Model, Picture};
+use dimple_core::model::{Model, Dimage};
 use dimple_librarian::librarian::Librarian;
 use dimple_core::db::Db;
 use fast_image_resize::ImageView;

@@ -1,5 +1,5 @@
 use anyhow::{Error, Result};
-use dimple_core::model::{Entity, Model, Picture};
+use dimple_core::model::{Entity, Model, Dimage};
 use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
 use image::DynamicImage;
 use serde::{Deserialize, Serialize};
@@ -39,21 +39,21 @@ impl Plugin for CoverArtArchivePlugin {
         }
 
         match (list_of, related_to) {
-            (Model::Picture(_), Some(Model::ReleaseGroup(rg))) => {
+            (Model::Dimage(_), Some(Model::ReleaseGroup(rg))) => {
                 let mbid = rg.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
                 let url = format!("http://coverartarchive.org/release-group/{}", mbid);
                 let image = self.get_coverart(&url)?;
-                let mut picture = Picture::default();
-                picture.set_image(&image);
-                Ok(Box::new(std::iter::once(picture.model())))
+                let mut dimage = Dimage::default();
+                dimage.set_image(&image);
+                Ok(Box::new(std::iter::once(dimage.model())))
             },
-            (Model::Picture(_), Some(Model::Release(rg))) => {
+            (Model::Dimage(_), Some(Model::Release(rg))) => {
                 let mbid = rg.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
                 let url = format!("http://coverartarchive.org/release/{}", mbid);
                 let image = self.get_coverart(&url)?;
-                let mut picture = Picture::default();
-                picture.set_image(&image);
-                Ok(Box::new(std::iter::once(picture.model())))
+                let mut dimage = Dimage::default();
+                dimage.set_image(&image);
+                Ok(Box::new(std::iter::once(dimage.model())))
             },
             _ => Ok(Box::new(std::iter::empty())),
         }
@@ -75,7 +75,7 @@ struct CoverArtImage {
 
 #[cfg(test)]
 mod tests {
-    use dimple_core::model::{Entity, KnownIds, Picture, Release};
+    use dimple_core::model::{Entity, KnownIds, Dimage, Release};
     use dimple_librarian::plugin::Plugin;
 
     use crate::CoverArtArchivePlugin;
@@ -90,11 +90,11 @@ mod tests {
             },
             ..Default::default()
         };
-        let results = plugin.list(&Picture::default().model(), &Some(release.model()), 
+        let results = plugin.list(&Dimage::default().model(), &Some(release.model()), 
             dimple_librarian::plugin::NetworkMode::Online).unwrap();
         for result in results {
-            let picture: Picture = result.into();
-            let image = picture.get_image();
+            let dimage: Dimage = result.into();
+            let image = dimage.get_image();
             println!("{}x{}", image.width(), image.height());
         }
     }

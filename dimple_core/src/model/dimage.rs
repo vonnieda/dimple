@@ -8,13 +8,13 @@ use image::ImageFormat;
 
 /// A model for storing an image in Dimple. Not Image because too overloaded.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
-pub struct Picture {
+pub struct Dimage {
     pub key: Option<String>,
 
     // TODO replace with blob, unserialized.
     pub data: Vec<u8>,
 }
-impl Picture {
+impl Dimage {
     pub fn new(image: &DynamicImage) -> Self {
         let mut pic = Self::default();
         pic.set_image(image);

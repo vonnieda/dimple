@@ -1,4 +1,4 @@
-use dimple_core::model::{Artist, Entity, Genre, Medium, Model, Picture, RecordingSource, Release, ReleaseGroup, Track};
+use dimple_core::model::{Artist, Entity, Genre, Medium, Model, Dimage, RecordingSource, Release, ReleaseGroup, Track};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use walkdir::WalkDir;
 
@@ -161,14 +161,14 @@ impl MediaFilesPlugin {
             // TODO this is temporary, just checking if no image has been
             // set on the release at all, and if so, linking it up to everything
             // we've created.
-            if release.is_some() && db.list(&Picture::default().model(), &release).unwrap().count() == 0 {
-                let mut picture = Picture::default();
-                picture.set_image(&image);
-                let picture = db.insert(&picture.model()).unwrap();
-                Self::lazy_link(db, &Some(picture.clone()), &artist);
-                Self::lazy_link(db, &Some(picture.clone()), &release_group);
-                Self::lazy_link(db, &Some(picture.clone()), &release);
-                Self::lazy_link(db, &Some(picture.clone()), &track);
+            if release.is_some() && db.list(&Dimage::default().model(), &release).unwrap().count() == 0 {
+                let mut dimage = Dimage::default();
+                dimage.set_image(&image);
+                let dimage = db.insert(&dimage.model()).unwrap();
+                Self::lazy_link(db, &Some(dimage.clone()), &artist);
+                Self::lazy_link(db, &Some(dimage.clone()), &release_group);
+                Self::lazy_link(db, &Some(dimage.clone()), &release);
+                Self::lazy_link(db, &Some(dimage.clone()), &track);
             }
         }
     }

@@ -17,7 +17,7 @@ mod track;
 mod tag;
 mod known_id;
 mod lyrics;
-mod picture;
+mod dimage;
 mod playlist_item;
 
 pub use artist::Artist;
@@ -33,7 +33,7 @@ pub use recording_source::RecordingSource;
 pub use genre::Genre;
 pub use known_id::KnownIds;
 pub use lyrics::Lyrics;
-pub use picture::Picture;
+pub use dimage::Dimage;
 pub use playlist::Playlist;
 pub use playlist_item::PlaylistItem;
 
@@ -49,7 +49,7 @@ pub enum Model {
     ReleaseGroup(ReleaseGroup),
     Release(Release),
     Track(Track),
-    Picture(Picture),
+    Dimage(Dimage),
     Playlist(Playlist),
     PlaylistItem(PlaylistItem),
     Lyrics(Lyrics),
@@ -70,7 +70,7 @@ impl Model {
             Model::ReleaseGroup(v) => v,
             Model::Release(v) => v,
             Model::Track(v) => v,
-            Model::Picture(v) => v,
+            Model::Dimage(v) => v,
             Model::PlaylistItem(v) => v,
             Model::Lyrics(v) => v,
             Model::Tag(v) => v,
@@ -90,7 +90,7 @@ impl Model {
             Model::ReleaseGroup(v) => v.key = key,
             Model::Release(v) => v.key = key,
             Model::Track(v) => v.key = key,
-            Model::Picture(v) => v.key = key,
+            Model::Dimage(v) => v.key = key,
             Model::PlaylistItem(v) => v.key = key,
             Model::Lyrics(v) => v.key = key,
             Model::Tag(v) => v.key = key,
