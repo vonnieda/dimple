@@ -37,7 +37,7 @@ pub use dimage::Dimage;
 pub use playlist::Playlist;
 pub use playlist_item::PlaylistItem;
 
-#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Model {
     Artist(Artist),
     ArtistCredit(ArtistCredit),

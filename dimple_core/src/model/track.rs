@@ -13,7 +13,7 @@ use super::Recording;
 // release. It has an MBID, and contains a link to a recording, a title, 
 // artist credit and position on its associated medium. 
 // In the schema image it also has a medium (ref)
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default, ModelSupport)]
 pub struct Track {
     pub key: Option<String>,
     pub title: Option<String>,

@@ -9,7 +9,7 @@ use super::Genre;
 use super::KnownIds;
 
 // https://musicbrainz.org/doc/Recording
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default, ModelSupport)]
 pub struct Recording {
     pub key: Option<String>,
     pub title: Option<String>,

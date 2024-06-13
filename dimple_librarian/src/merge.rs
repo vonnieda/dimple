@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use dimple_core::{db::Db, model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Dimage, Recording, RecordingSource, Release, ReleaseGroup, Track}};
 
 use crate::matching;
@@ -21,7 +19,7 @@ impl Merge for Artist {
             links: l.links.union(&r.links).cloned().collect(),
             name: Option::merge(l.name, r.name),
             summary: Option::merge(l.summary, r.summary),
-            genres: l.genres.iter().chain(r.genres.iter()).cloned().collect::<HashSet<Genre>>().into_iter().collect(),
+            genres: l.genres.into_iter().chain(r.genres.into_iter()).collect(),
         }
     }
 }
@@ -38,8 +36,8 @@ impl Merge for ReleaseGroup {
             first_release_date: Option::merge(l.first_release_date, r.first_release_date),
             primary_type: Option::merge(l.primary_type, r.primary_type),
             annotation: Option::merge(l.annotation, r.annotation),
-            genres: l.genres.iter().chain(r.genres.iter()).cloned().collect::<HashSet<Genre>>().into_iter().collect(),
-            artist_credits: l.artist_credits.iter().chain(r.artist_credits.iter()).cloned().collect::<HashSet<ArtistCredit>>().into_iter().collect(),
+            artist_credits: l.artist_credits.into_iter().chain(r.artist_credits.into_iter()).collect(),
+            genres: l.genres.into_iter().chain(r.genres.into_iter()).collect(),
             secondary_types: l.secondary_types.union(&r.secondary_types).cloned().collect(),
         }
     }
@@ -55,8 +53,8 @@ impl Merge for Release {
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
             primary_type: Option::merge(l.primary_type, r.primary_type),
-            genres: l.genres.iter().chain(r.genres.iter()).cloned().collect::<HashSet<Genre>>().into_iter().collect(),
-            artist_credits: l.artist_credits.iter().chain(r.artist_credits.iter()).cloned().collect::<HashSet<ArtistCredit>>().into_iter().collect(),
+            artist_credits: l.artist_credits.into_iter().chain(r.artist_credits.into_iter()).collect(),
+            genres: l.genres.into_iter().chain(r.genres.into_iter()).collect(),
             barcode: Option::merge(l.barcode, r.barcode),
             country: Option::merge(l.country, r.country),
             date: Option::merge(l.date, r.date),
@@ -92,8 +90,8 @@ impl Merge for Track {
             length: Option::merge(l.length, r.length),
             number: Option::merge(l.number, r.number),
             position: Option::merge(l.position, r.position),
-            artist_credits: l.artist_credits.iter().chain(r.artist_credits.iter()).cloned().collect::<HashSet<ArtistCredit>>().into_iter().collect(),
-            genres: l.genres.iter().chain(r.genres.iter()).cloned().collect::<HashSet<Genre>>().into_iter().collect(),
+            artist_credits: l.artist_credits.into_iter().chain(r.artist_credits.into_iter()).collect(),
+            genres: l.genres.into_iter().chain(r.genres.into_iter()).collect(),
             recording: Recording::merge(l.recording, r.recording),
         }
     }
@@ -122,8 +120,8 @@ impl Merge for Recording {
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
             annotation: Option::merge(l.annotation, r.annotation),
-            artist_credits: l.artist_credits.iter().chain(r.artist_credits.iter()).cloned().collect::<HashSet<ArtistCredit>>().into_iter().collect(),
-            genres: l.genres.iter().chain(r.genres.iter()).cloned().collect::<HashSet<Genre>>().into_iter().collect(),
+            artist_credits: l.artist_credits.into_iter().chain(r.artist_credits.into_iter()).collect(),
+            genres: l.genres.into_iter().chain(r.genres.into_iter()).collect(),
             isrc: Option::merge(l.isrc, r.isrc),
             length: Option::merge(l.length, r.length),
         }
@@ -135,6 +133,8 @@ impl Merge for Dimage {
         Self {
             key: Option::merge(l.key, r.key),
             data: if l.data.len() >= r.data.len() { l.data } else { r.data },
+            // TODO this entire merge concept is weird here. Figure it out.
+            ..Default::default()
         }
     }
 }

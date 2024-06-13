@@ -13,7 +13,7 @@ use super::ReleaseGroup;
 // https://musicbrainz.org/doc/Release
 // https://musicbrainz.org/release/a4864e94-6d75-4ade-bc93-0dabf3521453
 // https://musicbrainz.org/ws/2/release/a4864e94-6d75-4ade-bc93-0dabf3521453?fmt=json
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default, ModelSupport)]
 #[serde(default)]
 pub struct Release {
     pub key: Option<String>,

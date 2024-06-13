@@ -17,16 +17,3 @@ pub struct Genre {
     pub summary: Option<String>,
     pub links: HashSet<String>,
 }
-
-impl Hash for Genre {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.key.hash(state);
-        self.name.hash(state);
-        // TODO hmmm... I'm mostly using tis for de-dupe, so it may make sense
-        // to just use name and key.
-        // self.known_ids.hash(state);
-        self.disambiguation.hash(state);
-        self.summary.hash(state);
-        // self.links.hash(state);
-    }    
-}
