@@ -252,7 +252,7 @@ impl From<RecordingConverter> for dimple_core::model::Recording {
             isrc: value.0.isrcs.into_iter().flatten().next(),
             key: None,
             known_ids: KnownIds {
-                musicbrainz_id: Some(value.0.id),
+                musicbrainz_id: Some(value.0.id.clone()),
                 ..Default::default()
             },
             length: value.0.length,
@@ -261,6 +261,8 @@ impl From<RecordingConverter> for dimple_core::model::Recording {
                     RelationContent::Url(u) => Some(u.resource.to_string()),
                     _ => None,
                 })
+                .chain(std::iter::once(value.0.id.clone())
+                    .map(|mbid| format!("https://musicbrainz.org/recording/{}", mbid)))
                 .collect(),
             summary: None,
             title: none_if_empty(value.0.title),

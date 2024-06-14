@@ -198,8 +198,9 @@ impl Plugin for MusicBrainzPlugin {
 
 #[cfg(test)]
 mod tests {
-    use dimple_core::model::{Artist, Entity, KnownIds, Model, Recording, Release, ReleaseGroup};
+    use dimple_core::model::{Artist, Entity, KnownIds, Medium, Model, Recording, Release, ReleaseGroup, Track};
     use dimple_librarian::plugin::{NetworkMode, Plugin};
+    use musicbrainz_rs::entity::release_group;
 
     use crate::MusicBrainzPlugin;
 
@@ -303,6 +304,65 @@ mod tests {
         let results: Vec<Model> = plugin.search("Nirvana", NetworkMode::Online).unwrap().collect();
         println!("{:#?}", results);
     }
+
+    #[test]
+    fn tree() {
+        let plugin = MusicBrainzPlugin::default();
+        let artist = Artist {
+            known_ids: KnownIds {
+                musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let artist: Artist = plugin.get(&artist.model(), NetworkMode::Online).unwrap().unwrap().into();
+        println!("{} {:?}", 
+            artist.name.clone().unwrap_or_default(),
+            artist.links,
+        );
+        let release_groups = plugin.list(&ReleaseGroup::default().model(), &Some(artist.model()), NetworkMode::Online).unwrap();
+        for release_group in release_groups {
+            let release_group: ReleaseGroup = release_group.into();
+            println!("  {} {:?}", 
+                release_group.title.clone().unwrap_or_default(),
+                release_group.links,
+            );
+            let releases = plugin.list(&Release::default().model(), &Some(release_group.model()), NetworkMode::Online).unwrap();
+            for release in releases {
+                let release: Release = release.into();
+                println!("    {} [{}] {} {:?}", 
+                    release.title.clone().unwrap_or_default(),
+                    release.country.clone().unwrap_or_default(),
+                    release.date.clone().unwrap_or_default(),
+                    release.links,
+                );
+                // let media = plugin.list(&Medium::default().model(), &Some(release.model()), NetworkMode::Online).unwrap();
+                for medium in release.media {
+                    let medium: Medium = medium.into();
+                    println!("      {} / {} {}", 
+                        medium.position.unwrap_or_default(),
+                        medium.disc_count.unwrap_or_default(),
+                        medium.format.clone().unwrap_or_default(),
+                    );
+                    // let tracks = plugin.list(&Track::default().model(), &Some(medium.model()), NetworkMode::Online).unwrap();
+                    for track in medium.tracks {
+                        let track: Track = track.into();
+                        println!("        {} {}", 
+                            track.position.unwrap_or_default(),
+                            track.title.unwrap_or_default(),
+                        );
+
+                        let recording = track.recording;
+                        println!("            {} {} {:?}", 
+                            recording.title.unwrap_or_default(),
+                            recording.length.unwrap_or_default() / 1000,
+                            recording.links
+                        );
+                    }
+                }
+            }
+        }
+    }    
 }
 
 

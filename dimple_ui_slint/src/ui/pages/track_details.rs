@@ -1,5 +1,6 @@
 use dimple_core::model::Entity;
 use dimple_core::model::Genre;
+use dimple_core::model::Recording;
 use dimple_core::model::Track;
 use slint::ComponentHandle;
 use slint::ModelRc;
@@ -31,6 +32,12 @@ pub fn track_details(url: &str, app: &App) {
             .collect();
         genres.sort_by_key(|genre| genre.name.clone().unwrap_or_default().to_lowercase());
 
+        let recording: Recording = librarian.list(&Recording::default().model(), &Some(track.model()))
+            .unwrap()
+            .map(Into::<Recording>::into)
+            .next()
+            .unwrap();
+
         ui.upgrade_in_event_loop(move |ui| {
             let genres: Vec<LinkAdapter> = genres.iter().cloned().map(|genre| {
                 LinkAdapter {
@@ -51,7 +58,9 @@ pub fn track_details(url: &str, app: &App) {
                 summary: track.recording.summary.clone().unwrap_or_default().into(),
                 genres: ModelRc::from(genres.as_slice()),
                 links: ModelRc::from(links.as_slice()),
-                dump: serde_json::to_string_pretty(&track).unwrap().into(),
+                dump: format!("{}\n{}", 
+                    serde_json::to_string_pretty(&track).unwrap(),
+                    serde_json::to_string_pretty(&recording).unwrap()).into(),
                 ..Default::default()
             };
 
