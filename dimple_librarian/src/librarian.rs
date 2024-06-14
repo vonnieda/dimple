@@ -41,10 +41,6 @@ impl Librarian {
         *self.network_mode.lock().unwrap() = network_mode.clone();
     }
 
-    fn merge(&self, model: &Model) -> Option<Model> {
-        merge::merge(self.db.clone().as_ref().as_ref(), model)
-    }
-
     pub fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         for plugin in self.plugins.read().unwrap().iter() {
             let results = plugin.search(query, self.network_mode());
@@ -136,6 +132,10 @@ impl Librarian {
         }
 
         None
+    }
+
+    fn merge(&self, model: &Model) -> Option<Model> {
+        merge::merge(self.db.clone().as_ref().as_ref(), model)
     }
 
     pub fn reset(&self) -> Result<()> {

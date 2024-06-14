@@ -2,7 +2,7 @@ use std::sync::Mutex;
 use std::time::{Instant, Duration};
 
 use anyhow::{Error, Result};
-use client::{ArtistResults, ReleaseGroupResults, ReleaseGroups, Releases};
+use client::{ArtistResults, RecordingResults, ReleaseGroupResults, ReleaseGroups, Releases};
 use converters::{ArtistConverter, RecordingConverter, ReleaseConverter, ReleaseGroupConverter};
 use dimple_core::model::{Artist, Entity, Model, Recording, Release, ReleaseGroup};
 use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
@@ -189,6 +189,14 @@ impl Plugin for MusicBrainzPlugin {
         let results = response.json::<ReleaseGroupResults>()?;
         let models = results.release_groups.into_iter()
             .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
+            .map(|src| src.model());
+        let iter = iter.chain(models);
+
+        let url = format!("https://musicbrainz.org/ws/2/recording/?query={}&fmt=json", &query);
+        let response = PluginSupport::get(self, &url)?;
+        let results = response.json::<RecordingResults>()?;
+        let models = results.recordings.into_iter()
+            .map(|src| Recording::from(RecordingConverter::from(src.clone())))
             .map(|src| src.model());
         let iter = iter.chain(models);
 

@@ -60,3 +60,12 @@ pub struct ReleaseGroupResults {
     pub release_groups: Vec<musicbrainz_rs::entity::release_group::ReleaseGroup>,
     pub count: u32,
 }
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[serde(rename_all(deserialize = "kebab-case"))]
+pub struct RecordingResults {
+    pub offset: u32,
+    pub recordings: Vec<musicbrainz_rs::entity::recording::Recording>,
+    pub count: u32,
+}
+

@@ -1,17 +1,14 @@
-use std::{collections::{HashMap, HashSet}, fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Artist, Entity, Genre, Model, Dimage, ReleaseGroup, Track}
+    db::Db, model::{Artist, Entity, Genre, Recording, ReleaseGroup}
 };
 
 use anyhow::Result;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
-use image::DynamicImage;
 
-use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin}};
 
 pub fn db_search(db: &dyn Db, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
-    const MAX_RESULTS_PER_TYPE: usize = 5;
+    const MAX_RESULTS_PER_TYPE: usize = 10;
 
     // TODO sort and filter by score
 
@@ -37,23 +34,23 @@ pub fn db_search(db: &dyn Db, query: &str) -> Result<Box<dyn Iterator<Item = dim
 
     let pattern = query.to_string();
     let matcher = SkimMatcherV2::default();
-    let tracks = db.list(&Track::default().model(), &None)?
-        .filter(move |track| {
-            let track: Track = track.clone().into();
-            matcher.fuzzy_match(&track.title.clone().unwrap_or_default(), &pattern).is_some()
+    let recordings = db.list(&Recording::default().model(), &None)?
+        .filter(move |recording| {
+            let recording: Recording = recording.clone().into();
+            matcher.fuzzy_match(&recording.title.clone().unwrap_or_default(), &pattern).is_some()
         })
         .take(MAX_RESULTS_PER_TYPE);
-    let iter = iter.chain(tracks);
+    let iter = iter.chain(recordings);
 
     let pattern = query.to_string();
     let matcher = SkimMatcherV2::default();
-    let release_groups = db.list(&Genre::default().model(), &None)?
+    let genres = db.list(&Genre::default().model(), &None)?
         .filter(move |genre| {
             let genre: Genre = genre.clone().into();
             matcher.fuzzy_match(&genre.name.clone().unwrap_or_default(), &pattern).is_some()
         })
         .take(MAX_RESULTS_PER_TYPE);
-    let iter = iter.chain(release_groups);
+    let iter = iter.chain(genres);
 
     Ok(Box::new(iter))
 }

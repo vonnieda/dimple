@@ -5,7 +5,6 @@ use serde::Serialize;
 use super::ArtistCredit;
 use super::Genre;
 use super::KnownIds;
-use super::Medium;
 use super::Recording;
 
 // https://musicbrainz.org/doc/Track

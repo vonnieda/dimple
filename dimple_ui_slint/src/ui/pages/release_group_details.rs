@@ -67,15 +67,6 @@ pub fn release_group_details(url: &str, app: &App) {
             }
         }
 
-        // TODO not sure how I feel about this yet. Makes it slow. But without it
-        // we don't get tracks. That's probably a problem for Librarian, right?
-        // As a Release without tracks is not valid? Need to think a little more
-        // about validation in these objects. 
-        // This should have happened in list() above. Although regardless, maybe
-        // we have nothing. Has to handle that. I need to go back to grabbing
-        // deep objects.
-        // let release: Release = librarian.get(&release.model()).unwrap().unwrap().into();
-
         ui.upgrade_in_event_loop(move |ui| {
             // let releases: Vec<CardAdapter> = releases.iter().cloned()
             //     .enumerate()

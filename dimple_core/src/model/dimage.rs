@@ -57,4 +57,3 @@ impl Dimage {
         image.resize(width, height, FilterType::Gaussian)
     }
 }
-}

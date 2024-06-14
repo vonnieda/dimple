@@ -49,18 +49,35 @@ export component ReleaseGroupDetails inherits ScrollView {
             VerticalLayout {
                 alignment: start;
                 spacing: StyleMetrics.layout-spacing;
+                // Text {
+                //     text: "Artist";
+                //     font-size: 1.3rem;
+                // }
                 // Title
-                Text {
-                    text: model.card.title.name;
-                    font-weight: Palette.font-weight-bold;
-                    font-size: 4rem;
-                    wrap: word-wrap;
-                }
-                // Disambiguation
-                if model.disambiguation > 0: Text {
-                    text: model.disambiguation;
-                    // font-weight: Palette.font-weight-bold;
-                    font-size: 1.3rem;
+                VerticalLayout {
+                    Text {
+                        text: model.card.title.name;
+                        font-weight: Palette.font-weight-bold;
+                        font-size: 4rem;
+                        wrap: word-wrap;
+                    }
+                    // Disambiguation
+                    if model.disambiguation > 0: HorizontalLayout {
+                        spacing: 4px;
+                        Image {
+                            source: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
+                            width: 1.5rem;
+                            colorize: StyleMetrics.default-text-color;
+                            padding-right: 8px;
+                        }
+                        Text {
+                            vertical-alignment: bottom;
+                            text: model.disambiguation;
+                            // font-weight: Palette.font-weight-bold;
+                            font-size: 1.3rem;
+                            color: StyleMetrics.default-text-color.darker(0.5);
+                        }
+                    }
                 }
                 // TODO Change this to date, type, and then artists.
                 // Type and artists
@@ -97,8 +114,9 @@ export component ReleaseGroupDetails inherits ScrollView {
         }
 
         // Media and Tracks
-        if model.media.length > 0: VerticalBox {
-            for medium in model.media: VerticalBox {
+        if model.media.length > 0: VerticalLayout {
+            spacing: 16px;
+            for medium in model.media: VerticalLayout {
                 Text {
                     text: medium.title;
                     font-weight: Palette.font-weight-bold;
