@@ -31,12 +31,6 @@ pub fn search(url: &str, app: &App) {
     let ui = app.ui.clone();
     let images = app.images.clone();
 
-    /// So this will be the first new model controller with the intention of
-    /// being reactive. The goal will be to get an iterator from the search
-    /// and feed those objects in realtime over to the UI as they come in.
-    /// This will require adding a sort model, and figuring out that stuff
-    /// so that the results stay sorted in the UI.
-
     std::thread::spawn(move || {
         log::info!("{}", url);
         let url = Url::parse(&url).unwrap();

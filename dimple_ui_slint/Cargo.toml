@@ -40,6 +40,7 @@ threadpool = "1.8.1"
 fast_image_resize = { version = "4.0.0", features = ["image"] }
 percent-encoding = "2.3.1"
 raw-window-handle = "0.6.2"
+anyhow = "1.0.81"
 
 [build-dependencies]
 slint-build = "= 1.4.1"

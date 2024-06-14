@@ -41,7 +41,7 @@ impl Librarian {
         *self.network_mode.lock().unwrap() = network_mode.clone();
     }
 
-    pub fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
+    pub fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = Model>>> {
         for plugin in self.plugins.read().unwrap().iter() {
             let results = plugin.search(query, self.network_mode());
             if let Ok(results) = results {

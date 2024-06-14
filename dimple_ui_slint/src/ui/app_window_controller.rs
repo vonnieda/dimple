@@ -105,7 +105,7 @@ impl App {
             self.refresh();
         }
         else if url.starts_with("dimple://search") {
-            crate::ui::pages::search::search(&url, self);
+            crate::ui::pages::search_new::search(&url, self);
         }
         else if url.starts_with("dimple://home") {
             // TODO

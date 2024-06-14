@@ -8,6 +8,7 @@ pub mod release_group_details;
 pub mod release_list;
 pub mod release_details;
 pub mod search;
+pub mod search_new;
 pub mod genre_list;
 pub mod genre_details;
 pub mod playlist_list;
