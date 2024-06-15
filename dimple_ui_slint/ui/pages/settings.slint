@@ -69,28 +69,13 @@ export component Settings inherits ScrollView {
                 toggled => { AppState.settings_set_debug(self.checked); }
                 text: "Show object dumps?";
             }
-            Button {
-                text: "Reset Database";
-                clicked => { AppState.settings_reset_database() }
+            HorizontalLayout {
+                alignment: start;
+                Button {
+                    text: "Reset Database";
+                    clicked => { AppState.settings_reset_database() }
+                }
             }
         }
     }
 }
-
-    // HorizontalLayout {
-    //     spacing: 8px;
-    //     CheckBox {
-    //         checked: AppState.online;
-    //         toggled => { AppState.set_online(self.checked); }
-    //         horizontal-stretch: 0;
-    //     }
-    //     VerticalLayout {
-    //         alignment: center;
-    //         Text {
-    //             font-size: 1.4rem;
-    //             text: "Online?";
-    //             font-weight: Palette.font-weight-bold;
-    //         }
-    //     }
-    // }
-
