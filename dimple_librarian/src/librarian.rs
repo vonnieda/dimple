@@ -1,10 +1,10 @@
 use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Model, Dimage}
+    db::{Db, SqliteDb}, model::{Dimage, Entity, Model}
 };
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use image::DynamicImage;
 
 use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin}, search};
@@ -141,5 +141,28 @@ impl Librarian {
     pub fn reset(&self) -> Result<()> {
         self.db.reset()
     } 
-}
 
+    // Playing around with using a little bit of generic sugar to make these
+    // APIs much more ergonomic. 
+    pub fn get2<T: Entity + std::convert::From<Model>>(&self, entity: T) -> Result<T> {
+        let result = self.get(&entity.model())?;
+        if result.is_none() {
+            return Err(Error::msg("not found"))
+        }
+        Ok(result.unwrap().into())
+    }
+
+    pub fn list2<T, N> (
+        &self,
+        list_of: T,
+        related_to: Option<N>,
+    ) 
+    -> Result<Box<dyn Iterator<Item = T>>>
+    where 
+        T: Entity + std::convert::From<Model> + 'static,
+        N: Entity + std::convert::From<Model> {
+
+        let a = self.list(&list_of.model(), &related_to.map(|r| r.model()))?;
+        Ok(Box::new(a.map(Into::<T>::into)))
+    }
+}
