@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+
 use dimple_core::{db::Db, model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Dimage, Recording, RecordingSource, Release, ReleaseGroup, Track}};
 
-use crate::matching;
+use crate::{equiv::Equivalent, matching};
 
 pub trait Merge {
     /// Commutative: A v B = B v A
@@ -16,10 +18,10 @@ impl Merge for Artist {
             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
             key: Option::merge(l.key, r.key),
             known_ids: KnownIds::merge(l.known_ids, r.known_ids),
-            links: l.links.union(&r.links).cloned().collect(),
+            links: HashSet::merge(l.links, r.links),
             name: Option::merge(l.name, r.name),
             summary: Option::merge(l.summary, r.summary),
-            genres: l.genres.into_iter().chain(r.genres.into_iter()).collect(),
+            genres: Vec::merge(l.genres, r.genres),
         }
     }
 }
@@ -30,15 +32,15 @@ impl Merge for ReleaseGroup {
             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
             key: Option::merge(l.key, r.key),
             known_ids: KnownIds::merge(l.known_ids, r.known_ids),
-            links: l.links.union(&r.links).cloned().collect(),
+            links: HashSet::merge(l.links, r.links),
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
             first_release_date: Option::merge(l.first_release_date, r.first_release_date),
             primary_type: Option::merge(l.primary_type, r.primary_type),
             annotation: Option::merge(l.annotation, r.annotation),
-            artist_credits: l.artist_credits.into_iter().chain(r.artist_credits.into_iter()).collect(),
-            genres: l.genres.into_iter().chain(r.genres.into_iter()).collect(),
-            secondary_types: l.secondary_types.union(&r.secondary_types).cloned().collect(),
+            secondary_types: HashSet::merge(l.secondary_types, r.secondary_types),
+            artist_credits: Vec::merge(l.artist_credits, r.artist_credits),
+            genres: Vec::merge(l.genres, r.genres),
         }
     }
 }
@@ -49,12 +51,10 @@ impl Merge for Release {
             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
             key: Option::merge(l.key, r.key),
             known_ids: KnownIds::merge(l.known_ids, r.known_ids),
-            links: l.links.union(&r.links).cloned().collect(),
+            links: HashSet::merge(l.links, r.links),
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
             primary_type: Option::merge(l.primary_type, r.primary_type),
-            artist_credits: l.artist_credits.into_iter().chain(r.artist_credits.into_iter()).collect(),
-            genres: l.genres.into_iter().chain(r.genres.into_iter()).collect(),
             barcode: Option::merge(l.barcode, r.barcode),
             country: Option::merge(l.country, r.country),
             date: Option::merge(l.date, r.date),
@@ -62,7 +62,9 @@ impl Merge for Release {
             status: Option::merge(l.status, r.status),
             quality: Option::merge(l.quality, r.quality),
             release_group: ReleaseGroup::merge(l.release_group, r.release_group),
-            media: l.media.into_iter().chain(r.media.into_iter()).collect(),
+            media: Vec::merge(l.media, r.media),
+            artist_credits: Vec::merge(l.artist_credits, r.artist_credits),
+            genres: Vec::merge(l.genres, r.genres),
         }
     }
 }
@@ -70,13 +72,13 @@ impl Merge for Release {
 impl Merge for Medium {
     fn merge(l: Self, r: Self) -> Self {
         Self {
-            disc_count: l.disc_count.or(r.disc_count),
-            format: l.format.or(r.format),
-            key: l.key.or(r.key),
-            position: l.position.or(r.position),
-            title: l.title.or(r.title),
-            track_count: l.track_count.or(r.track_count),
-            tracks: l.tracks.into_iter().chain(r.tracks.into_iter()).collect(),
+            disc_count: Option::merge(l.disc_count, r.disc_count),
+            format: Option::merge(l.format, r.format),
+            key: Option::merge(l.key, r.key),
+            position: Option::merge(l.position, r.position),
+            title: Option::merge(l.title, r.title),
+            track_count: Option::merge(l.track_count, r.track_count),
+            tracks: Vec::merge(l.tracks, r.tracks),
         }
     }
 }
@@ -90,22 +92,9 @@ impl Merge for Track {
             length: Option::merge(l.length, r.length),
             number: Option::merge(l.number, r.number),
             position: Option::merge(l.position, r.position),
-            artist_credits: l.artist_credits.into_iter().chain(r.artist_credits.into_iter()).collect(),
-            genres: l.genres.into_iter().chain(r.genres.into_iter()).collect(),
+            artist_credits: Vec::merge(l.artist_credits, r.artist_credits),
+            genres: Vec::merge(l.genres, r.genres),
             recording: Recording::merge(l.recording, r.recording),
-        }
-    }
-}
-
-impl Merge for Genre {
-    fn merge(l: Self, r: Self) -> Self {
-        Self {
-            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
-            key: Option::merge(l.key, r.key),
-            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
-            links: l.links.union(&r.links).cloned().collect(),
-            name: Option::merge(l.name, r.name),
-            summary: Option::merge(l.summary, r.summary),
         }
     }
 }
@@ -116,25 +105,60 @@ impl Merge for Recording {
             disambiguation: Option::merge(l.disambiguation, r.disambiguation),
             key: Option::merge(l.key, r.key),
             known_ids: KnownIds::merge(l.known_ids, r.known_ids),
-            links: l.links.union(&r.links).cloned().collect(),
+            links: HashSet::merge(l.links, r.links),
             title: Option::merge(l.title, r.title),
             summary: Option::merge(l.summary, r.summary),
             annotation: Option::merge(l.annotation, r.annotation),
-            artist_credits: l.artist_credits.into_iter().chain(r.artist_credits.into_iter()).collect(),
-            genres: l.genres.into_iter().chain(r.genres.into_iter()).collect(),
             isrc: Option::merge(l.isrc, r.isrc),
             length: Option::merge(l.length, r.length),
+            artist_credits: Vec::merge(l.artist_credits, r.artist_credits),
+            genres: Vec::merge(l.genres, r.genres),
         }
     }
 }
 
-impl Merge for Dimage {
+impl Merge for Genre {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
+            key: Option::merge(l.key, r.key),
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
+            links: HashSet::merge(l.links, r.links),
+            name: Option::merge(l.name, r.name),
+            summary: Option::merge(l.summary, r.summary),
+        }
+    }
+}
+
+impl Merge for ArtistCredit {
     fn merge(l: Self, r: Self) -> Self {
         Self {
             key: Option::merge(l.key, r.key),
-            data: if l.data.len() >= r.data.len() { l.data } else { r.data },
-            // TODO this entire merge concept is weird here. Figure it out.
-            ..Default::default()
+            artist: Artist::merge(l.artist, r.artist),
+            join_phrase: Option::merge(l.join_phrase, r.join_phrase),
+            name: Option::merge(l.name, r.name),
+        }
+    }
+}
+
+
+// impl Merge for Dimage {
+//     fn merge(l: Self, r: Self) -> Self {
+//         Self {
+//             key: Option::merge(l.key, r.key),
+//             data: if l.data.len() >= r.data.len() { l.data } else { r.data },
+//             // TODO this entire merge concept is weird here. Figure it out.
+//             ..Default::default()
+//         }
+//     }
+// }
+
+impl Merge for KnownIds {
+    fn merge(l: Self, r: Self) -> Self {
+        KnownIds {
+            musicbrainz_id: Option::merge(l.musicbrainz_id, r.musicbrainz_id),
+            discogs_id: Option::merge(l.discogs_id, r.discogs_id),
+            lastfm_id: Option::merge(l.lastfm_id, r.lastfm_id),
         }
     }
 }
@@ -143,35 +167,67 @@ impl Merge for Model {
     fn merge(l: Self, r: Self) -> Self {
         match (l, r) {
             (Model::Artist(l), Model::Artist(r)) => Artist::merge(l.clone(), r.clone()).model(),
-            (Model::Genre(l), Model::Genre(r)) => Genre::merge(l.clone(), r.clone()).model(),
-            (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
             (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
             (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
-            (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
-            (Model::Dimage(l), Model::Dimage(r)) => Dimage::merge(l.clone(), r.clone()).model(),
+            (Model::Genre(l), Model::Genre(r)) => Genre::merge(l.clone(), r.clone()).model(),
+            // (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
+            // (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
+            // (Model::Dimage(l), Model::Dimage(r)) => Dimage::merge(l.clone(), r.clone()).model(),
             _ => todo!()
         }
     }
 }
 
+/// Combines two Vec of <Merge + Equivalent + Clone> and merges equivalent
+/// results.
+impl <T: Merge + Equivalent + Clone> Merge for Vec<T> {
+    fn merge(l: Self, r: Self) -> Self {
+        let mut result = l.clone();
+    
+        for b in r {
+            let mut merged = false;
+    
+            for a in &mut result {
+                if T::equivalent(a, &b) {
+                    *a = T::merge(a.clone(), b.clone());
+                    merged = true;
+                    break;
+                }
+            }
+    
+            if !merged {
+                result.push(b);
+            }
+        }
+    
+        result
+    }
+}
+
+impl Merge for HashSet<String> {
+    fn merge(l: Self, r: Self) -> Self {
+        l.union(&r).cloned().collect()
+    }
+}
+
 impl Merge for Option<u32> {
     fn merge(l: Self, r: Self) -> Self {
-        l.or(r)
+        match (l, r) {
+            (Some(l), Some(r)) => if l >= r { Some(l) } else { Some(r) },
+            (None, None) => None,
+            (None, Some(r)) => Some(r),
+            (Some(l), None) => Some(l),
+        }
     }
 }
 
 impl Merge for Option<String> {
     fn merge(l: Self, r: Self) -> Self {
-        l.or(r)
-    }
-}
-
-impl Merge for KnownIds {
-    fn merge(l: Self, r: Self) -> Self {
-        KnownIds {
-            musicbrainz_id: Option::merge(l.musicbrainz_id, r.musicbrainz_id),
-            discogs_id: Option::merge(l.discogs_id, r.discogs_id),
-            lastfm_id: Option::merge(l.lastfm_id, r.lastfm_id),
+        match (l, r) {
+            (Some(l), Some(r)) => if l.len() >= r.len() { Some(l) } else { Some(r) },
+            (None, None) => None,
+            (None, Some(r)) => Some(r),
+            (Some(l), None) => Some(l),
         }
     }
 }
@@ -282,7 +338,7 @@ fn model_valid(model: &Model) -> bool {
         Model::Release(r) => r.title.is_some(),
         Model::ReleaseGroup(rg) => rg.title.is_some(),
         Model::Track(t) => t.title.is_some(),
-        Model::Dimage(p) => true,
+        Model::Dimage(_p) => true,
         _ => todo!()
     }
 }
@@ -296,7 +352,6 @@ pub fn merge(db: &dyn Db, model: &Model) -> Option<Model> {
         Model::Release(release) => db_merge_release(db, release),
         Model::ReleaseGroup(release_group) => db_merge_release_group(db, release_group),
         Model::Genre(genre) => db_merge_genre(db, genre),
-        // TODO Track, but no. Right? I need this for track get in track details.
         _ => todo!(),
     }
 }
@@ -304,58 +359,197 @@ pub fn merge(db: &dyn Db, model: &Model) -> Option<Model> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    #[test]
+    fn basics() {
+        assert!(Option::merge(None, Some("Lynyrd Skynrd".to_string())) == Some("Lynyrd Skynrd".to_string()));
+        assert!(Option::merge(Some("Skynrd".to_string()), Some("Lynyrd Skynrd".to_string())) == Some("Lynyrd Skynrd".to_string()));
+        assert!(Option::merge(Some(10), None) == Some(10));
+        assert!(Option::merge(Some(10), Some(20)) == Some(20));
+    }
 
     #[test]
-    fn artist_merge() {
-        let a1 = Artist {
-            name: Some("Sorta Charger".to_string()),
+    fn hashset() {
+        let l = HashSet::from(["chicken".to_string(), "horse".to_string(), "dog".to_string()]);
+        let r = HashSet::from(["monkey".to_string(), "pig".to_string(), "dog".to_string()]);
+        let m = HashSet::merge(l, r);
+        assert!(m.len() == 5);
+        assert!(m.contains("chicken"));
+        assert!(m.contains("horse"));
+        assert!(m.contains("monkey"));
+        assert!(m.contains("pig"));
+        assert!(m.contains("dog"));
+    }
+
+
+    #[test]
+    fn genre() {
+        let m = Genre::merge(Genre {
+            name: Some("dogrock".to_string()),
+            ..Default::default()
+        }, Genre {
+            name: Some("catrock".to_string()),
+            ..Default::default()
+        });
+        assert!(m.name == Some("dogrock".to_string()));
+
+        let m = Genre::merge(Genre {
+            name: Some("dogrock".to_string()),
+            ..Default::default()
+        }, Genre {
+            name: Some("fishrock".to_string()),
+            ..Default::default()
+        });
+        assert!(m.name == Some("fishrock".to_string()));
+    }
+
+
+    #[test]
+    fn artist() {
+        let l = Artist {
+            key: Some("1234-1234-1234-1234".to_string()),
+            name: Some("Ancient Fish".to_string()),
+            genres: vec![
+                Genre {
+                    name: Some("fishjazz".to_string()),
+                    summary: Some("Jazz, by fishes.".to_string()),
+                    ..Default::default()
+                },
+                Genre {
+                    name: Some("fishrock".to_string()),
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+        let r = Artist {
+            key: Some("1234-1234-1234-1234".to_string()),
+            name: Some("Ancient Fimsh".to_string()),
+            genres: vec![
+                Genre {
+                    name: Some("fishjazz".to_string()),
+                    known_ids: KnownIds { 
+                        musicbrainz_id: Some("9999-9999-9999-9999".to_string()),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                Genre {
+                    name: Some("fishtempo".to_string()),
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+        let m = Artist::merge(l, r);
+        assert!(m.genres.len() == 3);
+        // assert!(m.genres[0].)
+    }
+
+    #[test]
+    fn release() {
+        let l = Release {
+            title: Some("Phood for Other Fish".to_string()),
+            barcode: Some("123123123".to_string()),
+            artist_credits: vec![
+                ArtistCredit {
+                    name: Some("Bob".to_string()),
+                    join_phrase: Some("as".to_string()),
+                    artist: Artist {
+                        key: Some("72316492736498176349871234".to_string()),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+            ],
+            genres: vec![
+                Genre {
+                    name: Some("fishjazz".to_string()),
+                    known_ids: KnownIds { 
+                        musicbrainz_id: Some("888-111-222-333".to_string()), 
+                        discogs_id: None, 
+                        lastfm_id: None, 
+                    },
+                    ..Default::default()
+                }
+            ],
+            media: vec![
+                Medium {
+                    position: Some(1),
+                    tracks: vec![
+                        Track {
+                            title: Some("Sizzlin'".to_string()),
+                            recording: Recording {
+                                isrc: Some("ASDASDASD".to_string()),
+                                known_ids: KnownIds {
+                                    discogs_id: Some("D10123123".to_string()),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                    ],
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+        let r = Release {
+            title: Some("Phood for Other Fish".to_string()),
+            disambiguation: Some("Second press".to_string()),
+            artist_credits: vec![
+                ArtistCredit {
+                    name: Some("Bob".to_string()),
+                    join_phrase: Some("as".to_string()),
+                    artist: Artist {
+                        key: Some("72316492736498176349871234".to_string()),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+            ],
+            genres: vec![
+                Genre {
+                    name: Some("fishjazz".to_string()),
+                    ..Default::default()
+                }
+            ],
             country: Some("us".to_string()),
-            disambiguation: None,
-            known_ids: KnownIds {
-                musicbrainz_id: Some("123-123-123-123".to_string()),
-                ..Default::default()
-            },
+            media: vec![
+                Medium {
+                    position: Some(1),
+                    tracks: vec![
+                        Track {
+                            title: Some("Sizzlin'".to_string()),
+                            recording: Recording {
+                                isrc: Some("ASDASDASD".to_string()),
+                                known_ids: KnownIds {
+                                    musicbrainz_id: Some("98123-2342345-2345-234-5345".to_string()),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                        Track {
+                            title: Some("Into the Frying Pan".to_string()),
+                            recording: Recording {
+                                isrc: Some("FISHFISH".to_string()),
+                                ..Default::default()
+                            },
+                            ..Default::default()
+                        },
+                    ],
+                    ..Default::default()
+                },
+            ],
             ..Default::default()
         };
-
-        let a2 = Artist {
-            name: Some("Sorta Charger".to_string()),
-            ..Default::default()
-        };
-
-        let a3 = Artist {
-            name: Some("sorta charger".to_string()),
-            known_ids: KnownIds {
-                musicbrainz_id: Some("123-123-123-123".to_string()),
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-
-        let a4 = Artist {
-            name: Some("slorta charger".to_string()),
-            known_ids: KnownIds {
-                musicbrainz_id: Some("123-123-123-123".to_string()),
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-
-        let a5 = Artist {
-            name: Some("Sorta Charger".to_string()),
-            country: Some("us".to_string()),
-            disambiguation: Some("the other one".to_string()),
-            known_ids: KnownIds {
-                musicbrainz_id: Some("123-123-123-123".to_string()),
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-
-        // dbg!(Artist::mergability(&a1, &a2));
-        // dbg!(Artist::mergability(&a1, &a3));
-        // dbg!(Artist::mergability(&a1, &a4));
-        // dbg!(Artist::mergability(&a1, &a5));
+        let m = Release::merge(l, r);
+        // dbg!(&m);
+        assert!(m.media.get(0).unwrap().tracks.get(0).unwrap().recording.known_ids.discogs_id == Some("D10123123".to_string()));
+        assert!(m.media.get(0).unwrap().tracks.get(1).unwrap().title == Some("Into the Frying Pan".to_string()));
     }
 }
 

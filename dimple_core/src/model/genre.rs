@@ -17,3 +17,14 @@ pub struct Genre {
     pub summary: Option<String>,
     pub links: HashSet<String>,
 }
+
+impl Hash for Genre {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key.hash(state);
+        self.name.hash(state);
+        self.known_ids.hash(state);
+        self.disambiguation.hash(state);
+        self.summary.hash(state);
+        // self.links.hash(state);
+    }
+}

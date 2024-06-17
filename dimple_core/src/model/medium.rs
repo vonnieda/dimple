@@ -6,7 +6,7 @@ use super::Release;
 use super::Track;
 
 // https://musicbrainz.org/doc/Medium
-#[derive(Clone, Debug, Serialize, Deserialize, Default, ModelSupport)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Default, ModelSupport)]
 pub struct Medium {
     pub key: Option<String>,
 

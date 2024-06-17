@@ -8,7 +8,7 @@ use serde::Serialize;
 use image::ImageFormat;
 
 // https://fanart.tv/music-fanart/
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Default)]
 pub enum DimageKind {
     #[default]
     Album,
@@ -19,7 +19,7 @@ pub enum DimageKind {
 }
 
 /// A model for storing an image in Dimple. Not Image because too overloaded.
-#[derive(Clone, Debug, Serialize, Deserialize, Default, ModelSupport)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq, Eq, Hash, ModelSupport)]
 pub struct Dimage {
     pub key: Option<String>,
     pub data: Vec<u8>,
