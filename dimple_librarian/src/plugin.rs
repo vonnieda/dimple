@@ -76,11 +76,11 @@ impl PluginSupport {
 
     pub fn end_request(token: RequestToken, status_code: Option<u16>, length: Option<u64>) {
         log::info!("{} [{:?}] {}ms {:?} {}", 
-            token.tag.yellow(), 
+            token.tag, 
             status_code, 
             token.start_time.elapsed().as_millis(), 
             length,
-            token.url);
+            token.url.yellow());
     }
 
     /// The most common use of HTTP is going to be a simple get, so this
@@ -91,10 +91,10 @@ impl PluginSupport {
         // TODO use dirs, or better yet, the librarian path
         let cache = "./dimple-librarian-plugin-cache";
         if let Some(cached) = cacache::read_sync(cache, url).ok() {
-            log::debug!("{} {} (Cached) {}", 
-                plugin.name().blue(), 
+            log::info!("{} {} (Cached) {}", 
+                plugin.name(), 
                 cached.len(),
-                url);
+                url.blue());
             return Ok(CacheResponse::new(cached, true))
         }
         let client = Client::builder()
