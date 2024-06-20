@@ -1,4 +1,4 @@
-use dimple_core::model::{Artist, Entity, KnownIds};
+use dimple_core::model::{Artist, Entity, KnownIds, Model};
 use dimple_coverartarchive_plugin::CoverArtArchivePlugin;
 use dimple_fanart_tv_plugin::FanartTvPlugin;
 use dimple_mediafiles_plugin::MediaFilesPlugin;
@@ -6,12 +6,13 @@ use dimple_musicbrainz_plugin::MusicBrainzPlugin;
 use dimple_player::player::Player;
 use dimple_theaudiodb_plugin::TheAudioDbPlugin;
 use dimple_wikidata_plugin::WikidataPlugin;
+use serde::de;
 
 use std::{borrow::BorrowMut, collections::VecDeque, path::PathBuf, sync::{Arc, Mutex}};
 
 use dimple_core::db::Db;
 
-use slint::{ComponentHandle, SharedString, Weak};
+use slint::{ComponentHandle, Model as _, ModelRc, SharedString, Weak};
 
 use dimple_librarian::librarian::Librarian;
 
@@ -86,11 +87,86 @@ impl AppWindowController {
         self.ui.global::<AppState>().on_settings_set_debug(
             move |debug| settings::settings_set_debug(&app, debug));
 
+        // Load the sidebar
+        let app = self.app.clone();
+        std::thread::spawn(move || {
+            let mut pinned_items: Vec<Model> = vec![];
+            pinned_items.push(app.librarian.get2(Artist {
+                known_ids: KnownIds {
+                    musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }).unwrap().model());
+            pinned_items.push(app.librarian.get2(Artist {
+                known_ids: KnownIds {
+                    musicbrainz_id: Some("65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }).unwrap().model());
+            pinned_items.push(app.librarian.get2(Artist {
+                known_ids: KnownIds {
+                    musicbrainz_id: Some("c14b4180-dc87-481e-b17a-64e4150f90f6".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }).unwrap().model());
+
+            let images = app.images.clone();
+            app.ui.upgrade_in_event_loop(move |ui| {
+                let cards: Vec<CardAdapter> = pinned_items.iter().cloned().enumerate()
+                    .map(|(index, model)| {
+                        let mut card: CardAdapter = model_card(&model);
+                        card.image.image = images.lazy_get(model, 48, 48, move |ui, image| {
+                            let mut card = ui.get_sidebar().pinned_items.row_data(index).unwrap();
+                            card.image.image = image;
+                            ui.get_sidebar().pinned_items.set_row_data(index, card);
+                        });
+                        card
+                    })
+                    .collect();
+                let adapter = SideBarAdapter {
+                    pinned_items: ModelRc::from(cards.as_slice()),
+                };
+                ui.set_sidebar(adapter);
+            }).unwrap();
+        });
+
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
         self.ui.run()
     }
 }
+
+fn model_card(model: &Model) -> CardAdapter {
+    match model {
+        Model::Artist(artist) => artist_card(artist),
+        // Model::ReleaseGroup(release_group) => release_group_card(release_group),
+        // Model::Genre(genre) => genre_card(genre),
+        // Model::Recording(recording) => recording_card(recording),
+        _ => todo!(),
+    }
+}
+
+fn artist_card(artist: &Artist) -> CardAdapter {
+    CardAdapter {
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+        },
+        title: LinkAdapter {
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+        },
+        sub_title: LinkAdapter {
+            name: "Artist".to_string().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+        },
+    }
+}
+
 
 impl App {
     pub fn navigate(&self, url: SharedString) {
@@ -105,7 +181,7 @@ impl App {
             self.refresh();
         }
         else if url.starts_with("dimple://search") {
-            crate::ui::pages::search_new::search(&url, self);
+            crate::ui::pages::search::search(&url, self);
         }
         else if url.starts_with("dimple://home") {
             // TODO

@@ -1,9 +1,11 @@
+use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Model;
+use dimple_core::model::Recording;
 use dimple_core::model::ReleaseGroup;
 use slint::ComponentHandle;
-use slint::Model as _;
 use slint::ModelRc;
+use slint::VecModel;
 use url::Url;
 use crate::ui::app_window_controller::App;
 use crate::ui::Navigator;
@@ -35,71 +37,76 @@ pub fn search(url: &str, app: &App) {
         log::info!("{}", url);
         let url = Url::parse(&url).unwrap();
         let query = url.path_segments().unwrap().next().unwrap();
-        // TODO wtf? really?
         let query = percent_encoding::percent_decode_str(query).decode_utf8_lossy().to_string();
 
         ui.upgrade_in_event_loop(move |ui| {
             ui.global::<Navigator>().set_busy(true);
-        }).unwrap();
-        let results: Vec<Model> = librarian
-            .search(&query)
-            .unwrap()
-            .collect();
-
-        ui.upgrade_in_event_loop(move |ui| {
-            let cards: Vec<CardAdapter> = results.iter().cloned().enumerate()
-                .map(|(index, result)| {
-                    let mut card: CardAdapter = model_card(&result);
-                    card.image.image = images.lazy_get(result, 200, 200, move |ui, image| {
-                        let mut card = ui.get_search().cards.row_data(index).unwrap();
-                        card.image.image = image;
-                        ui.get_search().cards.set_row_data(index, card);
-                    });
-                    card
-                })
-                .collect();
             let adapter = CardGridAdapter {
-                cards: ModelRc::from(cards.as_slice()),
+                cards: ModelRc::new(VecModel::<CardAdapter>::default()),
+                ..Default::default()
             };
             ui.set_search(adapter);
             ui.set_page(Page::Search);
+        }).unwrap();
+
+        let results = librarian.search(&query).unwrap();
+        for result in results {
+            // TODO I'd like to have a simple way to throttle this, so that
+            // like we queue up the incoming and only send sets of changes
+            // every max like 200ms or something.
+            let images = images.clone();
+            ui.upgrade_in_event_loop(move |ui| {
+                let adapter = ui.get_search();
+                let cards: &slint::VecModel<CardAdapter> = slint::Model::as_any(&adapter.cards)
+                    .downcast_ref().unwrap();
+                let mut card: CardAdapter = model_card(&result);
+                let index = slint::Model::row_count(cards);
+                card.image.image = images.lazy_get(result, 200, 200, move |ui, image| {
+                    let mut card = slint::Model::row_data(&ui.get_search().cards, index).unwrap();
+                    card.image.image = image;
+                    slint::Model::set_row_data(&ui.get_search().cards, index, card);
+                });
+                // TODO race condition with lazy_get, index might not be there yet.
+                cards.push(card);
+            }).unwrap();
+        }
+
+        ui.upgrade_in_event_loop(move |ui| {
             ui.global::<Navigator>().set_busy(false);
         }).unwrap();
     });
 }
 
-
 fn model_card(model: &Model) -> CardAdapter {
     match model {
-        Model::Artist(artist) => artist.clone().into(),
+        Model::Artist(artist) => artist_card(artist),
         Model::ReleaseGroup(release_group) => release_group_card(release_group),
         Model::Genre(genre) => genre_card(genre),
-        Model::Track(track) => track.clone().into(),
+        Model::Recording(recording) => recording_card(recording),
         _ => todo!(),
     }
 }
 
-pub fn card(title: &str, title_url: &str, 
-    sub_title: &str, sub_title_url: &str,
-    image_name: &str, image_url: &str) -> CardAdapter {
+
+fn artist_card(artist: &Artist) -> CardAdapter {
     CardAdapter {
         image: ImageLinkAdapter {
             image: Default::default(),
-            name: image_name.into(),
-            url: image_url.into(),
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
         },
         title: LinkAdapter {
-            name: title.into(),
-            url: title_url.into(),
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
         },
         sub_title: LinkAdapter {
-            name: sub_title.into(),
-            url: sub_title_url.into(),
+            name: artist.disambiguation.clone().unwrap_or("Artist".to_string()).into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
         },
-    }    
+    }
 }
 
-pub fn release_group_card(release_group: &ReleaseGroup) -> CardAdapter {
+fn release_group_card(release_group: &ReleaseGroup) -> CardAdapter {
     CardAdapter {
         image: ImageLinkAdapter {
             image: Default::default(),
@@ -113,13 +120,13 @@ pub fn release_group_card(release_group: &ReleaseGroup) -> CardAdapter {
         sub_title: LinkAdapter {
             name: format!("{} {}", 
                 release_group.first_release_date.clone().map(|date| date[..4].to_string()).unwrap_or_default(), 
-                release_group.primary_type.clone().unwrap_or_default()).into(),
+                release_group.primary_type.clone().unwrap_or("Album".to_string())).into(),
             url: format!("dimple://release-group/{}", release_group.key.clone().unwrap_or_default()).into(),
         },
     }    
 }
 
-pub fn genre_card(genre: &Genre) -> CardAdapter {
+fn genre_card(genre: &Genre) -> CardAdapter {
     let genre = genre.clone();
     CardAdapter {
         image: ImageLinkAdapter {
@@ -138,124 +145,22 @@ pub fn genre_card(genre: &Genre) -> CardAdapter {
     }
 }
 
-// impl From<Artist> for CardAdapter {
-//     fn from(value: Artist) -> Self {
-//         CardAdapter {
-//             image: ImageLinkAdapter {
-//                 image: Default::default(),
-//                 name: value.name.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://artist/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             title: LinkAdapter {
-//                 name: value.name.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://artist/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             sub_title: LinkAdapter {
-//                 name: value.disambiguation.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://artist/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//         }
-//     }
-// }
+fn recording_card(recording: &Recording) -> CardAdapter {
+    let recording = recording.clone();
+    CardAdapter {
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: recording.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
+        },
+        title: LinkAdapter {
+            name: recording.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
+        },
+        sub_title: LinkAdapter {
+            name: "Song".into(),
+            url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
+        },
+    }
+}
 
-// impl From<ReleaseGroup> for CardAdapter {
-//     fn from(value: ReleaseGroup) -> Self {
-//         CardAdapter {
-//             image: ImageLinkAdapter {
-//                 image: Default::default(),
-//                 name: value.title.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             title: LinkAdapter {
-//                 name: value.title.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             sub_title: LinkAdapter {
-//                 name: format!("{} {}", value.first_release_date.unwrap_or_default(), value.primary_type.unwrap_or_default()).into(),
-//                 url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//         }
-//     }
-// }
-
-// impl From<Release> for CardAdapter {
-//     fn from(value: Release) -> Self {
-//         CardAdapter {
-//             image: ImageLinkAdapter {
-//                 image: Default::default(),
-//                 name: value.title.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://release/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             title: LinkAdapter {
-//                 name: value.title.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://release/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             sub_title: LinkAdapter {
-//                 name: format!("{} {}", value.date.unwrap_or_default(), value.country.unwrap_or_default()).into(),
-//                 url: format!("dimple://release/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//         }
-//     }
-// }
-
-// impl From<Genre> for CardAdapter {
-//     fn from(value: Genre) -> Self {
-//         CardAdapter {
-//             image: ImageLinkAdapter {
-//                 image: Default::default(),
-//                 name: value.name.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://genre/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             title: LinkAdapter {
-//                 name: value.name.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://genre/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             sub_title: LinkAdapter {
-//                 name: value.disambiguation.unwrap_or_default().into(),
-//                 url: format!("dimple://genre/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//         }
-//     }
-// }
-
-// impl From<Playlist> for CardAdapter {
-//     fn from(value: Playlist) -> Self {
-//         CardAdapter {
-//             image: ImageLinkAdapter {
-//                 image: Default::default(),
-//                 name: value.name.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             title: LinkAdapter {
-//                 name: value.name.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             ..Default::default()
-//             // sub_title: LinkAdapter {
-//             //     name: value.disambiguation.unwrap_or_default().into(),
-//             //     url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
-//             // },
-//         }
-//     }
-// }
-
-// impl From<Track> for CardAdapter {
-//     fn from(value: Track) -> Self {
-//         CardAdapter {
-//             image: ImageLinkAdapter {
-//                 image: Default::default(),
-//                 name: value.title.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://track/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             title: LinkAdapter {
-//                 name: value.title.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://track/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             ..Default::default()
-//             // sub_title: LinkAdapter {
-//             //     name: value.disambiguation.unwrap_or_default().into(),
-//             //     url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
-//             // },
-//         }
-//     }
-// }

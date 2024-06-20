@@ -23,7 +23,7 @@ import { TrackListAdapter } from "pages/track_list.slint";
 import { Home } from "pages/home.slint";
 import { Settings } from "pages/settings.slint";
 import { PlayerBar } from "player_bar.slint";
-import { SideBar } from "side_bar.slint";
+import { SideBar, SideBarAdapter } from "side_bar.slint";
 import { ArtistList } from "pages/artist_list.slint";
 import { ReleaseGroupList } from "pages/release_group_list.slint";
 import { ReleaseList } from "pages/release_list.slint";
@@ -82,6 +82,7 @@ export component AppWindow inherits Window {
     in-out property <CardGridAdapter> playlist-list;
     in-out property <SettingsAdapter> settings;
     in-out property <PlayerBarAdapter> player-bar;
+    in-out property <SideBarAdapter> sidebar;
 
     title: "Dimple";
     icon: @image-url("../images/app_icon_512x512.png");
@@ -97,6 +98,7 @@ export component AppWindow inherits Window {
             padding: 0;
             GroupBox {
                 SideBar {
+                    model: root.sidebar;
                 }
             }
             GroupBox {
