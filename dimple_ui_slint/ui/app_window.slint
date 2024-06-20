@@ -18,6 +18,7 @@ import { ArtistDetails } from "pages/artist_details.slint";
 import { ReleaseGroupDetails } from "pages/release_group_details.slint";
 import { ReleaseDetails } from "pages/release_details.slint";
 import { TrackDetails, TrackDetailsAdapter } from "pages/track_details.slint";
+import { RecordingDetails, RecordingDetailsAdapter } from "pages/recording_details.slint";
 import { TrackListAdapter } from "pages/track_list.slint";
 import { Home } from "pages/home.slint";
 import { Settings } from "pages/settings.slint";
@@ -53,7 +54,7 @@ export enum Page { Home, Search,
         ReleaseGroupList, ReleaseGroupDetails,
         TrackList, TrackDetails,
         PlaylistList, PlaylistDetails,
-        Settings, GenreList, GenreDetails }
+        Settings, GenreList, GenreDetails, RecordingDetails }
 
 
 export component AppWindow inherits Window {
@@ -77,6 +78,7 @@ export component AppWindow inherits Window {
     in-out property <GenreDetailsAdapter> genre-details;
     in-out property <TrackListAdapter> track-list;
     in-out property <TrackDetailsAdapter> track-details;
+    in-out property <RecordingDetailsAdapter> recording-details;
     in-out property <CardGridAdapter> playlist-list;
     in-out property <SettingsAdapter> settings;
     in-out property <PlayerBarAdapter> player-bar;
@@ -129,6 +131,9 @@ export component AppWindow inherits Window {
                     }
                     if page == Page.TrackDetails: TrackDetails {  
                         model: root.track-details;
+                    }
+                    if page == Page.TrackDetails: RecordingDetails {  
+                        model: root.recording-details;
                     }
                     if page == Page.GenreList: GenreList {  
                         model: root.genre-list;

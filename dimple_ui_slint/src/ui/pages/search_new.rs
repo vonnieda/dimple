@@ -1,5 +1,7 @@
+use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Model;
+use dimple_core::model::Recording;
 use dimple_core::model::ReleaseGroup;
 use slint::ComponentHandle;
 use slint::ModelRc;
@@ -65,11 +67,30 @@ pub fn search(url: &str, app: &App) {
 
 fn model_card(model: &Model) -> CardAdapter {
     match model {
-        Model::Artist(artist) => artist.clone().into(),
+        Model::Artist(artist) => artist_card(artist),
         Model::ReleaseGroup(release_group) => release_group_card(release_group),
         Model::Genre(genre) => genre_card(genre),
-        Model::Track(track) => track.clone().into(),
+        Model::Recording(recording) => recording_card(recording),
         _ => todo!(),
+    }
+}
+
+
+fn artist_card(artist: &Artist) -> CardAdapter {
+    CardAdapter {
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+        },
+        title: LinkAdapter {
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+        },
+        sub_title: LinkAdapter {
+            name: artist.disambiguation.clone().unwrap_or("Artist".to_string()).into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+        },
     }
 }
 
@@ -87,7 +108,7 @@ fn release_group_card(release_group: &ReleaseGroup) -> CardAdapter {
         sub_title: LinkAdapter {
             name: format!("{} {}", 
                 release_group.first_release_date.clone().map(|date| date[..4].to_string()).unwrap_or_default(), 
-                release_group.primary_type.clone().unwrap_or_default()).into(),
+                release_group.primary_type.clone().unwrap_or("Album".to_string())).into(),
             url: format!("dimple://release-group/{}", release_group.key.clone().unwrap_or_default()).into(),
         },
     }    
@@ -108,6 +129,25 @@ fn genre_card(genre: &Genre) -> CardAdapter {
         sub_title: LinkAdapter {
             name: "Genre".into(),
             url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+        },
+    }
+}
+
+fn recording_card(recording: &Recording) -> CardAdapter {
+    let recording = recording.clone();
+    CardAdapter {
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: recording.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
+        },
+        title: LinkAdapter {
+            name: recording.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
+        },
+        sub_title: LinkAdapter {
+            name: "Song".into(),
+            url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
         },
     }
 }

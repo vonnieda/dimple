@@ -1,5 +1,12 @@
 use dimple_core::model::{Artist, ArtistCredit, Genre, KnownIds, Medium, Recording, Track};
 
+/// Equivalent is used to test if two models are considered the same model and
+/// can be merged together. Only compares properties. Does not take parent or
+/// child objects into consideration.
+pub trait Equivalent {
+    fn equivalent(l: &Self, r: &Self) -> bool;
+}
+
 impl Equivalent for Artist {
     fn equivalent(l: &Self, r: &Self) -> bool {
         (l.key.is_some() && l.key == r.key)
@@ -46,20 +53,12 @@ impl Equivalent for Recording {
     }
 }
 
-// Some(a) == Some(b) false
-// None == Some(b) false
-// Some(a) == Some(a) true
-// None == None true
 impl Equivalent for KnownIds {
     fn equivalent(l: &Self, r: &Self) -> bool {
         (l.musicbrainz_id.is_some() && l.musicbrainz_id == r.musicbrainz_id)
         || (l.discogs_id.is_some() && l.discogs_id == r.discogs_id)
         || (l.lastfm_id.is_some() && l.lastfm_id == r.lastfm_id)
     }
-}
-
-pub trait Equivalent {
-    fn equivalent(l: &Self, r: &Self) -> bool;
 }
 
 #[cfg(test)]

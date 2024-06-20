@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::fmt::Display;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -104,4 +105,10 @@ pub trait Entity {
     fn type_name(&self) -> String;
     fn as_any(&self) -> &dyn Any;
     fn model(&self) -> Model;
+}
+
+impl Display for Model {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}({:?})", self.entity().type_name(), self.entity().key())
+    }
 }

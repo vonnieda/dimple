@@ -9,6 +9,7 @@ use image::DynamicImage;
 
 use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin}, search};
 
+// It's always worth reviewing https://www.subsonic.org/pages/api.jsp
 
 #[derive(Clone)]
 pub struct Librarian {
@@ -23,6 +24,15 @@ impl Librarian {
         let db_path = Path::new(path).join("dimple.db");
         let librarian = Self {
             db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()))),
+            plugins: Default::default(),
+            network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
+        };
+        librarian
+    }
+
+    pub fn new_in_memory() -> Self {
+        let librarian = Self {
+            db: Arc::new(Box::new(SqliteDb::new(":memory:"))),
             plugins: Default::default(),
             network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
         };
@@ -46,12 +56,12 @@ impl Librarian {
             let results = plugin.search(query, self.network_mode());
             if let Ok(results) = results {
                 for result in results {
-                    self.merge(&result);
+                    merge::merge(self.db.as_ref().as_ref(), &result, &None);
                 }
             }
         }
 
-        search::db_search(self.db.clone().as_ref().as_ref(), query)
+        search::db_search(self.db.as_ref().as_ref(), query)
     }
 
     /// Get a specific model using information (such as a key) in the
@@ -61,7 +71,7 @@ impl Librarian {
     /// are performed, allowing lower level plugins to supply additional
     /// data that higher level plugins can use.
     /// 
-    /// If there are no results from storage or any plugin, returns Ok(None)
+    /// If there are no results from storage or any plugin, returns Ok(None)    
     pub fn get(&self, model: &Model) -> Result<Option<Model>> {
         let mut model = model.clone();
 
@@ -86,8 +96,8 @@ impl Librarian {
             }
         }
 
-        let result = self.merge(&model);
-
+        let result = merge::merge(self.db.as_ref().as_ref(), &model, &None);
+        
         Ok(result)
     }
 
@@ -102,7 +112,7 @@ impl Librarian {
             let results = plugin.list(list_of, related_to, self.network_mode());
             if let Ok(results) = results {
                 for result in results {
-                    merge::db_merge_model(db, &result, related_to);
+                    merge::merge(db, &result, related_to);
                 }
             }
         }
@@ -134,8 +144,8 @@ impl Librarian {
         None
     }
 
-    fn merge(&self, model: &Model) -> Option<Model> {
-        merge::merge(self.db.clone().as_ref().as_ref(), model)
+    pub fn merge(&self, model: &Model, related_to: &Option<Model>) -> Option<Model> {
+        merge::merge(self.db.clone().as_ref().as_ref(), model, related_to)
     }
 
     pub fn reset(&self) -> Result<()> {
@@ -164,5 +174,67 @@ impl Librarian {
 
         let a = self.list(&list_of.model(), &related_to.map(|r| r.model()))?;
         Ok(Box::new(a.map(Into::<T>::into)))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use dimple_core::model::{Artist, Entity, KnownIds, Model};
+
+    use crate::plugin::Plugin;
+
+    use super::Librarian;
+
+    #[test]
+    fn merge_basics() {
+        let lib = Librarian::new_in_memory();
+
+        let artist = lib.get(&Artist {
+            known_ids: KnownIds {
+                musicbrainz_id: Some("DIMPLE-TEST-METALLICA".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        }.model());
+        assert!(artist.is_ok());
+        assert!(artist.unwrap().is_none());
+
+        lib.add_plugin(Box::new(TestPlugin::default()));
+        let artist: Artist = lib.get(&Artist {
+            known_ids: KnownIds {
+                musicbrainz_id: Some("DIMPLE-TEST-METALLICA".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        }.model()).unwrap().unwrap().into();
+        assert!(artist.name == Some("Metallica".to_string()));
+        dbg!(&artist);
+    }
+
+    #[derive(Default)]
+    struct TestPlugin {
+
+    }
+
+    impl Plugin for TestPlugin {
+        fn name(&self) -> String {
+            "Test".to_string()
+        }
+        
+        fn get(&self, model: &dimple_core::model::Model, network_mode: crate::plugin::NetworkMode) -> anyhow::Result<Option<dimple_core::model::Model>> {
+            match model {
+                Model::Artist(artist) => {
+                    if artist.known_ids.musicbrainz_id == Some("DIMPLE-TEST-METALLICA".to_string()) {
+                        return Ok(Some(Artist {
+                            name: Some("Metallica".to_string()),
+                            summary: Some("Metal band from LA".to_string()),
+                            ..Default::default()
+                        }.model()));
+                    }
+                },
+                _ => ()
+            }          
+            Ok(None)  
+        }
     }
 }

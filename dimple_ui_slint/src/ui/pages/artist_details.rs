@@ -50,68 +50,24 @@ pub fn artist_details(url: &str, app: &App) {
             .list(&ReleaseGroup::default().into(), &Some(artist.model()))
             .unwrap()
             .map(ReleaseGroup::from)
-            .filter(|r| r.secondary_types.is_empty())
             .collect();
         release_groups.sort_by_key(|r| r.first_release_date.to_owned());
         release_groups.reverse();
 
         ui.upgrade_in_event_loop(move |ui| {
-            // TODO I hate all this duplication, but each one needs to filter on
-            // a different string, and then the closure needs to access a different
-            // field. So, duplication.
             // TODO the real answer is tags above the grid to let the user select
             // TODO need to switch primary type to an enum
             let albums: Vec<CardAdapter> = release_groups.iter().cloned()
-                .filter(|release_group| release_group.primary_type.clone().map(|s| s.to_lowercase()) == Some("album".to_string()))
+                // .filter(|release_group| release_group.primary_type.clone().map(|s| s.to_lowercase()) == Some("album".to_string()))
                 .enumerate()
                 .map(|(index, release)| {
                     let mut card: CardAdapter = release.clone().into();
+                    // TODO could be interesting to create a uuid and tag the image request
+                    // with it, and then be able to cancel that uuid when we get switched out.
                     card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
                         let mut card = ui.get_artist_details().albums.row_data(index).unwrap();
                         card.image.image = image;
                         ui.get_artist_details().albums.set_row_data(index, card);
-                    });
-                    card
-                })
-                .collect();
-            let eps: Vec<CardAdapter> = release_groups.iter().cloned()
-                .filter(|release| release.primary_type.clone().map(|s| s.to_lowercase()) == Some("ep".to_string()))
-                .enumerate()
-                .map(|(index, release)| {
-                    let mut card: CardAdapter = release.clone().into();
-                    card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
-                        let mut card = ui.get_artist_details().eps.row_data(index).unwrap();
-                        card.image.image = image;
-                        ui.get_artist_details().eps.set_row_data(index, card);
-                    });
-                    card
-                })
-                .collect();
-            let singles: Vec<CardAdapter> = release_groups.iter().cloned()
-                .filter(|release| release.primary_type.clone().map(|s| s.to_lowercase()) == Some("single".to_string()))
-                .enumerate()
-                .map(|(index, release)| {
-                    let mut card: CardAdapter = release.clone().into();
-                    card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
-                        let mut card = ui.get_artist_details().singles.row_data(index).unwrap();
-                        card.image.image = image;
-                        ui.get_artist_details().singles.set_row_data(index, card);
-                    });
-                    card
-                })
-                .collect();
-            let others: Vec<CardAdapter> = release_groups.iter().cloned()
-                .filter(|release| {
-                    let pt = release.primary_type.clone().unwrap_or_default().to_lowercase();
-                    pt != "album" && pt != "ep" && pt != "single"
-                })
-                .enumerate()
-                .map(|(index, release)| {
-                    let mut card: CardAdapter = release.clone().into();
-                    card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
-                        let mut card = ui.get_artist_details().others.row_data(index).unwrap();
-                        card.image.image = image;
-                        ui.get_artist_details().others.set_row_data(index, card);
                     });
                     card
                 })
@@ -136,9 +92,6 @@ pub fn artist_details(url: &str, app: &App) {
                 disambiguation: artist.disambiguation.clone().unwrap_or_default().into(),
                 summary: artist.summary.clone().unwrap_or_default().into(),
                 albums: ModelRc::from(albums.as_slice()),
-                singles: ModelRc::from(singles.as_slice()),
-                eps: ModelRc::from(eps.as_slice()),
-                others: ModelRc::from(others.as_slice()),
                 genres: ModelRc::from(genres.as_slice()),
                 links: ModelRc::from(links.as_slice()),
                 dump: serde_json::to_string_pretty(&artist).unwrap().into(),

@@ -134,6 +134,9 @@ pub fn release_group_details(url: &str, app: &App) {
     });
 }
 
+// Note, looking at https://musicbrainz.org/ws/2/release-group/f44f4f73-a714-31a1-a4b8-bfcaaf311f50?inc=aliases%2Bartist-credits%2Breleases&fmt=json
+// I noticed that release_group.first_release_date and release.date are the same for the "correct" default
+// release. They match exactly where other dates don't. So that may be a good indicator too.
 fn get_preferred_release(librarian: &Librarian, release_group: &ReleaseGroup) -> Option<Release> {
     // TODO
     // status = official

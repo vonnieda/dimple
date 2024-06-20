@@ -192,16 +192,16 @@ impl Plugin for MusicBrainzPlugin {
             .map(|src| src.model());
         let iter = iter.chain(models);
 
-        // let url = format!("https://musicbrainz.org/ws/2/recording/?query={}&fmt=json", &query);
-        // if !response.cached() {
-        //     self.enforce_rate_limit();
-        // }
-        // let response = PluginSupport::get(self, &url)?;
-        // let results = response.json::<RecordingResults>()?;
-        // let models = results.recordings.into_iter()
-        //     .map(|src| Recording::from(RecordingConverter::from(src.clone())))
-        //     .map(|src| src.model());
-        // let iter = iter.chain(models);
+        let url = format!("https://musicbrainz.org/ws/2/recording/?query={}&fmt=json", &query);
+        if !response.cached() {
+            self.enforce_rate_limit();
+        }
+        let response = PluginSupport::get(self, &url)?;
+        let results = response.json::<RecordingResults>()?;
+        let models = results.recordings.into_iter()
+            .map(|src| Recording::from(RecordingConverter::from(src.clone())))
+            .map(|src| src.model());
+        let iter = iter.chain(models);
 
         Ok(Box::new(iter))
     }    

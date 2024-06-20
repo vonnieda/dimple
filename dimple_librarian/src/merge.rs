@@ -142,16 +142,16 @@ impl Merge for ArtistCredit {
 }
 
 
-// impl Merge for Dimage {
-//     fn merge(l: Self, r: Self) -> Self {
-//         Self {
-//             key: Option::merge(l.key, r.key),
-//             data: if l.data.len() >= r.data.len() { l.data } else { r.data },
-//             // TODO this entire merge concept is weird here. Figure it out.
-//             ..Default::default()
-//         }
-//     }
-// }
+impl Merge for Dimage {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            key: Option::merge(l.key, r.key),
+            data: if l.data.len() >= r.data.len() { l.data } else { r.data },
+            // TODO this entire merge concept is weird here. Figure it out.
+            ..Default::default()
+        }
+    }
+}
 
 impl Merge for KnownIds {
     fn merge(l: Self, r: Self) -> Self {
@@ -169,10 +169,11 @@ impl Merge for Model {
             (Model::Artist(l), Model::Artist(r)) => Artist::merge(l.clone(), r.clone()).model(),
             (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
             (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
+            (Model::Recording(l), Model::Recording(r)) => Recording::merge(l.clone(), r.clone()).model(),
             (Model::Genre(l), Model::Genre(r)) => Genre::merge(l.clone(), r.clone()).model(),
-            // (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
-            // (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
-            // (Model::Dimage(l), Model::Dimage(r)) => Dimage::merge(l.clone(), r.clone()).model(),
+            (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
+            (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
+            (Model::Dimage(l), Model::Dimage(r)) => Dimage::merge(l.clone(), r.clone()).model(),
             _ => todo!()
         }
     }
@@ -232,6 +233,26 @@ impl Merge for Option<String> {
     }
 }
 
+/// - Anything with a key can be merged. Primary or secondary.
+/// - Any top level primary object can be merged.
+/// - Any secondary object with a related_to that has a key can be merged.
+pub fn merge(db: &dyn Db, model: &Model, related_to: &Option<Model>) -> Option<Model> {
+    let merged = match model {
+        Model::Artist(artist) => db_merge_artist(db, artist),
+        Model::Release(release) => db_merge_release(db, release),
+        Model::ReleaseGroup(release_group) => db_merge_release_group(db, release_group),
+        Model::Recording(recording) => db_merge_recording(db, recording),
+        Model::Genre(genre) => db_merge_genre(db, genre),
+        Model::Dimage(dimage) => db_merge_dimage(db, dimage, related_to),
+        _ => panic!("merge({}, {}) not yet implemented", 
+            model.entity().type_name(), 
+            related_to.clone().map(|related_to| related_to.entity().type_name()).unwrap_or("None".to_string())),
+    };
+    lazy_link(db, &merged, related_to);
+    merged
+}
+
+
 fn db_merge_artist(db: &dyn Db, artist: &Artist) -> Option<Model> {
     let artist: Artist = db_merge_model(db, &artist.model(), &None)?.into();
     db_merge_genres(db, &artist.genres, &artist.model());
@@ -253,6 +274,13 @@ fn db_merge_release(db: &dyn Db, release: &Release) -> Option<Model> {
     db_merge_artist_credits(db, &release.artist_credits, &release.model());
     db_merge_media(db, &release.media, &release);
     Some(release.model())
+}
+
+fn db_merge_recording(db: &dyn Db, recording: &Recording) -> Option<Model> {
+    let recording: Recording = db_merge_model(db, &recording.model(), &None)?.into();
+    db_merge_genres(db, &recording.genres, &recording.model());
+    db_merge_artist_credits(db, &recording.artist_credits, &recording.model());
+    Some(recording.model())
 }
 
 fn db_merge_media(db: &dyn Db, media: &[Medium], release: &Release) {
@@ -299,24 +327,32 @@ fn db_merge_genre(db: &dyn Db, genre: &Genre) -> Option<Model> {
     db_merge_model(db, &genre.model(), &None)
 }
 
-pub fn db_merge_model(db: &dyn Db, model: &Model, parent: &Option<Model>) -> Option<Model> {
-    // TODO does this need to be merging parent as well?
+fn db_merge_dimage(db: &dyn Db, dimage: &Dimage, related_to: &Option<Model>) -> Option<Model> {
+    db_merge_model(db, &dimage.model(), related_to)
+}
 
-    if let (Model::Dimage(_), None) = (model, parent) {
-        panic!("Can't merge Dimage with no relation.");
+// TODO does this need to be merging parent as well? Yea, I think it
+// seems obvious we can't merge something to a parent if the parent
+// doesn't exist. 
+fn db_merge_model(db: &dyn Db, model: &Model, related_to: &Option<Model>) -> Option<Model> {
+    if let Some(related_to) = related_to {
+        if related_to.entity().key().is_none() {
+            panic!("db_merge_model called with unmerged related_to");
+        }
     }
 
     // find a matching model to the specified, merge, save
-    let matching = matching::find_matching_model(db, model, parent);
+    let matching = matching::find_matching_model(db, model, related_to);
     if let Some(matching) = matching {
         let merged = Model::merge(model.clone(), matching);
-        return Some(db.insert(&merged).unwrap())
+        let inserted = db.insert(&merged).unwrap();
+        return Some(inserted)
     }
     // if not, insert the new one and link it to the parent
     else {
         if model_valid(model) {
             let model = Some(db.insert(model).unwrap());
-            lazy_link(db, &model, parent);
+            lazy_link(db, &model, related_to);
             return model
         }
     }
@@ -330,31 +366,25 @@ fn lazy_link(db: &dyn Db, l: &Option<Model>, r: &Option<Model>) {
     }
 }
 
+/// TODO Goes into the merge trait, maybe. 
 fn model_valid(model: &Model) -> bool {
     match model {
         Model::Artist(a) => a.name.is_some() || a.known_ids.musicbrainz_id.is_some(),
         Model::Genre(g) => g.name.is_some(),
         Model::Medium(_m) => true,
-        Model::Release(r) => r.title.is_some(),
+        Model::Release(r) => r.title.is_some() || r.known_ids.musicbrainz_id.is_some(),
         Model::ReleaseGroup(rg) => rg.title.is_some(),
         Model::Track(t) => t.title.is_some(),
         Model::Dimage(_p) => true,
+        Model::Recording(r) => r.title.is_some() || r.known_ids.musicbrainz_id.is_some(),
         _ => todo!()
     }
 }
 
-pub fn merge(db: &dyn Db, model: &Model) -> Option<Model> {
-    match model {
-        // TODO I think I can move this logic into db_merge_model, and specifically
-        // panic when asked to merge something without enough context. 
-        // Like an Media without a Release or whatever.
-        Model::Artist(artist) => db_merge_artist(db, artist),
-        Model::Release(release) => db_merge_release(db, release),
-        Model::ReleaseGroup(release_group) => db_merge_release_group(db, release_group),
-        Model::Genre(genre) => db_merge_genre(db, genre),
-        _ => todo!(),
-    }
-}
+// By adding the related_to, we add another way to look up the objects, and
+// doesn't have to be used. If we have a key, for instance, we don't need
+// anything else. But if all we have is a name, we might need a relation
+// to find anything. And in the end, it can always fail.
 
 #[cfg(test)]
 mod tests {
