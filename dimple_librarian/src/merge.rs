@@ -22,6 +22,7 @@ impl Merge for Artist {
             name: Option::merge(l.name, r.name),
             summary: Option::merge(l.summary, r.summary),
             genres: Vec::merge(l.genres, r.genres),
+            saved: l.saved || r.saved,
         }
     }
 }

@@ -1,59 +1,71 @@
-fn recording_details(url: &str, librarian: &Librarian, ui: slint::Weak<AppWindow>) {
-    //     let url = url.to_owned();
-    //     std::thread::spawn(move || {
-    //         let url = Url::parse(&url).unwrap();
-    //         let id = url.path_segments()
-    //             .ok_or("missing path").unwrap()
-    //             .nth(0)
-    //             .ok_or("missing id").unwrap();
-    //         let recording = Recording::get(id, librarian.as_ref())
-    //             .ok_or("recording not found").unwrap();
-    //         let card = entity_card(&Entities::Recording(recording.clone()),
-    //             Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
-    //         let genres = recording.genres.iter()
-    //             .map(|g| Link {
-    //                 name: g.name.clone(),
-    //                 url: format!("dimple://genre/{}", g.name),
-    //             })
-    //             .collect();
-    //         let artists = recording.artist_credits.iter()
-    //             .map(|a| Link {
-    //                 name: a.name.clone().unwrap_or_default(),
-    //                 url: format!("dimple://artist/{}", a.key),
-    //             })
-    //             .collect();
-    //         let isrcs = recording.isrcs.iter()
-    //             .map(|i| Link {
-    //                 name: i.to_string(),
-    //                 url: format!("https://api.deezer.com/2.0/track/isrc:{}", i),
-    //             })
-    //             .collect();
-    //         // let releases: Vec<_> = release_group.releases.clone();
-    //         // let release_cards = release_cards(releases, &librarian, 500, 500);
-    //         // let release = release_group.releases.first()
-    //         //     .ok_or("no releases")
-    //         //     .unwrap();
-    //         // let release = release.fetch(librarian.as_ref())
-    //         //     .ok_or("release not found")
-    //         //     .unwrap();
+use dimple_core::model::Entity;
+use dimple_core::model::Genre;
+use dimple_core::model::Recording;
+use dimple_core::model::Track;
+use slint::ComponentHandle;
+use slint::ModelRc;
+use url::Url;
+use crate::ui::app_window_controller::App;
+use crate::ui::Navigator;
+use crate::ui::Page;
+use crate::ui::RecordingDetailsAdapter;
+use crate::ui::LinkAdapter;
 
-    //         ui.upgrade_in_event_loop(move |ui| {
-    //             let model = RecordingDetailsAdapter {                    
-    //                 card: card_adapter(&card),
-    //                 disambiguation: recording.disambiguation.clone().into(),
-    //                 genres: link_adapters(genres),
-    //                 summary: recording.summary.clone().into(),
-    //                 // primary_type: recording.primary_type.clone().into(),
-    //                 artists: link_adapters(artists),
-    //                 links: link_adapters(recording_links(&recording)),
-    //                 isrcs: link_adapters(isrcs),
-    //                 // media: media_adapters(release.media),
-    //                 // releases: card_adapters(release_cards),
-    //                 // releases: Default::default()
-    //             };
-    //             ui.set_recording_details(model);
-    //             ui.set_page(4)
-    //         }).unwrap();
-    //     });
-    // }
+pub fn recording_details(url: &str, app: &App) {
+    let url = url.to_owned();
+    let librarian = app.librarian.clone();
+    let ui = app.ui.clone();
+    let images = app.images.clone();
+    std::thread::spawn(move || {        
+        let url = Url::parse(&url).unwrap();
+        let key = url.path_segments().unwrap().nth(0).unwrap();
+
+        let recording: Recording = librarian.get(&Recording {
+            key: Some(key.to_string()),
+            ..Default::default()
+        }.into()).unwrap().unwrap().into();
+
+        let mut genres: Vec<Genre> = librarian
+            .list(&Genre::default().into(), &Some(recording.model()))
+            .unwrap()
+            .map(Into::into)
+            .collect();
+        genres.sort_by_key(|genre| genre.name.clone().unwrap_or_default().to_lowercase());
+
+        ui.upgrade_in_event_loop(move |ui| {
+            let genres: Vec<LinkAdapter> = genres.iter().cloned().map(|genre| {
+                LinkAdapter {
+                    name: genre.name.unwrap().into(),
+                    url: format!("dimple://genre/{}", genre.key.unwrap()).into(),
+                }
+            }).collect();
+
+            let links: Vec<LinkAdapter> = recording.links.iter().map(|link| {
+                LinkAdapter {
+                    name: link.into(),
+                    url: link.into(),
+                }
+            }).collect();
+
+            let mut adapter = RecordingDetailsAdapter {
+                card: recording.clone().into(),
+                summary: recording.summary.clone().unwrap_or_default().into(),
+                genres: ModelRc::from(genres.as_slice()),
+                links: ModelRc::from(links.as_slice()),
+                dump: format!("{}", serde_json::to_string_pretty(&recording).unwrap()).into(),
+                ..Default::default()
+            };
+
+            adapter.card.image.image = images.lazy_get(recording.model(), 275, 275, |ui, image| {
+                let mut model = ui.get_track_details();
+                model.card.image.image = image;
+                ui.set_track_details(model);
+            });
+
+            ui.set_recording_details(adapter);
+            ui.set_page(Page::TrackDetails);
+            ui.global::<Navigator>().set_busy(false);
+        }).unwrap();
+    });
 }
+

@@ -21,6 +21,8 @@ pub struct Artist {
 
     pub country: Option<String>,
     
+    pub saved: bool,
+
     #[serde(skip)]
     pub genres: Vec<Genre>,
 }

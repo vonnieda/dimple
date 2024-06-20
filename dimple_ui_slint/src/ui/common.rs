@@ -8,6 +8,7 @@ use dimple_core::model::KnownIds;
 use dimple_core::model::Medium;
 use dimple_core::model::Dimage;
 use dimple_core::model::Playlist;
+use dimple_core::model::Recording;
 use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
@@ -134,6 +135,27 @@ impl From<Track> for CardAdapter {
             title: LinkAdapter {
                 name: value.title.clone().unwrap_or_default().into(),
                 url: format!("dimple://track/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            ..Default::default()
+            // sub_title: LinkAdapter {
+            //     name: value.disambiguation.unwrap_or_default().into(),
+            //     url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
+            // },
+        }
+    }
+}
+
+impl From<Recording> for CardAdapter {
+    fn from(value: Recording) -> Self {
+        CardAdapter {
+            image: ImageLinkAdapter {
+                image: Default::default(),
+                name: value.title.clone().unwrap_or_default().into(),
+                url: format!("dimple://recording/{}", value.key.clone().unwrap_or_default()).into(),
+            },
+            title: LinkAdapter {
+                name: value.title.clone().unwrap_or_default().into(),
+                url: format!("dimple://recording/{}", value.key.clone().unwrap_or_default()).into(),
             },
             ..Default::default()
             // sub_title: LinkAdapter {

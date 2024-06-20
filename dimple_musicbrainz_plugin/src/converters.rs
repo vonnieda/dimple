@@ -54,6 +54,7 @@ impl From<ArtistConverter> for dimple_core::model::Artist {
                 .collect(),
             name: none_if_empty(value.0.name),
             summary: None,
+            saved: false,
         }
     }
 }

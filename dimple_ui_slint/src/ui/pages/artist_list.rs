@@ -16,7 +16,8 @@ pub fn artist_list(app: &App) {
         let mut artists: Vec<Artist> = librarian
             .list(&Artist::default().into(), &None)
             .unwrap()
-            .map(Into::into)
+            .map(Into::<Artist>::into)
+            .filter(|artist| artist.saved)
             .collect();
         artists.sort_by_key(|a| a.name.clone().unwrap_or_default().to_lowercase());
 

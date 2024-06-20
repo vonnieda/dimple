@@ -56,7 +56,6 @@ pub fn artist_details(url: &str, app: &App) {
 
         ui.upgrade_in_event_loop(move |ui| {
             // TODO the real answer is tags above the grid to let the user select
-            // TODO need to switch primary type to an enum
             let albums: Vec<CardAdapter> = release_groups.iter().cloned()
                 // .filter(|release_group| release_group.primary_type.clone().map(|s| s.to_lowercase()) == Some("album".to_string()))
                 .enumerate()

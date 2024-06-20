@@ -129,6 +129,9 @@ impl App {
         else if url.starts_with("dimple://release/") {
             crate::ui::pages::release_details::release_details(&url, self);
         }
+        else if url.starts_with("dimple://recording/") {
+            crate::ui::pages::recording_details::recording_details(&url, self);
+        }
         else if url.starts_with("dimple://tracks") {
             crate::ui::pages::track_list::track_list(self);
         }
