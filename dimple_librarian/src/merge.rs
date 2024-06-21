@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, time::Instant};
 
 use dimple_core::{db::Db, model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Dimage, Recording, RecordingSource, Release, ReleaseGroup, Track}};
 
@@ -305,7 +305,10 @@ fn db_merge_tracks(db: &dyn Db, tracks: &[Track], medium: &Medium) {
 }
 
 fn db_merge_track(db: &dyn Db, track: &Track, medium: &Medium) -> Option<Model> {
-    db_merge_model(db, &track.model(), &Some(medium.model()))
+    let track: Track = db_merge_model(db, &track.model(), &Some(medium.model()))?.into();
+    let recording = db_merge_recording(db, &track.recording);
+    lazy_link(db, &recording, &Some(track.model()));
+    Some(track.model())
 }
 
 fn db_merge_artist_credits(db: &dyn Db, artist_credits: &[ArtistCredit], related_to: &Model) {
@@ -336,6 +339,7 @@ fn db_merge_dimage(db: &dyn Db, dimage: &Dimage, related_to: &Option<Model>) -> 
 // seems obvious we can't merge something to a parent if the parent
 // doesn't exist. 
 fn db_merge_model(db: &dyn Db, model: &Model, related_to: &Option<Model>) -> Option<Model> {
+    let t = Instant::now();
     if let Some(related_to) = related_to {
         if related_to.entity().key().is_none() {
             panic!("db_merge_model called with unmerged related_to");
@@ -347,6 +351,10 @@ fn db_merge_model(db: &dyn Db, model: &Model, related_to: &Option<Model>) -> Opt
     if let Some(matching) = matching {
         let merged = Model::merge(model.clone(), matching);
         let inserted = db.insert(&merged).unwrap();
+        log::debug!("{:04}ms merged {}({})", 
+            t.elapsed().as_millis(),
+            inserted.entity().type_name(), 
+            inserted.entity().key().unwrap());
         return Some(inserted)
     }
     // if not, insert the new one and link it to the parent
@@ -354,9 +362,21 @@ fn db_merge_model(db: &dyn Db, model: &Model, related_to: &Option<Model>) -> Opt
         if model_valid(model) {
             let model = Some(db.insert(model).unwrap());
             lazy_link(db, &model, related_to);
+            {
+                let model = model.clone().unwrap();
+                let entity = model.entity();
+                log::debug!("{:04}ms created {}({})", 
+                    t.elapsed().as_millis(),
+                    entity.type_name(), 
+                    entity.key().unwrap());
+            }
             return model
         }
     }
+    log::warn!("{:04}ms failed {}({})", 
+        t.elapsed().as_millis(),
+        model.entity().type_name(), 
+        model.entity().key().unwrap());
     None
 }
 

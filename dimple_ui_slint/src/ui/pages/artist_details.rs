@@ -115,4 +115,3 @@ pub fn artist_details(url: &str, app: &App) {
         }).unwrap();
     });
 }
-

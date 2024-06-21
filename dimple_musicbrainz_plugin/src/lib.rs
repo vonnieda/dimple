@@ -226,7 +226,6 @@ mod tests {
             ..Default::default()
         };
         let artist = plugin.get(&artist.model(), NetworkMode::Online).unwrap().unwrap();
-        println!("{:?}", artist);
     }
 
     #[test]
@@ -240,7 +239,6 @@ mod tests {
             ..Default::default()
         };
         let release_group = plugin.get(&release_group.model(), NetworkMode::Online).unwrap().unwrap();
-        println!("{:?}", release_group);
     }
 
     #[test]
@@ -254,7 +252,6 @@ mod tests {
             ..Default::default()
         };
         let release = plugin.get(&release.model(), NetworkMode::Online).unwrap().unwrap();
-        println!("{:#?}", release);
     }
 
     #[test]
@@ -268,7 +265,6 @@ mod tests {
             ..Default::default()
         };
         let recording = plugin.get(&recording.model(), NetworkMode::Online).unwrap().unwrap();
-        println!("{:#?}", recording);
     }
 
     #[test]
@@ -286,7 +282,6 @@ mod tests {
             .unwrap()
             .map(|model| Release::from(model))
             .collect();
-        println!("{:#?}", releases);
     }
 
     #[test]
@@ -304,16 +299,12 @@ mod tests {
             .unwrap()
             .map(|model| Release::from(model))
             .collect();
-        for release in releases.iter() {
-            println!("{:?} {:?} {:?} {:?}", release.country, release.date, release.status, release.title);
-        }
     }
 
     #[test]
     fn search() {
         let plugin = MusicBrainzPlugin::default();
         let results: Vec<Model> = plugin.search("Nirvana", NetworkMode::Online).unwrap().collect();
-        println!("{:#?}", results);
     }
 
     #[test]

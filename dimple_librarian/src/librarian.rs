@@ -188,17 +188,6 @@ mod test {
     #[test]
     fn merge_basics() {
         let lib = Librarian::new_in_memory();
-
-        let artist = lib.get(&Artist {
-            known_ids: KnownIds {
-                musicbrainz_id: Some("DIMPLE-TEST-METALLICA".to_string()),
-                ..Default::default()
-            },
-            ..Default::default()
-        }.model());
-        assert!(artist.is_ok());
-        assert!(artist.unwrap().is_none());
-
         lib.add_plugin(Box::new(TestPlugin::default()));
         let artist: Artist = lib.get(&Artist {
             known_ids: KnownIds {

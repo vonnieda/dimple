@@ -49,6 +49,18 @@ impl Display for Artist {
     }
 }
 
+impl Artist {
+    pub fn new_with_mbid(mbid: &str) -> Self {
+            Self { 
+                known_ids: KnownIds { 
+                    musicbrainz_id: Some(mbid.to_string()), 
+                    ..Default::default() 
+                },
+             ..Default::default() 
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
