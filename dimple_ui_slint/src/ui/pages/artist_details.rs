@@ -1,7 +1,6 @@
 use dimple_core::model::Artist;
 use dimple_core::model::Entity;
 use dimple_core::model::Genre;
-use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
 use slint::ComponentHandle;
 use slint::Model as _;
@@ -11,7 +10,6 @@ use crate::ui::app_window_controller::App;
 use crate::ui::Navigator;
 use crate::ui::Page;
 use crate::ui::ArtistDetailsAdapter;
-use dimple_core::db::Db;
 use crate::ui::CardAdapter;
 use crate::ui::LinkAdapter;
 
@@ -61,8 +59,6 @@ pub fn artist_details(url: &str, app: &App) {
                 .enumerate()
                 .map(|(index, release)| {
                     let mut card: CardAdapter = release.clone().into();
-                    // TODO could be interesting to create a uuid and tag the image request
-                    // with it, and then be able to cancel that uuid when we get switched out.
                     card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
                         let mut card = ui.get_artist_details().albums.row_data(index).unwrap();
                         card.image.image = image;

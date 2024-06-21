@@ -6,6 +6,7 @@ use dimple_musicbrainz_plugin::MusicBrainzPlugin;
 use dimple_player::player::Player;
 use dimple_theaudiodb_plugin::TheAudioDbPlugin;
 use dimple_wikidata_plugin::WikidataPlugin;
+use pages::release_group_details::{self, release_group_details};
 use serde::de;
 
 use std::{borrow::BorrowMut, collections::VecDeque, path::PathBuf, sync::{Arc, Mutex}};
@@ -86,8 +87,12 @@ impl AppWindowController {
         let app = self.app.clone();
         self.ui.global::<AppState>().on_settings_set_debug(
             move |debug| settings::settings_set_debug(&app, debug));
-
-        // Load the sidebar
+    
+        let app = self.app.clone();
+        self.ui.global::<AppState>().on_release_group_details_release_selected(
+            move |s| release_group_details::release_group_details_release_selected(&app, s.to_string()));
+        
+                    // Load the sidebar
         let app = self.app.clone();
         std::thread::spawn(move || {
             let mut pinned_items: Vec<Model> = vec![];
@@ -112,7 +117,13 @@ impl AppWindowController {
                 },
                 ..Default::default()
             }).unwrap().model());
-
+            pinned_items.push(app.librarian.get2(Artist {
+                known_ids: KnownIds {
+                    musicbrainz_id: Some("69158f97-4c07-4c4e-baf8-4e4ab1ed666e".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }).unwrap().model());
             let images = app.images.clone();
             app.ui.upgrade_in_event_loop(move |ui| {
                 let cards: Vec<CardAdapter> = pinned_items.iter().cloned().enumerate()

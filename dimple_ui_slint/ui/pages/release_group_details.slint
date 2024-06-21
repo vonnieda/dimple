@@ -10,6 +10,7 @@ import {MediumAdapter} from "../components/medium.slint";
 import { TrackList } from "../components/track_list.slint";
 
 export struct ReleaseGroupDetailsAdapter {
+    key: string,
     card: CardAdapter,
     disambiguation: string,
     summary: string,
@@ -22,6 +23,9 @@ export struct ReleaseGroupDetailsAdapter {
     // From the default and/or selected release.
     media: [MediumAdapter],
     dump: string,
+
+    release_options: [string],
+    selected_release_option: string,
 }
 
 export component ReleaseGroupDetails inherits ScrollView {
@@ -113,6 +117,23 @@ export component ReleaseGroupDetails inherits ScrollView {
             }
         }
 
+        // Releases Combo
+        if model.release-options.length > 0: VerticalLayout {
+            spacing: StyleMetrics.layout-spacing * 0.50;
+            // Text {
+            //     text: "Release Versions";
+            //     font-weight: Palette.font-weight-bold;
+            //     font-size: 2rem;
+            // }
+            ComboBox {
+                width: self.preferred-width;
+                height: self.preferred-height;
+                model: model.release-options;
+                current-value: model.selected-release-option;
+                selected => { AppState.release_group_details_release_selected(self.current-value); }
+            }
+        }
+        
         // Media and Tracks
         if model.media.length > 0: VerticalLayout {
             spacing: 16px;
@@ -129,35 +150,19 @@ export component ReleaseGroupDetails inherits ScrollView {
             }
         }
 
-        // Releases Combo
-        if model.releases.length > 0: VerticalLayout {
-            spacing: StyleMetrics.layout-spacing * 0.50;
-            Text {
-                text: "All Versions";
-                font-weight: Palette.font-weight-bold;
-                font-size: 2rem;
-            }
-            ComboBox {
-                width: self.preferred-width;
-                height: self.preferred-height;
-                model: ["first", "second", "third"];
-                current-value: "first";
-            }
-        }
-        
-        // Releases Grid
-        if model.releases.length > 0: VerticalLayout {
-            spacing: StyleMetrics.layout-spacing * 0.50;
-            Text {
-                text: "All Versions";
-                font-weight: Palette.font-weight-bold;
-                font-size: 2rem;
-            }
-            CardGrid {
-                cards: model.releases;
-                parent-width: root.width;
-            }
-        }
+        // // Releases Grid
+        // if model.releases.length > 0: VerticalLayout {
+        //     spacing: StyleMetrics.layout-spacing * 0.50;
+        //     Text {
+        //         text: "All Versions";
+        //         font-weight: Palette.font-weight-bold;
+        //         font-size: 2rem;
+        //     }
+        //     CardGrid {
+        //         cards: model.releases;
+        //         parent-width: root.width;
+        //     }
+        // }
 
         // Links
         if model.links.length > 0: VerticalLayout {

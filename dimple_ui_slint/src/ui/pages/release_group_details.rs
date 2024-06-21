@@ -9,6 +9,7 @@ use dimple_librarian::librarian::Librarian;
 use slint::ComponentHandle;
 use slint::Model as _;
 use slint::ModelRc;
+use slint::SharedString;
 use url::Url;
 use crate::ui::app_window_controller::App;
 use crate::ui::Navigator;
@@ -27,7 +28,7 @@ pub fn release_group_details(url: &str, app: &App) {
     let images = app.images.clone();
     std::thread::spawn(move || {        
         let url = Url::parse(&url).unwrap();
-        let key = url.path_segments().unwrap().nth(0).unwrap();
+        let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
 
         let release_group: ReleaseGroup = librarian.get(&ReleaseGroup {
             key: Some(key.to_string()),
@@ -48,23 +49,29 @@ pub fn release_group_details(url: &str, app: &App) {
             .collect();
         genres.sort_by_key(|f| f.name.to_owned());
 
+        let mut releases: Vec<Release> = librarian
+            .list(&Release::default().into(), &Some(release_group.model()))
+            .unwrap()
+            .map(Into::into)
+            .collect();
+        releases.sort_by_key(|release| release.date.clone().unwrap_or_default());
+
+        let release = releases.get(0).unwrap().clone();
         let mut media_and_tracks: Vec<(Medium, Vec<Track>)> = vec![];
-        if let Some(release) = get_preferred_release(&librarian, &release_group) {
-            if let Ok(Some(release)) = librarian.get(&release.model()) {
-                let release: Release = release.into();
-                media_and_tracks = librarian
-                .list(&Medium::default().into(), &Some(release.model()))
-                .unwrap()
-                .map(Into::<Medium>::into)
-                .map(|medium| {
-                    let tracks: Vec<Track> = librarian.list(&Track::default().model(), &Some(medium.model()))
-                        .unwrap()
-                        .map(Into::<Track>::into)
-                        .collect();
-                    (medium, tracks)
-                })
-                .collect();
-            }
+        if let Ok(Some(release)) = librarian.get(&release.model()) {
+            let release: Release = release.into();
+            media_and_tracks = librarian
+            .list(&Medium::default().into(), &Some(release.model()))
+            .unwrap()
+            .map(Into::<Medium>::into)
+            .map(|medium| {
+                let tracks: Vec<Track> = librarian.list(&Track::default().model(), &Some(medium.model()))
+                    .unwrap()
+                    .map(Into::<Track>::into)
+                    .collect();
+                (medium, tracks)
+            })
+            .collect();
         }
 
         ui.upgrade_in_event_loop(move |ui| {
@@ -80,6 +87,9 @@ pub fn release_group_details(url: &str, app: &App) {
             //         card
             //     })
             //     .collect();
+
+            let release_options: Vec<SharedString> = releases.iter().cloned()
+                .map(|release| release_option(&release).into()).collect();
 
             let artists: Vec<LinkAdapter> = artists.iter().cloned().map(|artist| {
                 LinkAdapter {
@@ -110,16 +120,22 @@ pub fn release_group_details(url: &str, app: &App) {
             }).collect();
 
             let mut adapter = ReleaseGroupDetailsAdapter {
+                key: key.clone().into(),
                 card: release_group.clone().into(),
                 artists: ModelRc::from(artists.as_slice()),
                 disambiguation: release_group.disambiguation.clone().unwrap_or_default().into(),
                 summary: release_group.summary.clone().unwrap_or_default().into(),
                 // releases: ModelRc::from(releases.as_slice()),
+                release_options: ModelRc::from(release_options.as_slice()),
+                selected_release_option: release_options.get(0).unwrap().clone(),
                 genres: ModelRc::from(genres.as_slice()),
                 links: ModelRc::from(links.as_slice()),
                 primary_type: release_group.primary_type.clone().unwrap_or_default().into(),
                 media: ModelRc::from(media.as_slice()),
-                dump: serde_json::to_string_pretty(&release_group).unwrap().into(),                
+                dump: format!("{}\n{}",
+                    serde_json::to_string_pretty(&release_group).unwrap(),
+                    serde_json::to_string_pretty(&release).unwrap(),
+                    ).into(),
                 ..Default::default()
             };
             adapter.card.image.image = images.lazy_get(release_group.model(), 275, 275, |ui, image| {
@@ -132,6 +148,72 @@ pub fn release_group_details(url: &str, app: &App) {
             ui.global::<Navigator>().set_busy(false);
         }).unwrap();
     });
+}
+
+fn release_option(release: &Release) -> String {
+    let release = release.clone();
+    format!("{} {} {} {} {} {} ({})", 
+        release.title.unwrap_or_default(),
+        release.country.unwrap_or_default(),
+        release.date.unwrap_or_default(),
+        release.status.unwrap_or_default(),
+        release.quality.unwrap_or_default(),
+        release.primary_type.unwrap_or_default(),
+        release.disambiguation.unwrap_or_default())
+}
+
+pub fn release_group_details_release_selected(app: &App, s: String) {
+    let app = app.clone();
+    let librarian = app.librarian.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        let key = ui.get_release_group_details().key.to_string();
+        let release_group: ReleaseGroup = librarian.get(&ReleaseGroup {
+            key: Some(key.to_string()),
+            ..Default::default()
+        }.into()).unwrap().unwrap().into();
+        let mut releases: Vec<Release> = librarian
+            .list(&Release::default().into(), &Some(release_group.model()))
+            .unwrap()
+            .map(Into::into)
+            .collect();
+        releases.sort_by_key(|release| release.date.clone().unwrap_or_default());
+
+        let release = releases.iter()
+            .find(|release| release_option(release) == s)
+            .unwrap_or(releases.get(0).unwrap());
+        let mut media_and_tracks: Vec<(Medium, Vec<Track>)> = vec![];
+        if let Ok(Some(release)) = librarian.get(&release.model()) {
+            let release: Release = release.into();
+            media_and_tracks = librarian
+            .list(&Medium::default().into(), &Some(release.model()))
+            .unwrap()
+            .map(Into::<Medium>::into)
+            .map(|medium| {
+                let tracks: Vec<Track> = librarian.list(&Track::default().model(), &Some(medium.model()))
+                    .unwrap()
+                    .map(Into::<Track>::into)
+                    .collect();
+                (medium, tracks)
+            })
+            .collect();
+        }
+
+        let media: Vec<MediumAdapter> = media_and_tracks.iter().map(|(medium, tracks)| {
+            MediumAdapter {
+                title: medium.title.clone().unwrap_or_default().into(),
+                tracks: track_adapters(tracks.to_vec()),
+            }
+        }).collect();
+
+        let mut adapter = ui.get_release_group_details();
+        adapter.selected_release_option = s.into();
+        adapter.media = ModelRc::from(media.as_slice());
+        adapter.dump = format!("{}\n{}",
+            serde_json::to_string_pretty(&release_group).unwrap(),
+            serde_json::to_string_pretty(&release).unwrap(),
+            ).into();
+        ui.set_release_group_details(adapter);
+    }).unwrap();
 }
 
 // Note, looking at https://musicbrainz.org/ws/2/release-group/f44f4f73-a714-31a1-a4b8-bfcaaf311f50?inc=aliases%2Bartist-credits%2Breleases&fmt=json
