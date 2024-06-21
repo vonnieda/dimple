@@ -19,7 +19,10 @@ pub fn artist_details(url: &str, app: &App) {
     let ui = app.ui.clone();
     let images = app.images.clone();
 
+    // Turn on the spinner, set an empty model, and go to the page.
     ui.upgrade_in_event_loop(|ui| {
+        ui.global::<Navigator>().set_busy(true);
+
         let adapter = ArtistDetailsAdapter {
             ..Default::default()
         };
@@ -32,11 +35,42 @@ pub fn artist_details(url: &str, app: &App) {
         let url = Url::parse(&url).unwrap();
         let key = url.path_segments().unwrap().nth(0).unwrap();
 
+        // Load the artist by key.
         let artist: Artist = librarian.get(&Artist {
             key: Some(key.to_string()),
             ..Default::default()
         }.into()).unwrap().unwrap().into();
 
+        // Set the available artist properties on the UI, and start loading the
+        // artist image.
+        {
+            let images = images.clone();
+            let artist = artist.clone();
+            ui.upgrade_in_event_loop(move |ui| {
+                let links: Vec<LinkAdapter> = artist.links.iter().map(|link| {
+                    LinkAdapter {
+                        name: link.into(),
+                        url: link.into(),
+                    }
+                }).collect();
+    
+                let mut adapter = ui.get_artist_details();
+                adapter.card.image.image = images.lazy_get(artist.model(), 275, 275, |ui, image| {
+                    let mut model = ui.get_artist_details();
+                    model.card.image.image = image;
+                    ui.set_artist_details(model);
+                });
+                let card: CardAdapter = artist.clone().into();
+                adapter.card.title = card.title;
+                adapter.card.sub_title = card.sub_title;
+                adapter.disambiguation = artist.disambiguation.clone().unwrap_or_default().into();
+                adapter.summary = artist.summary.clone().unwrap_or_default().into();
+                adapter.links = ModelRc::from(links.as_slice());
+                adapter.dump = serde_json::to_string_pretty(&artist).unwrap().into();    
+                ui.set_artist_details(adapter);
+            }).unwrap();
+        }
+    
         let mut genres: Vec<Genre> = librarian
             .list(&Genre::default().into(), &Some(artist.model()))
             .unwrap()
@@ -53,9 +87,7 @@ pub fn artist_details(url: &str, app: &App) {
         release_groups.reverse();
 
         ui.upgrade_in_event_loop(move |ui| {
-            // TODO the real answer is tags above the grid to let the user select
             let albums: Vec<CardAdapter> = release_groups.iter().cloned()
-                // .filter(|release_group| release_group.primary_type.clone().map(|s| s.to_lowercase()) == Some("album".to_string()))
                 .enumerate()
                 .map(|(index, release)| {
                     let mut card: CardAdapter = release.clone().into();
@@ -75,32 +107,10 @@ pub fn artist_details(url: &str, app: &App) {
                 }
             }).collect();
 
-            let links: Vec<LinkAdapter> = artist.links.iter().map(|link| {
-                LinkAdapter {
-                    name: link.into(),
-                    url: link.into(),
-                }
-            }).collect();
-
-            let mut adapter = ArtistDetailsAdapter {
-                card: artist.clone().into(),
-                disambiguation: artist.disambiguation.clone().unwrap_or_default().into(),
-                summary: artist.summary.clone().unwrap_or_default().into(),
-                albums: ModelRc::from(albums.as_slice()),
-                genres: ModelRc::from(genres.as_slice()),
-                links: ModelRc::from(links.as_slice()),
-                dump: serde_json::to_string_pretty(&artist).unwrap().into(),
-                ..Default::default()
-            };
-
-            adapter.card.image.image = images.lazy_get(artist.model(), 275, 275, |ui, image| {
-                let mut model = ui.get_artist_details();
-                model.card.image.image = image;
-                ui.set_artist_details(model);
-            });
-
+            let mut adapter = ui.get_artist_details();
+            adapter.albums = ModelRc::from(albums.as_slice());
+            adapter.genres = ModelRc::from(genres.as_slice());
             ui.set_artist_details(adapter);
-            ui.set_page(Page::ArtistDetails);
             ui.global::<Navigator>().set_busy(false);
         }).unwrap();
     });
