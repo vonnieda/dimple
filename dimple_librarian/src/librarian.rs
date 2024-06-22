@@ -1,7 +1,7 @@
 use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}, time::Instant};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Dimage, Entity, Model}
+    db::{Db, SqliteDb}, model::{Dimage, Entity, Model, ReleaseGroup}
 };
 
 use anyhow::{Error, Result};
@@ -21,7 +21,7 @@ pub struct Librarian {
 impl Librarian {
     pub fn new(path: &str) -> Self {
         fs::create_dir_all(path).unwrap();
-        let db_path = Path::new(path).join("dimple.db");
+        let db_path = Path::new(path).join("library.db");
         let librarian = Self {
             db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()))),
             plugins: Default::default(),
@@ -132,8 +132,6 @@ impl Librarian {
         self.db.list(list_of, related_to)
     }
 
-    // TODO don't use list, go directly to plugins for the second phase
-    // and abort when we get one.
     pub fn image(&self, model: &Model) -> Option<DynamicImage> {
         let t = Instant::now();
         let dimage = self.db.list(&Dimage::default().into(), &Some(model.clone()))
@@ -151,6 +149,7 @@ impl Librarian {
         // not include the blob, and then this won't be needed, or wanted,
         // because we'll want to be able to offer the user all the different
         // images, not just one.
+        let t = Instant::now();
         let dimage = self._list(&Dimage::default().into(), &Some(model.clone()), true)
             .unwrap()
             .map(Into::<Dimage>::into)
@@ -159,6 +158,35 @@ impl Librarian {
             log::debug!("image from plugins {:?} {}x{} in {}ms", dimage.key, dimage.width, 
                 dimage.height, t.elapsed().as_millis());
             return Some(dimage.get_image())
+        }
+
+        let t = Instant::now();
+        match model {
+            Model::Artist(artist) => {
+                let release_groups = self.list2(ReleaseGroup::default(), Some(artist.clone()));
+                if let Ok(release_groups) = release_groups {
+                    for release_group in release_groups {
+                        if let Some(dimage) = self.image(&release_group.model()) {
+                            log::debug!("image from relations {}x{} in {}ms", dimage.width(), 
+                                dimage.height(), t.elapsed().as_millis());
+                            return Some(dimage)
+                        }
+                    }
+                }
+            },
+            Model::Genre(genre) => {
+                let release_groups = self.list2(ReleaseGroup::default(), Some(genre.clone()));
+                if let Ok(release_groups) = release_groups {
+                    for release_group in release_groups {
+                        if let Some(dimage) = self.image(&release_group.model()) {
+                            log::debug!("image from relations {}x{} in {}ms", dimage.width(), 
+                                dimage.height(), t.elapsed().as_millis());
+                            return Some(dimage)
+                        }
+                    }
+                }
+            }
+            _ => ()
         }
 
         None
