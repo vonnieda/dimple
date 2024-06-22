@@ -25,6 +25,8 @@ use crate::ui::MediumAdapter;
 // I turn into thousands of objects and merge on every load. 
 // Gotta stop doing that :)
 // [2024-06-22T00:31:37.511Z INFO  dimple_librarian::plugin] MusicBrainz 496068 (Cached) https://musicbrainz.org/ws/2/release?fmt=json&offset=0&limit=100&release-group=0da580f2-6768-498f-af9d-2becaddf15e0&inc=artist-credits labels recordings release-groups media discids isrcs
+// This is a good one too
+// [2024-06-22T01:24:25.672Z INFO  dimple_librarian::plugin] MusicBrainz 543565 (Cached) https://musicbrainz.org/ws/2/release?fmt=json&offset=0&limit=100&release-group=9f7a4c28-8fa2-3113-929c-c47a9f7982c3&inc=artist-credits labels recordings release-groups media discids isrcs
 pub fn release_group_details(url: &str, app: &App) {
     let url = url.to_owned();
     let librarian = app.librarian.clone();

@@ -29,6 +29,9 @@ impl Default for MusicBrainzPlugin {
 
 impl MusicBrainzPlugin {
     /// Blocks until at least one second has passed since the last request.
+    /// TODO I think I can adjust this to average over 10 seconds or something
+    /// so that we can do quick bursts without feeling slow and without
+    /// passing the rate limit.
     fn enforce_rate_limit(&self) {
         let mut last_request_time = self.rate_limit_lock.lock().unwrap();
 
