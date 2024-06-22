@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}};
+use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}, time::Instant};
 
 use dimple_core::{
     db::{Db, SqliteDb}, model::{Dimage, Entity, Model}
@@ -106,6 +106,15 @@ impl Librarian {
         list_of: &Model,
         related_to: &Option<Model>,
     ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
+        self._list(list_of, related_to, false)
+    }
+
+    fn _list(
+        &self,
+        list_of: &Model,
+        related_to: &Option<Model>,
+        first: bool,
+    ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         let db: &dyn Db = self.db.as_ref().as_ref();
 
         for plugin in self.plugins.read().unwrap().iter() {
@@ -113,31 +122,42 @@ impl Librarian {
             if let Ok(results) = results {
                 for result in results {
                     merge::merge(db, &result, related_to);
+                    if first {
+                        return self.db.list(list_of, related_to)
+                    }
                 }
             }
         }
 
-        let results = self.db.list(list_of, related_to);
-
-        results
+        self.db.list(list_of, related_to)
     }
 
     // TODO don't use list, go directly to plugins for the second phase
     // and abort when we get one.
     pub fn image(&self, model: &Model) -> Option<DynamicImage> {
+        let t = Instant::now();
         let dimage = self.db.list(&Dimage::default().into(), &Some(model.clone()))
             .unwrap()
             .map(Into::<Dimage>::into)
             .next();
         if let Some(dimage) = dimage {
+            log::debug!("image from database {:?} {}x{} in {}ms", dimage.key, dimage.width, 
+                dimage.height, t.elapsed().as_millis());
             return Some(dimage.get_image())
         }
 
-        let dimage = self.list(&Dimage::default().into(), &Some(model.clone()))
+        // TODO note, this uses a specialization of list that returns on the 
+        // first valid result to speed things up. Eventually I want Dimage to
+        // not include the blob, and then this won't be needed, or wanted,
+        // because we'll want to be able to offer the user all the different
+        // images, not just one.
+        let dimage = self._list(&Dimage::default().into(), &Some(model.clone()), true)
             .unwrap()
             .map(Into::<Dimage>::into)
             .next();
         if let Some(dimage) = dimage {
+            log::debug!("image from plugins {:?} {}x{} in {}ms", dimage.key, dimage.width, 
+                dimage.height, t.elapsed().as_millis());
             return Some(dimage.get_image())
         }
 

@@ -21,6 +21,10 @@ use crate::ui::ReleaseGroupDetailsAdapter;
 use crate::ui::TrackAdapter;
 use crate::ui::MediumAdapter;
 
+// TODO this is what is causing that little hiccup. Half a meg of JSON that
+// I turn into thousands of objects and merge on every load. 
+// Gotta stop doing that :)
+// [2024-06-22T00:31:37.511Z INFO  dimple_librarian::plugin] MusicBrainz 496068 (Cached) https://musicbrainz.org/ws/2/release?fmt=json&offset=0&limit=100&release-group=0da580f2-6768-498f-af9d-2becaddf15e0&inc=artist-credits labels recordings release-groups media discids isrcs
 pub fn release_group_details(url: &str, app: &App) {
     let url = url.to_owned();
     let librarian = app.librarian.clone();

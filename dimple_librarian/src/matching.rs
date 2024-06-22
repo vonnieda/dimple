@@ -1,8 +1,16 @@
 use dimple_core::{db::Db, model::{Entity, Model, ReleaseGroup}};
 
+use crate::equiv::Equivalent;
+
 // TODO revisit this entirely.
 
-
+/// Finds a model that matches, and can be merged with, the specified model.
+/// When related_to is supplied the search for a compatible model is restricted
+/// to relations of the related_to model, otherwise all objects are searched.
+/// 
+/// TODO this currently does a list all and find via equivalent for most
+/// objects, but this is where I can add some real actual database queries
+/// to speed things up.
 pub fn find_matching_model(db: &dyn Db, model: &Model, related_to: &Option<Model>) -> Option<Model> {
     if model.entity().key().is_some() {
         if let Ok(Some(model)) = db.get(model) {
@@ -11,7 +19,7 @@ pub fn find_matching_model(db: &dyn Db, model: &Model, related_to: &Option<Model
     }
     match model {
         Model::ReleaseGroup(release_group) => find_release_group(db, release_group),
-        _ => db.list(&model, related_to).unwrap().find(|model_opt| compare_models(&model, model_opt))
+        _ => db.list(&model, related_to).unwrap().find(|model_opt| Model::equivalent(&model, model_opt))
     }
 }
 
@@ -39,45 +47,5 @@ fn find_release_group(db: &dyn Db, release_group: &ReleaseGroup) -> Option<Model
 
 fn is_some_and_equal(l: &Option<String>, r: &Option<String>) -> bool {
     l.is_some() && l == r
-}
-
-// TOOD This is just hot hot hot trash. I hate it. 
-fn compare_models(l: &Model, r: &Model) -> bool {
-    match (l, r) {
-        (Model::Artist(l), Model::Artist(r)) => {
-            (l.name.is_some() && l.name == r.name && l.disambiguation == r.disambiguation)
-            || (l.known_ids.musicbrainz_id.is_some() && l.known_ids.musicbrainz_id == r.known_ids.musicbrainz_id)
-        },
-        (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => {
-            (l.title.is_some() && l.title == r.title)
-            || (l.known_ids.musicbrainz_id.is_some() && l.known_ids.musicbrainz_id == r.known_ids.musicbrainz_id)
-        },
-        (Model::Release(l), Model::Release(r)) => {
-            (l.title.is_some() && l.title == r.title && l.country.is_some() && l.country == r.country && l.date.is_some() && l.date == r.date)
-            || (l.known_ids.musicbrainz_id.is_some() && l.known_ids.musicbrainz_id == r.known_ids.musicbrainz_id)
-        },
-        (Model::Recording(l), Model::Recording(r)) => {
-            (l.title.is_some() && l.title == r.title)
-            || (l.known_ids.musicbrainz_id.is_some() && l.known_ids.musicbrainz_id == r.known_ids.musicbrainz_id)
-        },
-        (Model::Medium(l), Model::Medium(r)) => {
-            l.position == r.position
-        },
-        (Model::Track(l), Model::Track(r)) => {
-            l.title.is_some() && l.title == r.title
-        },
-        (Model::Genre(l), Model::Genre(r)) => {
-            l.name.is_some() && l.name == r.name
-        },
-        (Model::ArtistCredit(l), Model::ArtistCredit(r)) => {
-            l.name.is_some() && l.name == r.name
-        },
-        (Model::Dimage(l), Model::Dimage(r)) => {
-            // TODO STOPSHIP temp, eventually we'll compare type, size, maybe
-            // hash etc. This is just to get things moving.
-            l.data.len() == r.data.len()
-        },
-        _ => todo!()
-    }
 }
 

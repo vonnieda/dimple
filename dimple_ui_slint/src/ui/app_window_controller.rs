@@ -44,6 +44,7 @@ impl AppWindowController {
         // can show errors if needed. 
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
         let dir = dirs.data_dir().to_str().unwrap();
+        // let librarian = Librarian::new_in_memory();
         let librarian = Librarian::new(dir);
         
         // let mediafiles_plugin = MediaFilesPlugin::new();

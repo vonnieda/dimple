@@ -58,4 +58,17 @@ mod tests {
             .unwrap().next().unwrap();
         assert!(recording.title == Some("Dayvan Cowboy".to_string()));
     }
+
+    #[test]
+    fn sixtyniner() {
+        let librarian = Librarian::new_in_memory();
+        librarian.add_plugin(Box::new(MusicBrainzPlugin::default()));
+        librarian.add_plugin(Box::new(WikidataPlugin::default()));
+        librarian.add_plugin(Box::new(FanartTvPlugin::default()));
+        librarian.add_plugin(Box::new(TheAudioDbPlugin::default()));
+        librarian.add_plugin(Box::new(CoverArtArchivePlugin::default()));
+
+        let results: Vec<Model> = librarian.search("sixtyniner").unwrap().collect();
+        dbg!(&results);
+    }
 }
