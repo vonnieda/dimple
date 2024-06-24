@@ -2,7 +2,7 @@ use std::{collections::HashSet, time::Instant};
 
 use dimple_core::{db::Db, model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Dimage, Recording, RecordingSource, Release, ReleaseGroup, Track}};
 
-use crate::{equiv::Equivalent, matching};
+use crate::{equivalent::Equivalent, matching};
 
 pub trait Merge {
     /// Commutative: A v B = B v A

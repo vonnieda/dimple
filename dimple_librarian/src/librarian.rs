@@ -7,7 +7,7 @@ use dimple_core::{
 use anyhow::{Error, Result};
 use image::DynamicImage;
 
-use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin}, search};
+use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin, PluginContext}, search};
 
 // It's always worth reviewing https://www.subsonic.org/pages/api.jsp
 
@@ -16,16 +16,22 @@ pub struct Librarian {
     db: Arc<Box<dyn Db>>,
     plugins: Arc<RwLock<Vec<Box<dyn Plugin>>>>,
     network_mode: Arc<Mutex<NetworkMode>>,
+    plugin_context: PluginContext,
 }
 
 impl Librarian {
     pub fn new(path: &str) -> Self {
         fs::create_dir_all(path).unwrap();
         let db_path = Path::new(path).join("library.db");
+        let plugin_cache_path = Path::new(path).join("plugin_cache");
+        fs::create_dir_all(plugin_cache_path.clone()).unwrap();
+        let thumbnail_cache_path = Path::new(path).join("thumbnail_cache");
+        fs::create_dir_all(thumbnail_cache_path).unwrap();
         let librarian = Self {
             db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()))),
             plugins: Default::default(),
             network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
+            plugin_context: PluginContext::new(plugin_cache_path.to_str().unwrap()),
         };
         librarian
     }
@@ -35,6 +41,7 @@ impl Librarian {
             db: Arc::new(Box::new(SqliteDb::new(":memory:"))),
             plugins: Default::default(),
             network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
+            plugin_context: PluginContext::default(),
         };
         librarian
     }
@@ -53,7 +60,7 @@ impl Librarian {
 
     pub fn search(&self, query: &str) -> Result<Box<dyn Iterator<Item = Model>>> {
         for plugin in self.plugins.read().unwrap().iter() {
-            let results = plugin.search(query, self.network_mode());
+            let results = plugin.search(query, self.network_mode(), &self.plugin_context);
             if let Ok(results) = results {
                 for result in results {
                     merge::merge(self.db.as_ref().as_ref(), &result, &None);
@@ -81,7 +88,7 @@ impl Librarian {
 
         let mut finished_plugins = HashSet::<String>::new();
         for plugin in self.plugins.read().unwrap().iter() {
-            if let Ok(Some(plugin_model)) = plugin.get(&model, self.network_mode()) {
+            if let Ok(Some(plugin_model)) = plugin.get(&model, self.network_mode(), &self.plugin_context) {
                 model = Model::merge(model, plugin_model);
                 finished_plugins.insert(plugin.name());
             }
@@ -91,7 +98,7 @@ impl Librarian {
             if finished_plugins.contains(&plugin.name()) {
                 continue;
             }
-            if let Ok(Some(plugin_model)) = plugin.get(&model, self.network_mode()) {
+            if let Ok(Some(plugin_model)) = plugin.get(&model, self.network_mode(), &self.plugin_context) {
                 model = Model::merge(model, plugin_model);
             }
         }
@@ -125,7 +132,7 @@ impl Librarian {
         let db: &dyn Db = self.db.as_ref().as_ref();
 
         for plugin in self.plugins.read().unwrap().iter() {
-            let results = plugin.list(list_of, related_to, self.network_mode());
+            let results = plugin.list(list_of, related_to, self.network_mode(), &self.plugin_context);
             if let Ok(results) = results {
                 for result in results {
                     merge::merge(db, &result, related_to);
@@ -247,7 +254,7 @@ impl Librarian {
 mod test {
     use dimple_core::model::{Artist, Entity, KnownIds, Model};
 
-    use crate::plugin::Plugin;
+    use crate::plugin::{Plugin, PluginContext};
 
     use super::Librarian;
 
@@ -276,7 +283,9 @@ mod test {
             "Test".to_string()
         }
         
-        fn get(&self, model: &dimple_core::model::Model, network_mode: crate::plugin::NetworkMode) -> anyhow::Result<Option<dimple_core::model::Model>> {
+        
+        fn get(&self, model: &dimple_core::model::Model, 
+            network_mode: crate::plugin::NetworkMode, ctx: &PluginContext) -> anyhow::Result<Option<dimple_core::model::Model>> {
             match model {
                 Model::Artist(artist) => {
                     if artist.known_ids.musicbrainz_id == Some("DIMPLE-TEST-METALLICA".to_string()) {
@@ -290,6 +299,6 @@ mod test {
                 _ => ()
             }          
             Ok(None)  
-        }
+        }        
     }
 }

@@ -11,13 +11,11 @@
 //     trivial_numeric_casts
 // )]
 
-use std::{io::Read, time::Instant};
+use std::time::Instant;
 
 use anyhow::Result;
-use dimple_core::model::{Entity, Model};
-
-use colored::Colorize;
-use reqwest::{blocking::{Client, Response}};
+use dimple_core::model::Model;
+use reqwest::blocking::Client;
 use serde::de::DeserializeOwned;
 
 pub const USER_AGENT: &str = "Dimple/0.0.1 +https://github.com/vonnieda/dimple +jason@vonnieda.org";
@@ -27,7 +25,8 @@ pub trait Plugin: Send + Sync {
 
     /// Load the model using its key. Returns None if no key is set, or if the
     /// key doesn't exist in the database.
-    fn get(&self, model: &Model, network_mode: NetworkMode) -> Result<Option<Model>> {
+    fn get(&self, model: &Model, network_mode: NetworkMode, 
+        ctx: &PluginContext) -> Result<Option<Model>> {
         Ok(None)
     }
 
@@ -38,13 +37,56 @@ pub trait Plugin: Send + Sync {
         list_of: &Model,
         related_to: &Option<Model>,
         network_mode: NetworkMode,
+        ctx: &PluginContext,
     ) -> Result<Box<dyn Iterator<Item = Model>>> {
         Ok(Box::new(std::iter::empty()))
     }
 
-    fn search(&self, query: &str, network_mode: NetworkMode) 
+    fn search(&self, query: &str, network_mode: NetworkMode, ctx: &PluginContext) 
         -> Result<Box<dyn Iterator<Item = Model>>> {
         Ok(Box::new(std::iter::empty()))
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct PluginContext {
+    cache_path: Option<String>,
+}
+
+impl PluginContext {
+    pub fn new(path: &str) -> Self {
+        PluginContext {
+            cache_path: Some(path.to_string()),
+        }
+    }
+
+    /// The most common use of HTTP is going to be a simple get, so this
+    /// will be a shortcut for that. I think I'll also need a client()
+    /// that returns a pre-configured client that the plugin can use for
+    /// more complex tasks.
+    pub fn get(&self, plugin: &dyn Plugin, url: &str) -> Result<CacheResponse> {
+        if let Some(cache_path) = self.cache_path.clone() {
+            if let Some(cached) = cacache::read_sync(cache_path.clone(), url).ok() {
+                log::debug!("{} {} (Cached) {}", 
+                    plugin.name(), 
+                    cached.len(),
+                    url);
+                return Ok(CacheResponse::new(cached, true))
+            }
+        }
+        let client = Client::builder()
+            .user_agent(super::plugin::USER_AGENT)
+            .build()?;
+        let request_token = PluginSupport::start_request(plugin, &url);
+        let response = client.get(url).send()?;
+        PluginSupport::end_request(request_token, 
+            Some(response.status().as_u16()), 
+            response.content_length());
+        let bytes = response.bytes()?;
+        if let Some(cache_path) = self.cache_path.clone() {
+            cacache::write_sync(cache_path.clone(), url, &bytes)?;
+        }
+        return Ok(CacheResponse::new(bytes.to_vec(), false))
     }
 }
 
@@ -80,34 +122,7 @@ impl PluginSupport {
             status_code, 
             token.start_time.elapsed().as_millis(), 
             length,
-            token.url.yellow());
-    }
-
-    /// The most common use of HTTP is going to be a simple get, so this
-    /// will be a shortcut for that. I think I'll also need a client()
-    /// that returns a pre-configured client that the plugin can use for
-    /// more complex tasks.
-    pub fn get(plugin: &dyn Plugin, url: &str) -> Result<CacheResponse> {
-        // TODO use dirs, or better yet, the librarian path
-        let cache = "./dimple-librarian-plugin-cache";
-        if let Some(cached) = cacache::read_sync(cache, url).ok() {
-            log::info!("{} {} (Cached) {}", 
-                plugin.name(), 
-                cached.len(),
-                url.blue());
-            return Ok(CacheResponse::new(cached, true))
-        }
-        let client = Client::builder()
-            .user_agent(super::plugin::USER_AGENT)
-            .build()?;
-        let request_token = Self::start_request(plugin, &url);
-        let response = client.get(url).send()?;
-        Self::end_request(request_token, 
-            Some(response.status().as_u16()), 
-            response.content_length());
-        let bytes = response.bytes()?;
-        cacache::write_sync(cache, url, &bytes)?;
-        return Ok(CacheResponse::new(bytes.to_vec(), false))
+            token.url);
     }
 }
 

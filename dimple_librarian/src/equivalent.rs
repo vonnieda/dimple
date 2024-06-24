@@ -120,7 +120,7 @@ impl <T: Equivalent + Clone> Equivalent for Vec<T> {
 mod test {
     use dimple_core::model::{Genre, KnownIds};
 
-    use crate::equiv::Equivalent;
+    use crate::equivalent::Equivalent;
 
     #[test]
     fn genre() {

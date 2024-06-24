@@ -2,7 +2,7 @@ use std::{env};
 
 use anyhow::{Error, Result};
 use dimple_core::model::{Entity, Model, Dimage};
-use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
+use dimple_librarian::plugin::{NetworkMode, Plugin, PluginContext, PluginSupport};
 use serde::Deserialize;
 // TODO consider using https://crates.io/crates/fuzzy-matcher to try to find
 // albums that might match the name of the artist to use as a back up for
@@ -66,6 +66,7 @@ impl Plugin for FanartTvPlugin {
         list_of: &dimple_core::model::Model,
         related_to: &Option<dimple_core::model::Model>,
         network_mode: dimple_librarian::plugin::NetworkMode,
+        ctx: &PluginContext,
     ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         if network_mode != NetworkMode::Online {
             return Err(Error::msg("Offline."))
@@ -77,11 +78,11 @@ impl Plugin for FanartTvPlugin {
 
                 let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", 
                     mbid, self.api_key);
-                let response = PluginSupport::get(self, &url)?;
+                let response = ctx.get(self, &url)?;
                 let artist_resp = response.json::<ArtistResponse>()?;
                 let thumb = artist_resp.artistthumb.first().ok_or_else(|| Error::msg("No images"))?;
                 
-                let thumb_resp = PluginSupport::get(self, &thumb.url)?;
+                let thumb_resp = ctx.get(self, &thumb.url)?;
                 let bytes = thumb_resp.bytes()?;
                 let image = image::load_from_memory(&bytes)?;
 

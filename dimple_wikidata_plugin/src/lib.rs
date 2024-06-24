@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use dimple_core::model::{Artist, Entity, Model, Recording, Release, ReleaseGroup};
-use dimple_librarian::plugin::{PluginSupport, NetworkMode, Plugin};
+use dimple_librarian::plugin::{NetworkMode, Plugin, PluginContext, PluginSupport};
 use serde::Deserialize;
 use url::Url;
 
@@ -72,7 +72,7 @@ struct WpSummary {
 // set those IDs on KnownIds when possible.
 // https://www.wikidata.org/wiki/Q2549534
 impl WikidataPlugin {
-    fn get_summary(&self, links: &HashSet<String>) -> Option<String> {
+    fn get_summary(&self, links: &HashSet<String>, ctx: &PluginContext) -> Option<String> {
         // Find a Wikidata link if one exists.
         let wikidata_url = links.iter()
             .find_map(|link| {
@@ -88,7 +88,7 @@ impl WikidataPlugin {
 
         // Use the Wikidata API to fetch the item
         let url = format!("https://www.wikidata.org/w/rest.php/wikibase/v0/entities/items/{}", wikidata_id);
-        let response = PluginSupport::get(self, &url).ok()?;
+        let response = ctx.get(self, &url).ok()?;
         let wikidata_item = response.json::<WdItem>().ok()?;
 
         fn non_empty(s: &String) -> Option<String> {
@@ -125,7 +125,7 @@ impl WikidataPlugin {
         // Use the Wikipedia API to fetch the summary
         // TODO should wikipedia be it's own library, perhaps after the ids have been extracted?
         let url = format!("https://en.wikipedia.org/api/rest_v1/page/summary/{}", wikipedia_title);
-        let response = PluginSupport::get(self, &url).ok()?;
+        let response = ctx.get(self, &url).ok()?;
         let wikipedia_summary = response.json::<WpSummary>().ok()?;
         if wikipedia_summary.extract.is_empty() {
             return None;
@@ -148,14 +148,18 @@ impl Plugin for WikidataPlugin {
         "Wikidata".to_string()
     }
 
-    fn get(&self, model: &Model, network_mode: dimple_librarian::plugin::NetworkMode) -> Result<Option<Model>> {
+    fn get(&self, 
+        model: &Model, 
+        network_mode: NetworkMode,
+        ctx: &PluginContext,
+    ) -> Result<Option<Model>> {
         if network_mode != NetworkMode::Online {
             return Ok(None)
         }
 
         match model {
             Model::Artist(artist) => {
-                let artist = self.get_summary(&artist.links)
+                let artist = self.get_summary(&artist.links, ctx)
                     .map(|summary| Artist {
                         summary: Some(summary),
                         ..Default::default()
@@ -168,7 +172,7 @@ impl Plugin for WikidataPlugin {
                 }
             },
             Model::ReleaseGroup(release_group) => {
-                let release_group = self.get_summary(&release_group.links)
+                let release_group = self.get_summary(&release_group.links, ctx)
                     .map(|summary| ReleaseGroup {
                         summary: Some(summary),
                         ..Default::default()
@@ -181,7 +185,7 @@ impl Plugin for WikidataPlugin {
                 }
             },
             Model::Release(release) => {
-                let release = self.get_summary(&release.links)
+                let release = self.get_summary(&release.links, ctx)
                     .map(|summary| Release {
                         summary: Some(summary),
                         ..Default::default()
@@ -194,7 +198,7 @@ impl Plugin for WikidataPlugin {
                 }
             },
             Model::Recording(recording) => {
-                let recording = self.get_summary(&recording.links)
+                let recording = self.get_summary(&recording.links, ctx)
                     .map(|summary| Recording {
                         summary: Some(summary),
                         ..Default::default()

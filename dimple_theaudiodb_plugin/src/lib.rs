@@ -2,7 +2,7 @@ use std::env;
 
 use anyhow::{Error, Result};
 use dimple_core::model::{Entity, Model, Dimage};
-use dimple_librarian::plugin::{NetworkMode, Plugin, PluginSupport};
+use dimple_librarian::plugin::{NetworkMode, Plugin, PluginContext, PluginSupport};
 use serde::Deserialize;
 
 #[derive(Debug)]
@@ -62,6 +62,7 @@ impl Plugin for TheAudioDbPlugin {
         list_of: &dimple_core::model::Model,
         related_to: &Option<dimple_core::model::Model>,
         network_mode: dimple_librarian::plugin::NetworkMode,
+        ctx: &PluginContext,
     ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
         if network_mode != NetworkMode::Online {
             return Err(Error::msg("Offline."))
@@ -73,7 +74,7 @@ impl Plugin for TheAudioDbPlugin {
 
                 let url = format!("https://www.theaudiodb.com/api/v1/json/{}/artist-mb.php?i={}", 
                     self.api_key, mbid);
-                let response = PluginSupport::get(self, &url)?;
+                let response = ctx.get(self, &url)?;
                 let artists_resp = response.json::<ArtistsResponse>()?;
 
                 let artist_thumbnail_url = artists_resp.artists.first().ok_or(Error::msg("no thumbnail"))?
@@ -82,7 +83,7 @@ impl Plugin for TheAudioDbPlugin {
                     return Ok(Box::new(std::iter::empty()))
                 }
 
-                let thumb_resp = PluginSupport::get(self, &artist_thumbnail_url)?;
+                let thumb_resp = ctx.get(self, &artist_thumbnail_url)?;
                 let bytes = thumb_resp.bytes()?;
                 let image = image::load_from_memory(&bytes)?;
 

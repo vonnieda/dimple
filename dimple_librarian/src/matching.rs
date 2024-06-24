@@ -1,6 +1,6 @@
 use dimple_core::{db::Db, model::{Entity, Model, ReleaseGroup}};
 
-use crate::equiv::Equivalent;
+use crate::equivalent::Equivalent;
 
 // TODO revisit this entirely.
 
