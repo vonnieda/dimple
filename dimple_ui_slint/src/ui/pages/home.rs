@@ -5,6 +5,12 @@ impl HomePage {
 
 }
 
+/// Via listening history:
+/// - Seasons
+/// - Holidays
+/// - Birthday
+/// - Obessions
+/// - Old favorites
 impl Page for HomePage {
     fn navigate(librarian: &Librarian, ui: slint::Weak<AppWindow>) {
         let librarian = librarian.clone();

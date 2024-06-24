@@ -261,6 +261,7 @@ fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
             },
             track_number: format!("{}", t.number.clone().unwrap_or_default()).into(),
             length: length_to_string(t.length.clone().unwrap_or_default()).into(),
+            // TODO
             // artists: Default::default(),
             // plays: 0,
             // source_count: t.sources.len() as i32,

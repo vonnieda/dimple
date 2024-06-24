@@ -45,7 +45,7 @@ impl ImageMangler {
             default_release: Self::load_default_image("images/release_placeholder.png"),
             default_genre: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
             default_other: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_rects(128, 128)))),
-            threadpool: ThreadPool::default(),
+            threadpool: ThreadPool::new(2),
         };
 
         images

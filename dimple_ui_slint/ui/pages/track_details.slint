@@ -61,10 +61,10 @@ export component TrackDetails inherits ScrollView {
                 // Type and artists
                 if model.artists.length > 0: HorizontalLayout {
                     alignment: start;
-                    // Text {
-                    //     text: "\{model.primary-type} by ";
-                    //     font-size: 1.3rem;
-                    // }
+                    Text {
+                        text: "Track by ";
+                        font-size: 1.3rem;
+                    }
                     Links {
                         links: model.artists;
                     }

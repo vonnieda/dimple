@@ -57,13 +57,13 @@ pub fn recording_details(url: &str, app: &App) {
             };
 
             adapter.card.image.image = images.lazy_get(recording.model(), 275, 275, |ui, image| {
-                let mut model = ui.get_track_details();
+                let mut model = ui.get_recording_details();
                 model.card.image.image = image;
-                ui.set_track_details(model);
+                ui.set_recording_details(model);
             });
 
             ui.set_recording_details(adapter);
-            ui.set_page(Page::TrackDetails);
+            ui.set_page(Page::RecordingDetails);
             ui.global::<Navigator>().set_busy(false);
         }).unwrap();
     });

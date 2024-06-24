@@ -125,6 +125,13 @@ impl AppWindowController {
                 },
                 ..Default::default()
             }).unwrap().model());
+            pinned_items.push(app.librarian.get2(Artist {
+                known_ids: KnownIds {
+                    musicbrainz_id: Some("f1686ac4-3f28-4789-88eb-083ccb3a213a".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }).unwrap().model());
             let images = app.images.clone();
             app.ui.upgrade_in_event_loop(move |ui| {
                 let cards: Vec<CardAdapter> = pinned_items.iter().cloned().enumerate()

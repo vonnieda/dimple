@@ -245,6 +245,7 @@ pub fn merge(db: &dyn Db, model: &Model, related_to: &Option<Model>) -> Option<M
         Model::Recording(recording) => db_merge_recording(db, recording),
         Model::Genre(genre) => db_merge_genre(db, genre),
         Model::Dimage(dimage) => db_merge_dimage(db, dimage, related_to),
+        Model::Track(_) => db_merge_model(db, model, related_to),
         _ => panic!("merge({}, {}) not yet implemented", 
             model.entity().type_name(), 
             related_to.clone().map(|related_to| related_to.entity().type_name()).unwrap_or("None".to_string())),
@@ -306,6 +307,8 @@ fn db_merge_tracks(db: &dyn Db, tracks: &[Track], medium: &Medium) {
 
 fn db_merge_track(db: &dyn Db, track: &Track, medium: &Medium) -> Option<Model> {
     let track: Track = db_merge_model(db, &track.model(), &Some(medium.model()))?.into();
+    db_merge_genres(db, &track.genres, &track.model());
+    db_merge_artist_credits(db, &track.artist_credits, &track.model());
     let recording = db_merge_recording(db, &track.recording);
     lazy_link(db, &recording, &Some(track.model()));
     Some(track.model())
@@ -335,11 +338,12 @@ fn db_merge_dimage(db: &dyn Db, dimage: &Dimage, related_to: &Option<Model>) -> 
     db_merge_model(db, &dimage.model(), related_to)
 }
 
-// TODO does this need to be merging parent as well? Yea, I think it
-// seems obvious we can't merge something to a parent if the parent
-// doesn't exist. 
 fn db_merge_model(db: &dyn Db, model: &Model, related_to: &Option<Model>) -> Option<Model> {
     let t = Instant::now();
+    // TODO does this need to be merging parent as well? Yea, I think it
+    // seems obvious we can't merge something to a parent if the parent
+    // doesn't exist. 
+    // Temporary workaround.
     if let Some(related_to) = related_to {
         if related_to.entity().key().is_none() {
             panic!("db_merge_model called with unmerged related_to");

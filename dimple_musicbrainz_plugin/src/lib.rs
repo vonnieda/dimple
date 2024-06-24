@@ -60,7 +60,7 @@ impl Plugin for MusicBrainzPlugin {
         match model {
             Model::Artist(artist) => {
                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;                
-                let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases annotation genres ratings tags url-rels", mbid);
+                let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
                 let response = PluginSupport::get(self, &url)?;
                 if !response.cached() {
                     self.enforce_rate_limit();
@@ -72,7 +72,7 @@ impl Plugin for MusicBrainzPlugin {
 
             Model::ReleaseGroup(r) => {
                 let mbid = r.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;
-                let url = format!("https://musicbrainz.org/ws/2/release-group/{}?fmt=json&inc=aliases annotation artists genres ratings tags url-rels", mbid);
+                let url = format!("https://musicbrainz.org/ws/2/release-group/{}?fmt=json&inc=aliases+annotation+artists+genres+releases+ratings+tags+url-rels", mbid);
                 let response = PluginSupport::get(self, &url)?;
                 if !response.cached() {
                     self.enforce_rate_limit();
@@ -84,7 +84,7 @@ impl Plugin for MusicBrainzPlugin {
 
             Model::Release(r) => {
                 let mbid = r.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;
-                let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases annotation artists genres ratings recordings release-groups tags url-rels", mbid);
+                let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels", mbid);
                 let response = PluginSupport::get(self, &url)?;
                 if !response.cached() {
                     self.enforce_rate_limit();
@@ -105,7 +105,7 @@ impl Plugin for MusicBrainzPlugin {
                 let recording = Recording::from(RecordingConverter::from(recording.clone()));
                 Ok(Some(recording.model()))
             },
-
+            
             _ => Ok(None),
         }
     }

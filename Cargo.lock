@@ -1437,6 +1437,7 @@ dependencies = [
  "anyhow",
  "bincode",
  "dimple_core_macro",
+ "fast_image_resize",
  "image 0.25.1",
  "log",
  "serde",

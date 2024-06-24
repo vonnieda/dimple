@@ -55,10 +55,21 @@ export component ArtistDetails inherits ScrollView {
                     font-size: 4rem;
                 }
                 // Disambiguation
-                if model.disambiguation > 0: Text {
-                    text: model.disambiguation;
-                    // font-weight: Palette.font-weight-bold;
-                    font-size: 1.3rem;
+                if model.disambiguation > 0: HorizontalLayout {
+                    spacing: 4px;
+                    Image {
+                        source: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
+                        width: 1.5rem;
+                        colorize: StyleMetrics.default-text-color;
+                        padding-right: 8px;
+                    }
+                    Text {
+                        vertical-alignment: bottom;
+                        text: model.disambiguation;
+                        // font-weight: Palette.font-weight-bold;
+                        font-size: 1.3rem;
+                        color: StyleMetrics.default-text-color.darker(0.5);
+                    }
                 }
                 // Genres
                 if model.genres.length > 0: HorizontalLayout {

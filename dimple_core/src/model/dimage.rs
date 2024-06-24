@@ -6,6 +6,8 @@ use image::DynamicImage;
 use serde::Deserialize;
 use serde::Serialize;
 use image::ImageFormat;
+use fast_image_resize::Resizer;
+
 
 // https://fanart.tv/music-fanart/
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Hash, Default)]
@@ -43,7 +45,7 @@ impl Dimage {
         self.width = image.width();
         self.height = image.height();
 
-        let thumb = image.resize_exact(4, 4, image::imageops::FilterType::Gaussian);
+        let thumb = resize(image, 4, 4);
         let mut cursor = Cursor::new(&mut self.placeholder_data);
         thumb.write_to(&mut cursor, ImageFormat::Png).unwrap();
     }
@@ -56,4 +58,16 @@ impl Dimage {
         let image = image::load_from_memory(&self.placeholder_data).unwrap();
         image.resize(width, height, FilterType::Gaussian)
     }
+}
+
+pub fn resize(image: &DynamicImage, width: u32, height: u32) -> DynamicImage {
+    let src_image = image;
+
+    let mut dst_image = DynamicImage::new(width, height, 
+        src_image.color());
+
+    let mut resizer = Resizer::new();
+    resizer.resize(src_image, &mut dst_image, None).unwrap();
+
+    dst_image
 }

@@ -1,7 +1,7 @@
 use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}, time::Instant};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Dimage, Entity, Model, ReleaseGroup}
+    db::{Db, SqliteDb}, model::{Artist, Dimage, Entity, Model, ReleaseGroup}
 };
 
 use anyhow::{Error, Result};
@@ -101,6 +101,13 @@ impl Librarian {
         Ok(result)
     }
 
+    // TODO throwin' in the towel, I need deep objects in the view at they'd
+    // sure be useful everywhere else. So this will fully hydrate an object.
+    // Remains to be seen if this replaces / gets included with get.
+    pub fn hydrate(&self, model: &Model) -> Result<Model> {
+        todo!()
+    }
+
     pub fn list(
         &self,
         list_of: &Model,
@@ -160,6 +167,7 @@ impl Librarian {
             return Some(dimage.get_image())
         }
 
+        // If nothing found specific to the model, see if there's something related.
         let t = Instant::now();
         match model {
             Model::Artist(artist) => {
@@ -179,6 +187,16 @@ impl Librarian {
                 if let Ok(release_groups) = release_groups {
                     for release_group in release_groups {
                         if let Some(dimage) = self.image(&release_group.model()) {
+                            log::debug!("image from relations {}x{} in {}ms", dimage.width(), 
+                                dimage.height(), t.elapsed().as_millis());
+                            return Some(dimage)
+                        }
+                    }
+                }
+                let artists = self.list2(Artist::default(), Some(genre.clone()));
+                if let Ok(artists) = artists {
+                    for artist in artists {
+                        if let Some(dimage) = self.image(&artist.model()) {
                             log::debug!("image from relations {}x{} in {}ms", dimage.width(), 
                                 dimage.height(), t.elapsed().as_millis());
                             return Some(dimage)
