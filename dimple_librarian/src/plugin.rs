@@ -60,6 +60,18 @@ impl PluginContext {
         }
     }
 
+    pub fn cache_len(&self) -> usize {
+        // TODO this might not be working, I think it's always returning 0
+        if let Some(cache_path) = self.cache_path.clone() {
+            let mut len = 0;
+            for entry in cacache::list_sync(cache_path.clone()) {
+                len += entry.unwrap().size;
+            }
+            return len
+        }
+        0
+    }
+
     /// The most common use of HTTP is going to be a simple get, so this
     /// will be a shortcut for that. I think I'll also need a client()
     /// that returns a pre-configured client that the plugin can use for

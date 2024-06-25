@@ -4,13 +4,13 @@ use dimple_core::model::{Artist, Genre, Medium, Release, ReleaseGroup};
 use crate::librarian::Librarian;
 
 pub trait Hydrate {
-    fn hydrate(&self, librarian: Librarian) -> Result<Self>
+    fn hydrate(&self, librarian: &Librarian) -> Result<Self>
     where
         Self: Sized;
 }
 
 impl Hydrate for Artist {
-    fn hydrate(&self, librarian: Librarian) -> Result<Self> {
+    fn hydrate(&self, librarian: &Librarian) -> Result<Self> {
         let mut result = librarian.get2(self.clone())?;
         result.genres = librarian
             .list2(Genre::default(), Some(result.clone()))?
@@ -20,7 +20,7 @@ impl Hydrate for Artist {
 }
 
 impl Hydrate for ReleaseGroup {
-    fn hydrate(&self, librarian: Librarian) -> Result<Self> {
+    fn hydrate(&self, librarian: &Librarian) -> Result<Self> {
         let mut result = librarian.get2(self.clone())?;
         result.genres = librarian
             .list2(Genre::default(), Some(result.clone()))?
@@ -31,7 +31,7 @@ impl Hydrate for ReleaseGroup {
 }
 
 impl Hydrate for Release {
-    fn hydrate(&self, librarian: Librarian) -> Result<Self> {
+    fn hydrate(&self, librarian: &Librarian) -> Result<Self> {
         let mut result = librarian.get2(self.clone())?;
         result.genres = librarian
             .list2(Genre::default(), Some(result.clone()))?

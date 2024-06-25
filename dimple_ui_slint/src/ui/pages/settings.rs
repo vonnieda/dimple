@@ -12,6 +12,7 @@ use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
 use dimple_librarian::plugin::NetworkMode;
+use size::Size;
 use slint::{ModelRc, SharedString};
 
 use crate::ui::app_window_controller::App;
@@ -27,7 +28,7 @@ pub fn settings(app: &App) {
     let app = app.clone();
     std::thread::spawn(move || {
         // let db: &dyn Db = &app.librarian as &dyn Db;
-        let db = app.librarian;
+        let db = app.librarian.clone();
 
         let mut database_stats: Vec<String> = vec![];
         database_stats.push(format!("Artists: {}", 
@@ -53,7 +54,8 @@ pub fn settings(app: &App) {
         //         db.list(&Picture::default().model(), &None).unwrap().count()));
 
         let mut cache_stats = vec![];
-        cache_stats.push(format!("Thumbnails: {}", app.images.cache_len()));
+        cache_stats.push(format!("Thumbnail cache: {}", Size::from_bytes(app.images.cache_len())));
+        cache_stats.push(format!("Plugin cache: {}", Size::from_bytes(app.librarian.plugin_cache_len())));
         
         app.ui.upgrade_in_event_loop(move |ui| {
             let database_stats: Vec<SharedString> = database_stats.into_iter()

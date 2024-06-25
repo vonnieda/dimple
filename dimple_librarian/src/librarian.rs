@@ -25,8 +25,6 @@ impl Librarian {
         let db_path = Path::new(path).join("library.db");
         let plugin_cache_path = Path::new(path).join("plugin_cache");
         fs::create_dir_all(plugin_cache_path.clone()).unwrap();
-        let thumbnail_cache_path = Path::new(path).join("thumbnail_cache");
-        fs::create_dir_all(thumbnail_cache_path).unwrap();
         let librarian = Self {
             db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()))),
             plugins: Default::default(),
@@ -108,11 +106,8 @@ impl Librarian {
         Ok(result)
     }
 
-    // TODO throwin' in the towel, I need deep objects in the view at they'd
-    // sure be useful everywhere else. So this will fully hydrate an object.
-    // Remains to be seen if this replaces / gets included with get.
-    pub fn hydrate(&self, model: &Model) -> Result<Model> {
-        todo!()
+    pub fn plugin_cache_len(&self) -> usize {
+        self.plugin_context.cache_len()
     }
 
     pub fn list(
@@ -146,6 +141,9 @@ impl Librarian {
         self.db.list(list_of, related_to)
     }
 
+    // TODO stopping here for now. Need to profile the whole image path and see
+    // why it's so slow in dev mode. It's just unbearable. And maybe I really
+    // just do need to use smaller images? Mik's album images are a good test.
     pub fn image(&self, model: &Model) -> Option<DynamicImage> {
         let t = Instant::now();
         let dimage = self.db.list(&Dimage::default().into(), &Some(model.clone()))

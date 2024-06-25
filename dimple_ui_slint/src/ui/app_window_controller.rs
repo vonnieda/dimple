@@ -9,7 +9,7 @@ use dimple_wikidata_plugin::WikidataPlugin;
 use pages::release_group_details::{self, release_group_details};
 use serde::de;
 
-use std::{borrow::BorrowMut, collections::VecDeque, path::PathBuf, sync::{Arc, Mutex}};
+use std::{borrow::BorrowMut, collections::VecDeque, path::{Path, PathBuf}, sync::{Arc, Mutex}};
 
 use dimple_core::db::Db;
 
@@ -46,6 +46,9 @@ impl AppWindowController {
         let dir = dirs.data_dir().to_str().unwrap();
         // let librarian = Librarian::new_in_memory();
         let librarian = Librarian::new(dir);
+
+        let image_cache_path = Path::new(dir).join("images_cache");
+        let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_path.to_str().unwrap());
         
         // let mediafiles_plugin = MediaFilesPlugin::new();
         // mediafiles_plugin.monitor_directory(&PathBuf::from("/Users/jason/Music"));
@@ -65,7 +68,7 @@ impl AppWindowController {
                 librarian: librarian.clone(),
                 history: Arc::new(Mutex::new(VecDeque::new())),
                 player,
-                images: ImageMangler::new(librarian.clone(), ui_weak.clone()),
+                images,
                 ui: ui_weak,
             }
         }

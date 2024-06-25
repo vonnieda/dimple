@@ -3,7 +3,6 @@ use dimple_core::model::Entity;
 use dimple_core::model::Genre;
 use dimple_core::model::Medium;
 use dimple_core::model::Release;
-use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
 use slint::ComponentHandle;
 use slint::Model as _;
@@ -12,8 +11,6 @@ use url::Url;
 use crate::ui::app_window_controller::App;
 use crate::ui::Navigator;
 use crate::ui::Page;
-use dimple_core::db::Db;
-use crate::ui::CardAdapter;
 use crate::ui::LinkAdapter;
 use crate::ui::ReleaseDetailsAdapter;
 use crate::ui::TrackAdapter;
@@ -28,10 +25,10 @@ pub fn release_details(url: &str, app: &App) {
         let url = Url::parse(&url).unwrap();
         let key = url.path_segments().unwrap().nth(0).unwrap();
 
-        let release: Release = librarian.get(&Release {
+        let release: Release = librarian.get2(Release {
             key: Some(key.to_string()),
             ..Default::default()
-        }.into()).unwrap().unwrap().into();
+        }).unwrap();
 
         let mut artists: Vec<Artist> = librarian
             .list(&Artist::default().into(), &Some(release.model()))
@@ -86,7 +83,6 @@ pub fn release_details(url: &str, app: &App) {
                 MediumAdapter {
                     title: medium.title.clone().unwrap_or_default().into(),
                     tracks: track_adapters(tracks.to_vec()),
-                    ..Default::default()
                 }
             }).collect();
 
@@ -148,78 +144,5 @@ fn length_to_string(length: u32) -> String {
 //         })
 //         .collect();
 //     ModelRc::from(adapters.as_slice())
-// }
-
-
-
-// pub fn release_details(app: ) {
-    // let url = url.to_owned();
-    // std::thread::spawn(move || {
-    //     ui.upgrade_in_event_loop(move |ui| {
-    //         ui.global::<Navigator>().set_busy(true);
-    //     }).unwrap();
-
-    //     let url = Url::parse(&url).unwrap();
-    //     let id = url.path_segments()
-    //         .ok_or("missing path").unwrap()
-    //         .nth(0)
-    //         .ok_or("missing id").unwrap();
-
-    //     let release = Release::get(id, librarian.as_ref())
-    //         .ok_or("release not found").unwrap();
-    //     let card = entity_card(&Entities::Release(release.clone()), 
-    //         Self::THUMBNAIL_WIDTH, Self::THUMBNAIL_HEIGHT, &librarian);
-
-    //     let mut genres: Vec<_> = release.genres(librarian.as_ref())
-    //         .map(|g| Link {
-    //             name: g.name.unwrap_or_default(),
-    //             url: format!("dimple://genre/{}", g.key.unwrap_or_default()),
-    //         })
-    //         .collect();
-    //     genres.sort_by_key(|g| g.name.to_owned());
-
-    //     let mut artists: Vec<_> = release.artists(librarian.as_ref())
-    //         .map(|a| Link {
-    //             name: a.name.clone().unwrap_or_default(),
-    //             url: format!("dimple://artist/{}", a.key.unwrap_or_default()),
-    //         })
-    //         .collect();
-    //     artists.sort_by_key(|a| a.name.to_owned());
-
-    //     let recordings: Vec<_> = release.recordings(librarian.as_ref()).collect();
-    //     // TODO hmmmmm
-    //     let medium = Medium {
-    //         tracks: recordings.iter().map(|r| {
-    //             let sources = r.sources(librarian.as_ref()).collect();
-    //             Track {
-    //                 title: r.title.str(),
-    //                 length: r.length.unwrap_or_default(),
-    //                 recording: r.clone(),
-    //                 sources,
-    //                 ..Default::default()
-    //             }
-    //         }).collect(),
-    //         ..Default::default()
-    //     };
-    //     let media = vec![medium];
-
-    //     ui.upgrade_in_event_loop(move |ui| {
-    //         let model = ReleaseDetailsAdapter {                    
-    //             card: card_adapter(&card),
-    //             disambiguation: release.disambiguation.str().into(),
-    //             genres: link_adapters(genres),
-    //             summary: release.summary.str().into(),
-    //             // primary_type: release.primary_type.str().into(),
-    //             artists: link_adapters(artists),
-    //             links: link_adapters(release_links(&release)),
-    //             media: media_adapters(media),
-    //             dump: serde_json::to_string_pretty(&release).unwrap().into(),
-    //             ..Default::default()
-    //         };
-    //         ui.set_release_details(model);
-    //         ui.set_page(3);
-    //         ui.global::<Navigator>().set_busy(false);
-    //     }).unwrap();
-    // });
 // }
 

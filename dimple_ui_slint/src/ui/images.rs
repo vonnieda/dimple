@@ -1,18 +1,16 @@
-use std::collections::HashMap;
+use std::io::Cursor;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use dimple_core::model::{Model, Dimage};
+use dimple_core::model::Model;
 use dimple_librarian::librarian::Librarian;
-use dimple_core::db::Db;
-use fast_image_resize::ImageView;
 use fast_image_resize::Resizer;
 use image::DynamicImage;
+use image::ImageFormat;
 use slint::Image;
 use slint::Weak;
 use slint::{Rgba8Pixel, SharedPixelBuffer};
 use threadpool::ThreadPool;
-use tiny_skia::Rect;
 use crate::ui::AppWindow;
 
 use super::image_gen::gen_fuzzy_circles;
@@ -24,7 +22,6 @@ use super::image_gen::gen_fuzzy_rects;
 #[derive(Clone)]
 pub struct ImageMangler {
     librarian: Librarian,
-    cache: Arc<Mutex<HashMap<String, SharedPixelBuffer<Rgba8Pixel>>>>,
     ui: Weak<AppWindow>,
     default_artist: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     default_release_group: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
@@ -32,49 +29,24 @@ pub struct ImageMangler {
     default_genre: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     default_other: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     threadpool: ThreadPool,
+    cache_path: String,
 }
 
 impl ImageMangler {
-    pub fn new(librarian: Librarian, ui: Weak<AppWindow>) -> Self {
+    pub fn new(librarian: Librarian, ui: Weak<AppWindow>, cache_path: &str) -> Self {
         let images = Self {
             ui,
             librarian: librarian.clone(),
-            cache: Default::default(),
             default_artist: Self::load_default_image("images/artist_placeholder.png"),
             default_release_group: Self::load_default_image("images/release_group_placeholder.png"),
             default_release: Self::load_default_image("images/release_placeholder.png"),
             default_genre: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
             default_other: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_rects(128, 128)))),
-            threadpool: ThreadPool::new(2),
+            threadpool: ThreadPool::new(1),
+            cache_path: cache_path.to_string(),
         };
 
         images
-    }
-
-    fn load_default_image(path: &str) -> Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>> {
-        let image = image::open(path).ok().unwrap();
-        Arc::new(Mutex::new(dynamic_to_buffer(&image)))
-    }
-
-    pub fn cache_len(&self) -> usize {
-        self.cache.lock().unwrap().len()
-    }
-
-    pub fn get(&self, model: Model, width: u32, height: u32) -> slint::Image {
-        let entity = model.entity();
-        let cache_key = format!("{}:{}:{}:{}", 
-            entity.type_name(), entity.key().unwrap(), width, height);
-        if let Some(buffer) = self.cache.lock().unwrap().get(&cache_key) {
-            return Image::from_rgba8_premultiplied(buffer.clone())
-        }
-        // TODO DRY(osdfhaosdhfoiuaysdiofuhaoisfd)
-        if let Some(dyn_image) = self.librarian.image(&model) {
-            let dyn_image = resize(dyn_image, width, height);
-            let buffer = dynamic_to_buffer(&dyn_image);
-            self.cache.lock().unwrap().insert(cache_key, buffer.clone());
-            return Image::from_rgba8_premultiplied(buffer)
-        }
-        Image::from_rgba8_premultiplied(self.default_model_image(&model))
     }
 
     pub fn lazy_get<F>(&self, model: Model, width: u32, height: u32, set_image: F) -> slint::Image
@@ -82,7 +54,8 @@ impl ImageMangler {
         let entity = model.entity();
         let cache_key = format!("{}:{}:{}:{}", 
             entity.type_name(), entity.key().unwrap(), width, height);
-        if let Some(buffer) = self.cache.lock().unwrap().get(&cache_key) {
+        if let Some(dyn_image) = self.cache_get(&cache_key) {
+            let buffer = dynamic_to_buffer(&dyn_image);
             return Image::from_rgba8_premultiplied(buffer.clone())
         }
         {
@@ -90,11 +63,10 @@ impl ImageMangler {
             let model = model.clone();
             let ui = self.ui.clone();
             self.threadpool.execute(move || {
-                // TODO DRY(osdfhaosdhfoiuaysdiofuhaoisfd)
                 if let Some(dyn_image) = images.librarian.image(&model) {
                     let dyn_image = resize(dyn_image, width, height);
+                    images.cache_set(&cache_key, &dyn_image);
                     let buffer = dynamic_to_buffer(&dyn_image);
-                    images.cache.lock().unwrap().insert(cache_key, buffer.clone());
                     ui.upgrade_in_event_loop(move |ui| {
                         let image = Image::from_rgba8_premultiplied(buffer);
                         set_image(ui, image);
@@ -113,6 +85,39 @@ impl ImageMangler {
             Model::Genre(_) => return self.default_genre.lock().unwrap().clone(),
             _ => return self.default_other.lock().unwrap().clone(),
         }
+    }
+
+    pub fn cancel_all_pending(&self) {
+    }
+
+    fn cache_get(&self, key: &str) -> Option<DynamicImage> {
+        if let Ok(bytes) = cacache::read_sync(self.cache_path.clone(), key) {
+            if let Ok(dyn_image) = image::load_from_memory(&bytes) {
+                return Some(dyn_image)
+            }
+        }
+        None
+    }
+
+    fn cache_set(&self, key: &str, image: &DynamicImage) {
+        let mut bytes = vec![];
+        let mut cursor = Cursor::new(&mut bytes);
+        image.write_to(&mut cursor, ImageFormat::Png).unwrap();
+        cacache::write_sync(self.cache_path.clone(), key, bytes).unwrap();
+    }
+
+    pub fn cache_len(&self) -> usize {
+        // TODO this might not be working, I think it's always returning 0
+        let mut len = 0;
+        for entry in cacache::list_sync(self.cache_path.clone()) {
+            len += entry.unwrap().size;
+        }
+        len
+    }
+
+    fn load_default_image(path: &str) -> Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>> {
+        let image = image::open(path).ok().unwrap();
+        Arc::new(Mutex::new(dynamic_to_buffer(&image)))
     }
 }
 
