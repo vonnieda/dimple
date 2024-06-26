@@ -5,3 +5,4 @@ pub mod matching;
 pub mod search;
 pub mod equivalent;
 pub mod hydrate;
+pub mod nu_merge;

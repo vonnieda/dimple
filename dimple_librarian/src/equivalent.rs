@@ -118,7 +118,7 @@ impl <T: Equivalent + Clone> Equivalent for Vec<T> {
 
 #[cfg(test)]
 mod test {
-    use dimple_core::model::{Genre, KnownIds};
+    use dimple_core::model::{ArtistCredit, Genre, KnownIds, Medium, Track};
 
     use crate::equivalent::Equivalent;
 
@@ -138,6 +138,55 @@ mod test {
             ..Default::default()
         };
         assert!(Genre::equivalent(&l, &r));
+    }
+
+    #[test]
+    fn medium() {
+        let l = Medium::default();
+        let r = Medium::default();
+        assert!(Equivalent::equivalent(&l, &r));
+
+        let l = Medium { position: Some(1), ..Default::default() };
+        let r = Medium::default();
+        assert!(!Equivalent::equivalent(&l, &r));
+
+        let l = Medium { position: Some(1), ..Default::default() };
+        let r = Medium { position: Some(1), ..Default::default() };
+        assert!(Equivalent::equivalent(&l, &r));
+
+        let l = Medium { position: Some(1), ..Default::default() };
+        let r = Medium { position: Some(2), ..Default::default() };
+        assert!(!Equivalent::equivalent(&l, &r));
+    }
+
+    #[test]
+    fn track() {
+        let l = Track { title: Some("Rainy Day".to_string()), ..Default::default() };
+        let r = Track { title: Some("Rainy Day".to_string()), ..Default::default() };
+        assert!(Equivalent::equivalent(&l, &r));
+
+        let l = Track { title: Some("Rainy Day".to_string()), position: Some(1), ..Default::default() };
+        let r = Track { title: Some("Rainy Day".to_string()), position: Some(1), ..Default::default() };
+        assert!(Equivalent::equivalent(&l, &r));
+
+        let l = Track { title: Some("Rainy Day".to_string()), position: Some(1), ..Default::default() };
+        let r = Track { title: Some("Rainy Day".to_string()), position: Some(13), ..Default::default() };
+        assert!(!Equivalent::equivalent(&l, &r));
+    }
+
+    #[test]
+    fn artist_credit() {
+        let l = ArtistCredit::default();
+        let r = ArtistCredit::default();
+        assert!(Equivalent::equivalent(&l, &r));
+
+        let l = ArtistCredit { name: Some("a".to_string()), ..Default::default() };
+        let r = ArtistCredit { name: Some("a".to_string()), ..Default::default() };
+        assert!(Equivalent::equivalent(&l, &r));
+
+        let l = ArtistCredit { key: Some("1".to_string()), name: Some("a".to_string()), ..Default::default() };
+        let r = ArtistCredit { key: Some("2".to_string()), name: Some("a".to_string()), ..Default::default() };
+        assert!(!Equivalent::equivalent(&l, &r));
     }
 }
 
