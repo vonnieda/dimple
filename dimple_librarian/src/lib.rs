@@ -1,8 +1,6 @@
 pub mod librarian;
-pub mod merge;
 pub mod plugin;
-pub mod matching;
 pub mod search;
-pub mod equivalent;
 pub mod hydrate;
-pub mod nu_merge;
+pub mod merge;
+pub mod sqlite_db_2;

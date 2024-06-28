@@ -1,13 +1,13 @@
 use std::{collections::HashSet, fs, path::Path, sync::{Arc, Mutex, RwLock}, time::Instant};
 
 use dimple_core::{
-    db::{Db, SqliteDb}, model::{Artist, Dimage, Entity, Model, ReleaseGroup}
+    db::{Db}, model::{Artist, Dimage, Entity, Model, ReleaseGroup}
 };
 
 use anyhow::{Error, Result};
 use image::DynamicImage;
 
-use crate::{merge::{self, Merge}, plugin::{NetworkMode, Plugin, PluginContext}, search};
+use crate::{merge::Merge, plugin::{NetworkMode, Plugin, PluginContext}, search};
 
 // It's always worth reviewing https://www.subsonic.org/pages/api.jsp
 
@@ -25,23 +25,25 @@ impl Librarian {
         let db_path = Path::new(path).join("library.db");
         let plugin_cache_path = Path::new(path).join("plugin_cache");
         fs::create_dir_all(plugin_cache_path.clone()).unwrap();
-        let librarian = Self {
-            db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()))),
-            plugins: Default::default(),
-            network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
-            plugin_context: PluginContext::new(plugin_cache_path.to_str().unwrap()),
-        };
-        librarian
+        todo!();
+        // let librarian = Self {
+        //     db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()))),
+        //     plugins: Default::default(),
+        //     network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
+        //     plugin_context: PluginContext::new(plugin_cache_path.to_str().unwrap()),
+        // };
+        // librarian
     }
 
     pub fn new_in_memory() -> Self {
-        let librarian = Self {
-            db: Arc::new(Box::new(SqliteDb::new(":memory:"))),
-            plugins: Default::default(),
-            network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
-            plugin_context: PluginContext::default(),
-        };
-        librarian
+        todo!();
+        // let librarian = Self {
+        //     db: Arc::new(Box::new(SqliteDb::new(":memory:"))),
+        //     plugins: Default::default(),
+        //     network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
+        //     plugin_context: PluginContext::default(),
+        // };
+        // librarian
     }
 
     pub fn add_plugin(&self, plugin: Box<dyn Plugin>) {
@@ -61,7 +63,7 @@ impl Librarian {
             let results = plugin.search(query, self.network_mode(), &self.plugin_context);
             if let Ok(results) = results {
                 for result in results {
-                    merge::merge(self.db.as_ref().as_ref(), &result, &None);
+                    self.merge(&result);
                 }
             }
         }
@@ -80,15 +82,20 @@ impl Librarian {
     pub fn get(&self, model: &Model) -> Result<Option<Model>> {
         let mut model = model.clone();
 
+        // If we can find 
         if let Ok(Some(db_model)) = self.db.get(&model) {
-            model = Model::merge(model, db_model);
+            if let Some(merged) = Model::merge(model.clone(), db_model) {
+                model = merged;
+            }
         }
 
         let mut finished_plugins = HashSet::<String>::new();
         for plugin in self.plugins.read().unwrap().iter() {
-            if let Ok(Some(plugin_model)) = plugin.get(&model, self.network_mode(), &self.plugin_context) {
-                model = Model::merge(model, plugin_model);
-                finished_plugins.insert(plugin.name());
+            if let Ok(Some(plugin_model)) = plugin.get(&model.clone(), self.network_mode(), &self.plugin_context) {
+                if let Some(merged) = Model::merge(model.clone(), plugin_model) {
+                    model = merged;
+                    finished_plugins.insert(plugin.name());
+                }
             }
         }
 
@@ -96,14 +103,17 @@ impl Librarian {
             if finished_plugins.contains(&plugin.name()) {
                 continue;
             }
-            if let Ok(Some(plugin_model)) = plugin.get(&model, self.network_mode(), &self.plugin_context) {
-                model = Model::merge(model, plugin_model);
+            if let Ok(Some(plugin_model)) = plugin.get(&model.clone(), self.network_mode(), &self.plugin_context) {
+                if let Some(merged) = Model::merge(model.clone(), plugin_model) {
+                    model = merged;
+                    finished_plugins.insert(plugin.name());
+                }
             }
         }
 
-        let result = merge::merge(self.db.as_ref().as_ref(), &model, &None);
+        let result = self.merge(&model);
         
-        Ok(result)
+        Ok(Some(result))
     }
 
     pub fn plugin_cache_len(&self) -> usize {
@@ -130,7 +140,7 @@ impl Librarian {
             let results = plugin.list(list_of, related_to, self.network_mode(), &self.plugin_context);
             if let Ok(results) = results {
                 for result in results {
-                    merge::merge(db, &result, related_to);
+                    self.merge(&result);
                     if first {
                         return self.db.list(list_of, related_to)
                     }
@@ -215,13 +225,56 @@ impl Librarian {
         None
     }
 
-    pub fn merge(&self, model: &Model, related_to: &Option<Model>) -> Option<Model> {
-        merge::merge(self.db.clone().as_ref().as_ref(), model, related_to)
-    }
-
     pub fn reset(&self) -> Result<()> {
         self.db.reset()
     } 
+
+    /// Find, merges, and stores the given model in the database. Merges with
+    /// existing data under the same key or identifier. On conflict, creates
+    /// a duplicate. 
+    pub fn merge(&self, model: &Model) -> Model {
+        // start tx
+        self.find_matching(model.clone())
+            .and_then(|matching| Merge::merge(matching, model.clone()))
+            .or_else(|| Some(model.clone()))
+            .and_then(|merged| Some(self.store(merged)))
+            .unwrap()
+        // commit
+    }
+
+    /// Store the model under it's existing key, or under a new key if none.
+    /// Returns the stored model, 
+    fn store(&self, model: Model) -> Model {
+        self.db.insert(&model).unwrap()
+    }
+
+    /// Finds a matching model to the one specified. Matching means that either
+    /// a key or some other uniquely identifying information matches.
+    fn find_matching(&self, model: Model) -> Option<Model> {
+        // if artist, find_by_key, find_by_name_and_disambiguation, find_by_known_id
+        // or one long SQl query with ORs
+        // if release_group, find_by_artist_release_group?
+        match model {
+            Model::Artist(artist) => {
+                self.db.list(&Artist::default().model(), &None).unwrap()
+                    .map(Into::<Artist>::into)
+                    .filter(|a| {
+                        // SELECT * FROM Artist a
+                        // WHERE 
+                        //     (a.key IS NOT NULL AND a.key = ?)
+                        //     OR (a.name IS NOT NULL AND a.name = ? AND a.disambiguation = ?)
+                        //     OR (a.known_ids.musicbrainz_id = IS NOT NULL AND a.known_ids.musicbrainz_id = ?)
+                        // ORDER BY a.name ASC
+                        (artist.key.is_some() && artist.key == a.key)
+                        || (artist.name.is_some() && artist.name == a.name && artist.disambiguation == a.disambiguation)
+                        || (artist.known_ids.musicbrainz_id.is_some() && artist.known_ids.musicbrainz_id == a.known_ids.musicbrainz_id)
+                    })
+                    .next()
+                    .map(|a| a.model())
+            },
+            _ => todo!()
+        }
+    }
 
     // Playing around with using a little bit of generic sugar to make these
     // APIs much more ergonomic. 
@@ -246,57 +299,96 @@ impl Librarian {
         let a = self.list(&list_of.model(), &related_to.map(|r| r.model()))?;
         Ok(Box::new(a.map(Into::<T>::into)))
     }
+
+    pub fn merge2<T: Entity + From<Model>>(&self, entity: T) -> T {
+        self.merge(&entity.model()).into()
+    }
 }
 
 #[cfg(test)]
 mod test {
-    use dimple_core::model::{Artist, Entity, KnownIds, Model};
-
-    use crate::plugin::{Plugin, PluginContext};
+    use dimple_core::model::{Artist, Genre};
 
     use super::Librarian;
 
     #[test]
-    fn merge_basics() {
+    fn basics() {
         let lib = Librarian::new_in_memory();
-        lib.add_plugin(Box::new(TestPlugin::default()));
-        let artist: Artist = lib.get(&Artist {
-            known_ids: KnownIds {
-                musicbrainz_id: Some("DIMPLE-TEST-METALLICA".to_string()),
-                ..Default::default()
-            },
+        lib.merge2(Artist {
+            name: Some("a".to_string()),
             ..Default::default()
-        }.model()).unwrap().unwrap().into();
-        assert!(artist.name == Some("Metallica".to_string()));
-        dbg!(&artist);
+        });
+        lib.merge2(Artist {
+            name: Some("a".to_string()),
+            summary: Some("s".to_string()),
+            ..Default::default()
+        });
+        lib.merge2(Artist {
+            name: Some("a".to_string()),
+            disambiguation: Some("a1".to_string()),
+            summary: Some("s".to_string()),
+            ..Default::default()
+        });
+        lib.merge2(Artist {
+            key: Some("96b47db5-f2ed-4f60-9a9d-a3b91d461847".to_string()),
+            name: Some("a".to_string()),
+            disambiguation: Some("a1".to_string()),
+            summary: Some("s".to_string()),
+            ..Default::default()
+        });
+        let artists = lib.list2(Artist::default(), None::<Artist>).unwrap().collect::<Vec<_>>();
+        dbg!(&artists);
+        assert!(artists.len() == 3);
     }
 
-    #[derive(Default)]
-    struct TestPlugin {
-
-    }
-
-    impl Plugin for TestPlugin {
-        fn name(&self) -> String {
-            "Test".to_string()
-        }
-        
-        
-        fn get(&self, model: &dimple_core::model::Model, 
-            network_mode: crate::plugin::NetworkMode, ctx: &PluginContext) -> anyhow::Result<Option<dimple_core::model::Model>> {
-            match model {
-                Model::Artist(artist) => {
-                    if artist.known_ids.musicbrainz_id == Some("DIMPLE-TEST-METALLICA".to_string()) {
-                        return Ok(Some(Artist {
-                            name: Some("Metallica".to_string()),
-                            summary: Some("Metal band from LA".to_string()),
-                            ..Default::default()
-                        }.model()));
-                    }
+    #[test]
+    fn moar() {
+        let lib = Librarian::new_in_memory();
+        lib.merge2(Artist {
+            name: Some("a".to_string()),
+            genres: vec![
+                Genre {
+                    name: Some("metal".to_string()),
+                    ..Default::default()
+                }
+            ],
+            ..Default::default()
+        });
+        lib.merge2(Artist {
+            name: Some("a".to_string()),
+            genres: vec![
+                Genre {
+                    name: Some("metal".to_string()),
+                    ..Default::default()
                 },
-                _ => ()
-            }          
-            Ok(None)  
-        }        
+                Genre {
+                    name: Some("folk metal".to_string()),
+                    ..Default::default()
+                }
+            ],
+            ..Default::default()
+        });
+        let artists = lib.list2(Artist::default(), None::<Artist>).unwrap().collect::<Vec<_>>();
+        assert!(artists.len() == 1);
+        assert!(artists[0].genres.len() == 2);
+        // TODO Getting tired. Happy with all this. Fix up librarian for new merge shit.
+        // Then I think probably Db JSON, then matching.
+        // TODO stopping here. This fails (on purpose) because merge is not merging the
+        // embedded primary objects into their own stores. In other words, Genres get
+        // saved in the artist, but not in the genres list. I guess that's back to
+        // the db_merge crap to merge the child objects? But maybe now it's more
+        // clear cut?
+        // So, yea, like on an Artist the genres each need to be merged, and linked to the
+        // artist. But now, no longer, the intermediate objects like Track and Medium
+        // because those will be deeply stored. Or maybe not! But they certainly
+        // won't be merged the old way.
+        let genres = lib.list2(Genre::default(), None::<Genre>).unwrap().collect::<Vec<_>>();
+        assert!(genres.len() == 2);
+    }
+
+    #[test]
+    fn get_returns_none_when_nothing_found() {
+        todo!();
     }
 }
+

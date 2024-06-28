@@ -1,197 +1,210 @@
-use std::{collections::HashSet, time::Instant};
+use std::collections::HashSet;
 
-use dimple_core::{db::Db, model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Dimage, Recording, RecordingSource, Release, ReleaseGroup, Track}};
+use dimple_core::model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Recording, Release, ReleaseGroup, Track};
 
-use crate::{equivalent::Equivalent, matching};
-
+/// Exploring a version of merge that is fallible, which indicates a merge
+/// conflict. By bubbling these up it's easy to recurse, and merge a tree.
+/// Haha, I'm a dummy. I could implement this for the JSON types and call
+/// it a day, right?
 pub trait Merge {
     /// Commutative: A v B = B v A
     /// Associative: (A v B) v C = A v (B v C)
     /// Idempotent : A v A = A
-    fn merge(l: Self, r: Self) -> Self;
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized;
 }
 
 impl Merge for Artist {
-    fn merge(l: Self, r: Self) -> Self {
-        Self {
-            country: Option::merge(l.country, r.country),
-            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
-            key: Option::merge(l.key, r.key),
-            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
-            links: HashSet::merge(l.links, r.links),
-            name: Option::merge(l.name, r.name),
-            summary: Option::merge(l.summary, r.summary),
-            genres: Vec::merge(l.genres, r.genres),
-            saved: l.saved || r.saved,
-        }
-    }
-}
-
-impl Merge for ReleaseGroup {
-    fn merge(l: Self, r: Self) -> Self {
-        Self {
-            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
-            key: Option::merge(l.key, r.key),
-            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
-            links: HashSet::merge(l.links, r.links),
-            title: Option::merge(l.title, r.title),
-            summary: Option::merge(l.summary, r.summary),
-            first_release_date: Option::merge(l.first_release_date, r.first_release_date),
-            primary_type: Option::merge(l.primary_type, r.primary_type),
-            annotation: Option::merge(l.annotation, r.annotation),
-            secondary_types: HashSet::merge(l.secondary_types, r.secondary_types),
-            artist_credits: Vec::merge(l.artist_credits, r.artist_credits),
-            genres: Vec::merge(l.genres, r.genres),
-        }
-    }
-}
-
-impl Merge for Release {
-    fn merge(l: Self, r: Self) -> Self {
-        Self {
-            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
-            key: Option::merge(l.key, r.key),
-            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
-            links: HashSet::merge(l.links, r.links),
-            title: Option::merge(l.title, r.title),
-            summary: Option::merge(l.summary, r.summary),
-            primary_type: Option::merge(l.primary_type, r.primary_type),
-            barcode: Option::merge(l.barcode, r.barcode),
-            country: Option::merge(l.country, r.country),
-            date: Option::merge(l.date, r.date),
-            packaging: Option::merge(l.packaging, r.packaging),
-            status: Option::merge(l.status, r.status),
-            quality: Option::merge(l.quality, r.quality),
-            release_group: ReleaseGroup::merge(l.release_group, r.release_group),
-            media: Vec::merge(l.media, r.media),
-            artist_credits: Vec::merge(l.artist_credits, r.artist_credits),
-            genres: Vec::merge(l.genres, r.genres),
-        }
-    }
-}
-
-impl Merge for Medium {
-    fn merge(l: Self, r: Self) -> Self {
-        Self {
-            disc_count: Option::merge(l.disc_count, r.disc_count),
-            format: Option::merge(l.format, r.format),
-            key: Option::merge(l.key, r.key),
-            position: Option::merge(l.position, r.position),
-            title: Option::merge(l.title, r.title),
-            track_count: Option::merge(l.track_count, r.track_count),
-            tracks: Vec::merge(l.tracks, r.tracks),
-        }
-    }
-}
-
-impl Merge for Track {
-    fn merge(l: Self, r: Self) -> Self {
-        Self {
-            key: Option::merge(l.key, r.key),
-            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
-            title: Option::merge(l.title, r.title),
-            length: Option::merge(l.length, r.length),
-            number: Option::merge(l.number, r.number),
-            position: Option::merge(l.position, r.position),
-            artist_credits: Vec::merge(l.artist_credits, r.artist_credits),
-            genres: Vec::merge(l.genres, r.genres),
-            recording: Recording::merge(l.recording, r.recording),
-        }
-    }
-}
-
-impl Merge for Recording {
-    fn merge(l: Self, r: Self) -> Self {
-        Self {
-            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
-            key: Option::merge(l.key, r.key),
-            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
-            links: HashSet::merge(l.links, r.links),
-            title: Option::merge(l.title, r.title),
-            summary: Option::merge(l.summary, r.summary),
-            annotation: Option::merge(l.annotation, r.annotation),
-            isrc: Option::merge(l.isrc, r.isrc),
-            length: Option::merge(l.length, r.length),
-            artist_credits: Vec::merge(l.artist_credits, r.artist_credits),
-            genres: Vec::merge(l.genres, r.genres),
-        }
+    fn merge(l: Self, r: Self) -> Option<Self> {
+        Some(Self {
+            country: Option::merge(l.country, r.country)?,
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation)?,
+            key: Option::merge(l.key, r.key)?,
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids)?,
+            links: HashSet::merge(l.links, r.links)?,
+            name: Option::merge(l.name, r.name)?,
+            summary: Option::merge(l.summary, r.summary)?,
+            genres: Vec::merge(l.genres, r.genres)?,
+            // TODO assumes r is the new value
+            saved: r.saved,
+        })
     }
 }
 
 impl Merge for Genre {
-    fn merge(l: Self, r: Self) -> Self {
-        Self {
-            disambiguation: Option::merge(l.disambiguation, r.disambiguation),
-            key: Option::merge(l.key, r.key),
-            known_ids: KnownIds::merge(l.known_ids, r.known_ids),
-            links: HashSet::merge(l.links, r.links),
-            name: Option::merge(l.name, r.name),
-            summary: Option::merge(l.summary, r.summary),
-        }
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        Some(Self {
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation)?,
+            key: Option::merge(l.key, r.key)?,
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids)?,
+            links: HashSet::merge(l.links, r.links)?,
+            name: Option::merge(l.name, r.name)?,
+            summary: Option::merge(l.summary, r.summary)?,
+        })
     }
 }
 
 impl Merge for ArtistCredit {
-    fn merge(l: Self, r: Self) -> Self {
-        Self {
-            key: Option::merge(l.key, r.key),
-            artist: Artist::merge(l.artist, r.artist),
-            join_phrase: Option::merge(l.join_phrase, r.join_phrase),
-            name: Option::merge(l.name, r.name),
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        Some(Self {
+            key: Option::merge(l.key, r.key)?,
+            name: Option::merge(l.name, r.name)?,
+            join_phrase: Option::merge(l.join_phrase, r.join_phrase)?,
+            artist: Artist::merge(l.artist, r.artist)?,
+        })
+    }
+}
+
+impl Merge for Medium {
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        Some(Self {
+            key: Option::merge(l.key, r.key)?,
+            title: Option::merge(l.title, r.title)?,
+            disc_count: Option::merge(l.disc_count, r.disc_count)?,
+            format: Option::merge(l.format, r.format)?,
+            position: Option::merge(l.position, r.position)?,
+            track_count: Option::merge(l.track_count, r.track_count)?,
+            tracks: Vec::merge(l.tracks, r.tracks)?,
+        })
+    }
+}
+
+impl Merge for Track {
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        Some(Self {
+            key: Option::merge(l.key, r.key)?,
+            title: Option::merge(l.title, r.title)?,
+            position: Option::merge(l.position, r.position)?,
+            artist_credits: Vec::merge(l.artist_credits, r.artist_credits)?,
+            genres: Vec::merge(l.genres, r.genres)?,
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids)?,
+            length: Option::merge(l.length, r.length)?,
+            number: Option::merge(l.number, r.number)?,
+            recording: Recording::merge(l.recording, r.recording)?,
+        })
+    }
+}
+
+impl Merge for ReleaseGroup {
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        Some(Self {
+            key: Option::merge(l.key, r.key)?,
+            title: Option::merge(l.title, r.title)?,
+            artist_credits: Vec::merge(l.artist_credits, r.artist_credits)?,
+            genres: Vec::merge(l.genres, r.genres)?,
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids)?,
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation)?,
+            links: HashSet::merge(l.links, r.links)?,
+            summary: Option::merge(l.summary, r.summary)?,
+            annotation: Option::merge(l.annotation, r.annotation)?,            
+            first_release_date: Option::merge(l.first_release_date, r.first_release_date)?,
+            primary_type: Option::merge(l.primary_type, r.primary_type)?,
+            secondary_types: HashSet::merge(l.secondary_types, r.secondary_types)?,
+        })
+    }
+}
+
+impl Merge for Release {
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        Some(Self {
+            key: Option::merge(l.key, r.key)?,
+            title: Option::merge(l.title, r.title)?,
+            artist_credits: Vec::merge(l.artist_credits, r.artist_credits)?,
+            genres: Vec::merge(l.genres, r.genres)?,
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids)?,
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation)?,
+            links: HashSet::merge(l.links, r.links)?,
+            summary: Option::merge(l.summary, r.summary)?,
+            primary_type: Option::merge(l.primary_type, r.primary_type)?,
+            barcode: Option::merge(l.barcode, r.barcode)?,
+            country: Option::merge(l.country, r.country)?,
+            date: Option::merge(l.date, r.date)?,
+            packaging: Option::merge(l.packaging, r.packaging)?,
+            quality: Option::merge(l.quality, r.quality)?,
+            status: Option::merge(l.status, r.status)?,
+            media: Vec::merge(l.media, r.media)?,
+            release_group: ReleaseGroup::merge(l.release_group, r.release_group)?,
+        })
+    }
+}
+
+impl Merge for Recording {
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        Some(Self {
+            key: Option::merge(l.key, r.key)?,
+            title: Option::merge(l.title, r.title)?,
+            artist_credits: Vec::merge(l.artist_credits, r.artist_credits)?,
+            genres: Vec::merge(l.genres, r.genres)?,
+            known_ids: KnownIds::merge(l.known_ids, r.known_ids)?,
+            length: Option::merge(l.length, r.length)?,
+            disambiguation: Option::merge(l.disambiguation, r.disambiguation)?,
+            links: HashSet::merge(l.links, r.links)?,
+            summary: Option::merge(l.summary, r.summary)?,
+            annotation: Option::merge(l.annotation, r.annotation)?,
+            isrc: Option::merge(l.isrc, r.isrc)?,
+        })
+    }
+}
+
+impl Merge for String {
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        if l == r {
+            Some(l)
+        }
+        else {
+            None
         }
     }
 }
 
+impl Merge for u32 {
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        if l == r {
+            Some(l)
+        }
+        else {
+            None
+        }
+    }
+}
 
-impl Merge for Dimage {
-    fn merge(l: Self, r: Self) -> Self {
-        Self {
-            key: Option::merge(l.key, r.key),
-            data: if l.data.len() >= r.data.len() { l.data } else { r.data },
-            // TODO this entire merge concept is weird here. Figure it out.
-            ..Default::default()
+impl <T: Merge> Merge for Option<T> {
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        match (l, r) {
+            (Some(l), Some(r)) => Some(Some(Merge::merge(l, r)?)),
+            (None, None) => Some(None),
+            (None, Some(r)) => Some(Some(r)),
+            (Some(l), None) => Some(Some(l)),
         }
     }
 }
 
 impl Merge for KnownIds {
-    fn merge(l: Self, r: Self) -> Self {
-        KnownIds {
-            musicbrainz_id: Option::merge(l.musicbrainz_id, r.musicbrainz_id),
-            discogs_id: Option::merge(l.discogs_id, r.discogs_id),
-            lastfm_id: Option::merge(l.lastfm_id, r.lastfm_id),
-        }
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        Some(KnownIds {
+            musicbrainz_id: Option::merge(l.musicbrainz_id, r.musicbrainz_id)?,
+            discogs_id: Option::merge(l.discogs_id, r.discogs_id)?,
+            lastfm_id: Option::merge(l.lastfm_id, r.lastfm_id)?,
+        })
     }
 }
 
-impl Merge for Model {
-    fn merge(l: Self, r: Self) -> Self {
-        match (l, r) {
-            (Model::Artist(l), Model::Artist(r)) => Artist::merge(l.clone(), r.clone()).model(),
-            (Model::Release(l), Model::Release(r)) => Release::merge(l.clone(), r.clone()).model(),
-            (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => ReleaseGroup::merge(l.clone(), r.clone()).model(),
-            (Model::Recording(l), Model::Recording(r)) => Recording::merge(l.clone(), r.clone()).model(),
-            (Model::Genre(l), Model::Genre(r)) => Genre::merge(l.clone(), r.clone()).model(),
-            (Model::Medium(l), Model::Medium(r)) => Medium::merge(l.clone(), r.clone()).model(),
-            (Model::Track(l), Model::Track(r)) => Track::merge(l.clone(), r.clone()).model(),
-            (Model::Dimage(l), Model::Dimage(r)) => Dimage::merge(l.clone(), r.clone()).model(),
-            _ => todo!()
-        }
+impl Merge for HashSet<String> {
+    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+        Some(l.union(&r).cloned().collect())
     }
 }
 
-/// Combines two Vec of <Merge + Equivalent + Clone> and merges equivalent
-/// results.
-impl <T: Merge + Equivalent + Clone> Merge for Vec<T> {
-    fn merge(l: Self, r: Self) -> Self {
+impl <T: Merge + Clone> Merge for Vec<T> {
+    fn merge(l: Self, r: Self) -> Option<Self> {
         let mut result = l.clone();
     
         for b in r {
             let mut merged = false;
     
             for a in &mut result {
-                if T::equivalent(a, &b) {
-                    *a = T::merge(a.clone(), b.clone());
+                let m = T::merge(a.clone(), b.clone());
+                if m.is_some() {
+                    *a = m.unwrap();
                     merged = true;
                     break;
                 }
@@ -202,303 +215,160 @@ impl <T: Merge + Equivalent + Clone> Merge for Vec<T> {
             }
         }
     
-        result
+        Some(result)
     }
 }
 
-impl Merge for HashSet<String> {
-    fn merge(l: Self, r: Self) -> Self {
-        l.union(&r).cloned().collect()
-    }
-}
-
-impl Merge for Option<u32> {
-    fn merge(l: Self, r: Self) -> Self {
+impl Merge for Model {
+    fn merge(l: Self, r: Self) -> Option<Self> {
         match (l, r) {
-            (Some(l), Some(r)) => if l >= r { Some(l) } else { Some(r) },
-            (None, None) => None,
-            (None, Some(r)) => Some(r),
-            (Some(l), None) => Some(l),
+            (Model::Artist(l), Model::Artist(r)) => Some(Artist::merge(l.clone(), r.clone())?.model()),
+            (Model::Release(l), Model::Release(r)) => Some(Release::merge(l.clone(), r.clone())?.model()),
+            (Model::ReleaseGroup(l), Model::ReleaseGroup(r)) => Some(ReleaseGroup::merge(l.clone(), r.clone())?.model()),
+            (Model::Recording(l), Model::Recording(r)) => Some(Recording::merge(l.clone(), r.clone())?.model()),
+            (Model::Genre(l), Model::Genre(r)) => Some(Genre::merge(l.clone(), r.clone())?.model()),
+            // (Model::Medium(l), Model::Medium(r)) => Some(Medium::nu_merge(l.clone(), r.clone()).model(),
+            // (Model::Track(l), Model::Track(r)) => Some(Track::nu_merge(l.clone(), r.clone()).model(),
+            // (Model::Dimage(l), Model::Dimage(r)) => Dimage::nu_merge(l.clone(), r.clone()).model(),
+            _ => todo!()
         }
     }
 }
 
-impl Merge for Option<String> {
-    fn merge(l: Self, r: Self) -> Self {
-        match (l, r) {
-            (Some(l), Some(r)) => if l.len() >= r.len() { Some(l) } else { Some(r) },
-            (None, None) => None,
-            (None, Some(r)) => Some(r),
-            (Some(l), None) => Some(l),
-        }
-    }
-}
 
-/// - Anything with a key can be merged. Primary or secondary.
-/// - Any top level primary object can be merged.
-/// - Any secondary object with a related_to that has a key can be merged.
-pub fn merge(db: &dyn Db, model: &Model, related_to: &Option<Model>) -> Option<Model> {
-    let merged = match model {
-        Model::Artist(artist) => db_merge_artist(db, artist),
-        Model::Release(release) => db_merge_release(db, release),
-        Model::ReleaseGroup(release_group) => db_merge_release_group(db, release_group),
-        Model::Recording(recording) => db_merge_recording(db, recording),
-        Model::Genre(genre) => db_merge_genre(db, genre),
-        Model::Dimage(dimage) => db_merge_dimage(db, dimage, related_to),
-        Model::Track(_) => db_merge_model(db, model, related_to),
-        _ => panic!("merge({}, {}) not yet implemented", 
-            model.entity().type_name(), 
-            related_to.clone().map(|related_to| related_to.entity().type_name()).unwrap_or("None".to_string())),
-    };
-    lazy_link(db, &merged, related_to);
-    merged
-}
-
-
-fn db_merge_artist(db: &dyn Db, artist: &Artist) -> Option<Model> {
-    let artist: Artist = db_merge_model(db, &artist.model(), &None)?.into();
-    db_merge_genres(db, &artist.genres, &artist.model());
-    Some(artist.model())
-}
-
-fn db_merge_release_group(db: &dyn Db, release_group: &ReleaseGroup) -> Option<Model> {
-    let release_group: ReleaseGroup = 
-        db_merge_model(db, &release_group.model(), &None)?.into();
-    db_merge_genres(db, &release_group.genres, &release_group.model());
-    db_merge_artist_credits(db, &release_group.artist_credits, &release_group.model());
-    Some(release_group.model())
-}
-
-fn db_merge_release(db: &dyn Db, release: &Release) -> Option<Model> {
-    let release: Release = 
-        db_merge_model(db, &release.model(), &None)?.into();
-    db_merge_genres(db, &release.genres, &release.model());
-    db_merge_artist_credits(db, &release.artist_credits, &release.model());
-    db_merge_media(db, &release.media, &release);
-    Some(release.model())
-}
-
-fn db_merge_recording(db: &dyn Db, recording: &Recording) -> Option<Model> {
-    let recording: Recording = db_merge_model(db, &recording.model(), &None)?.into();
-    db_merge_genres(db, &recording.genres, &recording.model());
-    db_merge_artist_credits(db, &recording.artist_credits, &recording.model());
-    Some(recording.model())
-}
-
-fn db_merge_media(db: &dyn Db, media: &[Medium], release: &Release) {
-    for medium in media {
-        let medium = db_merge_medium(db, medium, release);
-        lazy_link(db, &medium, &Some(release.model()));
-    }
-}
-
-fn db_merge_medium(db: &dyn Db, medium: &Medium, release: &Release) -> Option<Model> {
-    let medium: Medium = db_merge_model(db, &medium.model(), &Some(release.model()))?.into();
-    db_merge_tracks(db, &medium.tracks, &medium);
-    Some(medium.model())
-}
-
-fn db_merge_tracks(db: &dyn Db, tracks: &[Track], medium: &Medium) {
-    for track in tracks {
-        let track = db_merge_track(db, track, medium);
-        lazy_link(db, &track, &Some(medium.model()));
-    }
-}
-
-fn db_merge_track(db: &dyn Db, track: &Track, medium: &Medium) -> Option<Model> {
-    let track: Track = db_merge_model(db, &track.model(), &Some(medium.model()))?.into();
-    db_merge_genres(db, &track.genres, &track.model());
-    db_merge_artist_credits(db, &track.artist_credits, &track.model());
-    let recording = db_merge_recording(db, &track.recording);
-    lazy_link(db, &recording, &Some(track.model()));
-    Some(track.model())
-}
-
-fn db_merge_artist_credits(db: &dyn Db, artist_credits: &[ArtistCredit], related_to: &Model) {
-    for artist_credit in artist_credits {
-        // TODO temporary bypass artist credit for artist to get some testing
-        // done
-        let artist = db_merge_artist(db, &artist_credit.artist);
-        lazy_link(db, &artist, &Some(related_to.clone()))
-    }
-}
-
-fn db_merge_genres(db: &dyn Db, genres: &[Genre], related_to: &Model) {
-    for genre in genres {
-        let genre = db_merge_genre(db, genre);
-        lazy_link(db, &genre, &Some(related_to.clone()))
-    }
-}
-
-fn db_merge_genre(db: &dyn Db, genre: &Genre) -> Option<Model> {
-    db_merge_model(db, &genre.model(), &None)
-}
-
-fn db_merge_dimage(db: &dyn Db, dimage: &Dimage, related_to: &Option<Model>) -> Option<Model> {
-    db_merge_model(db, &dimage.model(), related_to)
-}
-
-fn db_merge_model(db: &dyn Db, model: &Model, related_to: &Option<Model>) -> Option<Model> {
-    let t = Instant::now();
-    // TODO does this need to be merging parent as well? Yea, I think it
-    // seems obvious we can't merge something to a parent if the parent
-    // doesn't exist. 
-    // Temporary workaround.
-    if let Some(related_to) = related_to {
-        if related_to.entity().key().is_none() {
-            panic!("db_merge_model called with unmerged related_to");
-        }
-    }
-
-    // find a matching model to the specified, merge, save
-    let matching = matching::find_matching_model(db, model, related_to);
-    if let Some(matching) = matching {
-        let merged = Model::merge(model.clone(), matching);
-        let inserted = db.insert(&merged).unwrap();
-        log::debug!("{:04}ms merged {}({})", 
-            t.elapsed().as_millis(),
-            inserted.entity().type_name(), 
-            inserted.entity().key().unwrap());
-        return Some(inserted)
-    }
-    // if not, insert the new one and link it to the parent
-    else {
-        if model_valid(model) {
-            let model = Some(db.insert(model).unwrap());
-            lazy_link(db, &model, related_to);
-            {
-                let model = model.clone().unwrap();
-                let entity = model.entity();
-                log::debug!("{:04}ms created {}({})", 
-                    t.elapsed().as_millis(),
-                    entity.type_name(), 
-                    entity.key().unwrap());
-            }
-            return model
-        }
-    }
-    log::warn!("{:04}ms failed {}({})", 
-        t.elapsed().as_millis(),
-        model.entity().type_name(), 
-        model.entity().key().unwrap());
-    None
-}
-
-/// Links the two Models if they are both Some. Reduces boilerplate.
-fn lazy_link(db: &dyn Db, l: &Option<Model>, r: &Option<Model>) {
-    if l.is_some() && r.is_some() {
-        db.link(&l.clone().unwrap(), &r.clone().unwrap()).unwrap()
-    }
-}
-
-/// TODO Goes into the merge trait, maybe. 
-fn model_valid(model: &Model) -> bool {
-    match model {
-        Model::Artist(a) => a.name.is_some() || a.known_ids.musicbrainz_id.is_some(),
-        Model::Genre(g) => g.name.is_some(),
-        Model::Medium(_m) => true,
-        Model::Release(r) => r.title.is_some() || r.known_ids.musicbrainz_id.is_some(),
-        Model::ReleaseGroup(rg) => rg.title.is_some(),
-        Model::Track(t) => t.title.is_some(),
-        Model::Dimage(_p) => true,
-        Model::Recording(r) => r.title.is_some() || r.known_ids.musicbrainz_id.is_some(),
-        _ => todo!()
-    }
-}
-
-// By adding the related_to, we add another way to look up the objects, and
-// doesn't have to be used. If we have a key, for instance, we don't need
-// anything else. But if all we have is a name, we might need a relation
-// to find anything. And in the end, it can always fail.
-
-#[cfg(test)]
 mod tests {
-    use super::*;
-    
+    use dimple_core::model::{Artist, ArtistCredit, Genre, KnownIds, Medium, Recording, Release, Track};
+
+    use crate::merge::Merge;
+
     #[test]
     fn basics() {
-        assert!(Option::merge(None, Some("Lynyrd Skynrd".to_string())) == Some("Lynyrd Skynrd".to_string()));
-        assert!(Option::merge(Some("Skynrd".to_string()), Some("Lynyrd Skynrd".to_string())) == Some("Lynyrd Skynrd".to_string()));
-        assert!(Option::merge(Some(10), None) == Some(10));
-        assert!(Option::merge(Some(10), Some(20)) == Some(20));
+        // assert!(NuMerge::nu_merge(None, None) == Some(None));
+        assert!(Merge::merge(Some("a".to_string()), None) == Some(Some("a".to_string())));
+        assert!(Merge::merge(None, Some("a".to_string())) == Some(Some("a".to_string())));
+        assert!(Merge::merge(Some("a".to_string()), Some("a".to_string())) == Some(Some("a".to_string())));
+        assert!(Merge::merge(Some("a".to_string()), Some("b".to_string())) == None);
     }
 
     #[test]
-    fn hashset() {
-        let l = HashSet::from(["chicken".to_string(), "horse".to_string(), "dog".to_string()]);
-        let r = HashSet::from(["monkey".to_string(), "pig".to_string(), "dog".to_string()]);
-        let m = HashSet::merge(l, r);
-        assert!(m.len() == 5);
-        assert!(m.contains("chicken"));
-        assert!(m.contains("horse"));
-        assert!(m.contains("monkey"));
-        assert!(m.contains("pig"));
-        assert!(m.contains("dog"));
-    }
-
-
-    #[test]
-    fn genre() {
-        let m = Genre::merge(Genre {
-            name: Some("dogrock".to_string()),
-            ..Default::default()
-        }, Genre {
-            name: Some("catrock".to_string()),
-            ..Default::default()
-        });
-        assert!(m.name == Some("dogrock".to_string()));
-
-        let m = Genre::merge(Genre {
-            name: Some("dogrock".to_string()),
-            ..Default::default()
-        }, Genre {
-            name: Some("fishrock".to_string()),
-            ..Default::default()
-        });
-        assert!(m.name == Some("fishrock".to_string()));
-    }
-
-
-    #[test]
-    fn artist() {
+    fn artist1() {
         let l = Artist {
-            key: Some("1234-1234-1234-1234".to_string()),
-            name: Some("Ancient Fish".to_string()),
-            genres: vec![
-                Genre {
-                    name: Some("fishjazz".to_string()),
-                    summary: Some("Jazz, by fishes.".to_string()),
-                    ..Default::default()
-                },
-                Genre {
-                    name: Some("fishrock".to_string()),
-                    ..Default::default()
-                },
-            ],
+            name: Some("a".to_string()),
             ..Default::default()
         };
         let r = Artist {
-            key: Some("1234-1234-1234-1234".to_string()),
-            name: Some("Ancient Fimsh".to_string()),
-            genres: vec![
-                Genre {
-                    name: Some("fishjazz".to_string()),
-                    known_ids: KnownIds { 
-                        musicbrainz_id: Some("9999-9999-9999-9999".to_string()),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-                Genre {
-                    name: Some("fishtempo".to_string()),
-                    ..Default::default()
-                },
-            ],
+            name: Some("b".to_string()),
             ..Default::default()
         };
-        let m = Artist::merge(l, r);
-        assert!(m.genres.len() == 3);
-        // assert!(m.genres[0].)
+        let m = Merge::merge(l, r);
+        assert!(m == None);
+    }
+
+    #[test]
+    fn artist2() {
+        let l = Artist {
+            name: Some("a".to_string()),
+            ..Default::default()
+        };
+        let r = Artist {
+            name: Some("a".to_string()),
+            ..Default::default()
+        };
+        let m = Merge::merge(l.clone(), r.clone()).unwrap();
+        assert!(l == m);
+        assert!(r == m);
+    }
+
+    #[test]
+    fn artist3() {
+        let l = Artist {
+            name: Some("a".to_string()),
+            disambiguation: Some("d".to_string()),
+            ..Default::default()
+        };
+        let r = Artist {
+            name: Some("a".to_string()),
+            ..Default::default()
+        };
+        let m = Merge::merge(l.clone(), r.clone()).unwrap();
+        assert!(l == m);
+        assert!(r != m);
+    }
+
+    #[test]
+    fn artist4() {
+        let l = Artist {
+            name: Some("a".to_string()),
+            disambiguation: Some("d".to_string()),
+            ..Default::default()
+        };
+        let r = Artist {
+            name: Some("a".to_string()),
+            summary: Some("s".to_string()),
+            ..Default::default()
+        };
+        let m = Merge::merge(l.clone(), r.clone()).unwrap();
+        assert!(l != m);
+        assert!(r != m);
+        assert!(m.disambiguation == Some("d".to_string()));
+        assert!(m.summary == Some("s".to_string()));
+    }
+
+    #[test]
+    fn artist5() {
+        let l = Artist {
+            key: Some("k1".to_string()),
+            name: Some("a".to_string()),
+            disambiguation: Some("d".to_string()),
+            ..Default::default()
+        };
+        let r = Artist {
+            key: Some("k2".to_string()),
+            name: Some("a".to_string()),
+            summary: Some("s".to_string()),
+            ..Default::default()
+        };
+        let m = Merge::merge(l.clone(), r.clone());
+        // merge conflict between key k1 and key k2.
+        assert!(m.is_none());
+    }
+
+    #[test]
+    fn genre() {
+        let l = vec![
+            Genre {
+                name: Some("a".to_string()),
+                known_ids: KnownIds {
+                    musicbrainz_id: Some("23e4d287-9ddd-4fbc-9e57-74b92e269733".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            Genre {
+                name: Some("b".to_string()),
+                ..Default::default()
+            },
+        ];
+        let r = vec![
+            Genre {
+                name: Some("a".to_string()),
+                known_ids: KnownIds {
+                    musicbrainz_id: Some("fad7bccc-9b31-49f0-82a6-0fceaaa40187".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+            Genre {
+                name: Some("b".to_string()),
+                ..Default::default()
+            },
+            Genre {
+                name: Some("c".to_string()),
+                ..Default::default()
+            },
+        ];
+        let m = Merge::merge(l.clone(), r.clone()).unwrap();
+        assert!(m.len() == 4);
     }
 
     #[test]
@@ -601,10 +471,27 @@ mod tests {
             ],
             ..Default::default()
         };
-        let m = Release::merge(l, r);
-        // dbg!(&m);
+        let m = Release::merge(l, r).unwrap();
+        dbg!(&m);
         assert!(m.media.get(0).unwrap().tracks.get(0).unwrap().recording.known_ids.discogs_id == Some("D10123123".to_string()));
         assert!(m.media.get(0).unwrap().tracks.get(1).unwrap().title == Some("Into the Frying Pan".to_string()));
     }
+
+    #[test]
+    fn test2() {
+        let l = Release {
+            key: Some("6238582b-b14b-4bab-b28c-a4f9f7d606de".to_string()),
+            title: Some("Release 1".to_string()),
+            ..Default::default()
+        };
+        let r = Release {
+            key: Some("28d45028-dad5-45f4-9ea1-0158ccffd2cf".to_string()),
+            title: Some("Release 1".to_string()),
+            ..Default::default()
+        };
+        let m = Merge::merge(l, r);
+        dbg!(m);
+    }
 }
+
 
