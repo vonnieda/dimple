@@ -1465,21 +1465,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dimple_librarian_tests"
-version = "0.1.0"
-dependencies = [
- "dimple_core",
- "dimple_coverartarchive_plugin",
- "dimple_fanart_tv_plugin",
- "dimple_librarian",
- "dimple_mediafiles_plugin",
- "dimple_musicbrainz_plugin",
- "dimple_player",
- "dimple_theaudiodb_plugin",
- "dimple_wikidata_plugin",
-]
-
-[[package]]
 name = "dimple_mediafiles_plugin"
 version = "0.1.0"
 dependencies = [
