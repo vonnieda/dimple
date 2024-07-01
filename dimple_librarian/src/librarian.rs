@@ -7,7 +7,7 @@ use dimple_core::{
 use anyhow::{Error, Result};
 use image::DynamicImage;
 
-use crate::{merge::Merge, plugin::{NetworkMode, Plugin, PluginContext}, search};
+use crate::{merge::Merge, plugin::{NetworkMode, Plugin, PluginContext}, search, sqlite_db::SqliteDb};
 
 // It's always worth reviewing https://www.subsonic.org/pages/api.jsp
 
@@ -25,25 +25,23 @@ impl Librarian {
         let db_path = Path::new(path).join("library.db");
         let plugin_cache_path = Path::new(path).join("plugin_cache");
         fs::create_dir_all(plugin_cache_path.clone()).unwrap();
-        todo!();
-        // let librarian = Self {
-        //     db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()))),
-        //     plugins: Default::default(),
-        //     network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
-        //     plugin_context: PluginContext::new(plugin_cache_path.to_str().unwrap()),
-        // };
-        // librarian
+        let librarian = Self {
+            db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()).unwrap())),
+            plugins: Default::default(),
+            network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
+            plugin_context: PluginContext::new(plugin_cache_path.to_str().unwrap()),
+        };
+        librarian
     }
 
     pub fn new_in_memory() -> Self {
-        todo!();
-        // let librarian = Self {
-        //     db: Arc::new(Box::new(SqliteDb::new(":memory:"))),
-        //     plugins: Default::default(),
-        //     network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
-        //     plugin_context: PluginContext::default(),
-        // };
-        // librarian
+        let librarian = Self {
+            db: Arc::new(Box::new(SqliteDb::new(":memory:").unwrap())),
+            plugins: Default::default(),
+            network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
+            plugin_context: PluginContext::default(),
+        };
+        librarian
     }
 
     pub fn add_plugin(&self, plugin: Box<dyn Plugin>) {

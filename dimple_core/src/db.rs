@@ -13,10 +13,6 @@ pub trait Db: Send + Sync {
     /// key doesn't exist in the database.
     fn get(&self, model: &Model) -> Result<Option<Model>>;
 
-    // /// Like insert() but TODO takes a merge function and performs a get,
-    // /// merge, update in a transaction.
-    // fn merge(&self, model: &Model) -> Result<Model>;
-
     /// Link two models in a many to many relationship such that it is possible
     /// to retrieve a list of models related to the specified model.
     fn link(&self, model: &Model, related_to: &Model) -> Result<()>;
