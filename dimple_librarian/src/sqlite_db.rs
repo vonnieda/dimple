@@ -1,7 +1,13 @@
 use std::sync::{Arc, Mutex, RwLock};
 
 use anyhow::Error;
-use dimple_core::{model::{Artist, ArtistCredit, Blob, Dimage, Entity, Genre, KnownIds, Lyrics, Model, Playlist, PlaylistItem, Recording, RecordingSource, Release, ReleaseGroup, Tag}};
+use dimple_core::{
+    db::Db,
+    model::{
+        Artist, ArtistCredit, Blob, Dimage, Entity, Genre, KnownIds, Lyrics, Model, Playlist,
+        PlaylistItem, Recording, RecordingSource, Release, ReleaseGroup, Tag,
+    },
+};
 use rusqlite::{Connection, OptionalExtension};
 use serde::{de::DeserializeOwned, Serialize};
 use uuid::Uuid;
@@ -17,6 +23,7 @@ impl SqliteDb {
         // need that.
         let conn = Connection::open(path)?;
 
+        // Maybe just go back to kv where v is doc.
         Self::create_collection(&conn, Artist::default())?;
         Self::create_collection(&conn, Blob::default())?;
         Self::create_collection(&conn, Dimage::default())?;
@@ -29,6 +36,15 @@ impl SqliteDb {
         Self::create_collection(&conn, ReleaseGroup::default())?;
         Self::create_collection(&conn, Release::default())?;
         Self::create_collection(&conn, Tag::default())?;
+
+        let sql = format!(
+            "CREATE TABLE IF NOT EXISTS Edges (
+            key_from UUID NOT NULL,
+            key_to UUID NOT NULL,
+            PRIMARY KEY (key_from, key_to)) 
+            "
+        );
+        conn.execute(&sql, ())?;
 
         Ok(Self {
             connection: Mutex::new(conn),
@@ -43,7 +59,7 @@ impl SqliteDb {
             entity.type_name()
         );
         conn.execute(&sql, ())?;
-        Ok(())      
+        Ok(())
     }
 
     pub fn set<T: Serialize + Entity + Clone>(&self, model: &T) -> Result<T, Error> {
@@ -128,9 +144,96 @@ impl SqliteDb {
     }
 }
 
+impl Db for SqliteDb {
+    fn insert(&self, model: &Model) -> anyhow::Result<Model> {
+        let mut model = model.clone();
+        if model.entity().key().is_none() {
+            model.set_key(Some(Uuid::new_v4().to_string()));
+        }
+        let doc = serde_json::to_string_pretty(&model)?;
+        self.connection.lock().unwrap().execute(
+            &format!(
+                "REPLACE INTO {} (key, doc) VALUES (?, json(?))",
+                model.entity().type_name()
+            ),
+            [model.entity().key(), Some(doc)],
+        )?;
+        Ok(model)
+    }
+
+    fn get(&self, model: &Model) -> anyhow::Result<Option<Model>> {
+        todo!()
+    }
+
+    fn link(&self, model: &Model, related_to: &Model) -> anyhow::Result<()> {
+        let key_from = model.entity().key().unwrap();
+        let key_to = related_to.entity().key().unwrap();
+        self.connection.lock().unwrap().execute(
+            "REPLACE INTO Edges (key_from, key_to) VALUES (?, ?)",
+            [&key_from, &key_to],
+        )?;
+        self.connection.lock().unwrap().execute(
+            "REPLACE INTO Edges (key_from, key_to) VALUES (?, ?)",
+            [&key_to, &key_from],
+        )?;
+        Ok(())
+    }
+
+    fn list(
+        &self,
+        list_of: &Model,
+        related_to: &Option<Model>,
+    ) -> anyhow::Result<Box<dyn Iterator<Item = Model>>> {
+        let binding = self.connection.lock().unwrap();
+        let results = match related_to {
+            None => {
+                let query = format!("SELECT doc FROM {}", list_of.entity().type_name());
+                let mut stmt = binding.prepare(&query)?;
+                let results: Vec<Model> = stmt
+                    .query_map((), |row| {
+                        let doc: String = row.get(0)?;
+                        let result: Model = serde_json::from_str(&doc).unwrap();
+                        Ok(result)
+                    })?
+                    .map(|row| row.unwrap())
+                    .collect();
+                results
+            },
+            Some(related_to) => {
+                let query = format!(
+                    "SELECT list_of.doc FROM {} AS list_of 
+                    JOIN Edges AS related_to 
+                    ON list_of.key = related_to.key_to 
+                    WHERE related_to.key_from = ?",
+                    list_of.entity().type_name()
+                );
+                let mut stmt = binding.prepare(&query)?;
+                let results: Vec<Model> = stmt
+                    .query_map((related_to.entity().key().unwrap(), ), |row| {
+                        let doc: String = row.get(0)?;
+                        let result: Model = serde_json::from_str(&doc).unwrap();
+                        Ok(result)
+                    })?
+                    .map(|row| row.unwrap())
+                    .collect();
+                results
+            }
+        };
+
+        Ok(Box::new(results.into_iter()))
+    }
+
+    fn reset(&self) -> anyhow::Result<()> {
+        todo!()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use dimple_core::model::{Artist, Genre};
+    use dimple_core::{
+        db::Db,
+        model::{Artist, Entity, Genre, Model},
+    };
 
     use crate::sqlite_db::SqliteDb;
 
@@ -283,12 +386,12 @@ mod tests {
 
         let genres: Vec<Genre> = db
             .query(
-            //     "SELECT doc 
-            // FROM Genre AS g
-            // WHERE g.key IN (
-            //     SELECT json_extract(je.value, '$.key')
-            //     FROM Artist AS a, json_each(a.doc, '$.genres') AS je 
-            //     WHERE a.key = 'fae7a3f6-812e-4372-a8a6-6781e12afa66')",
+                //     "SELECT doc
+                // FROM Genre AS g
+                // WHERE g.key IN (
+                //     SELECT json_extract(je.value, '$.key')
+                //     FROM Artist AS a, json_each(a.doc, '$.genres') AS je
+                //     WHERE a.key = 'fae7a3f6-812e-4372-a8a6-6781e12afa66')",
                 "SELECT g.doc
                 FROM Genre AS g
                 INNER JOIN (
@@ -296,7 +399,7 @@ mod tests {
                     FROM Artist AS a, json_each(a.doc, '$.genres') AS je
                     WHERE a.key = 'fae7a3f6-812e-4372-a8a6-6781e12afa66'
                 ) AS extracted_genres
-                ON g.key = extracted_genres.genre_key;"
+                ON g.key = extracted_genres.genre_key;",
             )
             .unwrap()
             .collect();
@@ -323,5 +426,24 @@ mod tests {
                 .count()
                 == 2
         );
+    }
+
+    #[test]
+    fn db_trait() {
+        let db = SqliteDb::new(":memory:").unwrap();
+        let artist = db.insert(&Artist::default().model()).unwrap();
+        let _ = db.insert(&Genre::default().model()).unwrap();
+        let _ = db.insert(&Genre::default().model()).unwrap();
+        let genre = db.insert(&Genre::default().model()).unwrap();
+        db.link(&genre, &artist).unwrap();
+        let artists: Vec<Model> = db
+            .list(&Artist::default().model(), &None)
+            .unwrap()
+            .collect();
+        let genres: Vec<Model> = db.list(&Genre::default().model(), &None).unwrap().collect();
+        let artist_genres: Vec<Model> = db.list(&Genre::default().model(), &Some(artist)).unwrap().collect();
+        assert!(artists.len() == 1);
+        assert!(genres.len() == 3);
+        assert!(artist_genres.len() == 1);
     }
 }
