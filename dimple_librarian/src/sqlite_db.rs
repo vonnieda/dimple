@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex, RwLock};
 
 use anyhow::Error;
-use dimple_core::{db::Db, model::{Artist, ArtistCredit, Blob, Dimage, Entity, Genre, KnownIds, Lyrics, Model, Playlist, PlaylistItem, Recording, RecordingSource, Release, ReleaseGroup, Tag}};
+use dimple_core::{model::{Artist, ArtistCredit, Blob, Dimage, Entity, Genre, KnownIds, Lyrics, Model, Playlist, PlaylistItem, Recording, RecordingSource, Release, ReleaseGroup, Tag}};
 use rusqlite::{Connection, OptionalExtension};
 use serde::{de::DeserializeOwned, Serialize};
 use uuid::Uuid;
@@ -125,32 +125,6 @@ impl SqliteDb {
     pub fn rollback(&self) -> Result<(), Error> {
         let _ = self.connection.lock().unwrap().execute("ROLLBACK", ())?;
         Ok(())
-    }
-}
-
-impl Db for SqliteDb {
-    fn insert(&self, model: &Model) -> anyhow::Result<Model> {
-        todo!()
-    }
-
-    fn get(&self, model: &Model) -> anyhow::Result<Option<Model>> {
-        todo!()
-    }
-
-    fn link(&self, model: &Model, related_to: &Model) -> anyhow::Result<()> {
-        todo!()
-    }
-
-    fn list(
-        &self,
-        list_of: &Model,
-        related_to: &Option<Model>,
-    ) -> anyhow::Result<Box<dyn Iterator<Item = Model>>> {
-        todo!()
-    }
-
-    fn reset(&self) -> anyhow::Result<()> {
-        todo!()
     }
 }
 
