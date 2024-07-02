@@ -23,7 +23,6 @@ impl SqliteDb {
         // need that.
         let conn = Connection::open(path)?;
 
-        // Maybe just go back to kv where v is doc.
         Self::create_collection(&conn, Artist::default())?;
         Self::create_collection(&conn, Blob::default())?;
         Self::create_collection(&conn, Dimage::default())?;
@@ -162,7 +161,15 @@ impl Db for SqliteDb {
     }
 
     fn get(&self, model: &Model) -> anyhow::Result<Option<Model>> {
-        todo!()
+        let query = format!("SELECT doc FROM {} WHERE key = ?", model.entity().type_name());
+        let binding = self.connection.lock().unwrap();
+        let mut stmt = binding.prepare(&query)?;
+        let model = stmt.query_row([model.entity().key().unwrap()], |row| {
+                let doc: String = row.get(0)?;
+                let result: Model = serde_json::from_str(&doc).unwrap();
+                Ok(result)
+            })?;
+        Ok(Some(model))
     }
 
     fn link(&self, model: &Model, related_to: &Model) -> anyhow::Result<()> {
@@ -430,7 +437,7 @@ mod tests {
 
     #[test]
     fn db_trait() {
-        let db = SqliteDb::new(":memory:").unwrap();
+        let db: &dyn Db = &SqliteDb::new(":memory:").unwrap();
         let artist = db.insert(&Artist::default().model()).unwrap();
         let _ = db.insert(&Genre::default().model()).unwrap();
         let _ = db.insert(&Genre::default().model()).unwrap();
@@ -441,9 +448,12 @@ mod tests {
             .unwrap()
             .collect();
         let genres: Vec<Model> = db.list(&Genre::default().model(), &None).unwrap().collect();
-        let artist_genres: Vec<Model> = db.list(&Genre::default().model(), &Some(artist)).unwrap().collect();
+        let artist_genres: Vec<Model> = db.list(&Genre::default().model(), &Some(artist.clone())).unwrap().collect();
         assert!(artists.len() == 1);
         assert!(genres.len() == 3);
         assert!(artist_genres.len() == 1);
+        let artist2: Artist = db.get(&artist).unwrap().unwrap().into();
+        assert!(artist.entity().key() == artist2.key);
+        assert!(artist2.name.is_none());
     }
 }
