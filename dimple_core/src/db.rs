@@ -25,6 +25,11 @@ pub trait Db: Send + Sync {
         related_to: &Option<Model>,
     ) -> Result<Box<dyn Iterator<Item = Model>>>;
 
+    fn query(
+        &self,
+        query: &str,
+    ) -> anyhow::Result<Box<dyn Iterator<Item = Model>>>;
+
     fn reset(&self) -> Result<()>;
 }
 

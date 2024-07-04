@@ -80,7 +80,7 @@ impl Librarian {
     pub fn get(&self, model: &Model) -> Result<Option<Model>> {
         let mut model = model.clone();
 
-        // If we can find 
+        // If we can find the model by key, merge it with the incoming one.
         if let Ok(Some(db_model)) = self.db.get(&model) {
             if let Some(merged) = Model::merge(model.clone(), db_model) {
                 model = merged;
@@ -335,7 +335,6 @@ mod test {
             ..Default::default()
         });
         let artists = lib.list2(Artist::default(), None::<Artist>).unwrap().collect::<Vec<_>>();
-        dbg!(&artists);
         assert!(artists.len() == 3);
     }
 

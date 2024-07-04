@@ -21,6 +21,9 @@ impl SqliteDb {
         // TODO store the path and have a function that returns a connection,
         // instead of sharing the connection. Leads to connection pool if we
         // need that.
+        // Seems more and more like I should have just implemented like ToSql
+        // and FromSql for the types, and then just used rusqlite directly in
+        // the librarian.
         let conn = Connection::open(path)?;
 
         Self::create_collection(&conn, Artist::default())?;
@@ -229,6 +232,24 @@ impl Db for SqliteDb {
 
         Ok(Box::new(results.into_iter()))
     }
+
+    fn query(
+        &self,
+        query: &str,
+    ) -> anyhow::Result<Box<dyn Iterator<Item = Model>>> {
+        let binding = self.connection.lock().unwrap();
+        let mut stmt = binding.prepare(&query)?;
+        let results: Vec<Model> = stmt
+            .query_map((), |row| {
+                let doc: String = row.get(0)?;
+                let result: Model = serde_json::from_str(&doc).unwrap();
+                Ok(result)
+            })?
+            .map(|row| row.unwrap())
+            .collect();
+        Ok(Box::new(results.into_iter()))
+    }
+
 
     fn reset(&self) -> anyhow::Result<()> {
         todo!()
@@ -455,5 +476,19 @@ mod tests {
         let artist2: Artist = db.get(&artist).unwrap().unwrap().into();
         assert!(artist.entity().key() == artist2.key);
         assert!(artist2.name.is_none());
+        let _ = db.insert(&Artist {
+            name: Some("cat".to_string()),
+            ..Default::default()
+        }.model()).unwrap();
+        let _ = db.insert(&Artist {
+            name: Some("calf".to_string()),
+            ..Default::default()
+        }.model()).unwrap();
+        let _ = db.insert(&Artist {
+            name: Some("dog".to_string()),
+            ..Default::default()
+        }.model()).unwrap();
+        let artists: Vec<_> = db.query("SELECT doc FROM Artist WHERE doc->>'Artist.name' LIKE 'ca%'").unwrap().collect();
+        assert!(artists.len() == 2);
     }
 }
