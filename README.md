@@ -21,7 +21,7 @@ If you don't purchase through an app store, please consider:
   - Merch: https://dimple.lol/store
   - BTC: 3FMNgdEjbVcxVoAUtgFFpzsuccnU9KMuhx
   - ETH: 0xf1CE557bE8645dC70e78Cbb601bAF2b3649169A0
-  - DOGE:
+  - DOGE: DGNKBH3AN4pUnHs9ZNQpC42ABzJG4mVF3t
   - Paypal: jason@vonnieda.org
   - Github: https://github.com/vonnieda
   - Venmo: @Jason-vonNieda-1

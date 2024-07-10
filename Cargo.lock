@@ -1451,6 +1451,7 @@ dependencies = [
  "anyhow",
  "cacache",
  "dimple_core",
+ "fakeit",
  "fuzzy-matcher",
  "image 0.25.1",
  "log",

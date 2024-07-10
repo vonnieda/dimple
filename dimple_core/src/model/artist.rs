@@ -23,6 +23,7 @@ pub struct Artist {
     
     pub saved: bool,
 
+    #[serde(skip)]
     pub genres: Vec<Genre>,
 }
 

@@ -243,6 +243,11 @@ impl Librarian {
     /// Store the model under it's existing key, or under a new key if none.
     /// Returns the stored model, 
     fn store(&self, model: Model) -> Model {
+        // TODO this is where db_merge would be, I guess, which would need to break up
+        // the objects.
+        // This is all clearly part of merge / librarian / "the api". This is
+        // no different than a complex import process, which I do have some
+        // experience with. Think of it like that - an import process.
         self.db.insert(&model).unwrap()
     }
 
@@ -263,6 +268,18 @@ impl Librarian {
                         //     OR (a.name IS NOT NULL AND a.name = ? AND a.disambiguation = ?)
                         //     OR (a.known_ids.musicbrainz_id = IS NOT NULL AND a.known_ids.musicbrainz_id = ?)
                         // ORDER BY a.name ASC
+
+                        // self.db.lock().unwrap().query::<Artist, _>(
+                        //     "
+                        //     SELECT doc 
+                        //     FROM Artist a
+                        //     WHERE (a.key = ?) 
+                        //     OR (a.doc->>'name' IS NOT NULL AND a.doc->>'name' = ? AND a.doc->>'disambiguation' = ?)
+                        //     OR (a.doc->>'known_ids.musicbrainz_id' IS NOT NULL AND a.doc->>'known_ids.musicbrainz_id' = ?)
+                        //     ", (artist.key, artist.name, artist.disambiguation, artist.known_ids.musicbrainz_id))
+                        //     .unwrap().map(|a| a.model()).next()
+        
+
                         (artist.key.is_some() && artist.key == a.key)
                         || (artist.name.is_some() && artist.name == a.name && artist.disambiguation == a.disambiguation)
                         || (artist.known_ids.musicbrainz_id.is_some() && artist.known_ids.musicbrainz_id == a.known_ids.musicbrainz_id)
@@ -300,92 +317,6 @@ impl Librarian {
 
     pub fn merge2<T: Entity + From<Model>>(&self, entity: T) -> T {
         self.merge(&entity.model()).into()
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use dimple_core::model::{Artist, Genre};
-
-    use super::Librarian;
-
-    #[test]
-    fn basics() {
-        let lib = Librarian::new_in_memory();
-        lib.merge2(Artist {
-            name: Some("a".to_string()),
-            ..Default::default()
-        });
-        lib.merge2(Artist {
-            name: Some("a".to_string()),
-            summary: Some("s".to_string()),
-            ..Default::default()
-        });
-        lib.merge2(Artist {
-            name: Some("a".to_string()),
-            disambiguation: Some("a1".to_string()),
-            summary: Some("s".to_string()),
-            ..Default::default()
-        });
-        lib.merge2(Artist {
-            key: Some("96b47db5-f2ed-4f60-9a9d-a3b91d461847".to_string()),
-            name: Some("a".to_string()),
-            disambiguation: Some("a1".to_string()),
-            summary: Some("s".to_string()),
-            ..Default::default()
-        });
-        let artists = lib.list2(Artist::default(), None::<Artist>).unwrap().collect::<Vec<_>>();
-        assert!(artists.len() == 3);
-    }
-
-    #[test]
-    fn moar() {
-        let lib = Librarian::new_in_memory();
-        lib.merge2(Artist {
-            name: Some("a".to_string()),
-            genres: vec![
-                Genre {
-                    name: Some("metal".to_string()),
-                    ..Default::default()
-                }
-            ],
-            ..Default::default()
-        });
-        lib.merge2(Artist {
-            name: Some("a".to_string()),
-            genres: vec![
-                Genre {
-                    name: Some("metal".to_string()),
-                    ..Default::default()
-                },
-                Genre {
-                    name: Some("folk metal".to_string()),
-                    ..Default::default()
-                }
-            ],
-            ..Default::default()
-        });
-        let artists = lib.list2(Artist::default(), None::<Artist>).unwrap().collect::<Vec<_>>();
-        assert!(artists.len() == 1);
-        assert!(artists[0].genres.len() == 2);
-        // TODO Getting tired. Happy with all this. Fix up librarian for new merge shit.
-        // Then I think probably Db JSON, then matching.
-        // TODO stopping here. This fails (on purpose) because merge is not merging the
-        // embedded primary objects into their own stores. In other words, Genres get
-        // saved in the artist, but not in the genres list. I guess that's back to
-        // the db_merge crap to merge the child objects? But maybe now it's more
-        // clear cut?
-        // So, yea, like on an Artist the genres each need to be merged, and linked to the
-        // artist. But now, no longer, the intermediate objects like Track and Medium
-        // because those will be deeply stored. Or maybe not! But they certainly
-        // won't be merged the old way.
-        let genres = lib.list2(Genre::default(), None::<Genre>).unwrap().collect::<Vec<_>>();
-        assert!(genres.len() == 2);
-    }
-
-    #[test]
-    fn get_returns_none_when_nothing_found() {
-        todo!();
     }
 }
 

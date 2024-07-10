@@ -24,7 +24,7 @@ pub struct ReleaseGroup {
     pub links: HashSet<String>,
 
     pub first_release_date: Option<String>,
-    pub primary_type: Option<String>,
+pub primary_type: Option<String>,
     pub secondary_types: HashSet<String>,
 
     #[serde(skip)]

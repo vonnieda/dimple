@@ -27,7 +27,6 @@ pub struct Release {
     pub barcode: Option<String>,
     pub country: Option<String>,
     pub date: Option<String>,
-    pub primary_type: Option<String>,
     pub packaging: Option<String>,
     pub status: Option<String>,
     pub quality: Option<String>,
@@ -53,7 +52,6 @@ impl Hash for Release {
         self.barcode.hash(state);
         self.country.hash(state);
         self.date.hash(state);
-        self.primary_type.hash(state);
         self.packaging.hash(state);
         self.status.hash(state);
         self.quality.hash(state);
