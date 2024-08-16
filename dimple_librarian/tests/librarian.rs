@@ -4,8 +4,29 @@ use dimple_core::model::{Artist, ArtistCredit, Genre, KnownIds, Medium, Recordin
 use dimple_librarian::librarian::Librarian;
 
 #[test]
+fn merge_basics() {
+    let lib = Librarian::new("test.db");
+    lib.merge2(Artist {
+        name: Some("Artist 1".to_string()),
+        genres: vec![
+            Genre {
+                name: Some("rock".to_string()),
+                ..Default::default()
+            },
+            Genre {
+                name: Some("funk".to_string()),
+                ..Default::default()
+            },
+        ],
+        ..Default::default()
+    });
+    assert!(lib.list2::<_, Artist>(Artist::default(), None).unwrap().count() == 1);
+    // assert!(lib.list2::<_, Genre>(Genre::default(), None).unwrap().count() == 2);
+}
+
+#[test]
 fn basics() {
-    let lib = Librarian::new_in_memory();
+    let lib = Librarian::new("test.db");
     lib.merge2(Artist {
         name: Some("a".to_string()),
         ..Default::default()
@@ -34,7 +55,7 @@ fn basics() {
 
 #[test]
 fn merge_system() {
-    let lib = Librarian::new_in_memory();
+    let lib = Librarian::new("test.db");
     lib.merge2(Artist {
         name: Some("Jason von Nieda".to_string()),
         genres: vec![

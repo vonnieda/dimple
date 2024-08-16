@@ -6,14 +6,16 @@ use dimple_core::{
 
 use anyhow::{Error, Result};
 use image::DynamicImage;
+use rusqlite::Connection;
+use uuid::Uuid;
 
-use crate::{merge::Merge, plugin::{NetworkMode, Plugin, PluginContext}, search, sqlite_db::SqliteDb};
+use crate::{hydrate::Hydrate, merge::Merge, plugin::{NetworkMode, Plugin, PluginContext}, search, sqlite_db::SqliteDb};
 
 // It's always worth reviewing https://www.subsonic.org/pages/api.jsp
 
 #[derive(Clone)]
 pub struct Librarian {
-    db: Arc<Box<dyn Db>>,
+    db: SqliteDb,
     plugins: Arc<RwLock<Vec<Box<dyn Plugin>>>>,
     network_mode: Arc<Mutex<NetworkMode>>,
     plugin_context: PluginContext,
@@ -26,20 +28,10 @@ impl Librarian {
         let plugin_cache_path = Path::new(path).join("plugin_cache");
         fs::create_dir_all(plugin_cache_path.clone()).unwrap();
         let librarian = Self {
-            db: Arc::new(Box::new(SqliteDb::new(db_path.to_str().unwrap()).unwrap())),
+            db: SqliteDb::new(db_path.to_str().unwrap()).unwrap(),
             plugins: Default::default(),
             network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
             plugin_context: PluginContext::new(plugin_cache_path.to_str().unwrap()),
-        };
-        librarian
-    }
-
-    pub fn new_in_memory() -> Self {
-        let librarian = Self {
-            db: Arc::new(Box::new(SqliteDb::new(":memory:").unwrap())),
-            plugins: Default::default(),
-            network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
-            plugin_context: PluginContext::default(),
         };
         librarian
     }
@@ -61,12 +53,13 @@ impl Librarian {
             let results = plugin.search(query, self.network_mode(), &self.plugin_context);
             if let Ok(results) = results {
                 for result in results {
-                    self.merge(&result);
+                    self.merge(&result)?;
                 }
             }
         }
 
-        search::db_search(self.db.as_ref().as_ref(), query)
+        // search::db_search(self.db.as_ref().as_ref(), query)
+        todo!()
     }
 
     /// Get a specific model using information (such as a key) in the
@@ -111,7 +104,7 @@ impl Librarian {
 
         let result = self.merge(&model);
         
-        Ok(Some(result))
+        Ok(Some(result?))
     }
 
     pub fn plugin_cache_len(&self) -> usize {
@@ -132,13 +125,11 @@ impl Librarian {
         related_to: &Option<Model>,
         first: bool,
     ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
-        let db: &dyn Db = self.db.as_ref().as_ref();
-
         for plugin in self.plugins.read().unwrap().iter() {
             let results = plugin.list(list_of, related_to, self.network_mode(), &self.plugin_context);
             if let Ok(results) = results {
                 for result in results {
-                    self.merge(&result);
+                    self.merge(&result)?;
                     if first {
                         return self.db.list(list_of, related_to)
                     }
@@ -227,17 +218,22 @@ impl Librarian {
         self.db.reset()
     } 
 
-    /// Find, merges, and stores the given model in the database. Merges with
-    /// existing data under the same key or identifier. On conflict, creates
-    /// a duplicate. 
-    pub fn merge(&self, model: &Model) -> Model {
-        // start tx
-        self.find_matching(model.clone())
+    /// Merges new or updated data into the database. First tries to match
+    /// the model to an existing one using keys and unique identifiers. If a
+    /// a match is found, the two are merged using conflict free merge operators
+    /// found in merge.rs. Otherwise, the model is assigned a key and stored
+    /// in the database as a new entity. The merge is recursive. Child entities
+    /// are also merged and links are created between them.
+    pub fn merge(&self, model: &Model) -> Result<Model, Error> {
+        let mut conn = self.db.get_connection()?;
+        let txn = conn.transaction()?;
+        let result = self.find_matching(&txn, model.clone())?
             .and_then(|matching| Merge::merge(matching, model.clone()))
             .or_else(|| Some(model.clone()))
             .and_then(|merged| Some(self.store(merged)))
-            .unwrap()
-        // commit
+            .unwrap();
+        txn.commit()?;
+        Ok(result)
     }
 
     /// Store the model under it's existing key, or under a new key if none.
@@ -253,39 +249,40 @@ impl Librarian {
 
     /// Finds a matching model to the one specified. Matching means that either
     /// a key or some other uniquely identifying information matches.
-    fn find_matching(&self, model: Model) -> Option<Model> {
-        // if artist, find_by_key, find_by_name_and_disambiguation, find_by_known_id
-        // or one long SQl query with ORs
-        // if release_group, find_by_artist_release_group?
+    fn find_matching(&self, conn: &Connection, model: Model) -> Result<Option<Model>, Error> {
         match model {
             Model::Artist(artist) => {
-                self.db.list(&Artist::default().model(), &None).unwrap()
-                    .map(Into::<Artist>::into)
-                    .filter(|a| {
-                        // SELECT * FROM Artist a
-                        // WHERE 
-                        //     (a.key IS NOT NULL AND a.key = ?)
-                        //     OR (a.name IS NOT NULL AND a.name = ? AND a.disambiguation = ?)
-                        //     OR (a.known_ids.musicbrainz_id = IS NOT NULL AND a.known_ids.musicbrainz_id = ?)
-                        // ORDER BY a.name ASC
-
-                        // self.db.lock().unwrap().query::<Artist, _>(
-                        //     "
-                        //     SELECT doc 
-                        //     FROM Artist a
-                        //     WHERE (a.key = ?) 
-                        //     OR (a.doc->>'name' IS NOT NULL AND a.doc->>'name' = ? AND a.doc->>'disambiguation' = ?)
-                        //     OR (a.doc->>'known_ids.musicbrainz_id' IS NOT NULL AND a.doc->>'known_ids.musicbrainz_id' = ?)
-                        //     ", (artist.key, artist.name, artist.disambiguation, artist.known_ids.musicbrainz_id))
-                        //     .unwrap().map(|a| a.model()).next()
-        
-
-                        (artist.key.is_some() && artist.key == a.key)
-                        || (artist.name.is_some() && artist.name == a.name && artist.disambiguation == a.disambiguation)
-                        || (artist.known_ids.musicbrainz_id.is_some() && artist.known_ids.musicbrainz_id == a.known_ids.musicbrainz_id)
-                    })
-                    .next()
-                    .map(|a| a.model())
+                let sql = "
+                    SELECT doc 
+                    FROM Artist a
+                    WHERE 
+                        (a.key = ?) 
+                        OR (a.doc->>'name' IS NOT NULL 
+                            AND a.doc->>'name' = ? 
+                            AND a.doc->>'disambiguation' = ?)
+                        OR (a.doc->>'known_ids.musicbrainz_id' IS NOT NULL 
+                            AND a.doc->>'known_ids.musicbrainz_id' = ?)
+                ";
+                let params = (
+                    artist.key, 
+                    artist.name, 
+                    artist.disambiguation, 
+                    artist.known_ids.musicbrainz_id
+                );
+                let result = conn.query_row(sql, params, |row| {
+                    let doc: String = row.get(0)?;
+                    let result: Model = serde_json::from_str(&doc).unwrap();
+                    Ok(result)
+                });
+                match result {
+                    Err(rusqlite::Error::QueryReturnedNoRows) => {
+                        return Ok(None)
+                    },
+                    Ok(model) => {
+                        return Ok(Some(model))
+                    },
+                    Err(err) => return Err(err.into())
+                }
             },
             _ => todo!()
         }
@@ -316,7 +313,8 @@ impl Librarian {
     }
 
     pub fn merge2<T: Entity + From<Model>>(&self, entity: T) -> T {
-        self.merge(&entity.model()).into()
+        self.merge(&entity.model()).unwrap().into()
     }
 }
+
 

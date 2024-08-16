@@ -2,10 +2,6 @@ use std::collections::HashSet;
 
 use dimple_core::model::{Artist, ArtistCredit, Entity, Genre, KnownIds, Medium, Model, Recording, Release, ReleaseGroup, Track};
 
-/// Exploring a version of merge that is fallible, which indicates a merge
-/// conflict. By bubbling these up it's easy to recurse, and merge a tree.
-/// Haha, I'm a dummy. I could implement this for the JSON types and call
-/// it a day, right?
 pub trait Merge {
     /// Commutative: A v B = B v A
     /// Associative: (A v B) v C = A v (B v C)

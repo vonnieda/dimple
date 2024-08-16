@@ -163,7 +163,7 @@ impl From<ReleaseConverter> for dimple_core::model::Release {
                 .collect(),
             title: none_if_empty(value.0.title),
             packaging: value.0.packaging.map(|f| format!("{:?}", f)),
-            primary_type: value.0.release_group.clone().and_then(|rg| rg.primary_type).and_then(|pt| Some(format!("{:?}", pt))),
+            // primary_type: value.0.release_group.clone().and_then(|rg| rg.primary_type).and_then(|pt| Some(format!("{:?}", pt))),
             release_group: value.0.release_group
                 .map(|f| ReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
             status: value.0.status.map(|f| format!("{:?}", f)),

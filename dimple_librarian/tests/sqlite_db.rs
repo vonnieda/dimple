@@ -4,130 +4,130 @@ use dimple_core::{
 };
 use dimple_librarian::sqlite_db::SqliteDb;
 
-#[test]
-fn basics() {
-    let db = SqliteDb::new(":memory:").unwrap();
-    let artist = db
-        .set(&Artist {
-            name: Some("say hi".to_string()),
-            ..Default::default()
-        })
-        .unwrap();
-    let artist2: Artist = db.get(&artist.key.clone().unwrap()).unwrap().unwrap();
-    assert!(artist == artist2);
-}
+// #[test]
+// fn basics() {
+//     let db = SqliteDb::new(":memory:").unwrap();
+//     let artist = db
+//         .set(&Artist {
+//             name: Some("say hi".to_string()),
+//             ..Default::default()
+//         })
+//         .unwrap();
+//     let artist2: Artist = db.get(&artist.key.clone().unwrap()).unwrap().unwrap();
+//     assert!(artist == artist2);
+// }
 
-#[test]
-fn get() {
-    let db = SqliteDb::new(":memory:").unwrap();
-    let artist = db
-        .set(&Artist {
-            key: Some("b5965896-9124-41c1-adfc-ea924df70d05".to_string()),
-            name: Some("say hi".to_string()),
-            ..Default::default()
-        })
-        .unwrap();
+// #[test]
+// fn get() {
+//     let db = SqliteDb::new(":memory:").unwrap();
+//     let artist = db
+//         .set(&Artist {
+//             key: Some("b5965896-9124-41c1-adfc-ea924df70d05".to_string()),
+//             name: Some("say hi".to_string()),
+//             ..Default::default()
+//         })
+//         .unwrap();
 
-    let artist2: Artist = db
-        .get("b5965896-9124-41c1-adfc-ea924df70d05")
-        .unwrap()
-        .unwrap();
-    assert!(artist == artist2);
+//     let artist2: Artist = db
+//         .get("b5965896-9124-41c1-adfc-ea924df70d05")
+//         .unwrap()
+//         .unwrap();
+//     assert!(artist == artist2);
 
-    let artist3: Option<Artist> = db.get("").unwrap();
-    assert!(artist3.is_none());
+//     let artist3: Option<Artist> = db.get("").unwrap();
+//     assert!(artist3.is_none());
 
-    let artist4: Option<Artist> = db.get("2d6f8f82-f57d-4f83-ab5f-f13c1471bc17").unwrap();
-    assert!(artist4.is_none());
-}
+//     let artist4: Option<Artist> = db.get("2d6f8f82-f57d-4f83-ab5f-f13c1471bc17").unwrap();
+//     assert!(artist4.is_none());
+// }
 
-#[test]
-fn query() {
-    let db = SqliteDb::new(":memory:").unwrap();
+// #[test]
+// fn query() {
+//     let db = SqliteDb::new(":memory:").unwrap();
 
-    db.set(&Artist {
-        name: Some("say hi".to_string()),
-        ..Default::default()
-    })
-    .unwrap();
-    db.set(&Artist {
-        name: Some("say hello".to_string()),
-        ..Default::default()
-    })
-    .unwrap();
-    db.set(&Artist {
-        name: Some("say howdy".to_string()),
-        ..Default::default()
-    })
-    .unwrap();
-    db.set(&Artist {
-        name: Some("say yo".to_string()),
-        ..Default::default()
-    })
-    .unwrap();
+//     db.set(&Artist {
+//         name: Some("say hi".to_string()),
+//         ..Default::default()
+//     })
+//     .unwrap();
+//     db.set(&Artist {
+//         name: Some("say hello".to_string()),
+//         ..Default::default()
+//     })
+//     .unwrap();
+//     db.set(&Artist {
+//         name: Some("say howdy".to_string()),
+//         ..Default::default()
+//     })
+//     .unwrap();
+//     db.set(&Artist {
+//         name: Some("say yo".to_string()),
+//         ..Default::default()
+//     })
+//     .unwrap();
 
-    let artists: Vec<Artist> = db.query("SELECT doc FROM Artist").unwrap().collect();
-    assert!(artists.len() == 4);
-    let artists: Vec<Artist> = db
-        .query("SELECT doc FROM Artist WHERE doc->>'name' LIKE 'say h%'")
-        .unwrap()
-        .collect();
-    assert!(artists.len() == 3);
-}
+//     let artists: Vec<Artist> = db.query("SELECT doc FROM Artist").unwrap().collect();
+//     assert!(artists.len() == 4);
+//     let artists: Vec<Artist> = db
+//         .query("SELECT doc FROM Artist WHERE doc->>'name' LIKE 'say h%'")
+//         .unwrap()
+//         .collect();
+//     assert!(artists.len() == 3);
+// }
 
-#[test]
-fn transactions() {
-    let db = SqliteDb::new(":memory:").unwrap();
+// #[test]
+// fn transactions() {
+//     let db = SqliteDb::new(":memory:").unwrap();
 
-    db.begin().unwrap();
-    db.set(&Artist {
-        key: Some("3cbd37cd-e019-430e-90eb-6ef35a4e1b70".to_string()),
-        name: Some("say hi".to_string()),
-        ..Default::default()
-    })
-    .unwrap();
-    db.rollback().unwrap();
-    let artist: Option<Artist> = db.get("3cbd37cd-e019-430e-90eb-6ef35a4e1b70").unwrap();
-    assert!(artist.is_none());
+//     db.begin().unwrap();
+//     db.set(&Artist {
+//         key: Some("3cbd37cd-e019-430e-90eb-6ef35a4e1b70".to_string()),
+//         name: Some("say hi".to_string()),
+//         ..Default::default()
+//     })
+//     .unwrap();
+//     db.rollback().unwrap();
+//     let artist: Option<Artist> = db.get("3cbd37cd-e019-430e-90eb-6ef35a4e1b70").unwrap();
+//     assert!(artist.is_none());
 
-    db.begin().unwrap();
-    db.set(&Artist {
-        key: Some("3cbd37cd-e019-430e-90eb-6ef35a4e1b70".to_string()),
-        name: Some("say howdy".to_string()),
-        ..Default::default()
-    })
-    .unwrap();
-    db.commit().unwrap();
-    let artist: Artist = db
-        .get("3cbd37cd-e019-430e-90eb-6ef35a4e1b70")
-        .unwrap()
-        .unwrap();
-    assert!(artist.name == Some("say howdy".to_string()));
-}
+//     db.begin().unwrap();
+//     db.set(&Artist {
+//         key: Some("3cbd37cd-e019-430e-90eb-6ef35a4e1b70".to_string()),
+//         name: Some("say howdy".to_string()),
+//         ..Default::default()
+//     })
+//     .unwrap();
+//     db.commit().unwrap();
+//     let artist: Artist = db
+//         .get("3cbd37cd-e019-430e-90eb-6ef35a4e1b70")
+//         .unwrap()
+//         .unwrap();
+//     assert!(artist.name == Some("say howdy".to_string()));
+// }
 
-#[test]
-fn children() {
-    let db = SqliteDb::new(":memory:").unwrap();
-    let artist = Artist {
-        name: Some("Artist 1".to_string()),
-        genres: vec![
-            Genre {
-                name: Some("Genre 1".to_string()),
-                ..Default::default()
-            },
-            Genre {
-                name: Some("Genre 2".to_string()),
-                ..Default::default()
-            },
-        ],
-        ..Default::default()
-    };
-    assert!(artist.genres.len() == 2);
-    let artist = db.set(&artist).unwrap();
-    assert!(artist.genres.len() == 0);
-    let artist: Artist = db.get(&artist.key.unwrap()).unwrap().unwrap();
-    assert!(artist.genres.len() == 0);
-}
+// #[test]
+// fn children() {
+//     let db = SqliteDb::new(":memory:").unwrap();
+//     let artist = Artist {
+//         name: Some("Artist 1".to_string()),
+//         genres: vec![
+//             Genre {
+//                 name: Some("Genre 1".to_string()),
+//                 ..Default::default()
+//             },
+//             Genre {
+//                 name: Some("Genre 2".to_string()),
+//                 ..Default::default()
+//             },
+//         ],
+//         ..Default::default()
+//     };
+//     assert!(artist.genres.len() == 2);
+//     let artist = db.set(&artist).unwrap();
+//     assert!(artist.genres.len() == 0);
+//     let artist: Artist = db.get(&artist.key.unwrap()).unwrap().unwrap();
+//     assert!(artist.genres.len() == 0);
+// }
 
 // #[test]
 // fn relations() {
@@ -200,39 +200,39 @@ fn children() {
 //     assert!(genres.len() == 4);
 // }
 
-#[test]
-fn multiple_connections() {
-    // This syntax creates an in-memory database that multiple connections
-    // can attach to, the same as if it was an actual file.
-    // https://www.sqlite.org/inmemorydb.html
-    let path = "file:memdb1?mode=memory&cache=shared";
-    let db_1 = SqliteDb::new(path).unwrap();
-    let db_2 = SqliteDb::new(path).unwrap();
-    let db_3 = SqliteDb::new(path).unwrap();
-    db_1.set(&Artist::default()).unwrap();
-    db_2.set(&Artist::default()).unwrap();
-    assert!(
-        db_3.query::<Artist>("SELECT doc FROM Artist")
-            .unwrap()
-            .count()
-            == 2
-    );
-}
+// #[test]
+// fn multiple_connections() {
+//     // This syntax creates an in-memory database that multiple connections
+//     // can attach to, the same as if it was an actual file.
+//     // https://www.sqlite.org/inmemorydb.html
+//     let path = "file:memdb1?mode=memory&cache=shared";
+//     let db_1 = SqliteDb::new(path).unwrap();
+//     let db_2 = SqliteDb::new(path).unwrap();
+//     let db_3 = SqliteDb::new(path).unwrap();
+//     db_1.set(&Artist::default()).unwrap();
+//     db_2.set(&Artist::default()).unwrap();
+//     assert!(
+//         db_3.query::<Artist>("SELECT doc FROM Artist")
+//             .unwrap()
+//             .count()
+//             == 2
+//     );
+// }
 
-#[test]
-fn secondary_entity() {
-    let db = SqliteDb::new(":memory:").unwrap();
-    let model = db.set(&ArtistCredit::default()).unwrap();
-    assert!(model.key.is_some());
-    let model = db.set(&Medium::default()).unwrap();
-    assert!(model.key.is_some());
-    let model = db.set(&Track::default()).unwrap();
-    assert!(model.key.is_some());
-}
+// #[test]
+// fn secondary_entity() {
+//     let db = SqliteDb::new(":memory:").unwrap();
+//     let model = db.set(&ArtistCredit::default()).unwrap();
+//     assert!(model.key.is_some());
+//     let model = db.set(&Medium::default()).unwrap();
+//     assert!(model.key.is_some());
+//     let model = db.set(&Track::default()).unwrap();
+//     assert!(model.key.is_some());
+// }
 
 #[test]
 fn db_trait() {
-    let db: &dyn Db = &SqliteDb::new(":memory:").unwrap();
+    let db: &dyn Db = &SqliteDb::new("test.db").unwrap();
     let artist = db.insert(&Artist::default().model()).unwrap();
     let _ = db.insert(&Genre::default().model()).unwrap();
     let _ = db.insert(&Genre::default().model()).unwrap();

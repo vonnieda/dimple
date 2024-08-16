@@ -94,7 +94,7 @@ pub fn release_details(url: &str, app: &App) {
                 genres: ModelRc::from(genres.as_slice()),
                 links: ModelRc::from(links.as_slice()),
                 media: ModelRc::from(media.as_slice()),
-                primary_type: release.primary_type.clone().unwrap_or_default().into(),
+                // primary_type: release.primary_type.clone().unwrap_or_default().into(),
                 dump: serde_json::to_string_pretty(&release).unwrap().into(),                
                 ..Default::default()
             };
