@@ -1,16 +1,28 @@
-use anyhow::Result;
-use dimple_core::model::{Artist, Genre, Medium, Release, ReleaseGroup};
+use anyhow::Error;
+use dimple_core::model::{Artist, Entity, Genre, Medium, Model, Release, ReleaseGroup};
 
 use crate::librarian::Librarian;
 
 pub trait Hydrate {
-    fn hydrate(&self, librarian: &Librarian) -> Result<Self>
+    fn hydrate(&self, librarian: &Librarian) -> Result<Self, Error>
     where
         Self: Sized;
 }
 
+impl Hydrate for Model {
+    fn hydrate(&self, librarian: &Librarian) -> Result<Self, Error>
+    where
+        Self: Sized {
+
+        match self {
+            Model::Artist(artist) => Ok(artist.hydrate(librarian)?.model()),
+            _ => todo!()
+        }
+    }
+}
+
 impl Hydrate for Artist {
-    fn hydrate(&self, librarian: &Librarian) -> Result<Self> {
+    fn hydrate(&self, librarian: &Librarian) -> Result<Self, Error> {
         let mut result = librarian.get2(self.clone())?;
         result.genres = librarian
             .list2(Genre::default(), Some(result.clone()))?
@@ -20,7 +32,7 @@ impl Hydrate for Artist {
 }
 
 impl Hydrate for ReleaseGroup {
-    fn hydrate(&self, librarian: &Librarian) -> Result<Self> {
+    fn hydrate(&self, librarian: &Librarian) -> Result<Self, Error> {
         let mut result = librarian.get2(self.clone())?;
         result.genres = librarian
             .list2(Genre::default(), Some(result.clone()))?
@@ -31,7 +43,7 @@ impl Hydrate for ReleaseGroup {
 }
 
 impl Hydrate for Release {
-    fn hydrate(&self, librarian: &Librarian) -> Result<Self> {
+    fn hydrate(&self, librarian: &Librarian) -> Result<Self, Error> {
         let mut result = librarian.get2(self.clone())?;
         result.genres = librarian
             .list2(Genre::default(), Some(result.clone()))?

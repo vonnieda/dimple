@@ -4,7 +4,7 @@ use walkdir::WalkDir;
 
 use std::{collections::HashSet, path::PathBuf, sync::{mpsc::{channel, Sender}, Arc, Mutex}, thread, time::Instant};
 
-use dimple_librarian::{librarian::Librarian, merge::Merge, plugin::{NetworkMode, Plugin}};
+use dimple_librarian::{librarian::Librarian, plugin::{NetworkMode, Plugin}};
 
 use dimple_core::db::Db;
 

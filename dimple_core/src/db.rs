@@ -2,12 +2,6 @@ use anyhow::Result;
 
 use crate::model::{Entity, Model};
 
-mod sqlite_db;
-mod memory_db;
-
-pub use sqlite_db::SqliteDb;
-pub use memory_db::MemoryDb;
-
 // TODO I think this will get the ability to notify of changes
 pub trait Db: Send + Sync {
     /// Save the model in the database using its key. If no key is set, create
@@ -18,10 +12,6 @@ pub trait Db: Send + Sync {
     /// Load the model using its key. Returns None if no key is set, or if the
     /// key doesn't exist in the database.
     fn get(&self, model: &Model) -> Result<Option<Model>>;
-
-    // /// Like insert() but TODO takes a merge function and performs a get,
-    // /// merge, update in a transaction.
-    // fn merge(&self, model: &Model) -> Result<Model>;
 
     /// Link two models in a many to many relationship such that it is possible
     /// to retrieve a list of models related to the specified model.
@@ -34,6 +24,11 @@ pub trait Db: Send + Sync {
         list_of: &Model,
         related_to: &Option<Model>,
     ) -> Result<Box<dyn Iterator<Item = Model>>>;
+
+    fn query(
+        &self,
+        query: &str,
+    ) -> anyhow::Result<Box<dyn Iterator<Item = Model>>>;
 
     fn reset(&self) -> Result<()>;
 }
