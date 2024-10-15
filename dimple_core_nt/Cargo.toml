@@ -1,0 +1,12 @@
+[package]
+name = "dimple_core_nt"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rusqlite = "0.32.1"
+symphonia = { version = "0.5.4", features = ["all"] }
+uuid = { version = "1.10.0", features = ["v4"] }
+walkdir = "2.5.0"

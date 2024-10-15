@@ -1,9 +1,6 @@
 [workspace]
 members = [
-    "dimple_core",
-    "dimple_librarian",
-    "dimple_ui_slint",
-    "dimple_core_macro",
+    "dimple_core_nt",
 ]
 resolver="2"
 
