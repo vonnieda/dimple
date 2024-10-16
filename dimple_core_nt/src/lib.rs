@@ -16,12 +16,12 @@ mod tests {
         assert!(media_files.len() > 0);
 
         library.import(&media_files);
-        let tracks1 = library.list_tracks();
+        let tracks1 = library.tracks();
         assert!(tracks1.len() > 0);
         dbg!(tracks1.len());
 
         library.import(&media_files);
-        let tracks2 = library.list_tracks();
+        let tracks2 = library.tracks();
         assert!(tracks2.len() == tracks1.len());
         dbg!(tracks2.len());
     }

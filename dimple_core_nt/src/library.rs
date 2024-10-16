@@ -1,7 +1,6 @@
-
 use rusqlite::Connection;
 
-use crate::model::Track;
+use crate::model::{Playlist, Track};
 
 pub struct Library {
     conn: Connection,
@@ -15,14 +14,36 @@ impl Library {
 
         let conn = Connection::open(database_path).unwrap();
 
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS Track (
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS Track (
                 key       UUID PRIMARY KEY,
                 artist    TEXT,
                 album     TEXT,
                 title     TEXT,
                 path      TEXT NOT NULL UNIQUE
-            )",
+            );
+            ",
+            (),
+        ).unwrap();
+
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS Playlist (
+                key       UUID PRIMARY KEY,
+                name      TEXT
+            );
+            ",
+            (),
+        ).unwrap();
+
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS PlaylistItem (
+                key UUID PRIMARY KEY,
+                Playlist_key UUID NOT NULL,
+                Track_key UUID NOT NULL,
+                FOREIGN KEY (Playlist_key) REFERENCES Playlist(key),
+                FOREIGN KEY (Track_key) REFERENCES Track(key)
+            );
+            ",
             (),
         ).unwrap();
 
@@ -52,7 +73,7 @@ impl Library {
         }
     }
 
-    pub fn list_tracks(&self) -> Vec<Track> {
+    pub fn tracks(&self) -> Vec<Track> {
         let mut stmt = self.conn.prepare("SELECT 
             key, artist, album, title, path 
             FROM Track").unwrap();
@@ -69,6 +90,75 @@ impl Library {
         .map(|result| result.unwrap())
         .collect()
     }
+
+    /// TODO Not quite sure that the play_queue stuff, or at least the
+    /// manipulation belongs here. Seems higher level.
+    pub fn play_queue(&self) -> Playlist {
+        self.get_or_create_playlist_by_key("__dimple_system_play_queue")
+    }
+
+    pub fn play_queue_add(&self, track_key: &str) {
+        let playlist = self.play_queue();
+        self.playlist_add(&playlist, track_key);
+    }
+
+    fn playlist_add(&self, playlist: &Playlist, track_key: &str) {
+        self.conn.execute("INSERT INTO PlaylistItem 
+            (key, playlist_key, track_key) 
+            VALUES (?1, ?2, ?3)",
+            (&Self::uuid(), playlist.key.clone().unwrap(), track_key)).unwrap();
+    }
+
+    fn playlist_by_key(&self, key: &str) -> Option<Playlist> {
+        let mut playlist = Playlist::default();
+        let mut stmt = self.conn.prepare("SELECT
+            Playlist.key, Playlist.name, 
+            Track.key, Track.artist, Track.album, Track.title, Track.path
+            FROM Playlist 
+            LEFT JOIN PlaylistItem ON (PlaylistItem.playlist_key = Playlist.key)
+            LEFT JOIN Track ON (Track.key = PlaylistItem.Track_key)
+            WHERE PlayList.key = ?1").unwrap();
+        let mut rows = stmt.query((key,)).unwrap();
+        while let Some(row) = rows.next().unwrap() {
+            playlist.key = row.get(0).unwrap();
+            playlist.name = row.get(1).unwrap();
+            if row.get::<_, Option<String>>(2).unwrap().is_some() {
+                playlist.tracks.push(Track {
+                    key: row.get(2).unwrap(),
+                    artist: row.get(3).unwrap(),
+                    album: row.get(4).unwrap(),
+                    title: row.get(5).unwrap(),
+                    path: row.get(6).unwrap(),
+                });
+            }
+        }
+        match playlist.key {
+            None => None,
+            Some(_) => Some(playlist),
+        }
+    }
+
+    fn create_or_update_playlist(&self, playlist: &Playlist) -> Playlist {
+        let key = playlist.key.clone().or_else(|| Some(Self::uuid()));
+        let name = &playlist.name;
+        self.conn.execute("INSERT OR REPLACE INTO Playlist 
+            (key, name) 
+            VALUES 
+            (?1, ?2)",
+            (&key, name)).unwrap();
+        self.playlist_by_key(&key.unwrap()).unwrap()
+    }
+
+    fn get_or_create_playlist_by_key(&self, key: &str) -> Playlist {
+        self.playlist_by_key(key).or_else(|| Some(self.create_or_update_playlist(&Playlist { 
+            key: Some(key.to_string()), 
+            ..Default::default()
+        }))).unwrap()
+    }
+
+    fn uuid() -> String {
+        return uuid::Uuid::new_v4().to_string()
+    }
 }
 
 #[cfg(test)]
@@ -78,7 +168,13 @@ mod tests {
     #[test]
     fn basics() {
         let library = Library::open(":memory:");
-        let tracks = library.list_tracks();
-        dbg!(&tracks);
+        let mut playlist = library.play_queue();
+        assert!(playlist.key == Some("__dimple_system_play_queue".to_string()));
+        assert!(playlist.name.is_none());
+        assert!(playlist.tracks.len() == 0);
+        playlist.name = Some("Dimple System Play Queue".to_string());
+        library.create_or_update_playlist(&playlist);
+        let playlist = library.get_or_create_playlist_by_key("__dimple_system_play_queue");
+        assert!(playlist.name == Some("Dimple System Play Queue".to_string()));
     }
 }

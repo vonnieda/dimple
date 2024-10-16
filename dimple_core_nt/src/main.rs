@@ -1,9 +1,17 @@
 use std::env;
 
-use dimple_core_nt::{library::Library, scanner::Scanner};
+use dimple_core_nt::{library::Library, model::Track, scanner::Scanner};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    if args.get(1).is_none() {
+        println!("Help:");
+        println!("    import [/media/my_music]        Import tracks from the directory.");
+        println!("    tracks                          List all tracks in the library.");
+        println!("    queue                           List the tracks in the play queue.");
+        println!("    add 1234-12341234-1234-1234     Add the track to the queue using the track key from the tracks command.");
+        return
+    }
     let library_path = "dimple.db";
     let library = Library::open(library_path);
     println!("Opened library {}.", library_path);
@@ -16,18 +24,35 @@ fn main() {
 
         println!("Importing {} media files.", media_files.len());
         library.import(&media_files);
-        println!("Library now contains {} tracks.", library.list_tracks().len());
+        println!("Library now contains {} tracks.", library.tracks().len());
     }
-    else if command == "list" {
-        let tracks = library.list_tracks();
-        println!("{:30} | {:20} | {:40} | {:30} | {:50}", "Key", "Artist", "Album", "Title", "Path");
+    else if command == "tracks" {
+        let tracks = library.tracks();
         for track in tracks {
-            println!("{:30} | {:20} | {:40} | {:30} | {:50}", 
-                track.key.unwrap_or_default(),
-                track.artist.unwrap_or_default(),
-                track.album.unwrap_or_default(), 
-                track.title.unwrap_or_default(),
-                track.path.unwrap_or_default());
+            print_track(&track);
         }
     }
+    else if command == "queue" {
+        let play_queue = library.play_queue();
+        for track in play_queue.tracks {
+            print_track(&track);
+        }
+    }
+    else if command == "add" {
+        let track_key = &args[2];
+        library.play_queue_add(track_key);
+        let play_queue = library.play_queue();
+        for track in play_queue.tracks {
+            print_track(&track);
+        }
+    }
+}
+
+fn print_track(track: &Track) {
+    println!("{:30} | {:20} | {:40} | {:30} | {:50}", 
+        track.key.clone().unwrap_or_default(),
+        track.artist.clone().unwrap_or_default(),
+        track.album.clone().unwrap_or_default(), 
+        track.title.clone().unwrap_or_default(),
+        track.path.clone().unwrap_or_default());
 }
