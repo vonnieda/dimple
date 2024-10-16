@@ -2,6 +2,8 @@ use std::env;
 
 use dimple_core_nt::{library::Library, model::Track, scanner::Scanner};
 
+use playback_rs::{Player, Song};
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.get(1).is_none() {
@@ -45,6 +47,31 @@ fn main() {
         for track in play_queue.tracks {
             print_track(&track);
         }
+    }
+    else if command == "play" {
+        let player = Player::new(None).unwrap();
+        let play_queue = library.play_queue();
+        let filenames = play_queue.tracks.iter().map(|track| track.path.clone().unwrap());
+        for next_song in filenames {
+            println!("Loading song '{}'...", next_song);
+            let song = Song::from_file(&next_song, None).unwrap();
+            println!("Waiting for queue space to become available...");
+            while player.has_next_song() {
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            println!(
+                "Queueing next song '{}' with {:?} left in current song...",
+                next_song,
+                player.get_playback_position()
+            );
+            player.play_song_next(&song, None).unwrap();
+            println!("Queued.");
+        }
+        println!("Waiting for songs to finish.");
+        while player.has_current_song() {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        println!("Exiting.");    
     }
 }
 
