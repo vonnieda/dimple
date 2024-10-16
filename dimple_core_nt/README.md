@@ -9,7 +9,7 @@
 - [x] I can list the global play queue.
 	- [x] Including title, artist, album, length.
 - [x] I can start playing the play queue and it will play until completion.
-- [ ] I can run the UI both on Mac and Windows.
+- [x] I can run the UI both on Mac and Windows.
 - [ ] I automatically sync library changes between my laptop and desktop using S3.
 	- [ ] Files and metadata are uploaded to S3.
 	- [ ] I can "Like" a track on my laptop and see the change reflected on Windows without manually refreshing.

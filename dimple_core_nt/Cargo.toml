@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 playback-rs = "0.4.4"
-rusqlite = "0.32.1"
+rusqlite = { version = "0.32.1", features = ["bundled"] }
 symphonia = { version = "0.5.4", features = ["all"] }
 uuid = { version = "1.10.0", features = ["v4"] }
 walkdir = "2.5.0"
