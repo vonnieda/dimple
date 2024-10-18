@@ -1,4 +1,6 @@
-use rusqlite::Connection;
+use std::time::Duration;
+
+use rusqlite::{backup::Backup, Connection};
 
 use crate::model::{Playlist, Track};
 
@@ -13,6 +15,22 @@ impl Library {
     pub fn open(database_path: &str) -> Self {
 
         let conn = Connection::open(database_path).unwrap();
+
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS Metadata (
+                key       TEXT PRIMARY KEY,
+                value     TEXT
+            );
+            ",
+            (),
+        ).unwrap();
+
+        conn.execute("
+            INSERT INTO Metadata (key, value) VALUES ('library.uuid', ?1)
+            ON CONFLICT DO NOTHING
+            ",
+            (Self::new_uuid(),),
+        ).unwrap();
 
         conn.execute("
             CREATE TABLE IF NOT EXISTS Track (
@@ -55,7 +73,7 @@ impl Library {
     /// Import MediaFiles into the Library, creating or updating Tracks.
     pub fn import(&self, media_files: &[crate::scanner::media_file::MediaFile]) {
         for mf in media_files {
-            let key = uuid::Uuid::new_v4().to_string();
+            let key = Self::new_uuid();
             let artist = mf.tag(symphonia::core::meta::StandardTagKey::Artist);
             let album = mf.tag(symphonia::core::meta::StandardTagKey::Album);
             let title = mf.tag(symphonia::core::meta::StandardTagKey::TrackTitle);
@@ -95,12 +113,23 @@ impl Library {
         self.conn.execute("INSERT INTO PlaylistItem 
             (key, Playlist_key, Track_key) 
             VALUES (?1, ?2, ?3)",
-            (&Self::uuid(), playlist.key.clone().unwrap(), track_key)).unwrap();
+            (&Self::new_uuid(), playlist.key.clone().unwrap(), track_key)).unwrap();
     }
 
     pub fn playlist_clear(&self, playlist: &Playlist) {
         self.conn.execute("DELETE FROM PlaylistItem
             WHERE Playlist_key = ?1", (playlist.key.clone().unwrap(),)).unwrap();
+    }
+
+    /// Returns the unique, permanent ID of this Library. This is created when
+    /// the Library is created and doesn't change.
+    pub fn uuid(&self) -> String {
+        self.conn.query_row("SELECT value FROM Metadata WHERE key = 'library.uuid'", 
+            (), 
+            |row| {
+                let s: String = row.get(0).unwrap();
+                Ok(s)
+            }).unwrap()
     }
 
     fn playlist_by_key(&self, key: &str) -> Option<Playlist> {
@@ -133,7 +162,7 @@ impl Library {
     }
 
     fn create_or_update_playlist(&self, playlist: &Playlist) -> Playlist {
-        let key = playlist.key.clone().or_else(|| Some(Self::uuid()));
+        let key = playlist.key.clone().or_else(|| Some(Self::new_uuid()));
         let name = &playlist.name;
         self.conn.execute("INSERT OR REPLACE INTO Playlist 
             (key, name) 
@@ -150,7 +179,13 @@ impl Library {
         }))).unwrap()
     }
 
-    fn uuid() -> String {
+    pub fn backup(&self, output_path: &str) {
+        let mut dst = Connection::open(output_path).unwrap();
+        let backup = Backup::new(&self.conn, &mut dst).unwrap();
+        backup.run_to_completion(250, Duration::from_millis(10), None).unwrap();
+    }
+
+    fn new_uuid() -> String {
         return uuid::Uuid::new_v4().to_string()
     }
 }

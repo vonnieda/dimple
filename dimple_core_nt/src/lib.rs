@@ -3,6 +3,7 @@ pub mod library;
 pub mod scanner;
 pub mod play_queue;
 pub mod player;
+pub mod sync;
 
 #[cfg(test)]
 mod tests {

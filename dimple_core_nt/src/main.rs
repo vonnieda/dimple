@@ -1,6 +1,6 @@
 use std::{env, sync::Arc};
 
-use dimple_core_nt::{library::Library, model::Track, player::Player, scanner::Scanner};
+use dimple_core_nt::{library::Library, model::Track, player::Player, scanner::Scanner, sync::Sync};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -58,6 +58,16 @@ fn main() {
     else if command == "play" {
         player.play();
     }
+    else if command == "sync" {
+        let access_key = &args[2];
+        let secret_key = &args[3];
+        let region = &args[4];
+        let endpoint = &args[5];
+        let bucket = &args[6];
+        let prefix = &args[7];
+        let sync = Sync::new(&access_key, &secret_key, &region, &endpoint, &bucket, &prefix);
+        sync.sync(&library);
+    } 
 }
 
 fn print_track(track: &Track) {
