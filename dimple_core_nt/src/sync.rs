@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{self, File};
 
 /// Sync a Library with an S3 compatible storage target. Allows multiple
 /// devices to share the same library.
@@ -38,14 +38,11 @@ impl Sync {
         self.put_file(&library_uuid, &library_uuid);
     }
 
-    /// Upload the file to the bucket. The key is appended to the prefix
-    /// first.
     fn put_file(&self, key: &str, file: &str) {
         let bucket = self.open_bucket();
-        let mut reader = File::open(file).unwrap();
-        let response_code = bucket.put_object_stream(&mut reader, key).unwrap();
-        // let response_code = bucket.put_object(key, "test test test".as_bytes()).unwrap().status_code();
-        // assert_eq!(response_code, 200);
+        let content = fs::read(file).unwrap();
+        let response_code = bucket.put_object(key, &content).unwrap().status_code();
+        assert_eq!(response_code, 200);
     }
 
     fn open_bucket(&self) -> Bucket {

@@ -12,3 +12,4 @@ rusqlite = { version = "0.32.1", features = ["bundled", "backup"] }
 symphonia = { version = "0.5.4", features = ["all"] }
 uuid = { version = "1.10.0", features = ["v4"] }
 walkdir = "2.5.0"
+yrs = "0.21.2"
