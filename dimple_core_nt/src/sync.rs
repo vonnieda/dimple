@@ -1,76 +1,104 @@
-use std::fs::{self, File};
-
 /// Sync a Library with an S3 compatible storage target. Allows multiple
 /// devices to share the same library.
+/// 
+/// Hybrid Logical Clocks + Op Log
+/// 
+/// What if Sync listened to changes to the database and created the op log
+/// on it's own, without support from the model. I guess this is a WAL, sort of.
+/// 
+/// So it observes Library for changes, and writes those changes to S3. It also
+/// reads changes from other peers, merges all the changes together, and then
+/// calculates if any local values need to be changed based on the HLC (Hybrid
+/// Logical Clock)
+/// 
+/// The if the WAL gets lost it doesn't matter because the DB itself is up to
+/// date and can be transferred in whole. The purpose of the WAL is to upload
+/// only changes instead of the whole database, most of the time.
+/// 
+/// So, the way merge works:
+/// 
+/// We have an HLC (Hybrid Logical Clock) per Library which is used to order 
+/// changes between replicas. 
+/// 
+/// Every time a change is made to the library we both store the change and we
+/// store a new row in the op log. The op log contains the next HLC output,
+/// the model type, the property, the old value, and the new value. 
+/// 
+/// We merge them all together, sort by HLC, and then take the values for
+/// each property as the max of the HLC.
+/// 
+/// What happens if someone's op log gets corrupt? Or deleted? Or they rebuild
+/// their library from scratch?
+///     Choose to adopt a backup?
+/// 
+/// 
+/// 
 
-use s3::{Bucket, Region};
-use s3::creds::Credentials;
+pub mod storage;
+pub mod s3_storage;
+pub mod memory_storage;
+
+use std::io::Write;
+
+use storage::Storage;
+use tempfile::{tempdir, tempfile};
+use uuid::Uuid;
 
 use crate::library::Library;
 
+
 pub struct Sync {
-    pub access_key: String,
-    pub secret_key: String,
-    pub region: String,
-    pub endpoint: String,
-    pub bucket: String,
-    pub prefix: String,
+    storage: Box<dyn Storage>,
 }
 
 impl Sync {
-    pub fn new(access_key: &str, secret_key: &str, region: &str, endpoint: &str,
-        bucket: &str, prefix: &str) -> Sync {
-
+    pub fn new(storage: Box<dyn Storage>) -> Self {
         Sync {
-            access_key: access_key.to_owned(),
-            secret_key: secret_key.to_owned(),
-            region: region.to_owned(),
-            endpoint: endpoint.to_owned(),
-            bucket: bucket.to_owned(),
-            prefix: prefix.to_owned(),
+            storage,
         }
     }
-    
-    /// Sync library to the specified S3 compatible storage target. 
+
     pub fn sync(&self, library: &Library) {
-        let library_uuid = library.uuid();
-        library.backup(&library_uuid);
-        self.put_file(&library_uuid, &library_uuid);
+        // let library_uuid = library.uuid();
+        // library.backup(&library_uuid);
+        // self.storage.put_file(&library_uuid, &library_uuid);
+
+        let temp_dir = tempdir().unwrap();
+
+        // Download and merge remote libraries.
+        let libraries = self.storage.list_objects("dimple.library.");
+        libraries.iter().for_each(|library| {
+            let contents = self.storage.get_object(library).unwrap();
+            let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
+            std::fs::write(&temp_file, contents).unwrap();
+            println!("Downloaded {} to {}", library, temp_file.to_str().unwrap());
+        });
+
+        // Backup the merged input library to a temporary file.
+
+        // Upload the temporary file to the storage.
+
+        // Download and upload media files
     }
+}
 
-    fn put_file(&self, key: &str, file: &str) {
-        let bucket = self.open_bucket();
-        let content = fs::read(file).unwrap();
-        let response_code = bucket.put_object(key, &content).unwrap().status_code();
-        assert_eq!(response_code, 200);
-    }
+#[cfg(test)]
+mod tests {
+    use crate::library::Library;
 
-    fn open_bucket(&self) -> Bucket {
-        let credentials = Credentials::new(Some(&self.access_key), Some(&self.secret_key), None, None, None).unwrap();
-        let region = Region::Custom { 
-            region: self.region.to_owned(), 
-            endpoint: self.endpoint.to_owned() 
-        };
-        Bucket::new(
-            &self.bucket,
-            region,
-            credentials,
-        ).unwrap()
-    }
+    use super::{memory_storage::MemoryStorage, s3_storage::S3Storage, Sync};
 
-    fn list_remote_dbs(&self) -> Vec<String> {
-        let bucket = self.open_bucket();
+    #[test]
+    fn basics() {
+        let library1 = Library::open(":memory:");
 
-        let prefix = format!("{}/dimple.db/", self.prefix);
-        let results = bucket.list(prefix.to_string(), None).unwrap();
+        let library2 = Library::open(":memory:");
 
-        for result in results {
-            for obj in result.contents {
-                println!("{:?} {} {} {}", obj.e_tag, obj.key, obj.last_modified, obj.size);
-            }
-        }
+        let storage = MemoryStorage::default();
+        let sync = Sync::new(Box::new(storage));
 
-        vec![]
+        sync.sync(&library1);
+        sync.sync(&library2);
     }
 }
 

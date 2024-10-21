@@ -1,6 +1,6 @@
 use std::{env, sync::Arc};
 
-use dimple_core_nt::{library::Library, model::Track, player::Player, scanner::Scanner, sync::Sync};
+use dimple_core_nt::{library::Library, model::Track, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -65,8 +65,9 @@ fn main() {
         let endpoint = &args[5];
         let bucket = &args[6];
         let prefix = &args[7];
-        let sync = Sync::new(&access_key, &secret_key, &region, &endpoint, &bucket, &prefix);
-        sync.sync(&library);
+        // let storage = S3Storage::new(&access_key, &secret_key, &region, &endpoint, &bucket, &prefix);
+        // let sync = Sync::new(storage);
+        // sync.sync(&library);
     } 
 }
 

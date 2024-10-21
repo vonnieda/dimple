@@ -14,3 +14,12 @@ pub struct Playlist {
     pub tracks: Vec<Track>,
 }
 
+pub struct Artist {
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn basics() {
+    }
+}

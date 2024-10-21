@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use rusqlite::{backup::Backup, Connection};
+use rusqlite::{backup::Backup, Connection, OptionalExtension};
 
 use crate::model::{Playlist, Track};
 
@@ -55,6 +55,18 @@ impl Library {
 
         conn.execute("
             CREATE TABLE IF NOT EXISTS PlaylistItem (
+                key UUID PRIMARY KEY,
+                Playlist_key UUID NOT NULL,
+                Track_key UUID NOT NULL,
+                FOREIGN KEY (Playlist_key) REFERENCES Playlist(key),
+                FOREIGN KEY (Track_key) REFERENCES Track(key)
+            );
+            ",
+            (),
+        ).unwrap();
+
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS ChangeLog (
                 key UUID PRIMARY KEY,
                 Playlist_key UUID NOT NULL,
                 Track_key UUID NOT NULL,
@@ -159,6 +171,29 @@ impl Library {
             None => None,
             Some(_) => Some(playlist),
         }
+    }
+
+    pub fn track_by_key(&self, key: &str) -> Option<Track> {
+        self.conn.query_row("SELECT key, artist, album, title, path 
+            FROM Track WHERE key = ?1", 
+            (key,), 
+            |row| Ok(Track {
+                key: row.get(0).unwrap(),
+                artist: row.get(1).unwrap(),
+                album: row.get(2).unwrap(),
+                title: row.get(3).unwrap(),
+                path: row.get(4).unwrap(),
+            })).optional().unwrap()
+    }
+
+    pub fn create_or_update_track(&self, track: &Track) -> Track {
+        let key = track.key.clone().or_else(|| Some(Self::new_uuid()));
+        self.conn.execute("INSERT OR REPLACE INTO Track 
+            (key, artist, album, title, path) 
+            VALUES 
+            (?1, ?2, ?3, ?4, ?5)",
+            (&key, &track.artist, &track.album, &track.title, &track.path)).unwrap();
+        self.track_by_key(&key.unwrap()).unwrap()
     }
 
     fn create_or_update_playlist(&self, playlist: &Playlist) -> Playlist {
