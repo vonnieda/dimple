@@ -4,7 +4,7 @@ pub struct Track {
     pub artist: Option<String>,
     pub album: Option<String>,
     pub title: Option<String>,
-    pub path: Option<String>,
+    pub path: String,
 }
 
 #[derive(Debug, Clone, Default)]

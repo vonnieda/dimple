@@ -1,21 +1,7 @@
 /// Sync a Library with an S3 compatible storage target. Allows multiple
 /// devices to share the same library.
 /// 
-/// Hybrid Logical Clocks + Op Log
-/// 
-/// What if Sync listened to changes to the database and created the op log
-/// on it's own, without support from the model. I guess this is a WAL, sort of.
-/// 
-/// So it observes Library for changes, and writes those changes to S3. It also
-/// reads changes from other peers, merges all the changes together, and then
-/// calculates if any local values need to be changed based on the HLC (Hybrid
-/// Logical Clock)
-/// 
-/// The if the WAL gets lost it doesn't matter because the DB itself is up to
-/// date and can be transferred in whole. The purpose of the WAL is to upload
-/// only changes instead of the whole database, most of the time.
-/// 
-/// So, the way merge works:
+/// Hybrid Logical Clock + Op Log
 /// 
 /// We have an HLC (Hybrid Logical Clock) per Library which is used to order 
 /// changes between replicas. 
@@ -26,22 +12,14 @@
 /// 
 /// We merge them all together, sort by HLC, and then take the values for
 /// each property as the max of the HLC.
-/// 
-/// What happens if someone's op log gets corrupt? Or deleted? Or they rebuild
-/// their library from scratch?
-///     Choose to adopt a backup?
-/// 
-/// 
-/// 
 
 pub mod storage;
 pub mod s3_storage;
 pub mod memory_storage;
 
-use std::io::Write;
 
 use storage::Storage;
-use tempfile::{tempdir, tempfile};
+use tempfile::tempdir;
 use uuid::Uuid;
 
 use crate::library::Library;
@@ -59,6 +37,7 @@ impl Sync {
     }
 
     pub fn sync(&self, library: &Library) {
+        println!("Syncing {}", library.uuid());
         // let library_uuid = library.uuid();
         // library.backup(&library_uuid);
         // self.storage.put_file(&library_uuid, &library_uuid);
@@ -66,61 +45,55 @@ impl Sync {
         let temp_dir = tempdir().unwrap();
 
         // Download and merge remote libraries.
+        println!("Listing remote libraries.");
         let libraries = self.storage.list_objects("dimple.library.");
         libraries.iter().for_each(|library| {
             let contents = self.storage.get_object(library).unwrap();
             let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
             std::fs::write(&temp_file, contents).unwrap();
-            println!("Downloaded {} to {}", library, temp_file.to_str().unwrap());
+            println!("Downloaded remote library {} to local file {}.", library, temp_file.to_str().unwrap());
         });
 
         // Backup the merged input library to a temporary file.
+        let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
+        library.backup(temp_file.to_str().unwrap());
+        println!("Backed up local library to {}.", temp_file.to_str().unwrap());
 
         // Upload the temporary file to the storage.
+        let contents = std::fs::read(temp_file).unwrap();
+        let path = format!("dimple.library.{}", library.uuid());
+        self.storage.put_object(&path, &contents);
+        println!("Uploaded local library to {}.", path);
 
-        // Download and upload media files
+        // Sync media files
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::library::Library;
+    use crate::{library::{Library, LibraryModel}, model::Track};
 
-    use super::{memory_storage::MemoryStorage, s3_storage::S3Storage, Sync};
+    use super::{memory_storage::MemoryStorage, Sync};
 
     #[test]
-    fn basics() {
+    fn it_works() {
         let library1 = Library::open(":memory:");
+        Track::default().save(&library1);
+        assert!(library1.tracks().len() == 1);
 
         let library2 = Library::open(":memory:");
+        assert!(library2.tracks().len() == 0);
 
         let storage = MemoryStorage::default();
         let sync = Sync::new(Box::new(storage));
 
         sync.sync(&library1);
         sync.sync(&library2);
+        sync.sync(&library1);
+
+        assert!(library1.tracks().len() == 1);
+        assert!(library2.tracks().len() == 1);
     }
 }
 
 
-// let s3_path = "test.file";
-// let test = b"I'm going to S3!";
-
-// let response_data = bucket.put_object(s3_path, test)?;
-// assert_eq!(response_data.status_code(), 200);
-
-// let response_data = bucket.get_object(s3_path)?;
-// assert_eq!(response_data.status_code(), 200);
-// assert_eq!(test, response_data.as_slice());
-
-// let response_data = bucket.get_object_range(s3_path, 100, Some(1000))?;
-// assert_eq!(response_data.status_code(), 206);
-// let (head_object_result, code) = bucket.head_object(s3_path)?;
-// assert_eq!(code, 200);
-// assert_eq!(
-//     head_object_result.content_type.unwrap_or_default(),
-//     "application/octet-stream".to_owned()
-// );
-
-// let response_data = bucket.delete_object(s3_path)?;
-// assert_eq!(response_data.status_code(), 204);

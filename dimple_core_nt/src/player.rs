@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use playback_rs::Song;
 
-use crate::{library::Library, model::Playlist};
+use crate::{library::{Library, LibraryModel}, model::Playlist};
 
 pub struct Player {
     library: Arc<Library>,
@@ -16,7 +16,15 @@ impl Player {
     }
 
     pub fn play_queue(&self) -> Playlist {
-        self.library.get_or_create_playlist_by_key("__dimple_system_play_queue")
+        const KEY: &str = "__dimple_system_play_queue";
+        let play_queue = Playlist::get(&self.library, KEY);
+        match play_queue {
+            Some(play_queue) => play_queue,
+            None => Playlist {
+                key: Some(KEY.to_string()),
+                ..Default::default()
+            }.save(&self.library)
+        }
     }
 
     pub fn play_queue_add(&self, track_key: &str) {
@@ -32,7 +40,7 @@ impl Player {
     pub fn play(&self) {
         let player = playback_rs::Player::new(None).unwrap();
         let play_queue = self.play_queue();
-        let filenames = play_queue.tracks.iter().map(|track| track.path.clone().unwrap());
+        let filenames = play_queue.tracks.iter().map(|track| track.path.clone());
         for next_song in filenames {
             let song = Song::from_file(&next_song, None).unwrap();
             while player.has_next_song() {
