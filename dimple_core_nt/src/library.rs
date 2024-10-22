@@ -173,8 +173,30 @@ impl Library {
     }
 
     fn enable_changelog_tracking(&self, table_name: &str) {
-        // get the columns for the table
         let column_names = self.get_column_names(table_name);
+
+        // Create SQL fragments to record set_field ops when inserting any
+        // initial values. Used in the insert trigger below.
+        let mut sql_fragments = vec![];
+        for column_name in column_names.clone() {
+            sql_fragments.push(format!("
+                    INSERT INTO ChangeLog 
+                    (timestamp, model, key, op, field, value)
+                    VALUES (
+                        unixepoch('now', 'subsec'), 
+                        '{table_name}', 
+                        NEW.key, 
+                        'insert_field', 
+                        '{column_name}', 
+                        NEW.{column_name}
+                    );
+            "));
+        }
+        let sql_fragments = sql_fragments.join("");
+
+        // Create the Table_insert trigger. When a new object is inserted into
+        // the table this will record an insert op with the new key, along with
+        // one insert_field op per column with that column's new value.
         let trigger_name = format!("{}_insert", table_name);
         let sql = format!("
             CREATE TRIGGER IF NOT EXISTS {trigger_name} 
@@ -188,40 +210,13 @@ impl Library {
                     NEW.key, 
                     'insert'
                 );
+                {sql_fragments}
             END;
         ");
         self.conn.execute(&sql, ()).unwrap();
 
-        // I think it can be argued that doing all this generated SQL and
-        // triggers is stupid when all the writes are supposed to go through
-        // the save function anyway. And for that matter, the triggers are
-        // going to cause problems when merging updates. So I think just make
-        // save handle also writing to the ChangeLog, and then also that gives
-        // me a good place to put the calls for observers. Which is what the
-        // ChangeLog should be. Right.
-        for column_name in column_names {
-            let trigger_name = format!("{}_insert_{}", table_name, column_name);
-            let sql = format!("
-                CREATE TRIGGER IF NOT EXISTS {trigger_name} 
-                UPDATE OF {column_name} ON {table_name}
-                WHEN NEW.{column_name} != OLD.{column_name} 
-                    OR NEW.{column_name} IS NULL OR OLD.{column_name} IS NULL
-                BEGIN
-                    INSERT INTO ChangeLog 
-                    (timestamp, model, key, op, field, value)
-                    VALUES (
-                        unixepoch('now', 'subsec'), 
-                        '{table_name}', 
-                        OLD.key, 
-                        'update', 
-                        '{column_name}', 
-                        NEW.{column_name}
-                    );
-                END;
-            ");
-            self.conn.execute(&sql, ()).unwrap();
-        }
-
+        // Create Table_update_column triggers, one for each column. These
+        // record a set_field op for each modified column.
         for column_name in column_names {
             let trigger_name = format!("{}_update_{}", table_name, column_name);
             let sql = format!("
@@ -236,7 +231,7 @@ impl Library {
                         unixepoch('now', 'subsec'), 
                         '{table_name}', 
                         OLD.key, 
-                        'update', 
+                        'set_field', 
                         '{column_name}', 
                         NEW.{column_name}
                     );
