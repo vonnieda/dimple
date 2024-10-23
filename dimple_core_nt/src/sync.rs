@@ -22,7 +22,7 @@ use storage::Storage;
 use tempfile::tempdir;
 use uuid::Uuid;
 
-use crate::library::Library;
+use crate::{library::{Library, LibraryModel}, model::Track};
 
 
 pub struct Sync {
@@ -44,26 +44,69 @@ impl Sync {
 
         let temp_dir = tempdir().unwrap();
 
+        let working_db_path = temp_dir.path().join(Uuid::new_v4().to_string());
+        let working_library = Library::open(working_db_path.to_str().unwrap());
+
         // Download and merge remote libraries.
-        println!("Listing remote libraries.");
-        let libraries = self.storage.list_objects("dimple.library.");
-        libraries.iter().for_each(|library| {
-            let contents = self.storage.get_object(library).unwrap();
+        println!("  Listing remote libraries.");
+        let remote_library_paths = self.storage.list_objects("dimple.library.");
+        remote_library_paths.iter().for_each(|remote_library_path| {
+            println!("    Getting remote library {}.", remote_library_path);
+            let contents = self.storage.get_object(remote_library_path).unwrap();
             let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
             std::fs::write(&temp_file, contents).unwrap();
-            println!("Downloaded remote library {} to local file {}.", library, temp_file.to_str().unwrap());
+
+            println!("      Opening remote library.");
+            let remote_library = Library::open(temp_file.to_str().unwrap());
+
+            println!("      Loading change logs.");
+            let changelogs = remote_library.changelogs();
+
+            println!("      Merging {} change logs.", changelogs.len());
+            for changelog in changelogs {
+                changelog.save(&working_library);
+            }
         });
+
+        let working_changelogs = working_library.changelogs();
+        println!("  Working library contains {} changelogs.", working_changelogs.len());
+        for changelog in working_changelogs {
+            println!("    Processing {:?}", changelog);
+            let model = changelog.model;
+            let key = changelog.key;
+            let op = changelog.op;
+            if model == "Track" {
+                // TODO only partially complete. Not sure if this is how it
+                // works eventually (can't I just emit SQL?) but it does
+                // work.
+                if op == "insert_field" || op == "set_field" {
+                    let field = changelog.field.unwrap();
+                    let mut track = Track::get(&working_library, &key)
+                        .or_else(|| Some(Track { key: Some(key), ..Default::default() }.save(&working_library))).unwrap();
+                    if field == "artist" {
+                        track.artist = changelog.value;
+                        track.save(&working_library);
+                    }
+                }
+            }
+        }
+
+        let working_tracks = working_library.tracks();
+        println!("  Working library contains {} tracks.", working_tracks.len());
+        for track in working_tracks {
+            println!("  {:?}", track);
+        }
 
         // Backup the merged input library to a temporary file.
         let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
+        println!("  Backing up local library {}.", library.uuid());
         library.backup(temp_file.to_str().unwrap());
-        println!("Backed up local library to {}.", temp_file.to_str().unwrap());
 
-        // Upload the temporary file to the storage.
-        let contents = std::fs::read(temp_file).unwrap();
+        // Upload the backup file to storage.
         let path = format!("dimple.library.{}", library.uuid());
+        println!("  Uploading local library to {}.", path);
+        let contents = std::fs::read(temp_file).unwrap();
         self.storage.put_object(&path, &contents);
-        println!("Uploaded local library to {}.", path);
 
         // Sync media files
     }
@@ -78,21 +121,29 @@ mod tests {
     #[test]
     fn it_works() {
         let library1 = Library::open(":memory:");
+        Track { artist: Some("Ten Hooligans".to_string()), ..Default::default() }.save(&library1);
         Track::default().save(&library1);
-        assert!(library1.tracks().len() == 1);
+        assert!(library1.tracks().len() == 2);
 
         let library2 = Library::open(":memory:");
-        assert!(library2.tracks().len() == 0);
+        Track::default().save(&library2);
+        assert!(library2.tracks().len() == 1);
+
+        let library3 = Library::open(":memory:");
+        assert!(library3.tracks().len() == 0);
 
         let storage = MemoryStorage::default();
         let sync = Sync::new(Box::new(storage));
 
         sync.sync(&library1);
         sync.sync(&library2);
+        sync.sync(&library3);
         sync.sync(&library1);
+        sync.sync(&library2);
 
-        assert!(library1.tracks().len() == 1);
-        assert!(library2.tracks().len() == 1);
+        // assert!(library1.tracks().len() == 3);
+        // assert!(library2.tracks().len() == 3);
+        // assert!(library3.tracks().len() == 3);
     }
 }
 

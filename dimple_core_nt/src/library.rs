@@ -3,7 +3,7 @@ use std::time::Duration;
 use rusqlite::{backup::Backup, Connection, OptionalExtension};
 use uuid::Uuid;
 
-use crate::model::{Artist, Playlist, Track};
+use crate::model::{Artist, ChangeLog, Playlist, Track};
 
 pub struct Library {
     conn: Connection,
@@ -34,12 +34,21 @@ impl Library {
         ).unwrap();
 
         conn.execute("
+            CREATE TABLE IF NOT EXISTS Artist (
+                key       UUID PRIMARY KEY,
+                name      TEXT
+            );
+            ",
+            (),
+        ).unwrap();
+
+        conn.execute("
             CREATE TABLE IF NOT EXISTS Track (
                 key       UUID PRIMARY KEY,
                 artist    TEXT,
                 album     TEXT,
                 title     TEXT,
-                path      TEXT NOT NULL UNIQUE
+                path      TEXT
             );
             ",
             (),
@@ -65,21 +74,15 @@ impl Library {
             ",
             (),
         ).unwrap();
-        //
+
         // A row is stored in the ChangeLog every time a change to a tracked
         // model is made. Each row gets a timestamp from a hybrid logical
         // clock which ensures the value is always increasing and that
-        // the timestamps are roughly in wall time order. 
-        // 
-        // timestamp: From HLC
-        // model:     Name of model type, e.g. Artist
-        // key:       Key of the model being operated on.
-        // op:        [set_field].
-        // field:     (Optional) Name of field being set for set_field ops.
-        // value:     (Optional) Value of field being set for set_field ops.
-        // 
+        // the timestamps are roughly in wall time order. This is nice
+        // because conflicts will tend toward what the user did last.
         conn.execute("
             CREATE TABLE IF NOT EXISTS ChangeLog (
+                actor     UUID NOT NULL,
                 timestamp TEXT NOT NULL,
                 model     TEXT NOT NULL,
                 key       UUID NOT NULL,
@@ -95,9 +98,22 @@ impl Library {
             conn,
         };
 
-        library.enable_changelog_tracking("Track");
+        library.create_changelog_triggers("Artist");
+        library.create_changelog_triggers("Track");
+        library.create_changelog_triggers("Playlist");
+        library.create_changelog_triggers("PlaylistItem");
 
         library
+    }
+
+    fn get_column_names(&self, table_name: &str) -> Vec<String> {
+        let mut column_names = vec![];
+        let mut stmt = self.conn.prepare("SELECT * FROM pragma_table_info(?1) AS tblInfo").unwrap();
+        let mut rows = stmt.query((table_name,)).unwrap();
+        while let Some(row) = rows.next().unwrap() {
+            column_names.push(row.get(1).unwrap());
+        }
+        column_names
     }
 
     /// Import MediaFiles into the Library, creating or updating Tracks.
@@ -172,7 +188,27 @@ impl Library {
         Uuid::new_v4().to_string()
     }
 
-    fn enable_changelog_tracking(&self, table_name: &str) {
+    pub fn changelogs(&self) -> Vec<ChangeLog> {
+        let mut stmt = self.conn.prepare("SELECT 
+            actor, timestamp, model, key, op, field, value
+            FROM ChangeLog ORDER BY timestamp ASC").unwrap();
+        stmt.query_map([], |row| {
+            Ok(ChangeLog {
+                actor: row.get(0).unwrap(),
+                timestamp: row.get(1).unwrap(),
+                model: row.get(2).unwrap(),
+                key: row.get(3).unwrap(),
+                op: row.get(4).unwrap(),
+                field: row.get(5).unwrap(),
+                value: row.get(6).unwrap(),
+            })
+        })
+        .unwrap()
+        .map(|result| result.unwrap())
+        .collect()
+    }
+
+    fn create_changelog_triggers(&self, table_name: &str) {
         let column_names = self.get_column_names(table_name);
 
         // Create SQL fragments to record set_field ops when inserting any
@@ -181,8 +217,9 @@ impl Library {
         for column_name in column_names.clone() {
             sql_fragments.push(format!("
                     INSERT INTO ChangeLog 
-                    (timestamp, model, key, op, field, value)
+                    (actor, timestamp, model, key, op, field, value)
                     VALUES (
+                        (SELECT value FROM Metadata WHERE key = 'library.uuid'),
                         unixepoch('now', 'subsec'), 
                         '{table_name}', 
                         NEW.key, 
@@ -200,11 +237,12 @@ impl Library {
         let trigger_name = format!("{}_insert", table_name);
         let sql = format!("
             CREATE TRIGGER IF NOT EXISTS {trigger_name} 
-            INSERT ON {table_name}
+            AFTER INSERT ON {table_name}
             BEGIN
                 INSERT INTO ChangeLog 
-                (timestamp, model, key, op)
+                (actor, timestamp, model, key, op)
                 VALUES (
+                    (SELECT value FROM Metadata WHERE key = 'library.uuid'),
                     unixepoch('now', 'subsec'), 
                     '{table_name}', 
                     NEW.key, 
@@ -221,13 +259,15 @@ impl Library {
             let trigger_name = format!("{}_update_{}", table_name, column_name);
             let sql = format!("
                 CREATE TRIGGER IF NOT EXISTS {trigger_name} 
-                UPDATE OF {column_name} ON {table_name}
+                AFTER UPDATE OF {column_name} ON {table_name}
+                -- Filters out updates that don't actually change the value.
                 WHEN NEW.{column_name} != OLD.{column_name} 
                     OR NEW.{column_name} IS NULL OR OLD.{column_name} IS NULL
                 BEGIN
                     INSERT INTO ChangeLog 
-                    (timestamp, model, key, op, field, value)
+                    (actor, timestamp, model, key, op, field, value)
                     VALUES (
+                        (SELECT value FROM Metadata WHERE key = 'library.uuid'),
                         unixepoch('now', 'subsec'), 
                         '{table_name}', 
                         OLD.key, 
@@ -240,16 +280,6 @@ impl Library {
             self.conn.execute(&sql, ()).unwrap();
         }
     }
-
-    fn get_column_names(&self, table_name: &str) -> Vec<String> {
-        let mut column_names = vec![];
-        let mut stmt = self.conn.prepare("SELECT * FROM pragma_table_info(?1) AS tblInfo").unwrap();
-        let mut rows = stmt.query((table_name,)).unwrap();
-        while let Some(row) = rows.next().unwrap() {
-            column_names.push(row.get(1).unwrap());
-        }
-        column_names
-    }
 }
 
 pub trait LibraryModel {
@@ -259,26 +289,13 @@ pub trait LibraryModel {
 
 impl LibraryModel for Track {
     fn save(&self, library: &Library) -> Self {
-        match &self.key {
-            Some(key) => {
-                library.conn.execute("
-                    UPDATE Track 
-                    SET artist = ?2, album = ?3, title = ?4, path = ?5
-                    WHERE key = ?1
-                    ",
-                    (&key, &self.artist, &self.album, &self.title, &self.path)).unwrap();
-                Self::get(library, &key).unwrap()
-            },
-            None => {
-                let key = Library::uuid_v4();
-                library.conn.execute("INSERT INTO Track 
-                    (key, artist, album, title, path) 
-                    VALUES 
-                    (?1, ?2, ?3, ?4, ?5)",
-                    (&key, &self.artist, &self.album, &self.title, &self.path)).unwrap();
-                Self::get(library, &key).unwrap()
-            }
-        }
+        let key = self.key.clone().or_else(|| Some(Library::uuid_v4()));
+        library.conn.execute("INSERT OR REPLACE INTO Track 
+            (key, artist, album, title, path) 
+            VALUES 
+            (?1, ?2, ?3, ?4, ?5)",
+            (&key, &self.artist, &self.album, &self.title, &self.path)).unwrap();
+        Self::get(library, &key.unwrap()).unwrap()
     }
 
     fn get(library: &Library, key: &str) -> Option<Self> {
@@ -307,7 +324,6 @@ impl LibraryModel for Playlist {
             Self::get(library, &key.unwrap()).unwrap()
     }
 
-    // TODO Okay I think this is a mistake! 
     fn get(library: &Library, key: &str) -> Option<Self> where Self: Sized {
         let mut playlist = Playlist::default();
         let mut stmt = library.conn.prepare("SELECT
@@ -338,16 +354,34 @@ impl LibraryModel for Playlist {
     }
 }
 
+impl LibraryModel for ChangeLog {
+    fn save(&self, library: &Library) -> Self {
+        library.conn.execute("INSERT INTO ChangeLog 
+            (actor, timestamp, model, key, op, field, value)
+            VALUES 
+            (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            (&self.actor, &self.timestamp, &self.model, &self.key, &self.op, &self.field, &self.value)).unwrap();
+        self.clone()
+    }
+
+    fn get(library: &Library, key: &str) -> Option<Self> {
+        todo!()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use uuid::Uuid;
-
     use crate::model::Track;
 
     use super::{Library, LibraryModel};
 
     #[test]
-    fn basics() {
+    fn it_works() {
+        let library = Library::open(":memory:");
+    }
+
+    #[test]
+    fn changelogs() {
         let library = Library::open(":memory:");
         let mut track = Track {
             artist: Some("Which Who".to_string()),
@@ -357,17 +391,11 @@ mod tests {
         track.artist = Some("The The".to_string());
         track.album = Some("Some Kind of Something".to_string());
         track.save(&library);
-
-        let mut stmt = library.conn.prepare("SELECT * FROM ChangeLog").unwrap();
-        let mut rows = stmt.query(()).unwrap();
-        while let Some(row) = rows.next().unwrap() {
-            let timestamp: String = row.get(0).unwrap();
-            let model: String = row.get(1).unwrap();
-            let key: String = row.get(2).unwrap();
-            let op: String = row.get(3).unwrap();
-            let field: Option<String> = row.get(4).unwrap();
-            let value: Option<String> = row.get(5).unwrap();
-            println!("{timestamp} {model} {key} {op} {:?} {:?}", field, value);
+        
+        let changelogs = library.changelogs();
+        assert!(changelogs.len() == 8);
+        for changelog in changelogs {
+            println!("{:?}", changelog);
         }
     }
 }
