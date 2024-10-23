@@ -5,6 +5,7 @@ pub struct Track {
     pub album: Option<String>,
     pub title: Option<String>,
     pub path: String,
+    pub liked: bool,
 }
 
 #[derive(Debug, Clone, Default)]

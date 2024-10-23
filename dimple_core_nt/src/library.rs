@@ -35,7 +35,7 @@ impl Library {
 
         conn.execute("
             CREATE TABLE IF NOT EXISTS Artist (
-                key       UUID PRIMARY KEY,
+                key       TEXT PRIMARY KEY,
                 name      TEXT
             );
             ",
@@ -44,11 +44,12 @@ impl Library {
 
         conn.execute("
             CREATE TABLE IF NOT EXISTS Track (
-                key       UUID PRIMARY KEY,
+                key       TEXT PRIMARY KEY,
                 artist    TEXT,
                 album     TEXT,
                 title     TEXT,
-                path      TEXT
+                path      TEXT,
+                liked     BOOL
             );
             ",
             (),
@@ -56,7 +57,7 @@ impl Library {
 
         conn.execute("
             CREATE TABLE IF NOT EXISTS Playlist (
-                key       UUID PRIMARY KEY,
+                key       TEXT PRIMARY KEY,
                 name      TEXT
             );
             ",
@@ -65,9 +66,9 @@ impl Library {
 
         conn.execute("
             CREATE TABLE IF NOT EXISTS PlaylistItem (
-                key          UUID PRIMARY KEY,
-                Playlist_key UUID NOT NULL,
-                Track_key    UUID NOT NULL,
+                key          TEXT PRIMARY KEY,
+                Playlist_key TEXT NOT NULL,
+                Track_key    TEXT NOT NULL,
                 FOREIGN KEY (Playlist_key) REFERENCES Playlist(key),
                 FOREIGN KEY (Track_key) REFERENCES Track(key)
             );
@@ -78,14 +79,13 @@ impl Library {
         // A row is stored in the ChangeLog every time a change to a tracked
         // model is made. Each row gets a timestamp from a hybrid logical
         // clock which ensures the value is always increasing and that
-        // the timestamps are roughly in wall time order. This is nice
-        // because conflicts will tend toward what the user did last.
+        // the timestamps are mostly in wall time order.
         conn.execute("
             CREATE TABLE IF NOT EXISTS ChangeLog (
-                actor     UUID NOT NULL,
+                actor     TEXT NOT NULL,
                 timestamp TEXT NOT NULL,
                 model     TEXT NOT NULL,
-                key       UUID NOT NULL,
+                key       TEXT NOT NULL,
                 op        TEXT NOT NULL,
                 field     TEXT,
                 value     TEXT
@@ -139,7 +139,7 @@ impl Library {
 
     pub fn tracks(&self) -> Vec<Track> {
         let mut stmt = self.conn.prepare("SELECT 
-            key, artist, album, title, path 
+            key, artist, album, title, path, liked
             FROM Track").unwrap();
         stmt.query_map([], |row| {
             Ok(Track {
@@ -148,6 +148,7 @@ impl Library {
                 album: row.get(2)?,
                 title: row.get(3)?,
                 path: row.get(4)?,
+                liked: row.get(5)?,
             })
         })
         .unwrap()
@@ -291,23 +292,24 @@ impl LibraryModel for Track {
     fn save(&self, library: &Library) -> Self {
         let key = self.key.clone().or_else(|| Some(Library::uuid_v4()));
         library.conn.execute("INSERT OR REPLACE INTO Track 
-            (key, artist, album, title, path) 
+            (key, artist, album, title, path, liked) 
             VALUES 
-            (?1, ?2, ?3, ?4, ?5)",
-            (&key, &self.artist, &self.album, &self.title, &self.path)).unwrap();
+            (?1, ?2, ?3, ?4, ?5, ?6)",
+            (&key, &self.artist, &self.album, &self.title, &self.path, &self.liked)).unwrap();
         Self::get(library, &key.unwrap()).unwrap()
     }
 
     fn get(library: &Library, key: &str) -> Option<Self> {
-        library.conn.query_row("SELECT key, artist, album, title, path 
+        library.conn.query_row("SELECT key, artist, album, title, path, liked 
             FROM Track WHERE key = ?1", 
             (key,), 
             |row| Ok(Track {
-                key: row.get(0).unwrap(),
-                artist: row.get(1).unwrap(),
-                album: row.get(2).unwrap(),
-                title: row.get(3).unwrap(),
-                path: row.get(4).unwrap(),
+                key: row.get(0)?,
+                artist: row.get(1)?,
+                album: row.get(2)?,
+                title: row.get(3)?,
+                path: row.get(4)?,
+                liked: row.get(5)?,
             })).optional().unwrap()
     }
 }
@@ -344,6 +346,7 @@ impl LibraryModel for Playlist {
                     album: row.get(4).unwrap(),
                     title: row.get(5).unwrap(),
                     path: row.get(6).unwrap(),
+                    liked: row.get(7).unwrap(),
                 });
             }
         }
