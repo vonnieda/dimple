@@ -13,3 +13,4 @@ symphonia = { version = "0.5.4", features = ["all"] }
 uuid = { version = "1.10.0", features = ["v4"] }
 walkdir = "2.5.0"
 tempfile = "3.13.0"
+ulid = "1.1.3"

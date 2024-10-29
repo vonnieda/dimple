@@ -1,12 +1,14 @@
-use std::time::Duration;
+use std::{sync::Mutex, time::{Duration, SystemTime}};
 
 use rusqlite::{backup::Backup, Connection, OptionalExtension};
+use ulid::Generator;
 use uuid::Uuid;
 
-use crate::model::{Artist, ChangeLog, Playlist, Track};
+use crate::model::{ChangeLog, Playlist, Track};
 
 pub struct Library {
     conn: Connection,
+    ulids: Mutex<Generator>,
 }
 
 impl Library {
@@ -96,24 +98,28 @@ impl Library {
 
         let library = Library {
             conn,
+            ulids: Mutex::new(Generator::new()),
         };
-
-        library.create_changelog_triggers("Artist");
-        library.create_changelog_triggers("Track");
-        library.create_changelog_triggers("Playlist");
-        library.create_changelog_triggers("PlaylistItem");
 
         library
     }
 
-    fn get_column_names(&self, table_name: &str) -> Vec<String> {
-        let mut column_names = vec![];
-        let mut stmt = self.conn.prepare("SELECT * FROM pragma_table_info(?1) AS tblInfo").unwrap();
-        let mut rows = stmt.query((table_name,)).unwrap();
-        while let Some(row) = rows.next().unwrap() {
-            column_names.push(row.get(1).unwrap());
-        }
-        column_names
+    /// Returns the unique, permanent ID of this Library. This is created when
+    /// the Library is created and doesn't change.
+    pub fn uuid(&self) -> String {
+        self.conn.query_row("SELECT value FROM Metadata WHERE key = 'library.uuid'", 
+            (), 
+            |row| {
+                let s: String = row.get(0).unwrap();
+                Ok(s)
+            }).unwrap()
+    }
+
+    /// Backup this library to the specified path.
+    pub fn backup(&self, output_path: &str) {
+        let mut dst = Connection::open(output_path).unwrap();
+        let backup = Backup::new(&self.conn, &mut dst).unwrap();
+        backup.run_to_completion(250, Duration::from_millis(10), None).unwrap();
     }
 
     /// Import MediaFiles into the Library, creating or updating Tracks.
@@ -135,6 +141,35 @@ impl Library {
                     title = excluded.title",
                 (key, artist, album, title, path)).unwrap();
         }
+    }
+
+    pub fn uuid_v4() -> String {
+        Uuid::new_v4().to_string()
+    }
+
+    /// Generates a ulid that is guaranteed to be monotonic.
+    pub fn ulid(&self) -> String {
+        self.ulids.lock().unwrap().generate().unwrap().to_string()
+    }
+
+    pub fn changelogs(&self) -> Vec<ChangeLog> {
+        let mut stmt = self.conn.prepare("SELECT 
+            actor, timestamp, model, key, op, field, value
+            FROM ChangeLog ORDER BY timestamp ASC").unwrap();
+        stmt.query_map([], |row| {
+            Ok(ChangeLog {
+                actor: row.get(0).unwrap(),
+                timestamp: row.get(1).unwrap(),
+                model: row.get(2).unwrap(),
+                key: row.get(3).unwrap(),
+                op: row.get(4).unwrap(),
+                field: row.get(5).unwrap(),
+                value: row.get(6).unwrap(),
+            })
+        })
+        .unwrap()
+        .map(|result| result.unwrap())
+        .collect()
     }
 
     pub fn tracks(&self) -> Vec<Track> {
@@ -166,137 +201,37 @@ impl Library {
     pub fn playlist_clear(&self, playlist: &Playlist) {
         self.conn.execute("DELETE FROM PlaylistItem
             WHERE Playlist_key = ?1", (playlist.key.clone().unwrap(),)).unwrap();
-    }
-
-    /// Returns the unique, permanent ID of this Library. This is created when
-    /// the Library is created and doesn't change.
-    pub fn uuid(&self) -> String {
-        self.conn.query_row("SELECT value FROM Metadata WHERE key = 'library.uuid'", 
-            (), 
-            |row| {
-                let s: String = row.get(0).unwrap();
-                Ok(s)
-            }).unwrap()
-    }
-
-    pub fn backup(&self, output_path: &str) {
-        let mut dst = Connection::open(output_path).unwrap();
-        let backup = Backup::new(&self.conn, &mut dst).unwrap();
-        backup.run_to_completion(250, Duration::from_millis(10), None).unwrap();
-    }
-
-    pub fn uuid_v4() -> String {
-        Uuid::new_v4().to_string()
-    }
-
-    pub fn changelogs(&self) -> Vec<ChangeLog> {
-        let mut stmt = self.conn.prepare("SELECT 
-            actor, timestamp, model, key, op, field, value
-            FROM ChangeLog ORDER BY timestamp ASC").unwrap();
-        stmt.query_map([], |row| {
-            Ok(ChangeLog {
-                actor: row.get(0).unwrap(),
-                timestamp: row.get(1).unwrap(),
-                model: row.get(2).unwrap(),
-                key: row.get(3).unwrap(),
-                op: row.get(4).unwrap(),
-                field: row.get(5).unwrap(),
-                value: row.get(6).unwrap(),
-            })
-        })
-        .unwrap()
-        .map(|result| result.unwrap())
-        .collect()
-    }
-
-    fn create_changelog_triggers(&self, table_name: &str) {
-        let column_names = self.get_column_names(table_name);
-
-        // Create SQL fragments to record set_field ops when inserting any
-        // initial values. Used in the insert trigger below.
-        let mut sql_fragments = vec![];
-        for column_name in column_names.clone() {
-            sql_fragments.push(format!("
-                    INSERT INTO ChangeLog 
-                    (actor, timestamp, model, key, op, field, value)
-                    VALUES (
-                        (SELECT value FROM Metadata WHERE key = 'library.uuid'),
-                        unixepoch('now', 'subsec'), 
-                        '{table_name}', 
-                        NEW.key, 
-                        'insert_field', 
-                        '{column_name}', 
-                        NEW.{column_name}
-                    );
-            "));
-        }
-        let sql_fragments = sql_fragments.join("");
-
-        // Create the Table_insert trigger. When a new object is inserted into
-        // the table this will record an insert op with the new key, along with
-        // one insert_field op per column with that column's new value.
-        let trigger_name = format!("{}_insert", table_name);
-        let sql = format!("
-            CREATE TRIGGER IF NOT EXISTS {trigger_name} 
-            AFTER INSERT ON {table_name}
-            BEGIN
-                INSERT INTO ChangeLog 
-                (actor, timestamp, model, key, op)
-                VALUES (
-                    (SELECT value FROM Metadata WHERE key = 'library.uuid'),
-                    unixepoch('now', 'subsec'), 
-                    '{table_name}', 
-                    NEW.key, 
-                    'insert'
-                );
-                {sql_fragments}
-            END;
-        ");
-        self.conn.execute(&sql, ()).unwrap();
-
-        // Create Table_update_column triggers, one for each column. These
-        // record a set_field op for each modified column.
-        for column_name in column_names {
-            let trigger_name = format!("{}_update_{}", table_name, column_name);
-            let sql = format!("
-                CREATE TRIGGER IF NOT EXISTS {trigger_name} 
-                AFTER UPDATE OF {column_name} ON {table_name}
-                -- Filters out updates that don't actually change the value.
-                WHEN NEW.{column_name} != OLD.{column_name} 
-                    OR NEW.{column_name} IS NULL OR OLD.{column_name} IS NULL
-                BEGIN
-                    INSERT INTO ChangeLog 
-                    (actor, timestamp, model, key, op, field, value)
-                    VALUES (
-                        (SELECT value FROM Metadata WHERE key = 'library.uuid'),
-                        unixepoch('now', 'subsec'), 
-                        '{table_name}', 
-                        OLD.key, 
-                        'set_field', 
-                        '{column_name}', 
-                        NEW.{column_name}
-                    );
-                END;
-            ");
-            self.conn.execute(&sql, ()).unwrap();
-        }
-    }
+    }    
 }
 
 pub trait LibraryModel {
     fn save(&self, library: &Library) -> Self;
     fn get(library: &Library, key: &str) -> Option<Self> where Self: Sized;
+    fn diff(&self, other: &Self) -> Vec<ChangeLog>;
+    fn apply_diff(&mut self, diff: &[ChangeLog]);
 }
 
 impl LibraryModel for Track {
     fn save(&self, library: &Library) -> Self {
+        // TODO txn
+        // TODO this moves to library I think as generic save()
+        let old = self.key.as_ref().and_then(|key| Self::get(library, &key))
+            .or_else(|| Some(Track::default())).unwrap();
         let key = self.key.clone().or_else(|| Some(Library::uuid_v4()));
         library.conn.execute("INSERT OR REPLACE INTO Track 
             (key, artist, album, title, path, liked) 
-            VALUES 
-            (?1, ?2, ?3, ?4, ?5, ?6)",
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             (&key, &self.artist, &self.album, &self.title, &self.path, &self.liked)).unwrap();
-        Self::get(library, &key.unwrap()).unwrap()
+        let new = Self::get(library, &key.unwrap()).unwrap();
+        let diff = old.diff(&new);
+        for mut change in diff {
+            change.timestamp = library.ulid();
+            change.actor = library.uuid();
+            change.key = new.key.clone().unwrap();
+            change.save(library);
+        }
+        // maybe like library.notify(diff)
+        new
     }
 
     fn get(library: &Library, key: &str) -> Option<Self> {
@@ -312,6 +247,61 @@ impl LibraryModel for Track {
                 liked: row.get(5)?,
             })).optional().unwrap()
     }
+    
+    fn diff(&self, other: &Self) -> Vec<ChangeLog> {
+        // TODO incomplete, just for ref.
+        let mut diff = vec![];
+        if self.artist != other.artist {
+            diff.push(ChangeLog { model: "Track".to_string(), 
+                op: "set".to_string(), field: Some("artist".to_string()), 
+                value: other.artist.clone(), ..Default::default() });
+        }
+        if self.album != other.album {
+            diff.push(ChangeLog { model: "Track".to_string(), 
+                op: "set".to_string(), field: Some("album".to_string()), 
+                value: other.album.clone(), ..Default::default() });
+        }
+        if self.title != other.title {
+            diff.push(ChangeLog { model: "Track".to_string(), 
+                op: "set".to_string(), field: Some("title".to_string()), 
+                value: other.title.clone(), ..Default::default() });
+        }
+        if self.path != other.path {
+            diff.push(ChangeLog { model: "Track".to_string(), 
+                op: "set".to_string(), field: Some("path".to_string()), 
+                value: Some(other.path.clone()), ..Default::default() });
+        }
+        if self.liked != other.liked {
+            diff.push(ChangeLog { model: "Track".to_string(), 
+                op: "set".to_string(), field: Some("liked".to_string()), 
+                value: Some(other.liked.to_string()), ..Default::default() });
+        }
+        diff
+    }
+    
+    fn apply_diff(&mut self, diff: &[ChangeLog]) {
+        for change in diff {
+            if change.op == "set" {
+                if let Some(field) = change.field.clone() {
+                    if &field == "artist" {
+                        self.artist = change.value.clone();
+                    }
+                    if &field == "album" {
+                        self.album = change.value.clone();
+                    }
+                    if &field == "title" {
+                        self.title = change.value.clone();
+                    }
+                    if &field == "path" {
+                        self.path = change.value.clone().unwrap();
+                    }
+                    if &field == "liked" {
+                        self.liked = change.value.clone() == Some("true".to_string());
+                    }
+                }
+            }
+        }
+    }    
 }
 
 impl LibraryModel for Playlist {
@@ -355,6 +345,14 @@ impl LibraryModel for Playlist {
             Some(_) => Some(playlist),
         }
     }
+    
+    fn diff(&self, other: &Self) -> Vec<ChangeLog> {
+        todo!()
+    }
+    
+    fn apply_diff(&mut self, diff: &[ChangeLog]) {
+        todo!()
+    }    
 }
 
 impl LibraryModel for ChangeLog {
@@ -370,17 +368,26 @@ impl LibraryModel for ChangeLog {
     fn get(library: &Library, key: &str) -> Option<Self> {
         todo!()
     }
+    
+    fn diff(&self, other: &Self) -> Vec<ChangeLog> {
+        todo!()
+    }
+    
+    fn apply_diff(&mut self, diff: &[ChangeLog]) {
+        todo!()
+    }
 }
 
 #[cfg(test)]
 mod tests {
+
     use crate::model::Track;
 
     use super::{Library, LibraryModel};
 
     #[test]
     fn it_works() {
-        let library = Library::open(":memory:");
+        let _library = Library::open(":memory:");
     }
 
     #[test]
@@ -393,12 +400,26 @@ mod tests {
         }.save(&library);
         track.artist = Some("The The".to_string());
         track.album = Some("Some Kind of Something".to_string());
+        track.liked = true;
         track.save(&library);
-        
         let changelogs = library.changelogs();
-        assert!(changelogs.len() == 8);
+        assert!(changelogs.len() == 5);        
         for changelog in changelogs {
             println!("{:?}", changelog);
         }
+    }
+
+    #[test]
+    fn diff() {
+        let track = Track {
+            artist: Some("The Newbs".to_string()),
+            album: Some("Brand News".to_string()),
+            title: Some("Fresh Stuff".to_string()),
+            ..Default::default()
+        };
+        let diff = Track::default().diff(&track);
+        let mut track2 = Track::default();
+        track2.apply_diff(&diff);
+        assert!(track == track2);
     }
 }

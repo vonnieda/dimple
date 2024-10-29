@@ -4,7 +4,6 @@ pub mod scanner;
 pub mod play_queue;
 pub mod player;
 pub mod sync;
-pub mod crdt;
 
 #[cfg(test)]
 mod tests {
@@ -26,11 +25,5 @@ mod tests {
         let tracks2 = library.tracks();
         assert!(tracks2.len() == tracks1.len());
         dbg!(tracks2.len());
-    }
-
-    #[test]
-    fn bug_uuid_changes_on_reimport() {
-        // I think I already fixed this, but double check.
-        todo!()
     }
 }
