@@ -90,7 +90,8 @@ impl Library {
                 key       TEXT NOT NULL,
                 op        TEXT NOT NULL,
                 field     TEXT,
-                value     TEXT
+                value     TEXT,
+                PRIMARY KEY (actor, timestamp)
             );
             ",
             (),
@@ -170,6 +171,25 @@ impl Library {
         .unwrap()
         .map(|result| result.unwrap())
         .collect()
+    }
+
+    pub fn find_newest_changelog_by_field(&self, model: &str, key: &str, field: &str) -> Option<ChangeLog> {
+        self.conn.query_row_and_then("SELECT 
+            actor, timestamp, model, key, op, field, value
+            FROM ChangeLog 
+            WHERE model = ?1 AND key = ?2 AND field = ?3
+            ORDER BY timestamp DESC", 
+            (model, key, field), |row| {
+                Ok(ChangeLog {
+                    actor: row.get(0).unwrap(),
+                    timestamp: row.get(1).unwrap(),
+                    model: row.get(2).unwrap(),
+                    key: row.get(3).unwrap(),
+                    op: row.get(4).unwrap(),
+                    field: row.get(5).unwrap(),
+                    value: row.get(6).unwrap(),
+                })
+            }).optional().unwrap()
     }
 
     pub fn tracks(&self) -> Vec<Track> {
@@ -357,10 +377,11 @@ impl LibraryModel for Playlist {
 
 impl LibraryModel for ChangeLog {
     fn save(&self, library: &Library) -> Self {
-        library.conn.execute("INSERT INTO ChangeLog 
+        library.conn.execute("INSERT INTO ChangeLog         
             (actor, timestamp, model, key, op, field, value)
             VALUES 
-            (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+            ON CONFLICT DO NOTHING",
             (&self.actor, &self.timestamp, &self.model, &self.key, &self.op, &self.field, &self.value)).unwrap();
         self.clone()
     }

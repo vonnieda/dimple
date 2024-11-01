@@ -37,33 +37,21 @@ impl Sync {
     }
 
     pub fn sync(&self, library: &Library) {
-        println!("Syncing library {}.", library.uuid());
-
         let temp_dir = tempdir().unwrap();
 
-        // // Create a temporary database that will be used to merge changes.
-        // let working_db_path = temp_dir.path().join(Uuid::new_v4().to_string());
-        // let working_library = Library::open(working_db_path.to_str().unwrap());
-
-        // Download and merge remote libraries.
-        println!("  Listing remote libraries.");
         let remote_library_paths = self.storage.list_objects("dimple.library.");
         remote_library_paths.iter().for_each(|remote_library_path| {
-            println!("    Getting remote library {}.", remote_library_path);
             let contents = self.storage.get_object(remote_library_path).unwrap();
             let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
             std::fs::write(&temp_file, contents).unwrap();
 
-            println!("      Opening remote library.");
             let remote_library = Library::open(temp_file.to_str().unwrap());
 
-            println!("      Loading change logs.");
             let changelogs = remote_library.changelogs();
 
-            println!("      Merging {} change logs.", changelogs.len());
             for changelog in changelogs {
-                changelog.save(library);
                 Self::apply_changelog(library, &changelog);
+                changelog.save(library);
             }
         });
 
@@ -71,28 +59,39 @@ impl Sync {
         let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
         library.backup(temp_file.to_str().unwrap());
         let path = format!("dimple.library.{}", library.uuid());
-        println!("  Uploading local library to {}.", path);
         let contents = std::fs::read(temp_file).unwrap();
         self.storage.put_object(&path, &contents);
 
         // Sync media files
     }
 
+    // TODO okay this is working but was it a mistake to make this all lookup
+    // by key? What if a client discovered the object on their own? I guess
+    // that's where we are going to need to get into merge.
     fn apply_changelog(library: &Library, changelog: &ChangeLog) {
         let actor = changelog.actor.clone();
         let timestamp = changelog.timestamp.clone();
         let model = changelog.model.clone();
         let key = changelog.key.clone();
         let op = changelog.op.clone();
+        // Ignore our own changes. TODO mayyyybe not?
         if actor == library.uuid() {
             return
         }
         if model == "Track" {
             // TODO duplicated check of set in Track::apply_diff
             if op == "set" {
+                let field = changelog.field.clone().unwrap();
+                if let Some(newest_changelog) = library.find_newest_changelog_by_field(&model, &key, &field) {
+                    if newest_changelog.timestamp >= timestamp {
+                        return
+                    }
+                }
                 let mut track = Track::get(library, &key)
                     .or_else(|| Some(Track { key: Some(key), ..Default::default() })).unwrap();
                 track.apply_diff(&[changelog.clone()]);
+                // TODO this should not create a changelog, but it does. need a flag
+                // on save, I guess.
                 track.save(library);
             }
         }
@@ -111,31 +110,48 @@ mod tests {
         let sync = Sync::new(Box::new(storage));
 
         let library1 = Library::open(":memory:");
-        Track { title: Some("One Thing".to_string()), ..Default::default() }.save(&library1);
+        Track { artist: Some("Grey Speaker".to_string()), title: Some("One Thing".to_string()), ..Default::default() }.save(&library1);
         sync.sync(&library1);
 
         let library2 = Library::open(":memory:");
         Track { title: Some("Tall Glass".to_string()), ..Default::default() }.save(&library2);
         sync.sync(&library2);
 
-        sync.sync(&library1);
         sync.sync(&library2);
         sync.sync(&library1);
         sync.sync(&library2);
         sync.sync(&library1);
         sync.sync(&library2);
         sync.sync(&library1);
-        sync.sync(&library2);
-
-        /// Okay, so this is all sort of working except we're duplicating
-        /// the changelogs because we're not checking if we already merged
-        /// it, and we're creating changelogs when merging changes.
 
         assert!(library1.tracks().len() == 2);
         assert!(library2.tracks().len() == 2);
-        dbg!(library1.tracks());
-        dbg!(library2.tracks());
-        dbg!(library1.changelogs());
+        assert!(library1.changelogs().len() == 6);
+        assert!(library2.changelogs().len() == 6);
+        assert!(library1.changelogs() == library2.changelogs());
+    }
+
+    #[test]
+    fn big_library() {
+        let storage = MemoryStorage::default();
+        let sync = Sync::new(Box::new(storage));
+
+        let library = Library::open(":memory:");
+        for i in 0..3000 {
+            Track { 
+                artist: Some(format!("Grey Speaker {}", i)), 
+                title: Some(format!("One Thing {}", i)), 
+                ..Default::default() }.save(&library);
+        }
+        sync.sync(&library);
+
+        let library2 = Library::open(":memory:");
+        sync.sync(&library2);
+
+        dbg!(library.changelogs().len());
+        dbg!(library2.changelogs().len());
+        dbg!(library.tracks().len());
+        dbg!(library2.tracks().len());
     }
 }
 
