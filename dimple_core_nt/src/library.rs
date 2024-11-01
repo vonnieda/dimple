@@ -1,4 +1,4 @@
-use std::{sync::Mutex, time::{Duration, SystemTime}};
+use std::{sync::Mutex, time::Duration};
 
 use rusqlite::{backup::Backup, Connection, OptionalExtension};
 use ulid::Generator;
@@ -51,7 +51,8 @@ impl Library {
                 album     TEXT,
                 title     TEXT,
                 path      TEXT,
-                liked     BOOL
+                liked     BOOL NOT NULL DEFAULT false,
+                UNIQUE (path)
             );
             ",
             (),

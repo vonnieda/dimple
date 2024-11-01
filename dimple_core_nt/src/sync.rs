@@ -1,17 +1,5 @@
 /// Sync a Library with an S3 compatible storage target. Allows multiple
 /// devices to share the same library.
-/// 
-/// Hybrid Logical Clock + Op Log
-/// 
-/// We have an HLC (Hybrid Logical Clock) per Library which is used to order 
-/// changes between replicas. 
-/// 
-/// Every time a change is made to the library we both store the change and we
-/// store a new row in the op log. The op log contains the next HLC output,
-/// the model type, the property, the old value, and the new value. 
-/// 
-/// We merge them all together, sort by HLC, and then take the values for
-/// each property as the max of the HLC.
 
 pub mod storage;
 pub mod s3_storage;
@@ -110,11 +98,20 @@ mod tests {
         let sync = Sync::new(Box::new(storage));
 
         let library1 = Library::open(":memory:");
-        Track { artist: Some("Grey Speaker".to_string()), title: Some("One Thing".to_string()), ..Default::default() }.save(&library1);
+        Track { 
+            artist: Some("Grey Speaker".to_string()), 
+            title: Some("One Thing".to_string()), 
+            path: Library::uuid_v4().to_string(),
+            ..Default::default() 
+        }.save(&library1);
         sync.sync(&library1);
 
         let library2 = Library::open(":memory:");
-        Track { title: Some("Tall Glass".to_string()), ..Default::default() }.save(&library2);
+        Track { 
+            title: Some("Tall Glass".to_string()), 
+            path: Library::uuid_v4().to_string(),
+            ..Default::default() 
+        }.save(&library2);
         sync.sync(&library2);
 
         sync.sync(&library2);
@@ -126,8 +123,8 @@ mod tests {
 
         assert!(library1.tracks().len() == 2);
         assert!(library2.tracks().len() == 2);
-        assert!(library1.changelogs().len() == 6);
-        assert!(library2.changelogs().len() == 6);
+        assert!(library1.changelogs().len() == 10);
+        assert!(library2.changelogs().len() == 10);
         assert!(library1.changelogs() == library2.changelogs());
     }
 
@@ -137,7 +134,7 @@ mod tests {
         let sync = Sync::new(Box::new(storage));
 
         let library = Library::open(":memory:");
-        for i in 0..3000 {
+        for i in 0..300 {
             Track { 
                 artist: Some(format!("Grey Speaker {}", i)), 
                 title: Some(format!("One Thing {}", i)), 

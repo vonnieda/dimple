@@ -10,7 +10,7 @@ mod tests {
     use crate::{library::Library, scanner::Scanner};
 
     #[test]
-    fn mvp() {
+    fn does_not_duplicate_on_import() {
         let library = Library::open(":memory:");
 
         let media_files = Scanner::scan_directory("media_files");
