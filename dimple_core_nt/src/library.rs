@@ -50,7 +50,7 @@ impl Library {
                 artist    TEXT,
                 album     TEXT,
                 title     TEXT,
-                path      TEXT,
+                path      TEXT NOT NULL,
                 liked     BOOL NOT NULL DEFAULT false,
                 UNIQUE (path)
             );
@@ -127,21 +127,16 @@ impl Library {
     /// Import MediaFiles into the Library, creating or updating Tracks.
     pub fn import(&self, media_files: &[crate::scanner::media_file::MediaFile]) {
         for mf in media_files {
-            let key = Self::uuid_v4();
             let artist = mf.tag(symphonia::core::meta::StandardTagKey::Artist);
             let album = mf.tag(symphonia::core::meta::StandardTagKey::Album);
             let title = mf.tag(symphonia::core::meta::StandardTagKey::TrackTitle);
             let path = &mf.path;
-            self.conn.execute("INSERT INTO Track 
-                (key, artist, album, title, path)
-                VALUES (?1, ?2, ?3, ?4, ?5)
-                ON CONFLICT (path)
-                DO
-                    UPDATE SET
-                    artist = excluded.artist,
-                    album = excluded.album,
-                    title = excluded.title",
-                (key, artist, album, title, path)).unwrap();
+            let mut track = self.track_by_path(path).or_else(|| Some(Track::default())).unwrap();
+            track.artist = artist;
+            track.album = album;
+            track.title = title;
+            track.path = path.to_owned();
+            track.save(self);
         }
     }
 
@@ -196,7 +191,8 @@ impl Library {
     pub fn tracks(&self) -> Vec<Track> {
         let mut stmt = self.conn.prepare("SELECT 
             key, artist, album, title, path, liked
-            FROM Track").unwrap();
+            FROM Track
+            ORDER BY artist, album, title").unwrap();
         stmt.query_map([], |row| {
             Ok(Track {
                 key: row.get(0)?,
@@ -223,6 +219,23 @@ impl Library {
         self.conn.execute("DELETE FROM PlaylistItem
             WHERE Playlist_key = ?1", (playlist.key.clone().unwrap(),)).unwrap();
     }    
+
+    pub fn track_by_path(&self, path: &str) -> Option<Track> {
+        self.conn.query_row_and_then("SELECT 
+            key, artist, album, title, path, liked
+            FROM Track
+            WHERE path = ?1", 
+            (path,), |row| {
+                Ok(Track {
+                    key: row.get(0).unwrap(),
+                    artist: row.get(1).unwrap(),
+                    album: row.get(2).unwrap(),
+                    title: row.get(3).unwrap(),
+                    path: row.get(4).unwrap(),
+                    liked: row.get(5).unwrap()
+                })
+            }).optional().unwrap()
+    }
 }
 
 pub trait LibraryModel {
@@ -341,7 +354,7 @@ impl LibraryModel for Playlist {
         let mut playlist = Playlist::default();
         let mut stmt = library.conn.prepare("SELECT
             Playlist.key, Playlist.name, 
-            Track.key, Track.artist, Track.album, Track.title, Track.path
+            Track.key, Track.artist, Track.album, Track.title, Track.path, Track.liked
             FROM Playlist 
             LEFT JOIN PlaylistItem ON (PlaylistItem.playlist_key = Playlist.key)
             LEFT JOIN Track ON (Track.key = PlaylistItem.Track_key)

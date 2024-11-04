@@ -6,6 +6,7 @@ pub mod s3_storage;
 pub mod memory_storage;
 
 
+
 use storage::Storage;
 use tempfile::tempdir;
 use uuid::Uuid;
@@ -25,17 +26,25 @@ impl Sync {
     }
 
     pub fn sync(&self, library: &Library) {
+        println!("Synchronizing {}", library.uuid());
         let temp_dir = tempdir().unwrap();
-
         let remote_library_paths = self.storage.list_objects("dimple.library.");
+        println!("Remote libraries {:?}", remote_library_paths);
         remote_library_paths.iter().for_each(|remote_library_path| {
             let contents = self.storage.get_object(remote_library_path).unwrap();
             let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
-            std::fs::write(&temp_file, contents).unwrap();
+            println!("Downloading {} to {}", remote_library_path, temp_file.to_str().unwrap());
+            std::fs::write(&temp_file, &contents).unwrap();
 
+            println!("Opening {}", temp_file.to_str().unwrap());
             let remote_library = Library::open(temp_file.to_str().unwrap());
 
+            println!("Library contains {} tracks and {} changelogs.",
+            remote_library.tracks().len(),
+            remote_library.changelogs().len());
+
             let changelogs = remote_library.changelogs();
+            println!("Read {} changelogs", changelogs.len());
 
             for changelog in changelogs {
                 Self::apply_changelog(library, &changelog);
@@ -53,9 +62,6 @@ impl Sync {
         // Sync media files
     }
 
-    // TODO okay this is working but was it a mistake to make this all lookup
-    // by key? What if a client discovered the object on their own? I guess
-    // that's where we are going to need to get into merge.
     fn apply_changelog(library: &Library, changelog: &ChangeLog) {
         let actor = changelog.actor.clone();
         let timestamp = changelog.timestamp.clone();
