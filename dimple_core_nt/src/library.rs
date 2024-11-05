@@ -136,7 +136,7 @@ impl Library {
             track.album = album;
             track.title = title;
             track.path = path.to_owned();
-            track.save(self);
+            track.save(self, true);
         }
     }
 
@@ -239,14 +239,14 @@ impl Library {
 }
 
 pub trait LibraryModel {
-    fn save(&self, library: &Library) -> Self;
+    fn save(&self, library: &Library, log_changes: bool) -> Self;
     fn get(library: &Library, key: &str) -> Option<Self> where Self: Sized;
     fn diff(&self, other: &Self) -> Vec<ChangeLog>;
     fn apply_diff(&mut self, diff: &[ChangeLog]);
 }
 
 impl LibraryModel for Track {
-    fn save(&self, library: &Library) -> Self {
+    fn save(&self, library: &Library, log_changes: bool) -> Self {
         // TODO txn
         // TODO this moves to library I think as generic save()
         let old = self.key.as_ref().and_then(|key| Self::get(library, &key))
@@ -257,12 +257,14 @@ impl LibraryModel for Track {
             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             (&key, &self.artist, &self.album, &self.title, &self.path, &self.liked)).unwrap();
         let new = Self::get(library, &key.unwrap()).unwrap();
-        let diff = old.diff(&new);
-        for mut change in diff {
-            change.timestamp = library.ulid();
-            change.actor = library.uuid();
-            change.key = new.key.clone().unwrap();
-            change.save(library);
+        if log_changes {
+            let diff = old.diff(&new);
+            for mut change in diff {
+                change.timestamp = library.ulid();
+                change.actor = library.uuid();
+                change.key = new.key.clone().unwrap();
+                change.save(library, false);
+            }
         }
         // maybe like library.notify(diff)
         new
@@ -339,7 +341,7 @@ impl LibraryModel for Track {
 }
 
 impl LibraryModel for Playlist {
-    fn save(&self, library: &Library) -> Self {
+    fn save(&self, library: &Library, log_changes: bool) -> Self {
         let key = self.key.clone().or_else(|| Some(Library::uuid_v4()));
         let name = &self.name;
         library.conn.execute("INSERT OR REPLACE INTO Playlist 
@@ -390,7 +392,7 @@ impl LibraryModel for Playlist {
 }
 
 impl LibraryModel for ChangeLog {
-    fn save(&self, library: &Library) -> Self {
+    fn save(&self, library: &Library, log_changes: bool) -> Self {
         library.conn.execute("INSERT INTO ChangeLog         
             (actor, timestamp, model, key, op, field, value)
             VALUES 
@@ -432,11 +434,11 @@ mod tests {
             artist: Some("Which Who".to_string()),
             title: Some("We All Eat Food".to_string()),
             ..Default::default()
-        }.save(&library);
+        }.save(&library, true);
         track.artist = Some("The The".to_string());
         track.album = Some("Some Kind of Something".to_string());
         track.liked = true;
-        track.save(&library);
+        track.save(&library, true);
         let changelogs = library.changelogs();
         assert!(changelogs.len() == 5);        
         for changelog in changelogs {

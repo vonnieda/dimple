@@ -23,7 +23,7 @@ impl Player {
             None => Playlist {
                 key: Some(KEY.to_string()),
                 ..Default::default()
-            }.save(&self.library)
+            }.save(&self.library, true)
         }
     }
 

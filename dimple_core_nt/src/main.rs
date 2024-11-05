@@ -42,7 +42,7 @@ fn main() {
         let track_key = &args[2];
         let mut track = Track::get(&library, track_key).unwrap();
         track.liked = !track.liked;
-        track.save(&library);
+        track.save(&library, true);
         let track = Track::get(&library, track_key).unwrap();
         print_track(&track);
     }
@@ -79,7 +79,7 @@ fn main() {
         let prefix = &args[7];
         let storage = S3Storage::new(&access_key, &secret_key, &region, &endpoint, &bucket, &prefix);
         // let storage = MemoryStorage::default();
-        let sync = Sync::new(Box::new(storage));
+        let sync = Sync::new(Box::new(storage), prefix);
         sync.sync(&library);
     } 
 }

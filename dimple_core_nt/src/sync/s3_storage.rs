@@ -10,7 +10,7 @@ pub struct S3Storage {
     pub region: String,
     pub endpoint: String,
     pub bucket: String,
-    pub prefix: String,
+    pub prefix: String, // TODO currently ignored, will add support back later
 }
 
 impl S3Storage {
