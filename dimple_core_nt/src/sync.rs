@@ -13,19 +13,11 @@
 /// combined ChangeLog up to the remote. As each actor performs these actions
 /// the individual databases converge to the same values.
 /// 
-/// library_uuid.db
-/// library_uuid.db/remote_uuid.db
-/// library_uuid.db/remote_2_uuid.db
+/// When creating an Sync instance you specify a path on the Storage to use
+/// as a base. This is prepended along with a / for all storage operations.
 /// 
-/// Okay, so config options:
-/// 
-/// Laptop: 1
-/// Desktop: 2
-/// Mobile: 3
-/// 
-/// 1 -> 1.db/1.db
-/// 2 -> 1.db/2.db
-/// 3 -> 1.db/3.db
+/// By using a guaranteed unique Sync path like a UUID we can store multiple
+/// libraries on the same storage, or we can store shares.
 
 pub mod storage;
 pub mod s3_storage;
@@ -35,7 +27,7 @@ use storage::Storage;
 use tempfile::tempdir;
 use uuid::Uuid;
 
-use crate::{library::{Library, LibraryModel}, model::{ChangeLog, Track}};
+use crate::{library::Library, model::{ChangeLog, Diff, Track}};
 
 pub struct Sync {
     storage: Box<dyn Storage>,
@@ -51,7 +43,7 @@ impl Sync {
     }
 
     pub fn sync(&self, library: &Library) {
-        println!("Synchronizing {}", library.uuid());
+        println!("Synchronizing {}", library.id());
         let temp_dir = tempdir().unwrap();
         let remote_library_paths = self.storage.list_objects(&format!("{}/", self.path));
         println!("Remote libraries {:?}", remote_library_paths);
@@ -73,14 +65,14 @@ impl Sync {
 
             for changelog in changelogs {
                 Self::apply_changelog(library, &changelog);
-                changelog.save(library, true);
+                library.save(&changelog, false);
             }
         });
 
         // Upload a backup of the input library to storage.
         let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
         library.backup(temp_file.to_str().unwrap());
-        let path = format!("{}/{}.db", self.path, library.uuid());
+        let path = format!("{}/{}.db", self.path, library.id());
         let contents = std::fs::read(temp_file).unwrap();
         self.storage.put_object(&path, &contents);
 
@@ -92,10 +84,10 @@ impl Sync {
         let actor = changelog.actor.clone();
         let timestamp = changelog.timestamp.clone();
         let model = changelog.model.clone();
-        let key = changelog.key.clone();
+        let key = changelog.model_key.clone();
         let op = changelog.op.clone();
         // Ignore our own changes. Could be disabled to rebuild the db.
-        if actor == library.uuid() {
+        if actor == library.id() {
             return
         }
         if model == "Track" {
@@ -107,12 +99,10 @@ impl Sync {
                         return
                     }
                 }
-                let mut track = Track::get(library, &key)
+                let mut track = library.get(&key)
                     .or_else(|| Some(Track { key: Some(key), ..Default::default() })).unwrap();
                 track.apply_diff(&[changelog.clone()]);
-                // TODO this should not create a changelog, but it does. need a flag
-                // on save, I guess.
-                track.save(library, false);
+                library.save(&track, false);
             }
         }
     }
@@ -120,7 +110,7 @@ impl Sync {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::{Library, LibraryModel}, model::Track};
+    use crate::{library::Library, model::Track};
 
     use super::{memory_storage::MemoryStorage, Sync};
 
@@ -130,20 +120,18 @@ mod tests {
         let sync = Sync::new(Box::new(storage), "TODO");
 
         let library1 = Library::open(":memory:");
-        Track { 
+        library1.save(&Track { 
             artist: Some("Grey Speaker".to_string()), 
             title: Some("One Thing".to_string()), 
-            path: Library::uuid_v4().to_string(),
             ..Default::default() 
-        }.save(&library1, true);
+        }, true);
         sync.sync(&library1);
 
         let library2 = Library::open(":memory:");
-        Track { 
+        library2.save(&Track { 
             title: Some("Tall Glass".to_string()), 
-            path: Library::uuid_v4().to_string(),
             ..Default::default() 
-        }.save(&library2, true);
+        }, true);
         sync.sync(&library2);
 
         sync.sync(&library2);
@@ -155,8 +143,8 @@ mod tests {
 
         assert!(library1.tracks().len() == 2);
         assert!(library2.tracks().len() == 2);
-        assert!(library1.changelogs().len() == 10);
-        assert!(library2.changelogs().len() == 10);
+        assert!(library1.changelogs().len() == 3);
+        assert!(library2.changelogs().len() == 3);
         assert!(library1.changelogs() == library2.changelogs());
     }
 
@@ -167,10 +155,11 @@ mod tests {
 
         let library = Library::open(":memory:");
         for i in 0..300 {
-            Track { 
+            library.save(&Track { 
                 artist: Some(format!("Grey Speaker {}", i)), 
                 title: Some(format!("One Thing {}", i)), 
-                ..Default::default() }.save(&library, true);
+                ..Default::default() 
+            }, true);
         }
         sync.sync(&library);
 

@@ -1,6 +1,6 @@
 use std::{env, sync::Arc};
 
-use dimple_core_nt::{library::{Library, LibraryModel}, model::Track, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
+use dimple_core_nt::{library::Library, model::Track, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -40,10 +40,10 @@ fn main() {
     }
     else if command == "like" {
         let track_key = &args[2];
-        let mut track = Track::get(&library, track_key).unwrap();
+        let mut track: Track = library.get(track_key).unwrap();
         track.liked = !track.liked;
-        track.save(&library, true);
-        let track = Track::get(&library, track_key).unwrap();
+        library.save(&track, true);
+        let track = library.get(track_key).unwrap();
         print_track(&track);
     }
     else if command == "queue" {

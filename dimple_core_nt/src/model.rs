@@ -1,57 +1,32 @@
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct Track {
-    pub key: Option<String>,
-    pub artist: Option<String>,
-    pub album: Option<String>,
-    pub title: Option<String>,
-    pub path: String,
-    pub liked: bool,
+use rusqlite::{Connection, Row};
+
+mod track;
+pub use track::Track;
+
+mod playlist;
+pub use playlist::Playlist;
+
+mod changelog;
+pub use changelog::ChangeLog;
+
+mod track_source;
+pub use track_source::TrackSource;
+
+mod media_file;
+pub use media_file::MediaFile;
+
+pub trait FromRow {
+    fn from_row(row: &Row) -> Self;
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct Playlist {
-    pub key: Option<String>,
-    pub name: Option<String>,
-    pub tracks: Vec<Track>,
+pub trait Diff {
+    fn diff(&self, other: &Self) -> Vec<ChangeLog> where Self: Sized;
+    fn apply_diff(&mut self, diff: &[ChangeLog]);
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct Artist {
-    pub key: Option<String>,
-    pub name: Option<String>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct ChangeLog {
-    pub actor: String,
-    pub timestamp: String,
-    pub model: String,
-    pub key: String,
-    pub op: String,
-    pub field: Option<String>,
-    pub value: Option<String>,
-}
-
-#[cfg(test)]
-mod tests {
-    // use super::Track;
-
-    #[test]
-    fn it_works() {
-        // let old = Track {
-        //     key: Some("2b787c14-85df-462b-b81a-ff3ded9f5f7c".to_string()),
-        //     artist: Some("The Funky Bunch".to_string()),
-        //     ..Default::default()
-        // };
-        // let new = Track {
-        //     key: Some("2b787c14-85df-462b-b81a-ff3ded9f5f7c".to_string()),
-        //     artist: Some("The Wild Bunch".to_string()),
-        //     album: Some("Walkin' Around".to_string()),
-        //     ..Default::default()
-        // };
-
-        // let diff = old.diff(&new);
-
-        // dbg!(diff);
-    }
+pub trait Model: Sized + FromRow + Diff + Default + Clone {
+    fn table_name() -> String;
+    fn key(&self) -> Option<String>;
+    fn set_key(&mut self, key: Option<String>);
+    fn upsert(&self, conn: &Connection);
 }

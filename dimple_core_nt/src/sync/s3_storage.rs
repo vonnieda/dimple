@@ -10,7 +10,7 @@ pub struct S3Storage {
     pub region: String,
     pub endpoint: String,
     pub bucket: String,
-    pub prefix: String, // TODO currently ignored, will add support back later
+    pub prefix: String, // TODO currently ignored, may add support back later
 }
 
 impl S3Storage {
@@ -87,63 +87,4 @@ impl Storage for S3Storage {
             .collect();
         results
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::sync::s3_storage::S3Storage;
-
-    // After quite a bit of testing with the B2 API it seems that a leading /
-    // is ignored / stripped for put, and is not compatible at all with list.
-    // If a leading slash is included with list no results are returned, under
-    // any circumstances, it seems.
-
-    #[test]
-    fn we_understand_leading_slash() {
-        let s3 = S3Storage::default();
-        // s3.put_object("honk/beep/myfile.txt", "aaa1fc41-6fad-4edd-81a0-3a0c82a1f8a1".as_bytes());
-        // s3.put_object("/honk/beep/1-myfile.txt", "03e9de5d-efb9-4233-a8bf-ed011422fdb6".as_bytes());
-        // s3.put_object("-dir-1.txt", "03e9de5d-efb9-4233-a8bf-ed011422fdb6".as_bytes());
-        // s3.put_object("-dir-2.txt", "e359905f-dc3d-44a3-ab18-54d3e3c977d4".as_bytes());
-        // dbg!(String::from_utf8(s3.get_object("/honk/beep/1-myfile.txt").unwrap()).unwrap());
-        // dbg!(s3.list_objects(""));
-        // dbg!(s3.list_objects("/"));
-        // dbg!(s3.list_objects("dimple-dev-sync"));
-        // dbg!(s3.list_objects("/001"));
-    }
-
-    // #[test]
-    // fn prefix_doesnt_matter() {
-    //     let mut s3 = S3Storage::default();
-    //     s3.prefix = "".to_string();
-    //     basics(&s3);
-    //     s3.prefix = "/".to_string();
-    //     basics(&s3);
-    //     s3.prefix = "//".to_string();
-    //     basics(&s3);
-    //     s3.prefix = "1".to_string();
-    //     basics(&s3);
-    //     s3.prefix = "1/".to_string();
-    //     basics(&s3);
-    //     s3.prefix = "/1/".to_string();
-    //     basics(&s3);
-    // }
-
-    // fn basics(storage: &S3Storage) {
-    //     println!("Testing prefix {}", storage.prefix);
-    //     storage.put_object("001/001.db", "faa44c67-92e2-411a-808b-cfd9fc9a263a".as_bytes());
-    //     storage.put_object("001/002.db", "dcf51319-0a0d-4d1a-b825-26dea74d861b".as_bytes());
-    //     storage.put_object("001/003.db", "1d922942-197d-4e72-9ccf-421e9f4d61aa".as_bytes());
-    //     storage.put_object("002/002.db", "4a88dbef-349d-4845-bdab-6ed97457217d".as_bytes());
-    //     storage.put_object("002/001.db", "fa63f446-d237-41bf-9739-30539223bf02".as_bytes());
-    //     let objects = storage.list_objects("00");
-    //     dbg!(&objects);
-    //     assert!(objects.len() == 5);
-    //     let objects = storage.list_objects("001/");
-    //     assert!(objects.len() == 3);
-    //     let objects = storage.list_objects("002/");
-    //     assert!(objects.len() == 2);
-    //     let content = storage.get_object("001/001.db");
-    //     assert!(content == Some("faa44c67-92e2-411a-808b-cfd9fc9a263a".as_bytes().to_vec()));
-    // }
 }

@@ -22,7 +22,7 @@ pub struct Track {
     pub length: Option<u32>,
     // A text description of the position in the media, such as A1
     pub number: Option<u32>,
-    // 1 ased ordinal within the media
+    // 1 based ordinal within the media
     pub position: Option<u32>,
 
     #[serde(skip)]
