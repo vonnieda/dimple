@@ -5,7 +5,7 @@ use symphonia::core::meta::StandardTagKey;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::model::{ChangeLog, Diff, FromRow, Model, Playlist, Track, TrackSource};
+use crate::model::{ChangeLog, Diff, FromRow, Model, Playlist, Track};
 
 pub struct Library {
     conn: Connection,
@@ -66,14 +66,14 @@ impl Library {
             let album = mf.tag(StandardTagKey::Album);
             let title = mf.tag(StandardTagKey::TrackTitle);
             let path = &mf.path;
-            let mut source = self.track_source_by_file_path(path)
-                .or_else(|| Some(TrackSource::default()))
-                .unwrap();
-            source.file_path = path.to_owned();
-            source.artist = artist;
-            source.album = album;
-            source.title = title;
-            self.save(&source, true);
+            // let mut source = self.track_source_by_file_path(path)
+            //     .or_else(|| Some(TrackSource::default()))
+            //     .unwrap();
+            // source.file_path = path.to_owned();
+            // source.artist = artist;
+            // source.album = album;
+            // source.title = title;
+            // self.save(&source, true);
 
             // let mut track = self.track_by_path(path).or_else(|| Some(Track::default())).unwrap();
             // track.artist = artist;
@@ -114,14 +114,14 @@ impl Library {
         .collect()
     }
 
-    pub fn track_sources(&self) -> Vec<TrackSource> {
-        let mut stmt = self.conn.prepare("SELECT * FROM TrackSource
-            ORDER BY artist, album, title").unwrap();
-        stmt.query_map([], |row| Ok(TrackSource::from_row(row)))
-        .unwrap()
-        .map(|result| result.unwrap())
-        .collect()
-    }
+    // pub fn track_sources(&self) -> Vec<TrackSource> {
+    //     let mut stmt = self.conn.prepare("SELECT * FROM TrackSource
+    //         ORDER BY artist, album, title").unwrap();
+    //     stmt.query_map([], |row| Ok(TrackSource::from_row(row)))
+    //     .unwrap()
+    //     .map(|result| result.unwrap())
+    //     .collect()
+    // }
 
     pub fn playlist_add(&self, playlist: &Playlist, track_key: &str) {
         self.conn.execute("INSERT INTO PlaylistItem 
@@ -135,12 +135,12 @@ impl Library {
             WHERE playlist_key = ?1", (playlist.key.clone().unwrap(),)).unwrap();
     }    
 
-    pub fn track_source_by_file_path(&self, file_path: &str) -> Option<TrackSource> {
-        self.conn.query_row_and_then("SELECT * FROM TrackSource
-            WHERE file_path = ?1", 
-            (file_path,), |row| Ok(TrackSource::from_row(row)))
-            .optional().unwrap()
-    }
+    // pub fn track_source_by_file_path(&self, file_path: &str) -> Option<TrackSource> {
+    //     self.conn.query_row_and_then("SELECT * FROM TrackSource
+    //         WHERE file_path = ?1", 
+    //         (file_path,), |row| Ok(TrackSource::from_row(row)))
+    //         .optional().unwrap()
+    // }
 
     pub fn save<T: Model>(&self, obj: &T, log_changes: bool) -> T {
         // TODO txn
@@ -211,7 +211,7 @@ mod tests {
         track.liked = true;
         library.save(&track, true);
         let changelogs = library.changelogs();
-        assert!(changelogs.len() == 5);        
+        assert!(changelogs.len() == 6);        
     }
 
     #[test]

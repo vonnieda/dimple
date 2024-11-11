@@ -10,7 +10,7 @@ mod changelog;
 pub use changelog::ChangeLog;
 
 mod track_source;
-pub use track_source::TrackSource;
+// pub use track_source::TrackSource;
 
 mod media_file;
 pub use media_file::MediaFile;

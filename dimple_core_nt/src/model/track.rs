@@ -27,6 +27,11 @@ impl Diff for Track {
     fn diff(&self, other: &Self) -> Vec<ChangeLog> {
         // TODO incomplete, just for ref.
         let mut diff = vec![];
+        if self.key != other.key {
+            diff.push(ChangeLog { model: "Track".to_string(), 
+                op: "set".to_string(), field: Some("key".to_string()), 
+                value: other.key.clone(), ..Default::default() });
+        }
         if self.artist != other.artist {
             diff.push(ChangeLog { model: "Track".to_string(), 
                 op: "set".to_string(), field: Some("artist".to_string()), 
@@ -54,6 +59,9 @@ impl Diff for Track {
         for change in diff {
             if change.op == "set" {
                 if let Some(field) = change.field.clone() {
+                    if &field == "key" {
+                        self.key = change.value.clone();
+                    }
                     if &field == "artist" {
                         self.artist = change.value.clone();
                     }

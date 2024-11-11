@@ -27,6 +27,14 @@ CREATE TABLE IF NOT EXISTS TrackSource (
     -- FOREIGN KEY (track_key) REFERENCES Track(key)
 );
 
+CREATE TABLE IF NOT EXISTS MediaFile (
+    key       TEXT PRIMARY KEY,
+    file_path TEXT UNIQUE NOT NULL,
+    artist    TEXT,
+    album     TEXT,
+    title     TEXT
+);
+
 CREATE TABLE IF NOT EXISTS Playlist (
     key       TEXT PRIMARY KEY,
     name      TEXT
