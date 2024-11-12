@@ -24,6 +24,10 @@ CREATE TABLE IF NOT EXISTS MediaFile (
     title     TEXT
 );
 
+-- Note because I keep forgetting it myself: There can be multiple TrackSources
+-- with the same media_file_key for various reasons. For example, a greatest
+-- hits may include the exact recording from the original hit and would thus
+-- reference the same piece of media.
 CREATE TABLE IF NOT EXISTS TrackSource (
     key            TEXT PRIMARY KEY,
     track_key      TEXT NOT NULL,

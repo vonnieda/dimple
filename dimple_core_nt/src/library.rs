@@ -5,7 +5,7 @@ use symphonia::core::meta::StandardTagKey;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::model::{ChangeLog, Diff, FromRow, MediaFile, Model, Playlist, Track};
+use crate::model::{ChangeLog, Diff, FromRow, MediaFile, Model, Playlist, Track, TrackSource};
 
 pub struct Library {
     pub conn: Connection,
@@ -67,6 +67,9 @@ impl Library {
             let title = input_mf.tag(StandardTagKey::TrackTitle);
             if artist.is_none() && album.is_none() && title.is_none() {
                 println!("WARNING: Empty track info. Skipping {}.", input_mf.path.to_string());
+                // TODO this getting stuff like .DS_Store, I think I solved this
+                // problem elsewhere, so need to check on that. Maybe I'm able to
+                // see if any format was found at all?
                 continue;
             }
             let file_path = &input_mf.path;
@@ -84,17 +87,26 @@ impl Library {
     }
 
     fn post_import_update_tracks(&self) {
+        // TODO txn
         for mf in self.list::<MediaFile>() {
-            // TODO txn
-            if self.find_track_for_media_file(&mf).is_none() {
-                let track = Track {
-                    artist: mf.artist,
-                    album: mf.album,
-                    title: mf.title,
-                    ..Default::default()
-                };
-                self.save(&track);
+            if !self.track_sources_for_media_file(&mf).is_empty() {
+                continue;
             }
+            let track = self.find_track_for_media_file(&mf)
+                .or_else(|| {
+                    Some(self.save(&Track {
+                        artist: mf.artist,
+                        album: mf.album,
+                        title: mf.title,
+                        ..Default::default()
+                    }))
+                })
+                .unwrap();
+            self.save(&TrackSource {
+                track_key: track.key.unwrap(),
+                media_file_key: mf.key,
+                ..Default::default()
+            });
         }
     }
 
@@ -162,22 +174,19 @@ impl Library {
             .collect()
     }
 
+    pub fn query<T: Model>(&self, sql: &str) -> Vec<T> {
+        self.conn.prepare(&sql).unwrap()
+            .query_map((), |row| Ok(T::from_row(row))).unwrap()
+            .map(|m| m.unwrap())
+            .collect()
+    }
+
     pub fn changelogs(&self) -> Vec<ChangeLog> {
-        let mut stmt = self.conn.prepare("SELECT * FROM ChangeLog 
-            ORDER BY timestamp ASC").unwrap();
-        stmt.query_map([], |row| Ok(ChangeLog::from_row(row)))
-        .unwrap()
-        .map(|result| result.unwrap())
-        .collect()
+        self.query("SELECT * FROM ChangeLog ORDER BY timestamp ASC")
     }
 
     pub fn tracks(&self) -> Vec<Track> {
-        let mut stmt = self.conn.prepare("SELECT * FROM Track
-            ORDER BY artist, album, title").unwrap();
-        stmt.query_map([], |row| Ok(Track::from_row(row)))
-        .unwrap()
-        .map(|result| result.unwrap())
-        .collect()
+        self.query("SELECT * FROM Track ORDER BY artist, album, title")
     }
 
     pub fn playlist_add(&self, playlist: &Playlist, track_key: &str) {
@@ -212,6 +221,37 @@ impl Library {
             WHERE artist = ?1 AND album = ?2 AND title = ?3", 
             (media_file.artist.clone(), media_file.album.clone(), media_file.title.clone()), |row| Ok(Track::from_row(row)))
             .optional().unwrap()
+    }
+
+    pub fn track_sources_for_track(&self, track: &Track) -> Vec<TrackSource> {
+        let mut stmt = self.conn.prepare("SELECT * FROM TrackSource
+            WHERE track_key = ?1").unwrap();
+        stmt.query_map([track.key.clone()], |row| Ok(TrackSource::from_row(row)))
+            .unwrap()
+            .map(|result| result.unwrap())
+            .collect()
+    }
+
+    pub fn track_sources_for_media_file(&self, media_file: &MediaFile) -> Vec<TrackSource> {
+        let mut stmt = self.conn.prepare("SELECT * FROM TrackSource
+            WHERE media_file_key = ?1").unwrap();
+        stmt.query_map([media_file.key.clone()], |row| Ok(TrackSource::from_row(row)))
+            .unwrap()
+            .map(|result| result.unwrap())
+            .collect()
+    }
+
+    pub fn load_track_content(&self, track: &Track) -> Option<Vec<u8>> {
+        for source in self.track_sources_for_track(track) {
+            if let Some(media_file_key) = source.media_file_key {
+                if let Some(media_file) = self.get::<MediaFile>(&media_file_key) {
+                    if let Ok(content) = std::fs::read(media_file.file_path) {
+                        return Some(content)
+                    }
+                }
+            }
+        }
+        None
     }
 }
 

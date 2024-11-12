@@ -1,6 +1,6 @@
 use std::{env, sync::Arc};
 
-use dimple_core_nt::{library::Library, model::Track, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
+use dimple_core_nt::{library::Library, model::{ChangeLog, Track}, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -82,6 +82,11 @@ fn main() {
         let sync = Sync::new(Box::new(storage), prefix);
         sync.sync(&library);
     } 
+    else if command == "changelog" {
+        for changelog in library.changelogs() {
+            print_changelog(&changelog);
+        }
+    }
 }
 
 fn print_track(track: &Track) {
@@ -91,4 +96,15 @@ fn print_track(track: &Track) {
         track.album.clone().unwrap_or_default(), 
         track.title.clone().unwrap_or_default(),
         track.liked);
+}
+
+fn print_changelog(changelog: &ChangeLog) {
+    println!("{:16} | {:16} | {:16} | {:16} | {:16} | {:16} | {:16}", 
+        changelog.timestamp.clone(),
+        changelog.actor.clone(), 
+        changelog.model.clone(),
+        changelog.op.clone(),
+        changelog.model_key.clone(),
+        changelog.field.clone().unwrap_or_default(),
+        changelog.value.clone().unwrap_or_default());
 }

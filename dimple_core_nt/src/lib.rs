@@ -57,6 +57,8 @@ mod tests {
             assert!(player.play_queue().tracks.len() == 2);
 
             sync.sync(&library);
+
+            assert!(library.load_track_content(track).is_some());
         }
 
         {
@@ -64,9 +66,14 @@ mod tests {
             assert!(library_2.tracks().len() == 0);
             sync.sync(&library_2);
             assert!(library_2.tracks().len() > 0);
+            let tracks = library_2.tracks();
+            let track = tracks.get(0).unwrap();
+            dbg!(&track);
+            assert!(library_2.load_track_content(track).is_some());
         }
 
         // TODO add play of a couple 1 second tracks to test the full pipeline
         // including sync and download.
+
     }
 }

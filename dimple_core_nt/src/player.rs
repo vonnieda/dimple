@@ -43,13 +43,12 @@ impl Player {
     pub fn play(&self) {
         let player = playback_rs::Player::new(None).unwrap();
         let play_queue = self.play_queue();
-        for track in play_queue.tracks {
-            let content = Vec::<u8>::default();
-            let sources = self.library.changelogs();
-            let song = Song::new(Box::new(Cursor::new(content)), &Hint::new(), None).unwrap();
+        for track in play_queue.tracks {            
             while player.has_next_song() {
                 std::thread::sleep(std::time::Duration::from_millis(100));
             }
+            let content = self.library.load_track_content(&track).expect("No valid sources found.");
+            let song = Song::new(Box::new(Cursor::new(content)), &Hint::new(), None).unwrap();
             player.play_song_next(&song, None).unwrap();
         }
         while player.has_current_song() {
