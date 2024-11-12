@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::{path::{Path, PathBuf}, time::Instant};
 
 use rusqlite::Row;
 use sha2::{Sha256, Digest};
@@ -16,11 +16,12 @@ pub struct Blob {
 
 impl Blob {
     pub fn read(path: &str) -> Self {
-        let path = PathBuf::from(path).canonicalize().unwrap();
-        let content = std::fs::read(path.clone()).unwrap();
+        let path = std::fs::canonicalize(path).unwrap();
+        let content = std::fs::read(&path).unwrap();
+        let sha256 = Self::calculate_sha256(&content);
         Self {
             key: None,
-            sha256: Self::calculate_sha256(&content),
+            sha256: sha256,
             length: content.len() as u64,
             local_path: Some(path.to_str().unwrap().to_owned()),
         }

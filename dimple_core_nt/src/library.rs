@@ -5,7 +5,7 @@ use symphonia::core::meta::StandardTagKey;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::model::{ChangeLog, Diff, FromRow, MediaFile, Model, Playlist, Track, TrackSource};
+use crate::model::{Blob, ChangeLog, Diff, FromRow, MediaFile, Model, Playlist, Track, TrackSource};
 
 pub struct Library {
     pub conn: Connection,
@@ -60,16 +60,20 @@ impl Library {
 
     /// Import MediaFiles into the Library, creating or updating Tracks and
     /// TrackSources.
-    pub fn import(&self, input: &[crate::scanner::media_file::MediaFile]) {
+    pub fn import(&self, input: &[crate::scanner::media_file::ScannedFile]) {
         for input_mf in input {
             let artist = input_mf.tag(StandardTagKey::Artist);
             let album = input_mf.tag(StandardTagKey::Album);
             let title = input_mf.tag(StandardTagKey::TrackTitle);
+            let file_path = std::fs::canonicalize(&input_mf.path).unwrap();
+            let file_path = file_path.to_str().unwrap();
+
             // if artist.is_none() && album.is_none() && title.is_none() {
             //     println!("WARNING: Empty track info. Skipping {}.", input_mf.path.to_string());
             //     continue;
             // }
-            let file_path = &input_mf.path;
+
+
             let mut mf = self.find_media_file_by_file_path(file_path)
                 .or_else(|| Some(MediaFile::default()))
                 .unwrap();
@@ -78,17 +82,12 @@ impl Library {
             mf.album = album;
             mf.title = title;
             self.save(&mf);
-        }
 
-        // TODO stopped here. need to decide if I'm gonna force everything
-        // into blobs for upload or what.
-        // Okay, what if, instead:
-        // - we get rid of media file, move path to blob and the metadata
-        //   stuff to tracksource.
-        // - we add local path to blob. if a blob has a local path we check that
-        //   after the cache and before trying to find it another way
-        // - track source gets blob key
-        // - import creates blobs and track sources still
+            let blob = self.find_blob_by_local_path(file_path)
+                .or_else(|| Some(self.save(&Blob::read(file_path))))
+                .unwrap();
+            assert!(blob.key.is_some());
+        }
 
         self.post_import_update_tracks();
     }
@@ -222,6 +221,13 @@ impl Library {
             .optional().unwrap()
     }
 
+    pub fn find_blob_by_local_path(&self, local_path: &str) -> Option<Blob> {
+        self.conn.query_row_and_then("SELECT * FROM Blob
+            WHERE local_path = ?1", 
+            (local_path,), |row| Ok(Blob::from_row(row)))
+            .optional().unwrap()
+    }
+
     pub fn find_track_for_media_file(&self, media_file: &MediaFile) -> Option<Track> {
         // TODO naive, just for testing.
         self.conn.query_row_and_then("SELECT * FROM Track
@@ -249,12 +255,19 @@ impl Library {
     }
 
     pub fn load_track_content(&self, track: &Track) -> Option<Vec<u8>> {
+        println!("load_track_content {:?}", &track.key);
         for source in self.track_sources_for_track(track) {
+            println!("checking source {:?}", &source);
             if let Some(media_file_key) = source.media_file_key {
                 if let Some(media_file) = self.get::<MediaFile>(&media_file_key) {
                     if let Ok(content) = std::fs::read(media_file.file_path) {
                         return Some(content)
                     }
+                }
+            }
+            if let Some(blob_key) = source.blob_key {
+                if let Some(blob) = self.get::<Blob>(&blob_key) {
+
                 }
             }
         }
@@ -314,10 +327,12 @@ mod tests {
     fn import() {
         let library = Library::open(":memory:");
         assert!(library.list::<MediaFile>().len() == 0);
-        library.import(&Scanner::scan_directory("media_files"));
+        let media_files = Scanner::scan_directory("media_files_small");
+        assert!(media_files.len() > 0);
+        library.import(&media_files);
         let num_mediafiles = library.list::<MediaFile>().len();
         assert!(library.list::<MediaFile>().len() > 0);
-        library.import(&Scanner::scan_directory("media_files"));
+        library.import(&Scanner::scan_directory("media_files_small"));
         assert!(library.list::<MediaFile>().len() == num_mediafiles);
     }
 }

@@ -39,11 +39,11 @@ mod tests {
         {
             let library = Arc::new(Library::open(":memory:"));
             assert!(library.tracks().len() == 0);
-            library.import(&Scanner::scan_directory("media_files"));
+            library.import(&Scanner::scan_directory("media_files_small"));
             assert!(library.tracks().len() > 0);
     
             let tracks = library.tracks();
-            library.import(&Scanner::scan_directory("media_files"));
+            library.import(&Scanner::scan_directory("media_files_small"));
             assert!(tracks.len() == library.tracks().len());
     
             let player = Player::new(library.clone());
@@ -68,7 +68,6 @@ mod tests {
             assert!(library_2.tracks().len() > 0);
             let tracks = library_2.tracks();
             let track = tracks.get(0).unwrap();
-            dbg!(&track);
             assert!(library_2.load_track_content(track).is_some());
         }
 

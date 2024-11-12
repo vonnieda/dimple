@@ -3,15 +3,15 @@ use std::fs::File;
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Visual}, probe::Hint};
 
 #[derive(Clone, Debug)]
-pub struct MediaFile {
+pub struct ScannedFile {
     pub path: String,
     pub tags: Vec<Tag>,
     pub visuals: Vec<Visual>,
 }
 
-impl MediaFile {
-    pub fn new(path: &str) -> Result<MediaFile, String> {
-        // TODO make paths absolute
+impl ScannedFile {
+    pub fn new(path: &str) -> Result<ScannedFile, String> {
+        let path = std::fs::canonicalize(path).unwrap();
 
         // TODO put this back
         // let extension = path.extension().map(|f| f.to_string_lossy().to_string());
@@ -60,8 +60,8 @@ impl MediaFile {
             visuals.extend(metadata.visuals().to_owned());
         }
 
-        let media_file = MediaFile {
-            path: path.to_string(),
+        let media_file = ScannedFile {
+            path: path.to_str().unwrap().to_string(),
             tags,
             visuals,
         };
