@@ -43,41 +43,46 @@ impl Sync {
     }
 
     pub fn sync(&self, library: &Library) {
-        // println!("Synchronizing {}", library.id());
+        println!("Synchronizing {}", library.id());
         let temp_dir = tempdir().unwrap();
         let remote_library_paths = self.storage.list_objects(&format!("{}/", self.path));
-        // println!("Remote libraries {:?}", remote_library_paths);
+        println!("Remote libraries {:?}", remote_library_paths);
         remote_library_paths.iter().for_each(|remote_library_path| {
             let contents = self.storage.get_object(remote_library_path).unwrap();
             let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
-            // println!("Downloading {} to {}", remote_library_path, temp_file.to_str().unwrap());
+            println!("Downloading {} to {}", remote_library_path, temp_file.to_str().unwrap());
             std::fs::write(&temp_file, &contents).unwrap();
 
-            // println!("Opening {}", temp_file.to_str().unwrap());
+            println!("Opening {}", temp_file.to_str().unwrap());
             let remote_library = Library::open(temp_file.to_str().unwrap());
 
-            // println!("Library contains {} tracks and {} changelogs.",
-            //     remote_library.tracks().len(),
-            //     remote_library.changelogs().len());
+            println!("Library contains {} tracks and {} changelogs.",
+                remote_library.tracks().len(),
+                remote_library.changelogs().len());
 
             let changelogs = remote_library.changelogs();
-            // println!("Applying {} changelogs", changelogs.len());
+            println!("Applying {} changelogs", changelogs.len());
 
             for changelog in changelogs {
                 Self::apply_changelog(library, &changelog);
+                // TODO this is redundant if the change has already been seen
+                // and causes lots of slow.
                 library.save(&changelog);
             }
         });
 
         // Upload a backup of the input library to storage.
         let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
+        println!("Gathering local changes.");
         library.backup(temp_file.to_str().unwrap());
         let path = format!("{}/{}.db", self.path, library.id());
         let contents = std::fs::read(temp_file).unwrap();
+        println!("Pushing local changes.");
         self.storage.put_object(&path, &contents);
 
         // Sync media files
         // TODO
+        println!("Sync complete.");
     }
 
     fn apply_changelog(library: &Library, changelog: &ChangeLog) {

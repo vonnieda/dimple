@@ -66,7 +66,7 @@ impl Library {
             let album = input_mf.tag(StandardTagKey::Album);
             let title = input_mf.tag(StandardTagKey::TrackTitle);
             if artist.is_none() && album.is_none() && title.is_none() {
-                println!("WARNING: Empty track info. Skipping {}.", input_mf.path.to_string());
+                // println!("WARNING: Empty track info. Skipping {}.", input_mf.path.to_string());
                 // TODO this getting stuff like .DS_Store, I think I solved this
                 // problem elsewhere, so need to check on that. Maybe I'm able to
                 // see if any format was found at all?

@@ -13,6 +13,7 @@ impl Scanner {
             .map(|dir_entry| dir_entry.unwrap())
             .filter(|dir_entry| dir_entry.file_type().is_file())
             .map(|file_entry| MediaFile::new(file_entry.path().to_str().unwrap()))
+            .filter_map(|mf| mf.ok())
             .collect()
     }
 }

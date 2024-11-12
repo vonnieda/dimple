@@ -83,9 +83,12 @@ fn main() {
         sync.sync(&library);
     } 
     else if command == "changelog" {
+        let mut i = 0;
         for changelog in library.changelogs() {
             print_changelog(&changelog);
+            i += 1;
         }
+        println!("{} changelogs", i);
     }
 }
 

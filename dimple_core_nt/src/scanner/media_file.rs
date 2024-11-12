@@ -10,7 +10,7 @@ pub struct MediaFile {
 }
 
 impl MediaFile {
-    pub fn new(path: &str) -> MediaFile {
+    pub fn new(path: &str) -> Result<MediaFile, String> {
         // let extension = path.extension().map(|f| f.to_string_lossy().to_string());
 
         let hint = Hint::new();
@@ -31,11 +31,7 @@ impl MediaFile {
             .format(&hint, media_source_stream, &fmt_opts, &meta_opts);
 
         if probed.is_err() {
-            return MediaFile {
-                path: path.to_string(),
-                tags: vec![],
-                visuals: vec![],
-            }
+            return Err("No media found in probe.".to_string());
         }
 
         let mut probed = probed.unwrap();
@@ -67,7 +63,7 @@ impl MediaFile {
             visuals,
         };
 
-        media_file
+        Ok(media_file)
     }
 
     pub fn tag(&self, key: StandardTagKey) -> Option<String> {
