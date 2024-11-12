@@ -29,27 +29,27 @@ impl Diff for MediaFile {
     fn diff(&self, other: &Self) -> Vec<ChangeLog> {
         let mut diff = vec![];
         if self.key != other.key {
-            diff.push(ChangeLog { model: "TrackSource".to_string(), 
+            diff.push(ChangeLog { model: "MediaFile".to_string(), 
                 op: "set".to_string(), field: Some("key".to_string()), 
                 value: other.key.clone(), ..Default::default() });
         }
         if self.file_path != other.file_path {
-            diff.push(ChangeLog { model: "TrackSource".to_string(), 
+            diff.push(ChangeLog { model: "MediaFile".to_string(), 
                 op: "set".to_string(), field: Some("file_path".to_string()), 
                 value: Some(other.file_path.clone()), ..Default::default() });
         }
         if self.artist != other.artist {
-            diff.push(ChangeLog { model: "TrackSource".to_string(), 
+            diff.push(ChangeLog { model: "MediaFile".to_string(), 
                 op: "set".to_string(), field: Some("artist".to_string()), 
                 value: other.artist.clone(), ..Default::default() });
         }
         if self.album != other.album {
-            diff.push(ChangeLog { model: "TrackSource".to_string(), 
+            diff.push(ChangeLog { model: "MediaFile".to_string(), 
                 op: "set".to_string(), field: Some("album".to_string()), 
                 value: other.album.clone(), ..Default::default() });
         }
         if self.title != other.title {
-            diff.push(ChangeLog { model: "TrackSource".to_string(), 
+            diff.push(ChangeLog { model: "MediaFile".to_string(), 
                 op: "set".to_string(), field: Some("title".to_string()), 
                 value: other.title.clone(), ..Default::default() });
         }
@@ -102,7 +102,7 @@ impl Model for MediaFile {
     }
         
     fn log_changes() -> bool {
-        false
+        true
     }
 }
 
@@ -136,6 +136,7 @@ mod tests {
         };
         let diff = a.diff(&b);
         assert!(diff.len() == 5);
+        assert!(diff[0].model == "MediaFile".to_string());
         assert!(diff[0].field == Some("key".to_string()));
         assert!(diff[1].field == Some("file_path".to_string()));
         assert!(diff[2].field == Some("artist".to_string()));

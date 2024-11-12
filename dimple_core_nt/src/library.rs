@@ -65,13 +65,10 @@ impl Library {
             let artist = input_mf.tag(StandardTagKey::Artist);
             let album = input_mf.tag(StandardTagKey::Album);
             let title = input_mf.tag(StandardTagKey::TrackTitle);
-            if artist.is_none() && album.is_none() && title.is_none() {
-                // println!("WARNING: Empty track info. Skipping {}.", input_mf.path.to_string());
-                // TODO this getting stuff like .DS_Store, I think I solved this
-                // problem elsewhere, so need to check on that. Maybe I'm able to
-                // see if any format was found at all?
-                continue;
-            }
+            // if artist.is_none() && album.is_none() && title.is_none() {
+            //     println!("WARNING: Empty track info. Skipping {}.", input_mf.path.to_string());
+            //     continue;
+            // }
             let file_path = &input_mf.path;
             let mut mf = self.find_media_file_by_file_path(file_path)
                 .or_else(|| Some(MediaFile::default()))
@@ -82,6 +79,16 @@ impl Library {
             mf.title = title;
             self.save(&mf);
         }
+
+        // TODO stopped here. need to decide if I'm gonna force everything
+        // into blobs for upload or what.
+        // Okay, what if, instead:
+        // - we get rid of media file, move path to blob and the metadata
+        //   stuff to tracksource.
+        // - we add local path to blob. if a blob has a local path we check that
+        //   after the cache and before trying to find it another way
+        // - track source gets blob key
+        // - import creates blobs and track sources still
 
         self.post_import_update_tracks();
     }

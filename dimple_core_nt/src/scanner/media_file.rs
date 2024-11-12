@@ -11,6 +11,9 @@ pub struct MediaFile {
 
 impl MediaFile {
     pub fn new(path: &str) -> Result<MediaFile, String> {
+        // TODO make paths absolute
+
+        // TODO put this back
         // let extension = path.extension().map(|f| f.to_string_lossy().to_string());
 
         let hint = Hint::new();
