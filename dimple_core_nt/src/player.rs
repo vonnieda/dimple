@@ -2,7 +2,7 @@ use std::{io::Cursor, sync::Arc};
 
 use playback_rs::{Hint, Song};
 
-use crate::{library::Library, model::Playlist};
+use crate::{library::Library, model::{Model, Playlist}};
 
 pub struct Player {
     library: Arc<Library>,
@@ -16,18 +16,18 @@ impl Player {
     }
 
     pub fn play_queue(&self) -> Playlist {
-        // TODO eventually include the library uuid so we can easily switch
-        // between play queues for devices
-        const KEY: &str = "__dimple_system_play_queue";
-        todo!()
-        // let play_queue = Playlist::get(&self.library, KEY);
-        // match play_queue {
-        //     Some(play_queue) => play_queue,
-        //     None => self.library.save(&Playlist {
-        //         key: Some(KEY.to_string()),
-        //         ..Default::default()
-        //     }, true)
-        // }
+        // TODO maybe this is a metadata item?
+        // TODO magic
+        let key = format!("__dimple_system_play_queue_{}", self.library.id());
+        let mut playlist = match self.library.get::<Playlist>(&key) {
+            Some(play_queue) => play_queue,
+            None => self.library.save(&Playlist {
+                key: Some(key.to_string()),
+                ..Default::default()
+            })
+        };
+        playlist.hydrate(&self.library);
+        playlist
     }
 
     pub fn play_queue_add(&self, track_key: &str) {

@@ -65,7 +65,7 @@ impl Sync {
 
             for changelog in changelogs {
                 Self::apply_changelog(library, &changelog);
-                library.save(&changelog, false);
+                library.save(&changelog);
             }
         });
 
@@ -102,7 +102,7 @@ impl Sync {
                 let mut track = library.get(&key)
                     .or_else(|| Some(Track { key: Some(key), ..Default::default() })).unwrap();
                 track.apply_diff(&[changelog.clone()]);
-                library.save(&track, false);
+                library.save_unlogged(&track);
             }
         }
     }
@@ -124,14 +124,14 @@ mod tests {
             artist: Some("Grey Speaker".to_string()), 
             title: Some("One Thing".to_string()), 
             ..Default::default() 
-        }, true);
+        });
         sync.sync(&library1);
 
         let library2 = Library::open(":memory:");
         library2.save(&Track { 
             title: Some("Tall Glass".to_string()), 
             ..Default::default() 
-        }, true);
+        });
         sync.sync(&library2);
 
         sync.sync(&library2);
@@ -159,7 +159,7 @@ mod tests {
                 artist: Some(format!("Grey Speaker {}", i)), 
                 title: Some(format!("One Thing {}", i)), 
                 ..Default::default() 
-            }, true);
+            });
         }
         sync.sync(&library);
 

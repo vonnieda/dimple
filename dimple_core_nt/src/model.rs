@@ -10,10 +10,12 @@ mod changelog;
 pub use changelog::ChangeLog;
 
 mod track_source;
-// pub use track_source::TrackSource;
+pub use track_source::TrackSource;
 
 mod media_file;
 pub use media_file::MediaFile;
+
+use crate::library::Library;
 
 pub trait FromRow {
     fn from_row(row: &Row) -> Self;
@@ -29,4 +31,6 @@ pub trait Model: Sized + FromRow + Diff + Default + Clone {
     fn key(&self) -> Option<String>;
     fn set_key(&mut self, key: Option<String>);
     fn upsert(&self, conn: &Connection);
+    fn log_changes() -> bool;
+    fn hydrate(&mut self, library: &Library) {}
 }

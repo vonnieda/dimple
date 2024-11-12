@@ -16,23 +16,21 @@ CREATE TABLE IF NOT EXISTS Track (
     liked     BOOL NOT NULL DEFAULT false
 );
 
-CREATE TABLE IF NOT EXISTS TrackSource (
-    key       TEXT PRIMARY KEY,
-    file_path TEXT UNIQUE NOT NULL,
-    artist    TEXT,
-    album     TEXT,
-    title     TEXT
-    
-    -- ,
-    -- FOREIGN KEY (track_key) REFERENCES Track(key)
-);
-
 CREATE TABLE IF NOT EXISTS MediaFile (
     key       TEXT PRIMARY KEY,
     file_path TEXT UNIQUE NOT NULL,
     artist    TEXT,
     album     TEXT,
     title     TEXT
+);
+
+CREATE TABLE IF NOT EXISTS TrackSource (
+    key            TEXT PRIMARY KEY,
+    track_key      TEXT NOT NULL,
+    media_file_key TEXT
+    -- TODO blobs, urls, etc.
+    -- TODO probably unique across that plus track_key
+    -- FOREIGN KEY (track_key) REFERENCES Track(key)
 );
 
 CREATE TABLE IF NOT EXISTS Playlist (
@@ -42,6 +40,7 @@ CREATE TABLE IF NOT EXISTS Playlist (
 
 CREATE TABLE IF NOT EXISTS PlaylistItem (
     key          TEXT PRIMARY KEY,
+    -- TODO ordinal, probably
     playlist_key TEXT NOT NULL,
     track_key    TEXT NOT NULL,
     FOREIGN KEY (playlist_key) REFERENCES Playlist(key),

@@ -42,7 +42,7 @@ fn main() {
         let track_key = &args[2];
         let mut track: Track = library.get(track_key).unwrap();
         track.liked = !track.liked;
-        library.save(&track, true);
+        library.save(&track);
         let track = library.get(track_key).unwrap();
         print_track(&track);
     }

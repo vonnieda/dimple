@@ -65,5 +65,8 @@ mod tests {
             sync.sync(&library_2);
             assert!(library_2.tracks().len() > 0);
         }
+
+        // TODO add play of a couple 1 second tracks to test the full pipeline
+        // including sync and download.
     }
 }

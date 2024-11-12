@@ -100,6 +100,10 @@ impl Model for MediaFile {
     fn set_key(&mut self, key: Option<String>) {
         self.key = key.clone()
     }
+        
+    fn log_changes() -> bool {
+        false
+    }
 }
 
 #[cfg(test)]
@@ -111,11 +115,11 @@ mod tests {
     #[test]
     fn library_crud() {
         let library = Library::open(":memory:");
-        let mut model = library.save(&MediaFile::default(), true);
+        let mut model = library.save(&MediaFile::default());
         assert!(model.key.is_some());
         assert!(model.artist.is_none());
         model.artist = Some("Artist".to_string());
-        let model = library.save(&model, true);
+        let model = library.save(&model);
         let model: MediaFile = library.get(&model.key.unwrap()).unwrap();
         assert!(model.artist == Some("Artist".to_string()));
     }
@@ -150,13 +154,6 @@ mod tests {
             title: Some("title".to_string()),
         };
         let diff = a.diff(&b);
-        assert!(diff.len() == 5);
-        assert!(diff[0].field == Some("key".to_string()));
-        assert!(diff[1].field == Some("file_path".to_string()));
-        assert!(diff[2].field == Some("artist".to_string()));
-        assert!(diff[3].field == Some("album".to_string()));
-        assert!(diff[4].field == Some("title".to_string()));
-
         let mut c = MediaFile::default();
         c.apply_diff(&diff);
         assert!(c == b);

@@ -59,4 +59,8 @@ impl Model for ChangeLog {
     fn set_key(&mut self, key: Option<String>) {
         self.key = key.clone();
     }
+    
+    fn log_changes() -> bool {
+        false
+    }
 }
