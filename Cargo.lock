@@ -410,6 +410,7 @@ dependencies = [
  "playback-rs",
  "rusqlite",
  "rust-s3",
+ "sha2",
  "symphonia",
  "tempfile",
  "ulid",

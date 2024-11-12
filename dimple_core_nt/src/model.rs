@@ -15,6 +15,9 @@ pub use track_source::TrackSource;
 mod media_file;
 pub use media_file::MediaFile;
 
+mod blob;
+pub use blob::Blob;
+
 use crate::library::Library;
 
 pub trait FromRow {

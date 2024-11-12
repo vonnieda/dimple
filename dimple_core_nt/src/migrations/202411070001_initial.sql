@@ -3,6 +3,13 @@ CREATE TABLE IF NOT EXISTS Metadata (
     value     TEXT
 );
 
+CREATE TABLE IF NOT EXISTS Blob (
+    key        TEXT PRIMARY KEY,
+    sha256     TEXT UNIQUE,
+    length     U64,
+    local_path TEXT -- TODO index
+);
+
 CREATE TABLE IF NOT EXISTS Artist (
     key       TEXT PRIMARY KEY,
     name      TEXT
@@ -31,7 +38,8 @@ CREATE TABLE IF NOT EXISTS MediaFile (
 CREATE TABLE IF NOT EXISTS TrackSource (
     key            TEXT PRIMARY KEY,
     track_key      TEXT NOT NULL,
-    media_file_key TEXT
+    media_file_key TEXT,
+    blob_key       TEXT
     -- TODO blobs, urls, etc.
     -- TODO probably unique across that plus track_key
     -- FOREIGN KEY (track_key) REFERENCES Track(key)
