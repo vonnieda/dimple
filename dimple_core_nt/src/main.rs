@@ -3,6 +3,12 @@ use std::{env, sync::Arc};
 use dimple_core_nt::{library::Library, model::{ChangeLog, Track}, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
 
 fn main() {
+    let mut builder = env_logger::Builder::new();
+    builder.filter_level(log::LevelFilter::Info);
+    builder.format_timestamp_millis();
+    builder.parse_default_env();
+    builder.init();
+
     let args: Vec<String> = env::args().collect();
     if args.get(1).is_none() {
         println!("Help:");

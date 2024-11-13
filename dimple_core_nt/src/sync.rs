@@ -23,6 +23,7 @@ pub mod storage;
 pub mod s3_storage;
 pub mod memory_storage;
 
+use log::info;
 use storage::Storage;
 use tempfile::tempdir;
 use uuid::Uuid;
@@ -42,26 +43,57 @@ impl Sync {
         }
     }
 
+    /// TODO library will need to maintain a reference to sync for looking up
+    ///      blobs when it's online.
+    /// 
+    /// # Goals
+    /// 
+    /// - Sync multiple devices via one S3 prefix.
+    /// - Create share URLs that allow anyone with the URL to add / listen in
+    ///   Dimple. This involves creating pre-signed URLs for partial databases
+    ///   and the associated blobs.
+    /// 
+    /// 
+    /// # File Layout
+    /// 
+    /// - {path}/db/{library.id()}.db      
+    ///   Databases of devices participating in the sync.
+    /// 
+    /// - {path}/blobs/{blob.sha256}.blob
+    ///   Blobs stored under their SHA256 for de-dupe. This includes media,
+    ///   images, cover art, etc.
+    /// 
+    /// - {path}/shares/{share.id()}.db    
+    ///   Database of shared info for a specific share. Shared via pre-signed URL
+    ///   and includes pre-signed URLs to reference the blobs.
+    /// 
+    /// I think this is actually going to reflect the layout on local disk too.
+    /// 
     pub fn sync(&self, library: &Library) {
-        println!("Synchronizing {}", library.id());
+        info!("Synchronizing {}.", library.id());
         let temp_dir = tempdir().unwrap();
-        let remote_library_paths = self.storage.list_objects(&format!("{}/", self.path));
-        println!("Remote libraries {:?}", remote_library_paths);
+        let remote_library_paths = self.storage.list_objects(&format!("{}/db/", self.path));
+        info!("Remote libraries {:?}", remote_library_paths);
         remote_library_paths.iter().for_each(|remote_library_path| {
             let contents = self.storage.get_object(remote_library_path).unwrap();
             let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
-            println!("Downloading {} to {}", remote_library_path, temp_file.to_str().unwrap());
+            info!("Downloading {} to {}.", remote_library_path, temp_file.to_str().unwrap());
             std::fs::write(&temp_file, &contents).unwrap();
 
-            println!("Opening {}", temp_file.to_str().unwrap());
+            info!("Opening {}.", temp_file.to_str().unwrap());
             let remote_library = Library::open(temp_file.to_str().unwrap());
 
-            println!("Library contains {} tracks and {} changelogs.",
+            if remote_library.id() == library.id() {
+                info!("Skipping own downloaded library.");
+                return
+            }
+
+            info!("Library contains {} tracks and {} changelogs.",
                 remote_library.tracks().len(),
                 remote_library.changelogs().len());
 
             let changelogs = remote_library.changelogs();
-            println!("Applying {} changelogs", changelogs.len());
+            info!("Applying {} changelogs", changelogs.len());
 
             for changelog in changelogs {
                 Self::apply_changelog(library, &changelog);
@@ -71,18 +103,22 @@ impl Sync {
             }
         });
 
-        // Upload a backup of the input library to storage.
+        // Upload a copy of the input library to storage.
+        // TODO Eventually just upload the changelog, and then further just
+        // what has changed since last time.
         let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
-        println!("Gathering local changes.");
+        info!("Gathering local changes.");
         library.backup(temp_file.to_str().unwrap());
-        let path = format!("{}/{}.db", self.path, library.id());
+        let path = format!("{}/db/{}.db", self.path, library.id());
         let contents = std::fs::read(temp_file).unwrap();
-        println!("Pushing local changes.");
+        info!("Pushing local changes.");
         self.storage.put_object(&path, &contents);
 
         // Sync media files
-        // TODO
-        println!("Sync complete.");
+        info!("Syncing blobs");
+
+
+        info!("Sync complete.");
     }
 
     fn apply_changelog(library: &Library, changelog: &ChangeLog) {

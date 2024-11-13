@@ -138,6 +138,8 @@ impl Library {
         new
     }
 
+    /// TODO I think drop Model and use a trait that excludes Diff and such
+    /// to make this more clear. And then I think I can drop Model.log_changes
     pub fn save_unlogged<T: Model>(&self, obj: &T) -> T {
         // TODO txn
 
