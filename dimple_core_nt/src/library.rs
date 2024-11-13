@@ -280,6 +280,11 @@ impl Library {
         }
         None
     }
+
+    /// Test that the database matches the combined state of the changelog.
+    pub fn verify() {
+        todo!()
+    }
 }
 
 #[cfg(test)]

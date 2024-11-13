@@ -74,36 +74,40 @@ impl Sync {
     pub fn sync(&self, library: &Library) {
         info!("Synchronizing {}.", library.id());
         let temp_dir = tempdir().unwrap();
-        let remote_library_paths = self.storage.list_objects(&format!("{}/db/", self.path));
-        info!("Remote libraries {:?}", remote_library_paths);
-        remote_library_paths.iter().for_each(|remote_library_path| {
-            let contents = self.storage.get_object(remote_library_path).unwrap();
-            let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
-            info!("Downloading {} to {}.", remote_library_path, temp_file.to_str().unwrap());
-            std::fs::write(&temp_file, &contents).unwrap();
 
-            info!("Opening {}.", temp_file.to_str().unwrap());
-            let remote_library = Library::open(temp_file.to_str().unwrap());
-
-            if remote_library.id() == library.id() {
-                info!("Skipping own downloaded library.");
-                return
-            }
-
-            info!("Library contains {} tracks and {} changelogs.",
-                remote_library.tracks().len(),
-                remote_library.changelogs().len());
-
-            let changelogs = remote_library.changelogs();
-            info!("Applying {} changelogs", changelogs.len());
-
-            for changelog in changelogs {
-                Self::apply_changelog(library, &changelog);
-                // TODO this is redundant if the change has already been seen
-                // and causes lots of slow.
-                library.save(&changelog);
-            }
-        });
+        {
+            info!("Pulling remote changes.");
+            let remote_library_paths = self.storage.list_objects(&format!("{}/db/", self.path));
+            info!("Remote libraries {:?}", remote_library_paths);
+            remote_library_paths.iter().for_each(|remote_library_path| {
+                let contents = self.storage.get_object(remote_library_path).unwrap();
+                let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
+                info!("Downloading {} to {}.", remote_library_path, temp_file.to_str().unwrap());
+                std::fs::write(&temp_file, &contents).unwrap();
+    
+                info!("Opening library {}.", temp_file.to_str().unwrap());
+                let remote_library = Library::open(temp_file.to_str().unwrap());
+    
+                if remote_library.id() == library.id() {
+                    info!("Skipping own library with same id.");
+                    return
+                }
+    
+                info!("Library contains {} tracks and {} changelogs.",
+                    remote_library.tracks().len(),
+                    remote_library.changelogs().len());
+    
+                let changelogs = remote_library.changelogs();
+                info!("Applying {} changelogs", changelogs.len());
+    
+                for changelog in changelogs {
+                    Self::apply_changelog(library, &changelog);
+                    // TODO this is redundant if the change has already been seen
+                    // and causes lots of slow.
+                    library.save(&changelog);
+                }
+            });
+        }
 
         {
             // Upload a copy of the input library to storage.
@@ -130,7 +134,7 @@ impl Sync {
             let to_store: Vec<Blob> = local_blobs.into_iter()
                 .filter(|b| !remote_blob_names.contains(&format!("{}.blob", b.sha256)))
                 .collect();
-            info!("Storing {} new blobs.", to_store.len());
+            info!("Pushing {} new blobs.", to_store.len());
             for blob in to_store {
                 if let Some(content) = library.load_blob_content(&blob) {
                     let path = format!("{}/blobs/{}.blob", self.path, blob.sha256);

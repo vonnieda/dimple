@@ -1,6 +1,6 @@
 use std::{env, sync::Arc};
 
-use dimple_core_nt::{library::Library, model::{ChangeLog, Track}, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
+use dimple_core_nt::{library::Library, model::{Blob, ChangeLog, Track}, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
 
 fn main() {
     let mut builder = env_logger::Builder::new();
@@ -21,6 +21,8 @@ fn main() {
         println!("    play                            Play the play queue from start to finish.");
         println!("    sync [access_key] [secret_key]  [region] [endpoint] [bucket] [prefix].");
         println!("                                    Sync the library with an S3 target.");
+        println!("    changelogs                      List changelogs.");
+        println!("    blobs                           List blobs.");
         return
     }
     let library_path = "dimple.db";
@@ -88,13 +90,29 @@ fn main() {
         let sync = Sync::new(Box::new(storage), prefix);
         sync.sync(&library);
     } 
-    else if command == "changelog" {
+    else if command == "changelogs" {
         let mut i = 0;
         for changelog in library.changelogs() {
             print_changelog(&changelog);
             i += 1;
         }
         println!("{} changelogs", i);
+    }
+    else if command == "changelogs" {
+        let mut i = 0;
+        for changelog in library.changelogs() {
+            print_changelog(&changelog);
+            i += 1;
+        }
+        println!("{} changelogs", i);
+    }
+    else if command == "blobs" {
+        let mut i = 0;
+        for blob in library.list::<Blob>() {
+            println!("{:?}", blob);
+            i += 1;
+        }
+        println!("{} blobs", i);
     }
 }
 

@@ -68,7 +68,7 @@ mod tests {
             assert!(library_2.tracks().len() > 0);
             let tracks = library_2.tracks();
             let track = tracks.get(0).unwrap();
-            // assert!(library_2.load_track_content(track).is_some());
+            assert!(library_2.load_track_content(track).is_some());
         }
 
         // TODO add play of a couple 1 second tracks to test the full pipeline
