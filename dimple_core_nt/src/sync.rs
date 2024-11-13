@@ -170,11 +170,6 @@ mod tests {
 
         let library2 = Library::open(":memory:");
         sync.sync(&library2);
-
-        dbg!(library.changelogs().len());
-        dbg!(library2.changelogs().len());
-        dbg!(library.tracks().len());
-        dbg!(library2.tracks().len());
     }
 }
 

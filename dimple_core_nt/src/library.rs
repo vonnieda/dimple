@@ -65,54 +65,39 @@ impl Library {
             let artist = input_mf.tag(StandardTagKey::Artist);
             let album = input_mf.tag(StandardTagKey::Album);
             let title = input_mf.tag(StandardTagKey::TrackTitle);
+
             let file_path = std::fs::canonicalize(&input_mf.path).unwrap();
             let file_path = file_path.to_str().unwrap();
 
-            // if artist.is_none() && album.is_none() && title.is_none() {
-            //     println!("WARNING: Empty track info. Skipping {}.", input_mf.path.to_string());
-            //     continue;
-            // }
-
-
-            let mut mf = self.find_media_file_by_file_path(file_path)
+            let mut media_file = self.find_media_file_by_file_path(file_path)
                 .or_else(|| Some(MediaFile::default()))
                 .unwrap();
-            mf.file_path = file_path.to_owned();
-            mf.artist = artist;
-            mf.album = album;
-            mf.title = title;
-            self.save(&mf);
+            media_file.file_path = file_path.to_owned();
+            media_file.artist = artist;
+            media_file.album = album;
+            media_file.title = title;
+            let media_file = self.save(&media_file);
 
-            let blob = self.find_blob_by_local_path(file_path)
-                .or_else(|| Some(self.save(&Blob::read(file_path))))
-                .unwrap();
-            assert!(blob.key.is_some());
-        }
-
-        self.post_import_update_tracks();
-    }
-
-    fn post_import_update_tracks(&self) {
-        // TODO txn
-        for mf in self.list::<MediaFile>() {
-            if !self.track_sources_for_media_file(&mf).is_empty() {
-                continue;
-            }
-            let track = self.find_track_for_media_file(&mf)
-                .or_else(|| {
-                    Some(self.save(&Track {
-                        artist: mf.artist,
-                        album: mf.album,
-                        title: mf.title,
+            if self.track_sources_for_media_file(&media_file).is_empty() {
+                let track = self.find_track_for_media_file(&media_file)
+                    .or_else(|| Some(self.save(&Track {
+                        artist: media_file.artist,
+                        album: media_file.album,
+                        title: media_file.title,
                         ..Default::default()
-                    }))
-                })
-                .unwrap();
-            self.save(&TrackSource {
-                track_key: track.key.unwrap(),
-                media_file_key: mf.key,
-                ..Default::default()
-            });
+                    })))
+                    .unwrap();
+                self.save(&TrackSource {
+                    track_key: track.key.unwrap(),
+                    media_file_key: media_file.key,
+                    ..Default::default()
+                });
+            }
+
+            // let blob = self.find_blob_by_local_path(file_path)
+            //     .or_else(|| Some(self.save(&Blob::read(file_path))))
+            //     .unwrap();
+            // assert!(blob.key.is_some());
         }
     }
 
@@ -334,5 +319,14 @@ mod tests {
         assert!(library.list::<MediaFile>().len() > 0);
         library.import(&Scanner::scan_directory("media_files_small"));
         assert!(library.list::<MediaFile>().len() == num_mediafiles);
+    }
+
+    #[test]
+    fn load_track_content() {
+        let library = Library::open(":memory:");
+        library.import(&Scanner::scan_directory("media_files_small"));
+        let track = &library.tracks()[0];
+        let content = library.load_track_content(track).unwrap();
+        assert!(content.len() > 0);
     }
 }

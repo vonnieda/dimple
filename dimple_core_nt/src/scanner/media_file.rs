@@ -13,14 +13,6 @@ impl ScannedFile {
     pub fn new(path: &str) -> Result<ScannedFile, String> {
         let path = std::fs::canonicalize(path).unwrap();
 
-        // TODO put this back
-        // let extension = path.extension().map(|f| f.to_string_lossy().to_string());
-
-        let hint = Hint::new();
-        // if let Some(extension) = extension {
-        //     hint.with_extension(&extension);
-        // }
-        
         let media_source = File::open(&path).unwrap();
         let media_source_stream =
             MediaSourceStream::new(Box::new(media_source), Default::default());
@@ -29,6 +21,11 @@ impl ScannedFile {
         let meta_opts: MetadataOptions = Default::default();
         let fmt_opts: FormatOptions = Default::default();
 
+        let mut hint = Hint::new();
+        if let Some(extension) = path.extension() {
+            hint.with_extension(extension.to_str().unwrap());
+        }
+        
         // Probe the media source.
         let probed = symphonia::default::get_probe()
             .format(&hint, media_source_stream, &fmt_opts, &meta_opts);
