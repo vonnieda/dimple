@@ -23,12 +23,14 @@ pub mod storage;
 pub mod s3_storage;
 pub mod memory_storage;
 
-use log::info;
+use std::collections::HashSet;
+
+use log::{info, warn};
 use storage::Storage;
 use tempfile::tempdir;
 use uuid::Uuid;
 
-use crate::{library::Library, model::{ChangeLog, Diff, Track}};
+use crate::{library::Library, model::{Blob, ChangeLog, Diff, Track}};
 
 pub struct Sync {
     storage: Box<dyn Storage>,
@@ -103,20 +105,45 @@ impl Sync {
             }
         });
 
-        // Upload a copy of the input library to storage.
-        // TODO Eventually just upload the changelog, and then further just
-        // what has changed since last time.
-        let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
-        info!("Gathering local changes.");
-        library.backup(temp_file.to_str().unwrap());
-        let path = format!("{}/db/{}.db", self.path, library.id());
-        let contents = std::fs::read(temp_file).unwrap();
-        info!("Pushing local changes.");
-        self.storage.put_object(&path, &contents);
+        {
+            // Upload a copy of the input library to storage.
+            // TODO Eventually just upload the changelog, and then further just
+            // what has changed since last time.
+            let temp_file = temp_dir.path().join(Uuid::new_v4().to_string());
+            info!("Gathering local changes.");
+            library.backup(temp_file.to_str().unwrap());
+            let path = format!("{}/db/{}.db", self.path, library.id());
+            let contents = std::fs::read(temp_file).unwrap();
+            info!("Pushing local changes.");
+            self.storage.put_object(&path, &contents);
+        }
 
-        // Sync media files
-        info!("Syncing blobs");
+        {
+            // Sync blobs
+            info!("Syncing blobs");
+            let local_blobs: Vec<Blob> = library.list::<Blob>();
+            let remote_blob_names: HashSet<String> = self.storage
+                .list_objects(&format!("{}/blobs/", self.path))
+                .iter()
+                .map(|n| n.rsplit_once("/").unwrap().1.to_string())
+                .collect();
+            let to_store: Vec<Blob> = local_blobs.into_iter()
+                .filter(|b| !remote_blob_names.contains(&format!("{}.blob", b.sha256)))
+                .collect();
+            info!("Storing {} new blobs.", to_store.len());
+            for blob in to_store {
+                if let Some(content) = library.load_blob_content(&blob) {
+                    let path = format!("{}/blobs/{}.blob", self.path, blob.sha256);
+                    info!("Pushing blob {}.", path);
+                    self.storage.put_object(&path, &content);
+                }
+                else {
+                    warn!("No content found to sync for sha256 {}", blob.sha256);
+                }
+            }
+        }
 
+        // TODO also pull down new blobs that are marked for offline.
 
         info!("Sync complete.");
     }
