@@ -1,10 +1,10 @@
-use std::{collections::HashMap, sync::RwLock};
+use std::{collections::HashMap, sync::{Arc, RwLock}};
 
 use super::storage::Storage;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct MemoryStorage {
-    map: RwLock<HashMap<String, Vec<u8>>>,
+    map: Arc<RwLock<HashMap<String, Vec<u8>>>>,
 }
 
 impl Storage for MemoryStorage {

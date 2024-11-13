@@ -24,7 +24,7 @@ mod tests {
 // - [x] I can start playing the play queue and it will play until completion.
 // - [x] I can run the UI both on Mac and Windows.
 // - [ ] I automatically sync library changes between my laptop and desktop using S3.
-// 	- [ ] Files and metadata are uploaded to S3.
+// 	- [x] Files and metadata are uploaded to S3.
 // 	- [ ] I can "Like" a track on my laptop and see the change reflected on Windows without manually refreshing.
 // 		- [ ] The UI reacts to changes in the data store.
 // 	- [ ] MP3 files added on laptop are also visible and playable on desktop, and vice-versa. Metadata should be synced immediately and files will be downloaded on demand.
@@ -33,11 +33,12 @@ mod tests {
     fn mvp() {
         // sync_path is the token to be shared between participants in the
         // sync. 
+        let sync_storage = Box::new(MemoryStorage::default());
         let sync_path = Uuid::new_v4().to_string();
-        let sync = Sync::new(Box::new(MemoryStorage::default()), &sync_path);
 
         {
             let library = Arc::new(Library::open(":memory:"));
+            library.add_sync(Sync::new(sync_storage.clone(), &sync_path));
             assert!(library.tracks().len() == 0);
             library.import(&Scanner::scan_directory("media_files_small"));
             assert!(library.tracks().len() > 0);
@@ -56,15 +57,16 @@ mod tests {
             player.play_queue_add(&track.key.clone().unwrap());
             assert!(player.play_queue().tracks.len() == 2);
 
-            sync.sync(&library);
+            library.sync();
 
             assert!(library.load_track_content(track).is_some());
         }
 
         {
             let library_2 = Arc::new(Library::open(":memory:"));
+            library_2.add_sync(Sync::new(sync_storage.clone(), &sync_path));
             assert!(library_2.tracks().len() == 0);
-            sync.sync(&library_2);
+            library_2.sync();
             assert!(library_2.tracks().len() > 0);
             let tracks = library_2.tracks();
             let track = tracks.get(0).unwrap();

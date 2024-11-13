@@ -30,7 +30,7 @@ use storage::Storage;
 use tempfile::tempdir;
 use uuid::Uuid;
 
-use crate::{library::Library, model::{Blob, ChangeLog, Diff, Track}};
+use crate::{library::Library, model::{Blob, ChangeLog, Diff, Model, Track, TrackSource}};
 
 pub struct Sync {
     storage: Box<dyn Storage>,
@@ -136,7 +136,7 @@ impl Sync {
                 .collect();
             info!("Pushing {} new blobs.", to_store.len());
             for blob in to_store {
-                if let Some(content) = library.load_blob_content(&blob) {
+                if let Some(content) = library.load_local_blob_content(&blob) {
                     let path = format!("{}/blobs/{}.blob", self.path, blob.sha256);
                     info!("Pushing blob {}.", path);
                     self.storage.put_object(&path, &content);
@@ -152,6 +152,11 @@ impl Sync {
         info!("Sync complete.");
     }
 
+    pub fn load_blob_content(&self, blob: &Blob) -> Option<Vec<u8>> {
+        let path = format!("{}/blobs/{}.blob", self.path, blob.sha256);
+        self.storage.get_object(&path)
+    }
+
     fn apply_changelog(library: &Library, changelog: &ChangeLog) {
         let actor = changelog.actor.clone();
         let timestamp = changelog.timestamp.clone();
@@ -162,8 +167,9 @@ impl Sync {
         if actor == library.id() {
             return
         }
+        // TODO generify
         if model == "Track" {
-            // TODO duplicated check of set in Track::apply_diff
+            // TODO duplicated check of set in apply_diff
             if op == "set" {
                 let field = changelog.field.clone().unwrap();
                 if let Some(newest_changelog) = library.find_newest_changelog_by_field(&model, &key, &field) {
@@ -171,10 +177,40 @@ impl Sync {
                         return
                     }
                 }
-                let mut track = library.get(&key)
-                    .or_else(|| Some(Track { key: Some(key), ..Default::default() })).unwrap();
-                track.apply_diff(&[changelog.clone()]);
-                library.save_unlogged(&track);
+                let mut obj = library.get(&key)
+                    .or_else(|| Some(Track { key: Some(key.clone()), ..Default::default() })).unwrap();
+                obj.apply_diff(&[changelog.clone()]);
+                library.save_unlogged(&obj);
+            }
+        }
+        if model == "TrackSource" {
+            // TODO duplicated check of set in apply_diff
+            if op == "set" {
+                let field = changelog.field.clone().unwrap();
+                if let Some(newest_changelog) = library.find_newest_changelog_by_field(&model, &key, &field) {
+                    if newest_changelog.timestamp >= timestamp {
+                        return
+                    }
+                }
+                let mut obj = library.get(&key)
+                    .or_else(|| Some(TrackSource { key: Some(key.clone()), ..Default::default() })).unwrap();
+                obj.apply_diff(&[changelog.clone()]);
+                library.save_unlogged(&obj);
+            }
+        }
+        if model == "Blob" {
+            // TODO duplicated check of set in apply_diff
+            if op == "set" {
+                let field = changelog.field.clone().unwrap();
+                if let Some(newest_changelog) = library.find_newest_changelog_by_field(&model, &key, &field) {
+                    if newest_changelog.timestamp >= timestamp {
+                        return
+                    }
+                }
+                let mut obj = library.get(&key)
+                    .or_else(|| Some(Blob { key: Some(key.clone()), ..Default::default() })).unwrap();
+                obj.apply_diff(&[changelog.clone()]);
+                library.save_unlogged(&obj);
             }
         }
     }

@@ -1,15 +1,17 @@
 use std::{sync::Mutex, time::Duration};
 
+use log::info;
 use rusqlite::{backup::Backup, Connection, OptionalExtension};
 use symphonia::core::meta::StandardTagKey;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::model::{Blob, ChangeLog, Diff, FromRow, MediaFile, Model, Playlist, Track, TrackSource};
+use crate::{model::{Blob, ChangeLog, FromRow, MediaFile, Model, Playlist, Track, TrackSource}, sync::Sync};
 
 pub struct Library {
     pub conn: Connection,
     ulids: Mutex<Generator>,
+    synchronizers: Mutex<Vec<Sync>>,
 }
 
 impl Library {
@@ -35,6 +37,7 @@ impl Library {
         let library = Library {
             conn,
             ulids: Mutex::new(Generator::new()),
+            synchronizers: Mutex::new(vec![]),
         };
 
         library
@@ -58,8 +61,8 @@ impl Library {
         backup.run_to_completion(250, Duration::from_millis(10), None).unwrap();
     }
 
-    /// Import MediaFiles into the Library, creating or updating Tracks and
-    /// TrackSources.
+    /// Import MediaFiles into the Library, creating or updating Tracks,
+    /// TrackSources, Blobs, etc.
     pub fn import(&self, input: &[crate::scanner::media_file::ScannedFile]) {
         for input_mf in input {
             // TODO txn
@@ -99,6 +102,18 @@ impl Library {
                     blob_key: blob.key.clone(),
                     ..Default::default()
                 });
+            }
+        }
+    }
+
+    pub fn add_sync(&self, sync: Sync) {
+        self.synchronizers.lock().unwrap().push(sync);
+    }
+
+    pub fn sync(&self) {
+        if let Ok(syncs) = self.synchronizers.lock() {
+            for sync in syncs.iter() {
+                sync.sync(self);
             }
         }
     }
@@ -260,6 +275,22 @@ impl Library {
     }
 
     pub fn load_blob_content(&self, blob: &Blob) -> Option<Vec<u8>> {
+        for media_file in self.media_files_by_sha256(&blob.sha256) {
+            if let Ok(content) = std::fs::read(&media_file.file_path) {
+                info!("Found blob sha256 {} at {}", blob.sha256, &media_file.file_path);
+                return Some(content)
+            }
+        }
+        for sync in self.synchronizers.lock().unwrap().iter() {
+            if let Some(content) = sync.load_blob_content(blob) {
+                info!("Found blob sha256 {} in sync", blob.sha256);
+                return Some(content)
+            }
+        }
+        None
+    }
+
+    pub fn load_local_blob_content(&self, blob: &Blob) -> Option<Vec<u8>> {
         for media_file in self.media_files_by_sha256(&blob.sha256) {
             if let Ok(content) = std::fs::read(media_file.file_path) {
                 return Some(content)

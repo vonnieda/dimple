@@ -19,14 +19,25 @@ fn main() {
         println!("    add [1234-12341234-1234-1234]   Add the track to the queue using the track key from the tracks command.");
         println!("    clear                           Clear the play queue.");
         println!("    play                            Play the play queue from start to finish.");
-        println!("    sync [access_key] [secret_key]  [region] [endpoint] [bucket] [prefix].");
-        println!("                                    Sync the library with an S3 target.");
+        println!("    sync                            Sync the library with an S3 target.");
         println!("    changelogs                      List changelogs.");
         println!("    blobs                           List blobs.");
         return
     }
     let library_path = "dimple.db";
     let library = Arc::new(Library::open(library_path));
+
+    let access_key = env::var("DIMPLE_TEST_S3_ACCESS_KEY").unwrap();
+    let secret_key = env::var("DIMPLE_TEST_S3_SECRET_KEY").unwrap();
+    let region = env::var("DIMPLE_TEST_S3_REGION").unwrap();
+    let endpoint = env::var("DIMPLE_TEST_S3_ENDPOINT").unwrap();
+    let bucket = env::var("DIMPLE_TEST_S3_BUCKET").unwrap();
+    let prefix = env::var("DIMPLE_TEST_S3_PREFIX").unwrap();
+    let storage = S3Storage::new(&access_key, &secret_key, &region, &endpoint, &bucket, &prefix);
+    // let storage = MemoryStorage::default();
+    let sync = Sync::new(Box::new(storage), &prefix);
+    library.add_sync(sync);
+
     let player = Player::new(library.clone());
     let command = &args[1];
     if command == "import" {
@@ -79,25 +90,8 @@ fn main() {
         player.play();
     }
     else if command == "sync" {
-        let access_key = &args[2];
-        let secret_key = &args[3];
-        let region = &args[4];
-        let endpoint = &args[5];
-        let bucket = &args[6];
-        let prefix = &args[7];
-        let storage = S3Storage::new(&access_key, &secret_key, &region, &endpoint, &bucket, &prefix);
-        // let storage = MemoryStorage::default();
-        let sync = Sync::new(Box::new(storage), prefix);
-        sync.sync(&library);
+        library.sync();
     } 
-    else if command == "changelogs" {
-        let mut i = 0;
-        for changelog in library.changelogs() {
-            print_changelog(&changelog);
-            i += 1;
-        }
-        println!("{} changelogs", i);
-    }
     else if command == "changelogs" {
         let mut i = 0;
         for changelog in library.changelogs() {
