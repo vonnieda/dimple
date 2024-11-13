@@ -7,6 +7,7 @@ pub struct MediaFile {
     pub key: Option<String>,
 
     pub file_path: String,
+    pub sha256: String,
 
     pub artist: Option<String>,
     pub album: Option<String>,
@@ -18,6 +19,7 @@ impl FromRow for MediaFile {
         Self {
             key: row.get("key").unwrap(),
             file_path: row.get("file_path").unwrap(),
+            sha256: row.get("sha256").unwrap(),
             artist: row.get("artist").unwrap(),
             album: row.get("album").unwrap(),
             title: row.get("title").unwrap(),
@@ -37,6 +39,11 @@ impl Diff for MediaFile {
             diff.push(ChangeLog { model: "MediaFile".to_string(), 
                 op: "set".to_string(), field: Some("file_path".to_string()), 
                 value: Some(other.file_path.clone()), ..Default::default() });
+        }
+        if self.sha256 != other.sha256 {
+            diff.push(ChangeLog { model: "MediaFile".to_string(), 
+                op: "set".to_string(), field: Some("sha256".to_string()), 
+                value: Some(other.sha256.clone()), ..Default::default() });
         }
         if self.artist != other.artist {
             diff.push(ChangeLog { model: "MediaFile".to_string(), 
@@ -66,6 +73,9 @@ impl Diff for MediaFile {
                     if &field == "file_path" {
                         self.file_path = change.value.clone().unwrap();
                     }
+                    if &field == "sha256" {
+                        self.sha256 = change.value.clone().unwrap();
+                    }
                     if &field == "artist" {
                         self.artist = change.value.clone();
                     }
@@ -92,9 +102,9 @@ impl Model for MediaFile {
     
     fn upsert(&self, conn: &rusqlite::Connection) {
         conn.execute("INSERT OR REPLACE INTO MediaFile 
-            (key, artist, album, title, file_path) 
-            VALUES (?1, ?2, ?3, ?4, ?5)",
-            (&self.key, &self.artist, &self.album, &self.title, &self.file_path)).unwrap();
+            (key, artist, album, title, file_path, sha256) 
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            (&self.key, &self.artist, &self.album, &self.title, &self.file_path, &self.sha256)).unwrap();
     }
     
     fn set_key(&mut self, key: Option<String>) {
@@ -130,18 +140,20 @@ mod tests {
         let b = MediaFile {
             key: Some("key".to_string()),
             file_path: "file_path".to_string(),
+            sha256: "sha256".to_string(),
             artist: Some("artist".to_string()),
             album: Some("album".to_string()),
             title: Some("title".to_string()),
         };
         let diff = a.diff(&b);
-        assert!(diff.len() == 5);
+        assert!(diff.len() == 6);
         assert!(diff[0].model == "MediaFile".to_string());
         assert!(diff[0].field == Some("key".to_string()));
         assert!(diff[1].field == Some("file_path".to_string()));
-        assert!(diff[2].field == Some("artist".to_string()));
-        assert!(diff[3].field == Some("album".to_string()));
-        assert!(diff[4].field == Some("title".to_string()));
+        assert!(diff[2].field == Some("sha256".to_string()));
+        assert!(diff[3].field == Some("artist".to_string()));
+        assert!(diff[4].field == Some("album".to_string()));
+        assert!(diff[5].field == Some("title".to_string()));
     }
 
     #[test]
@@ -150,6 +162,7 @@ mod tests {
         let b = MediaFile {
             key: Some("key".to_string()),
             file_path: "file_path".to_string(),
+            sha256: "sha256".to_string(),
             artist: Some("artist".to_string()),
             album: Some("album".to_string()),
             title: Some("title".to_string()),

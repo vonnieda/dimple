@@ -1,6 +1,6 @@
 use std::{sync::Mutex, time::Duration};
 
-use rusqlite::{backup::Backup, Connection, OptionalExtension};
+use rusqlite::{backup::Backup, Connection, OptionalExtension, Params};
 use symphonia::core::meta::StandardTagKey;
 use ulid::Generator;
 use uuid::Uuid;
@@ -62,23 +62,29 @@ impl Library {
     /// TrackSources.
     pub fn import(&self, input: &[crate::scanner::media_file::ScannedFile]) {
         for input_mf in input {
-            let artist = input_mf.tag(StandardTagKey::Artist);
-            let album = input_mf.tag(StandardTagKey::Album);
-            let title = input_mf.tag(StandardTagKey::TrackTitle);
-
+            // TODO txn
             let file_path = std::fs::canonicalize(&input_mf.path).unwrap();
             let file_path = file_path.to_str().unwrap();
 
-            let mut media_file = self.find_media_file_by_file_path(file_path)
-                .or_else(|| Some(MediaFile::default()))
+            let blob = Blob::read(file_path);
+            let blob = self.find_blob_by_sha256(&blob.sha256)
+                .or_else(|| Some(self.save(&blob)))
                 .unwrap();
-            media_file.file_path = file_path.to_owned();
-            media_file.artist = artist;
-            media_file.album = album;
-            media_file.title = title;
-            let media_file = self.save(&media_file);
 
-            if self.track_sources_for_media_file(&media_file).is_empty() {
+            let media_file = self.find_media_file_by_file_path(file_path)
+                .or_else(|| Some(self.save(&MediaFile {
+                    file_path: file_path.to_owned(),
+                    sha256: blob.sha256.clone(),
+                    artist: input_mf.tag(StandardTagKey::Artist),
+                    album: input_mf.tag(StandardTagKey::Album),
+                    title: input_mf.tag(StandardTagKey::TrackTitle),
+                    ..Default::default()
+                })))
+                .unwrap();
+
+            if self.track_sources_by_blob(&blob).is_empty() {
+                // TODO temp, eventually uses more matching
+                // or maybe just always create and de-dupe?
                 let track = self.find_track_for_media_file(&media_file)
                     .or_else(|| Some(self.save(&Track {
                         artist: media_file.artist,
@@ -87,17 +93,13 @@ impl Library {
                         ..Default::default()
                     })))
                     .unwrap();
-                self.save(&TrackSource {
+
+                let _source = self.save(&TrackSource {
                     track_key: track.key.unwrap(),
-                    media_file_key: media_file.key,
+                    blob_key: blob.key.clone(),
                     ..Default::default()
                 });
             }
-
-            // let blob = self.find_blob_by_local_path(file_path)
-            //     .or_else(|| Some(self.save(&Blob::read(file_path))))
-            //     .unwrap();
-            // assert!(blob.key.is_some());
         }
     }
 
@@ -213,6 +215,13 @@ impl Library {
             .optional().unwrap()
     }
 
+    pub fn find_blob_by_sha256(&self, sha256: &str) -> Option<Blob> {
+        self.conn.query_row_and_then("SELECT * FROM Blob
+            WHERE sha256 = ?1", 
+            (sha256,), |row| Ok(Blob::from_row(row)))
+            .optional().unwrap()
+    }
+
     pub fn find_track_for_media_file(&self, media_file: &MediaFile) -> Option<Track> {
         // TODO naive, just for testing.
         self.conn.query_row_and_then("SELECT * FROM Track
@@ -229,30 +238,49 @@ impl Library {
             .map(|result| result.unwrap())
             .collect()
     }
-
-    pub fn track_sources_for_media_file(&self, media_file: &MediaFile) -> Vec<TrackSource> {
+        
+    pub fn track_sources_by_blob(&self, blob: &Blob) -> Vec<TrackSource> {
         let mut stmt = self.conn.prepare("SELECT * FROM TrackSource
-            WHERE media_file_key = ?1").unwrap();
-        stmt.query_map([media_file.key.clone()], |row| Ok(TrackSource::from_row(row)))
+            WHERE blob_key = ?1").unwrap();
+        stmt.query_map([blob.key.clone()], |row| Ok(TrackSource::from_row(row)))
             .unwrap()
             .map(|result| result.unwrap())
             .collect()
     }
 
-    pub fn load_track_content(&self, track: &Track) -> Option<Vec<u8>> {
-        println!("load_track_content {:?}", &track.key);
-        for source in self.track_sources_for_track(track) {
-            println!("checking source {:?}", &source);
-            if let Some(media_file_key) = source.media_file_key {
-                if let Some(media_file) = self.get::<MediaFile>(&media_file_key) {
-                    if let Ok(content) = std::fs::read(media_file.file_path) {
-                        return Some(content)
-                    }
-                }
+    pub fn media_files_by_sha256(&self, sha256: &str) -> Vec<MediaFile> {
+        let mut stmt = self.conn.prepare("SELECT * FROM MediaFile
+            WHERE sha256 = ?1").unwrap();
+        stmt.query_map([sha256.clone()], |row| Ok(MediaFile::from_row(row)))
+            .unwrap()
+            .map(|result| result.unwrap())
+            .collect()
+    }
+
+    /// What if we have load_blob_content that checks for cache, then media files,
+    /// then downloads, then sync, then plugins?
+    /// then the importer creates the media files, we drop media file from the
+    /// track source and just reference blob, and then blob has the special
+    /// case for locally imported media files
+    /// and finally, if the user wants to download or copy them to the library
+    /// that's easy cause it's all through blob.
+
+    pub fn load_blob_content(&self, blob: &Blob) -> Option<Vec<u8>> {
+        for media_file in self.media_files_by_sha256(&blob.sha256) {
+            if let Ok(content) = std::fs::read(media_file.file_path) {
+                return Some(content)
             }
+        }
+        None
+    }
+
+    pub fn load_track_content(&self, track: &Track) -> Option<Vec<u8>> {
+        for source in self.track_sources_for_track(track) {
             if let Some(blob_key) = source.blob_key {
                 if let Some(blob) = self.get::<Blob>(&blob_key) {
-
+                    if let Some(content) = self.load_blob_content(&blob) {
+                        return Some(content)
+                    }
                 }
             }
         }

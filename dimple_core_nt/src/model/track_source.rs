@@ -6,7 +6,6 @@ use super::{ChangeLog, Diff, FromRow, Model};
 pub struct TrackSource {
     pub key: Option<String>,
     pub track_key: String,
-    pub media_file_key: Option<String>,
     pub blob_key: Option<String>,
 }
 
@@ -15,7 +14,6 @@ impl FromRow for TrackSource {
         Self {
             key: row.get("key").unwrap(),
             track_key: row.get("track_key").unwrap(),
-            media_file_key: row.get("media_file_key").unwrap(),
             blob_key: row.get("blob_key").unwrap(),
         }
     }
@@ -34,11 +32,6 @@ impl Diff for TrackSource {
                 op: "set".to_string(), field: Some("track_key".to_string()), 
                 value: Some(other.track_key.clone()), ..Default::default() });
         }
-        if self.media_file_key != other.media_file_key {
-            diff.push(ChangeLog { model: "TrackSource".to_string(), 
-                op: "set".to_string(), field: Some("media_file_key".to_string()), 
-                value: other.media_file_key.clone(), ..Default::default() });
-        }
         if self.blob_key != other.blob_key {
             diff.push(ChangeLog { model: "TrackSource".to_string(), 
                 op: "set".to_string(), field: Some("blob_key".to_string()), 
@@ -56,9 +49,6 @@ impl Diff for TrackSource {
                     }
                     if &field == "track_key" {
                         self.track_key = change.value.clone().unwrap();
-                    }
-                    if &field == "media_file_key" {
-                        self.media_file_key = change.value.clone();
                     }
                     if &field == "blob_key" {
                         self.blob_key = change.value.clone();
@@ -84,9 +74,9 @@ impl Model for TrackSource {
 
     fn upsert(&self, conn: &rusqlite::Connection) {
         conn.execute("INSERT OR REPLACE INTO TrackSource 
-            (key, track_key, media_file_key, blob_key) 
-            VALUES (?1, ?2, ?3, ?4)",
-            (&self.key, &self.track_key, &self.media_file_key, &self.blob_key)).unwrap();
+            (key, track_key, blob_key) 
+            VALUES (?1, ?2, ?3)",
+            (&self.key, &self.track_key, &self.blob_key)).unwrap();
     }
 
     fn log_changes() -> bool {
@@ -103,11 +93,11 @@ mod tests {
         let library = Library::open(":memory:");
         let mut model = library.save(&TrackSource::default());
         assert!(model.key.is_some());
-        assert!(model.media_file_key.is_none());
-        model.media_file_key = Some("media_file_key".to_string());
+        assert!(model.blob_key.is_none());
+        model.blob_key = Some("blob_key".to_string());
         let model = library.save(&model);
         let model: TrackSource = library.get(&model.key.unwrap()).unwrap();
-        assert!(model.media_file_key == Some("media_file_key".to_string()));
+        assert!(model.blob_key == Some("blob_key".to_string()));
     }
 
     #[test]
@@ -116,15 +106,13 @@ mod tests {
         let b = TrackSource {
             key: Some("key".to_string()),
             track_key: "track_key".to_string(),
-            media_file_key: Some("media_file_key".to_string()),
             blob_key: Some("blob_key".to_string()),
         };
         let diff = a.diff(&b);
-        assert!(diff.len() == 4);
+        assert!(diff.len() == 3);
         assert!(diff[0].field == Some("key".to_string()));
         assert!(diff[1].field == Some("track_key".to_string()));
-        assert!(diff[2].field == Some("media_file_key".to_string()));
-        assert!(diff[3].field == Some("blob_key".to_string()));
+        assert!(diff[2].field == Some("blob_key".to_string()));
     }
 
     #[test]
@@ -133,7 +121,6 @@ mod tests {
         let b = TrackSource {
             key: Some("key".to_string()),
             track_key: "track_key".to_string(),
-            media_file_key: Some("media_file_key".to_string()),
             blob_key: Some("blob_key".to_string()),
         };
         let diff = a.diff(&b);

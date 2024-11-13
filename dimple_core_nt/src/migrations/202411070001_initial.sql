@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS Track (
 CREATE TABLE IF NOT EXISTS MediaFile (
     key       TEXT PRIMARY KEY,
     file_path TEXT UNIQUE NOT NULL,
+    sha256    TEXT NOT NULL,
     artist    TEXT,
     album     TEXT,
     title     TEXT
@@ -37,11 +38,10 @@ CREATE TABLE IF NOT EXISTS MediaFile (
 CREATE TABLE IF NOT EXISTS TrackSource (
     key            TEXT PRIMARY KEY,
     track_key      TEXT NOT NULL,
-    media_file_key TEXT,
     blob_key       TEXT
     -- TODO blobs, urls, etc.
     -- TODO probably unique across that plus track_key
-    -- FOREIGN KEY (track_key) REFERENCES Track(key)
+    -- FOREIGN KEY (track_key) REFERENCES Track(key) -- TODO breaks a test cause no tracks exist
 );
 
 CREATE TABLE IF NOT EXISTS Playlist (

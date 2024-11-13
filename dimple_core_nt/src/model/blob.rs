@@ -1,4 +1,3 @@
-use std::{path::{Path, PathBuf}, time::Instant};
 
 use rusqlite::Row;
 use sha2::{Sha256, Digest};
@@ -9,6 +8,8 @@ pub struct Blob {
     pub key: Option<String>,
     // echo "Hello and Welcome to Dimple" | sha256sum 
     // 319b0878313c131df1382eaac03be8ef59d466f81d16717c751368da578051ca  -
+    // TODO check blake3, claude says up to 10x faster
+    // https://github.com/BLAKE3-team/BLAKE3
     pub sha256: String,
     pub length: u64,
 }
