@@ -1,6 +1,6 @@
 use std::{sync::Mutex, time::Duration};
 
-use rusqlite::{backup::Backup, Connection, OptionalExtension, Params};
+use rusqlite::{backup::Backup, Connection, OptionalExtension};
 use symphonia::core::meta::StandardTagKey;
 use ulid::Generator;
 use uuid::Uuid;
@@ -251,19 +251,11 @@ impl Library {
     pub fn media_files_by_sha256(&self, sha256: &str) -> Vec<MediaFile> {
         let mut stmt = self.conn.prepare("SELECT * FROM MediaFile
             WHERE sha256 = ?1").unwrap();
-        stmt.query_map([sha256.clone()], |row| Ok(MediaFile::from_row(row)))
+        stmt.query_map([sha256], |row| Ok(MediaFile::from_row(row)))
             .unwrap()
             .map(|result| result.unwrap())
             .collect()
     }
-
-    /// What if we have load_blob_content that checks for cache, then media files,
-    /// then downloads, then sync, then plugins?
-    /// then the importer creates the media files, we drop media file from the
-    /// track source and just reference blob, and then blob has the special
-    /// case for locally imported media files
-    /// and finally, if the user wants to download or copy them to the library
-    /// that's easy cause it's all through blob.
 
     pub fn load_blob_content(&self, blob: &Blob) -> Option<Vec<u8>> {
         for media_file in self.media_files_by_sha256(&blob.sha256) {
