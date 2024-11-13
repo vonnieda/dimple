@@ -11,7 +11,6 @@ pub struct Blob {
     // 319b0878313c131df1382eaac03be8ef59d466f81d16717c751368da578051ca  -
     pub sha256: String,
     pub length: u64,
-    pub local_path: Option<String>,
 }
 
 impl Blob {
@@ -23,7 +22,6 @@ impl Blob {
             key: None,
             sha256: sha256,
             length: content.len() as u64,
-            local_path: Some(path.to_str().unwrap().to_owned()),
         }
     }    
 
@@ -41,7 +39,6 @@ impl FromRow for Blob {
             key: row.get("key").unwrap(),
             sha256: row.get("sha256").unwrap(),
             length: row.get("length").unwrap(),
-            local_path: row.get("local_path").unwrap(),
         }
     }
 }
@@ -64,11 +61,6 @@ impl Diff for Blob {
                 op: "set".to_string(), field: Some("length".to_string()), 
                 value: Some(other.length.to_string()), ..Default::default() });
         }
-        if self.local_path != other.local_path {
-            diff.push(ChangeLog { model: "Blob".to_string(), 
-                op: "set".to_string(), field: Some("local_path".to_string()), 
-                value: other.local_path.clone(), ..Default::default() });
-        }
         diff
     }
     
@@ -82,9 +74,6 @@ impl Diff for Blob {
                     if &field == "length" {
                         let src = change.value.clone().unwrap();
                         self.length = u64::from_str_radix(&src, 10).unwrap();
-                    }
-                    if &field == "local_path" {
-                        self.local_path = change.value.clone();
                     }
                     if &field == "sha256" {
                         self.sha256 = change.value.clone().unwrap();
@@ -106,9 +95,9 @@ impl Model for Blob {
     
     fn upsert(&self, conn: &rusqlite::Connection) {
         conn.execute("INSERT OR REPLACE INTO Blob 
-            (key, sha256, length, local_path) 
-            VALUES (?1, ?2, ?3, ?4)",
-            (&self.key, &self.sha256, &self.length, &self.local_path)).unwrap();
+            (key, sha256, length) 
+            VALUES (?1, ?2, ?3)",
+            (&self.key, &self.sha256, &self.length)).unwrap();
     }
     
     fn set_key(&mut self, key: Option<String>) {
@@ -131,11 +120,10 @@ mod tests {
         let library = Library::open(":memory:");
         let mut model = library.save(&Blob::default());
         assert!(model.key.is_some());
-        assert!(model.local_path.is_none());
-        model.local_path = Some("local_path".to_string());
+        model.sha256 = "sha256".to_string();
         let model = library.save(&model);
         let model: Blob = library.get(&model.key.unwrap()).unwrap();
-        assert!(model.local_path == Some("local_path".to_string()));
+        assert!(model.sha256 == "sha256".to_string());
     }
 
     #[test]
@@ -143,17 +131,15 @@ mod tests {
         let a = Blob::default();
         let b = Blob {
             key: Some("key".to_string()),
-            sha256: "file_path".to_string(),
+            sha256: "sha256".to_string(),
             length: 100,
-            local_path: Some("local_path".to_string()),
         };
         let diff = a.diff(&b);
-        assert!(diff.len() == 4);
+        assert!(diff.len() == 3);
         assert!(diff[0].model == "Blob".to_string());
         assert!(diff[0].field == Some("key".to_string()));
         assert!(diff[1].field == Some("sha256".to_string()));
         assert!(diff[2].field == Some("length".to_string()));
-        assert!(diff[3].field == Some("local_path".to_string()));
     }
 
     #[test]
@@ -161,9 +147,8 @@ mod tests {
         let a = Blob::default();
         let b = Blob {
             key: Some("key".to_string()),
-            sha256: "file_path".to_string(),
+            sha256: "sha256".to_string(),
             length: 100,
-            local_path: Some("local_path".to_string()),
         };
         let diff = a.diff(&b);
         let mut c = Blob::default();

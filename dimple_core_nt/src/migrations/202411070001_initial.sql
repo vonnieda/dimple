@@ -6,8 +6,7 @@ CREATE TABLE IF NOT EXISTS Metadata (
 CREATE TABLE IF NOT EXISTS Blob (
     key        TEXT PRIMARY KEY,
     sha256     TEXT UNIQUE,
-    length     U64,
-    local_path TEXT -- TODO index
+    length     U64
 );
 
 CREATE TABLE IF NOT EXISTS Artist (
