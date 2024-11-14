@@ -1,19 +1,24 @@
-use std::{sync::Mutex, time::Duration};
+use std::{sync::{Arc, Mutex, RwLock}, time::{Duration, Instant}};
 
 use log::info;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rusqlite::{backup::Backup, Connection, OptionalExtension};
 use symphonia::core::meta::StandardTagKey;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::{model::{Blob, ChangeLog, FromRow, MediaFile, Model, Playlist, Track, TrackSource}, sync::Sync};
+use crate::{model::{Blob, ChangeLog, FromRow, MediaFile, Model, Playlist, Track, TrackSource}, scanner::media_file::ScannedFile, sync::Sync};
 
+#[derive(Clone)]
 pub struct Library {
-    pub conn: Connection,
-    ulids: Mutex<Generator>,
-    synchronizers: Mutex<Vec<Sync>>,
+    _conn: Arc<Mutex<Connection>>,
+    database_path: String,
+    ulids: Arc<Mutex<Generator>>,
+    synchronizers: Arc<RwLock<Vec<Sync>>>,
 }
 
+/// TODO change notifications
+/// TODO start changing to Release and friends to easier port to GUI
 impl Library {
     /// Open the library located at the specified path. The path is to an
     /// optionally existing Sqlite database. Blobs will be stored in the
@@ -35,18 +40,23 @@ impl Library {
         ).unwrap();
 
         let library = Library {
-            conn,
-            ulids: Mutex::new(Generator::new()),
-            synchronizers: Mutex::new(vec![]),
+            _conn: Arc::new(Mutex::new(conn)),
+            database_path: database_path.to_string(),
+            ulids: Arc::new(Mutex::new(Generator::new())),
+            synchronizers: Arc::new(RwLock::new(vec![])),
         };
 
         library
     }
 
+    pub fn conn(&self) -> Connection {
+        Connection::open(self.database_path.clone()).unwrap()
+    }
+
     /// Returns the unique, permanent ID of this Library. This is created when
     /// the Library is created and doesn't change.
     pub fn id(&self) -> String {
-        self.conn.query_row("SELECT value FROM Metadata WHERE key = 'library.uuid'", 
+        self.conn().query_row("SELECT value FROM Metadata WHERE key = 'library.uuid'", 
             (), 
             |row| {
                 let s: String = row.get(0).unwrap();
@@ -57,61 +67,70 @@ impl Library {
     /// Backup this library to the specified path.
     pub fn backup(&self, output_path: &str) {
         let mut dst = Connection::open(output_path).unwrap();
-        let backup = Backup::new(&self.conn, &mut dst).unwrap();
+        let src = self.conn();
+        let backup = Backup::new(&src, &mut dst).unwrap();
         backup.run_to_completion(250, Duration::from_millis(10), None).unwrap();
     }
 
     /// Import MediaFiles into the Library, creating or updating Tracks,
     /// TrackSources, Blobs, etc.
+    /// TODO okay this is slow cause we are scanning all the files first no
+    /// matter what, reading all their tags and images and shit, and we might
+    /// just ignore that file based on it's sha, so fix that.
     pub fn import(&self, input: &[crate::scanner::media_file::ScannedFile]) {
-        for input_mf in input {
-            // TODO txn
-            let file_path = std::fs::canonicalize(&input_mf.path).unwrap();
-            let file_path = file_path.to_str().unwrap();
+        let library = self.clone();
+        input.par_iter().for_each(|input| {
+            library.import_internal(input);
+        });
+    }
 
-            let blob = Blob::read(file_path);
-            let blob = self.find_blob_by_sha256(&blob.sha256)
-                .or_else(|| Some(self.save(&blob)))
-                .unwrap();
+    fn import_internal(&self, input: &ScannedFile) {
+        // TODO txn
+        let file_path = std::fs::canonicalize(&input.path).unwrap();
+        let file_path = file_path.to_str().unwrap();
 
-            let media_file = self.find_media_file_by_file_path(file_path)
-                .or_else(|| Some(self.save(&MediaFile {
-                    file_path: file_path.to_owned(),
-                    sha256: blob.sha256.clone(),
-                    artist: input_mf.tag(StandardTagKey::Artist),
-                    album: input_mf.tag(StandardTagKey::Album),
-                    title: input_mf.tag(StandardTagKey::TrackTitle),
+        let blob = Blob::read(file_path);
+        let blob = self.find_blob_by_sha256(&blob.sha256)
+            .or_else(|| Some(self.save(&blob)))
+            .unwrap();
+
+        let media_file = self.find_media_file_by_file_path(file_path)
+            .or_else(|| Some(self.save(&MediaFile {
+                file_path: file_path.to_owned(),
+                sha256: blob.sha256.clone(),
+                artist: input.tag(StandardTagKey::Artist),
+                album: input.tag(StandardTagKey::Album),
+                title: input.tag(StandardTagKey::TrackTitle),
+                ..Default::default()
+            })))
+            .unwrap();
+
+        if self.track_sources_by_blob(&blob).is_empty() {
+            // TODO temp, eventually uses more matching
+            // or maybe just always create and de-dupe?
+            let track = self.find_track_for_media_file(&media_file)
+                .or_else(|| Some(self.save(&Track {
+                    artist: media_file.artist,
+                    album: media_file.album,
+                    title: media_file.title,
                     ..Default::default()
                 })))
                 .unwrap();
 
-            if self.track_sources_by_blob(&blob).is_empty() {
-                // TODO temp, eventually uses more matching
-                // or maybe just always create and de-dupe?
-                let track = self.find_track_for_media_file(&media_file)
-                    .or_else(|| Some(self.save(&Track {
-                        artist: media_file.artist,
-                        album: media_file.album,
-                        title: media_file.title,
-                        ..Default::default()
-                    })))
-                    .unwrap();
-
-                let _source = self.save(&TrackSource {
-                    track_key: track.key.unwrap(),
-                    blob_key: blob.key.clone(),
-                    ..Default::default()
-                });
-            }
+            let _source = self.save(&TrackSource {
+                track_key: track.key.unwrap(),
+                blob_key: blob.key.clone(),
+                ..Default::default()
+            });
         }
     }
 
     pub fn add_sync(&self, sync: Sync) {
-        self.synchronizers.lock().unwrap().push(sync);
+        self.synchronizers.write().unwrap().push(sync);
     }
 
     pub fn sync(&self) {
-        if let Ok(syncs) = self.synchronizers.lock() {
+        if let Ok(syncs) = self.synchronizers.read() {
             for sync in syncs.iter() {
                 sync.sync(self);
             }
@@ -134,7 +153,7 @@ impl Library {
         // execute the insert
         let mut obj = obj.clone();
         obj.set_key(key.clone());
-        obj.upsert(&self.conn);
+        obj.upsert(&self.conn());
         // load the newly inserted object
         let new: T = self.get(&key.unwrap()).unwrap();
         if T::log_changes() {
@@ -163,7 +182,7 @@ impl Library {
         // execute the insert
         let mut obj = obj.clone();
         obj.set_key(key.clone());
-        obj.upsert(&self.conn);
+        obj.upsert(&self.conn());
         // load the newly inserted object
         let new: T = self.get(&key.unwrap()).unwrap();
         // TODO maybe like library.notify(diff)
@@ -172,23 +191,25 @@ impl Library {
 
     pub fn get<T: Model>(&self, key: &str) -> Option<T> {
         let sql = format!("SELECT * FROM {} WHERE key = ?1", T::table_name());
-        self.conn.query_row(&sql, (key,), 
+        self.conn().query_row(&sql, (key,), 
             |row| Ok(T::from_row(row))).optional().unwrap()
     }
 
     pub fn list<T: Model>(&self) -> Vec<T> {
         let sql = format!("SELECT * FROM {}", T::table_name());
-        self.conn.prepare(&sql).unwrap()
+        self.conn().prepare(&sql).unwrap()
             .query_map((), |row| Ok(T::from_row(row))).unwrap()
             .map(|m| m.unwrap())
             .collect()
     }
 
     pub fn query<T: Model>(&self, sql: &str) -> Vec<T> {
-        self.conn.prepare(&sql).unwrap()
+        let conn = self.conn();
+        let result = conn.prepare(&sql).unwrap()
             .query_map((), |row| Ok(T::from_row(row))).unwrap()
             .map(|m| m.unwrap())
-            .collect()
+            .collect();
+        result
     }
 
     pub fn changelogs(&self) -> Vec<ChangeLog> {
@@ -200,40 +221,33 @@ impl Library {
     }
 
     pub fn playlist_add(&self, playlist: &Playlist, track_key: &str) {
-        self.conn.execute("INSERT INTO PlaylistItem 
+        self.conn().execute("INSERT INTO PlaylistItem 
             (key, playlist_key, track_key) 
             VALUES (?1, ?2, ?3)",
             (&Uuid::new_v4().to_string(), playlist.key.clone().unwrap(), track_key)).unwrap();
     }
 
     pub fn playlist_clear(&self, playlist: &Playlist) {
-        self.conn.execute("DELETE FROM PlaylistItem
+        self.conn().execute("DELETE FROM PlaylistItem
             WHERE playlist_key = ?1", (playlist.key.clone().unwrap(),)).unwrap();
     }    
 
-    pub fn find_newest_changelog_by_field(&self, model: &str, key: &str, field: &str) -> Option<ChangeLog> {
-        self.conn.query_row_and_then("SELECT * FROM ChangeLog 
-            WHERE model = ?1 AND key = ?2 AND field = ?3
+    pub fn find_newest_changelog_by_field(&self, model: &str, model_key: &str, field: &str) -> Option<ChangeLog> {
+        self.conn().query_row_and_then("SELECT * FROM ChangeLog 
+            WHERE model = ?1 AND model_key = ?2 AND field = ?3
             ORDER BY timestamp DESC", 
-            (model, key, field), |row| Ok(ChangeLog::from_row(row))).optional().unwrap()
+            (model, model_key, field), |row| Ok(ChangeLog::from_row(row))).optional().unwrap()
     }
 
     pub fn find_media_file_by_file_path(&self, file_path: &str) -> Option<MediaFile> {
-        self.conn.query_row_and_then("SELECT * FROM MediaFile
+        self.conn().query_row_and_then("SELECT * FROM MediaFile
             WHERE file_path = ?1", 
             (file_path,), |row| Ok(MediaFile::from_row(row)))
             .optional().unwrap()
     }
 
-    pub fn find_blob_by_local_path(&self, local_path: &str) -> Option<Blob> {
-        self.conn.query_row_and_then("SELECT * FROM Blob
-            WHERE local_path = ?1", 
-            (local_path,), |row| Ok(Blob::from_row(row)))
-            .optional().unwrap()
-    }
-
     pub fn find_blob_by_sha256(&self, sha256: &str) -> Option<Blob> {
-        self.conn.query_row_and_then("SELECT * FROM Blob
+        self.conn().query_row_and_then("SELECT * FROM Blob
             WHERE sha256 = ?1", 
             (sha256,), |row| Ok(Blob::from_row(row)))
             .optional().unwrap()
@@ -241,14 +255,15 @@ impl Library {
 
     pub fn find_track_for_media_file(&self, media_file: &MediaFile) -> Option<Track> {
         // TODO naive, just for testing.
-        self.conn.query_row_and_then("SELECT * FROM Track
+        self.conn().query_row_and_then("SELECT * FROM Track
             WHERE artist = ?1 AND album = ?2 AND title = ?3", 
             (media_file.artist.clone(), media_file.album.clone(), media_file.title.clone()), |row| Ok(Track::from_row(row)))
             .optional().unwrap()
     }
 
     pub fn track_sources_for_track(&self, track: &Track) -> Vec<TrackSource> {
-        let mut stmt = self.conn.prepare("SELECT * FROM TrackSource
+        let conn = self.conn();
+        let mut stmt = conn.prepare("SELECT * FROM TrackSource
             WHERE track_key = ?1").unwrap();
         stmt.query_map([track.key.clone()], |row| Ok(TrackSource::from_row(row)))
             .unwrap()
@@ -257,7 +272,8 @@ impl Library {
     }
         
     pub fn track_sources_by_blob(&self, blob: &Blob) -> Vec<TrackSource> {
-        let mut stmt = self.conn.prepare("SELECT * FROM TrackSource
+        let conn = self.conn();
+        let mut stmt = conn.prepare("SELECT * FROM TrackSource
             WHERE blob_key = ?1").unwrap();
         stmt.query_map([blob.key.clone()], |row| Ok(TrackSource::from_row(row)))
             .unwrap()
@@ -266,7 +282,8 @@ impl Library {
     }
 
     pub fn media_files_by_sha256(&self, sha256: &str) -> Vec<MediaFile> {
-        let mut stmt = self.conn.prepare("SELECT * FROM MediaFile
+        let conn = self.conn();
+        let mut stmt = conn.prepare("SELECT * FROM MediaFile
             WHERE sha256 = ?1").unwrap();
         stmt.query_map([sha256], |row| Ok(MediaFile::from_row(row)))
             .unwrap()
@@ -281,7 +298,7 @@ impl Library {
                 return Some(content)
             }
         }
-        for sync in self.synchronizers.lock().unwrap().iter() {
+        for sync in self.synchronizers.read().unwrap().iter() {
             if let Some(content) = sync.load_blob_content(blob) {
                 info!("Found blob sha256 {} in sync", blob.sha256);
                 return Some(content)
@@ -326,18 +343,18 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let _library = Library::open(":memory:");
+        let _library = Library::open("file:3cd2ed69-2945-49db-b7b9-bdf1d4f464d8?mode=memory&cache=shared");
     }
 
     #[test]
     fn tracks() {
-        let library = Library::open(":memory:");
+        let library = Library::open("file:18de25eb-5ffb-4351-bce6-14969f5293e4?mode=memory&cache=shared");
         library.tracks();
     }
 
     #[test]
     fn changelogs() {
-        let library = Library::open(":memory:");
+        let library = Library::open("file:7f59f615-f828-4db9-a5b2-8ae6ee4b4e2f?mode=memory&cache=shared");
         let track = Track {
             artist: Some("Which Who".to_string()),
             title: Some("We All Eat Food".to_string()),
@@ -368,7 +385,7 @@ mod tests {
 
     #[test]
     fn import() {
-        let library = Library::open(":memory:");
+        let library = Library::open("file:6384d9e0-74c1-4ecd-9ea3-b5d0118f134e?mode=memory&cache=shared");
         assert!(library.list::<MediaFile>().len() == 0);
         let media_files = Scanner::scan_directory("media_files_small");
         assert!(media_files.len() > 0);
@@ -381,7 +398,7 @@ mod tests {
 
     #[test]
     fn load_track_content() {
-        let library = Library::open(":memory:");
+        let library = Library::open("file:6384d9e0-74c1-4e1d-9ea3-b5d0198f134e?mode=memory&cache=shared");
         library.import(&Scanner::scan_directory("media_files_small"));
         let track = &library.tracks()[0];
         let content = library.load_track_content(track).unwrap();

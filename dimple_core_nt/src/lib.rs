@@ -37,7 +37,7 @@ mod tests {
         let sync_path = Uuid::new_v4().to_string();
 
         {
-            let library = Arc::new(Library::open(":memory:"));
+            let library = Arc::new(Library::open("file:23728bbc-945c-4239-92e7-50d5080cead1?mode=memory&cache=shared"));
             library.add_sync(Sync::new(sync_storage.clone(), &sync_path));
             assert!(library.tracks().len() == 0);
             library.import(&Scanner::scan_directory("media_files_small"));
@@ -63,7 +63,7 @@ mod tests {
         }
 
         {
-            let library_2 = Arc::new(Library::open(":memory:"));
+            let library_2 = Arc::new(Library::open("file:ebafa32b-b540-473d-9fba-975e513903d2?mode=memory&cache=shared"));
             library_2.add_sync(Sync::new(sync_storage.clone(), &sync_path));
             assert!(library_2.tracks().len() == 0);
             library_2.sync();

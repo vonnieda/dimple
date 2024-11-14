@@ -1,3 +1,5 @@
+PRAGMA journal_mode=WAL;
+
 CREATE TABLE IF NOT EXISTS Metadata (
     key       TEXT PRIMARY KEY,
     value     TEXT
@@ -5,8 +7,8 @@ CREATE TABLE IF NOT EXISTS Metadata (
 
 CREATE TABLE IF NOT EXISTS Blob (
     key        TEXT PRIMARY KEY,
-    sha256     TEXT UNIQUE,
-    length     U64
+    sha256     TEXT UNIQUE NOT NULL,
+    length     U64 NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS Artist (
@@ -21,6 +23,7 @@ CREATE TABLE IF NOT EXISTS Track (
     title     TEXT,
     liked     BOOL NOT NULL DEFAULT false
 );
+CREATE INDEX IF NOT EXISTS Track_idx_1 ON Track (artist, album, title);
 
 CREATE TABLE IF NOT EXISTS MediaFile (
     key       TEXT PRIMARY KEY,
@@ -43,6 +46,7 @@ CREATE TABLE IF NOT EXISTS TrackSource (
     -- TODO probably unique across that plus track_key
     -- FOREIGN KEY (track_key) REFERENCES Track(key) -- TODO breaks a test cause no tracks exist
 );
+CREATE INDEX IF NOT EXISTS TrackSource_idx_1 ON TrackSource (blob_key);
 
 CREATE TABLE IF NOT EXISTS Playlist (
     key       TEXT PRIMARY KEY,
@@ -69,4 +73,5 @@ CREATE TABLE IF NOT EXISTS ChangeLog (
     value     TEXT,
     PRIMARY KEY (actor, timestamp)
 );
+CREATE INDEX IF NOT EXISTS ChangeLog_idx_1 ON ChangeLog (model, model_key, field);
 

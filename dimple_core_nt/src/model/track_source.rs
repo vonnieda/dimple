@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open(":memory:");
+        let library = Library::open("file:712f9444-5755-4795-a75f-a4c33fd695c6?mode=memory&cache=shared");
         let mut model = library.save(&TrackSource::default());
         assert!(model.key.is_some());
         assert!(model.blob_key.is_none());

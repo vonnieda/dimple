@@ -124,7 +124,7 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open(":memory:");
+        let library = Library::open("file:e57e4eb6-c6af-43d2-ac26-d1edf8972951?mode=memory&cache=shared");
         let mut model = library.save(&MediaFile::default());
         assert!(model.key.is_some());
         assert!(model.artist.is_none());

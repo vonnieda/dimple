@@ -78,7 +78,8 @@ impl Model for Playlist {
     }
 
     fn hydrate(&mut self, library: &Library) {
-        let mut stmt = library.conn.prepare("SELECT
+        let conn = library.conn();
+        let mut stmt = conn.prepare("SELECT
             Track.*
             FROM PlaylistItem
             JOIN Track ON (Track.key = PlaylistItem.Track_key)
@@ -96,7 +97,7 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open(":memory:");
+        let library = Library::open("file:e3b2df54-d10a-4530-b753-1fc82295ad32?mode=memory&cache=shared");
         let mut model = library.save(&Playlist::default());
         assert!(model.key.is_some());
         assert!(model.name.is_none());

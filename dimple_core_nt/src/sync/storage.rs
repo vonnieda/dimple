@@ -1,4 +1,4 @@
-pub trait Storage {
+pub trait Storage: Send + Sync {
     // TODO needs errors
     fn put_object(&self, path: &str, contents: &[u8]);
     fn get_object(&self, path: &str) -> Option<Vec<u8>>;

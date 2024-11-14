@@ -1,6 +1,7 @@
 
 use rusqlite::Row;
 use sha2::{Sha256, Digest};
+use symphonia::core::checksum::Md5;
 use super::{ChangeLog, Diff, FromRow, Model};
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -8,8 +9,11 @@ pub struct Blob {
     pub key: Option<String>,
     // echo "Hello and Welcome to Dimple" | sha256sum 
     // 319b0878313c131df1382eaac03be8ef59d466f81d16717c751368da578051ca  -
+    // echo "Hello and Welcome to Dimple" | b3sum
+    // 8908ecf28db1d115047a8917f22f5bd0bf8b7b49fee2f73fb17b324e5ad60b1a  -    
     // TODO check blake3, claude says up to 10x faster
     // https://github.com/BLAKE3-team/BLAKE3
+    // Did a quick test and it didn't seem faster, but try more.
     pub sha256: String,
     pub length: u64,
 }
@@ -27,11 +31,13 @@ impl Blob {
     }    
 
     fn calculate_sha256(data: &Vec<u8>) -> String {
+        // blake3::hash(data).to_string()
+
         let mut hasher = Sha256::new();
         hasher.update(data);
         let result = hasher.finalize();
         format!("{:x}", result)
-    }    
+    }        
 }
 
 impl FromRow for Blob {
@@ -118,7 +124,7 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open(":memory:");
+        let library = Library::open("file:6384d9e0-74c1-4ecd-9ea3-b5d0198f134e?mode=memory&cache=shared");
         let mut model = library.save(&Blob::default());
         assert!(model.key.is_some());
         model.sha256 = "sha256".to_string();
