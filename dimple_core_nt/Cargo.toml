@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+dimple_core_nt_macro = { path = "../dimple_core_nt_macro" }
 rust-s3 = { version = "0.33.0", features = ["sync-native-tls"], default-features = false }
 playback-rs = "0.4.4"
 rusqlite = { version = "0.32.1", features = ["bundled", "backup"] }

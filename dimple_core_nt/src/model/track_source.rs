@@ -1,3 +1,4 @@
+use dimple_core_nt_macro::ModelSupport;
 use rusqlite::Row;
 
 use super::{ChangeLog, Diff, FromRow, Model};

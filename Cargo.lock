@@ -513,6 +513,7 @@ name = "dimple_core_nt"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "dimple_core_nt_macro",
  "env_logger",
  "log",
  "playback-rs",
@@ -525,6 +526,14 @@ dependencies = [
  "ulid",
  "uuid",
  "walkdir",
+]
+
+[[package]]
+name = "dimple_core_nt_macro"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]
