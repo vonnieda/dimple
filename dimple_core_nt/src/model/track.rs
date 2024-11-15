@@ -12,32 +12,6 @@ pub struct Track {
     pub liked: bool,
 }
 
-struct OptStr {
-    val: Option<String>,
-}
-
-impl OptStr {
-    pub fn to(&self) -> Option<String> {
-        self.val.clone()
-    }
-}
-
-impl From<bool> for OptStr {
-    fn from(value: bool) -> Self {
-        OptStr {
-            val: Some(if value { "true" } else { "false" }.to_string()),
-        }
-    }
-}
-
-impl From<Option<String>> for OptStr {
-    fn from(value: Option<String>) -> Self {
-        OptStr {
-            val: value.clone(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{library::Library, model::{Diff, Track}};

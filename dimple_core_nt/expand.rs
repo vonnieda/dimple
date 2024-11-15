@@ -73,9 +73,16 @@ pub mod model {
                     && self.liked == other.liked
             }
         }
+        use super::OptStr;
         impl FromRow for Track {
             fn from_row(row: &Row) -> Self {
-                Self {}
+                Self {
+                    key: row.get("key").unwrap(),
+                    artist: row.get("artist").unwrap(),
+                    album: row.get("album").unwrap(),
+                    title: row.get("title").unwrap(),
+                    liked: row.get("liked").unwrap(),
+                }
             }
         }
         impl Model for Track {
@@ -109,6 +116,7 @@ pub mod model {
                         model: "Track".to_string(),
                         op: "set".to_string(),
                         field: Some("key".to_string()),
+                        value: OptStr::from(other.key.clone()).to(),
                         ..Default::default()
                     });
                 }
@@ -117,6 +125,7 @@ pub mod model {
                         model: "Track".to_string(),
                         op: "set".to_string(),
                         field: Some("artist".to_string()),
+                        value: OptStr::from(other.artist.clone()).to(),
                         ..Default::default()
                     });
                 }
@@ -125,6 +134,7 @@ pub mod model {
                         model: "Track".to_string(),
                         op: "set".to_string(),
                         field: Some("album".to_string()),
+                        value: OptStr::from(other.album.clone()).to(),
                         ..Default::default()
                     });
                 }
@@ -133,6 +143,7 @@ pub mod model {
                         model: "Track".to_string(),
                         op: "set".to_string(),
                         field: Some("title".to_string()),
+                        value: OptStr::from(other.title.clone()).to(),
                         ..Default::default()
                     });
                 }
@@ -141,6 +152,7 @@ pub mod model {
                         model: "Track".to_string(),
                         op: "set".to_string(),
                         field: Some("liked".to_string()),
+                        value: OptStr::from(other.liked.clone()).to(),
                         ..Default::default()
                     });
                 }
@@ -149,7 +161,23 @@ pub mod model {
             fn apply_diff(&mut self, diff: &[ChangeLog]) {
                 for change in diff {
                     if change.op == "set" {
-                        if let Some(field) = change.field.clone() {}
+                        if let Some(field) = change.field.clone() {
+                            if &field == "key" {
+                                self.key = OptStr::from(change.value.clone()).into();
+                            }
+                            if &field == "artist" {
+                                self.artist = OptStr::from(change.value.clone()).into();
+                            }
+                            if &field == "album" {
+                                self.album = OptStr::from(change.value.clone()).into();
+                            }
+                            if &field == "title" {
+                                self.title = OptStr::from(change.value.clone()).into();
+                            }
+                            if &field == "liked" {
+                                self.liked = OptStr::from(change.value.clone()).into();
+                            }
+                        }
                     }
                 }
             }
@@ -979,6 +1007,36 @@ pub mod model {
         fn upsert(&self, conn: &Connection);
         fn log_changes() -> bool;
         fn hydrate(&mut self, library: &Library) {}
+    }
+    struct OptStr {
+        val: Option<String>,
+    }
+    impl OptStr {
+        pub fn to(&self) -> Option<String> {
+            self.val.clone()
+        }
+    }
+    impl From<bool> for OptStr {
+        fn from(value: bool) -> Self {
+            OptStr {
+                val: Some(if value { "true" } else { "false" }.to_string()),
+            }
+        }
+    }
+    impl From<Option<String>> for OptStr {
+        fn from(value: Option<String>) -> Self {
+            OptStr { val: value.clone() }
+        }
+    }
+    impl From<OptStr> for Option<String> {
+        fn from(value: OptStr) -> Self {
+            ::core::panicking::panic("not yet implemented")
+        }
+    }
+    impl From<OptStr> for bool {
+        fn from(value: OptStr) -> Self {
+            ::core::panicking::panic("not yet implemented")
+        }
     }
 }
 pub mod library {

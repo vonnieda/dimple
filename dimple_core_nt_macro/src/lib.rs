@@ -26,17 +26,12 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                     let diffs = fields.named.iter().map(|f| {
                         let field_name = &f.ident;
                         let field_name_str = field_name.as_ref().unwrap().to_string();
-                        let field_type = &f.ty;
                         
-                        // TODO tired the two remaining commented bits need to be
-                        // fixed / finished by providing some conversion functions.
-                        // Gonna work on those in one of the concretes and then come
-                        // back here with the fix.
                         quote! {
                             if self.#field_name != other.#field_name {
                                 diff.push(ChangeLog { model: #name_str.to_string(), 
                                     op: "set".to_string(), field: Some(#field_name_str.to_string()), 
-                                    value: OptStr::from(other.#field_name.clone()).to(), 
+                                    value: OptStr::from(other.#field_name.clone()).val, 
                                     ..Default::default() });
                             }
                         }
@@ -47,13 +42,15 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                         let field_name_str = field_name.as_ref().unwrap().to_string();
                         
                         quote! {
-                            // if &field == #field_name {
-                            //     self.#field_name = change.value.clone();
-                            // }
+                            if &field == #field_name_str {
+                                self.#field_name = OptStr::from(change.value.clone()).into();
+                            }
                         }
                     });
 
                     quote! {
+                        use super::OptStr;
+
                         impl FromRow for #name {
                             fn from_row(row: &Row) -> Self {
                                 Self {
