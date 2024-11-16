@@ -38,34 +38,46 @@ pub trait Model: Sized + FromRow + Diff + Default + Clone {
     fn hydrate(&mut self, library: &Library) {}
 }
 
-struct OptStr {
+struct ChangeLogValue {
     pub val: Option<String>,
 }
 
-impl From<bool> for OptStr {
+impl From<bool> for ChangeLogValue {
     fn from(value: bool) -> Self {
-        OptStr {
+        ChangeLogValue {
             val: Some(if value { "true" } else { "false" }.to_string()),
         }
     }
 }
 
-impl From<Option<String>> for OptStr {
+impl From<Option<String>> for ChangeLogValue {
     fn from(value: Option<String>) -> Self {
-        OptStr {
+        ChangeLogValue {
             val: value.clone(),
         }
     }
 }
 
-impl From<OptStr> for Option<String> {
-    fn from(value: OptStr) -> Self {
+impl From<String> for ChangeLogValue {
+    fn from(value: String) -> Self {
+        todo!()
+    }
+}
+
+impl From<ChangeLogValue> for Option<String> {
+    fn from(value: ChangeLogValue) -> Self {
         value.val
     }
 }
 
-impl From<OptStr> for bool {
-    fn from(value: OptStr) -> Self {
+impl From<ChangeLogValue> for bool {
+    fn from(value: ChangeLogValue) -> Self {
         value.val.unwrap() == "true"
+    }
+}
+
+impl From<ChangeLogValue> for String {
+    fn from(value: ChangeLogValue) -> Self {
+        todo!()
     }
 }

@@ -79,6 +79,7 @@ impl Library {
     /// just ignore that file based on it's sha, so fix that.
     pub fn import(&self, input: &[crate::scanner::media_file::ScannedFile]) {
         let library = self.clone();
+        // TODO getting a lot of "database table is locked: ChangeLog" when using par_iter
         input.par_iter().for_each(|input| {
             library.import_internal(input);
         });

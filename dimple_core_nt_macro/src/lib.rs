@@ -31,7 +31,7 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                             if self.#field_name != other.#field_name {
                                 diff.push(ChangeLog { model: #name_str.to_string(), 
                                     op: "set".to_string(), field: Some(#field_name_str.to_string()), 
-                                    value: OptStr::from(other.#field_name.clone()).val, 
+                                    value: ChangeLogValue::from(other.#field_name.clone()).val, 
                                     ..Default::default() });
                             }
                         }
@@ -43,13 +43,33 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                         
                         quote! {
                             if &field == #field_name_str {
-                                self.#field_name = OptStr::from(change.value.clone()).into();
+                                self.#field_name = ChangeLogValue::from(change.value.clone()).into();
                             }
                         }
                     });
 
+                    let columns = fields.named.iter()
+                        .map(|f| f.ident.clone().unwrap().to_string())
+                        .collect::<Vec<_>>()
+                        .join(",");
+                    let column_positions = fields.named.iter().enumerate()
+                        .map(|(i, f)| format!("?{}", i + 1))
+                        .collect::<Vec<_>>()
+                        .join(",");
+                    let params = fields.named.iter().enumerate()
+                        .map(|(i, f)| {
+                            let field_name = &f.ident;
+                            quote! {
+                                &self.#field_name
+                            }
+                        });
+                    let upsert = quote! {
+                        let sql = format!("INSERT OR REPLACE INTO {} ({}) VALUES ({})", #name_str, #columns, #column_positions);
+                        conn.execute(&sql, (#(#params,)*)).unwrap();
+                    };
+
                     quote! {
-                        use super::OptStr;
+                        use super::ChangeLogValue;
 
                         impl FromRow for #name {
                             fn from_row(row: &Row) -> Self {
@@ -69,10 +89,7 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                             }
                             
                             fn upsert(&self, conn: &rusqlite::Connection) {
-                                conn.execute("INSERT OR REPLACE INTO Track 
-                                    (key, artist, album, title, liked) 
-                                    VALUES (?1, ?2, ?3, ?4, ?5)",
-                                    (&self.key, &self.artist, &self.album, &self.title, &self.liked)).unwrap();
+                                #upsert
                             }
                             
                             fn set_key(&mut self, key: Option<String>) {
