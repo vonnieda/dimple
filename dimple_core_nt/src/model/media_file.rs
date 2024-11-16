@@ -1,8 +1,8 @@
+use dimple_core_nt_macro::ModelSupport;
+use super::{ChangeLog, Diff, FromRow, Model};
 use rusqlite::Row;
 
-use super::{ChangeLog, Diff, FromRow, Model};
-
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
 pub struct MediaFile {
     pub key: Option<String>,
 
@@ -12,108 +12,6 @@ pub struct MediaFile {
     pub artist: Option<String>,
     pub album: Option<String>,
     pub title: Option<String>,
-}
-
-impl FromRow for MediaFile {
-    fn from_row(row: &Row) -> Self {
-        Self {
-            key: row.get("key").unwrap(),
-            file_path: row.get("file_path").unwrap(),
-            sha256: row.get("sha256").unwrap(),
-            artist: row.get("artist").unwrap(),
-            album: row.get("album").unwrap(),
-            title: row.get("title").unwrap(),
-        }
-    }
-}
-
-impl Diff for MediaFile {
-    fn diff(&self, other: &Self) -> Vec<ChangeLog> {
-        let mut diff = vec![];
-        if self.key != other.key {
-            diff.push(ChangeLog { model: "MediaFile".to_string(), 
-                op: "set".to_string(), field: Some("key".to_string()), 
-                value: other.key.clone(), ..Default::default() });
-        }
-        if self.file_path != other.file_path {
-            diff.push(ChangeLog { model: "MediaFile".to_string(), 
-                op: "set".to_string(), field: Some("file_path".to_string()), 
-                value: Some(other.file_path.clone()), ..Default::default() });
-        }
-        if self.sha256 != other.sha256 {
-            diff.push(ChangeLog { model: "MediaFile".to_string(), 
-                op: "set".to_string(), field: Some("sha256".to_string()), 
-                value: Some(other.sha256.clone()), ..Default::default() });
-        }
-        if self.artist != other.artist {
-            diff.push(ChangeLog { model: "MediaFile".to_string(), 
-                op: "set".to_string(), field: Some("artist".to_string()), 
-                value: other.artist.clone(), ..Default::default() });
-        }
-        if self.album != other.album {
-            diff.push(ChangeLog { model: "MediaFile".to_string(), 
-                op: "set".to_string(), field: Some("album".to_string()), 
-                value: other.album.clone(), ..Default::default() });
-        }
-        if self.title != other.title {
-            diff.push(ChangeLog { model: "MediaFile".to_string(), 
-                op: "set".to_string(), field: Some("title".to_string()), 
-                value: other.title.clone(), ..Default::default() });
-        }
-        diff
-    }
-    
-    fn apply_diff(&mut self, diff: &[ChangeLog]) {
-        for change in diff {
-            if change.op == "set" {
-                if let Some(field) = change.field.clone() {
-                    if &field == "key" {
-                        self.key = change.value.clone();
-                    }
-                    if &field == "file_path" {
-                        self.file_path = change.value.clone().unwrap();
-                    }
-                    if &field == "sha256" {
-                        self.sha256 = change.value.clone().unwrap();
-                    }
-                    if &field == "artist" {
-                        self.artist = change.value.clone();
-                    }
-                    if &field == "album" {
-                        self.album = change.value.clone();
-                    }
-                    if &field == "title" {
-                        self.title = change.value.clone();
-                    }
-                }
-            }
-        }
-    }    
-}
-
-impl Model for MediaFile {
-    fn table_name() -> String {
-        "MediaFile".to_string()
-    }
-
-    fn key(&self) -> Option<String> {
-        self.key.clone()
-    }
-    
-    fn upsert(&self, conn: &rusqlite::Connection) {
-        conn.execute("INSERT OR REPLACE INTO MediaFile 
-            (key, artist, album, title, file_path, sha256) 
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            (&self.key, &self.artist, &self.album, &self.title, &self.file_path, &self.sha256)).unwrap();
-    }
-    
-    fn set_key(&mut self, key: Option<String>) {
-        self.key = key.clone()
-    }
-        
-    fn log_changes() -> bool {
-        true
-    }
 }
 
 #[cfg(test)]

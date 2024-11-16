@@ -1,5 +1,8 @@
 use rusqlite::{Connection, Row};
 
+mod artist;
+pub use artist::Artist;
+
 mod track;
 pub use track::Track;
 
@@ -50,17 +53,17 @@ impl From<bool> for ChangeLogValue {
     }
 }
 
+impl From<ChangeLogValue> for bool {
+    fn from(value: ChangeLogValue) -> Self {
+        value.val.unwrap() == "true"
+    }
+}
+
 impl From<Option<String>> for ChangeLogValue {
     fn from(value: Option<String>) -> Self {
         ChangeLogValue {
             val: value.clone(),
         }
-    }
-}
-
-impl From<String> for ChangeLogValue {
-    fn from(value: String) -> Self {
-        todo!()
     }
 }
 
@@ -70,14 +73,30 @@ impl From<ChangeLogValue> for Option<String> {
     }
 }
 
-impl From<ChangeLogValue> for bool {
-    fn from(value: ChangeLogValue) -> Self {
-        value.val.unwrap() == "true"
+impl From<String> for ChangeLogValue {
+    fn from(value: String) -> Self {
+        ChangeLogValue {
+            val: Some(value)
+        }
     }
 }
 
 impl From<ChangeLogValue> for String {
     fn from(value: ChangeLogValue) -> Self {
-        todo!()
+        value.val.unwrap()
+    }
+}
+
+impl From<u64> for ChangeLogValue {
+    fn from(value: u64) -> Self {
+        ChangeLogValue {
+            val: Some(value.to_string())
+        }
+    }
+}
+
+impl From<ChangeLogValue> for u64 {
+    fn from(value: ChangeLogValue) -> Self {
+        u64::from_str_radix(&value.val.unwrap(), 10).unwrap()
     }
 }
