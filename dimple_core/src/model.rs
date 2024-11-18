@@ -21,6 +21,9 @@ pub use media_file::MediaFile;
 mod blob;
 pub use blob::Blob;
 
+mod release;
+pub use release::Release;
+
 use crate::library::Library;
 
 pub trait FromRow {

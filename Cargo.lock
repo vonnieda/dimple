@@ -509,11 +509,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "dimple_core_nt"
+name = "dimple_core"
 version = "0.1.0"
 dependencies = [
  "blake3",
- "dimple_core_nt_macro",
+ "dimple_core_macro",
  "env_logger",
  "log",
  "playback-rs",
@@ -529,7 +529,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "dimple_core_nt_macro"
+name = "dimple_core_macro"
 version = "0.1.0"
 dependencies = [
  "quote",

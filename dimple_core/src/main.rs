@@ -1,6 +1,6 @@
 use std::{env, sync::Arc};
 
-use dimple_core_nt::{library::Library, model::{Blob, ChangeLog, Track}, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
+use dimple_core::{library::Library, model::{Blob, ChangeLog, Track}, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
 
 fn main() {
     let mut builder = env_logger::Builder::new();

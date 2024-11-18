@@ -1,6 +1,4 @@
-use dimple_core_nt_macro::ModelSupport;
-use super::{ChangeLog, Diff, FromRow, Model};
-use rusqlite::Row;
+use dimple_core_macro::ModelSupport;
 
 #[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
 pub struct MediaFile {
