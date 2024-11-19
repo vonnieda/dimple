@@ -4,6 +4,7 @@ use playback_rs::{Hint, Song};
 
 use crate::{library::Library, model::{Model, Playlist}};
 
+#[derive(Clone)]
 pub struct Player {
     library: Arc<Library>,
 }

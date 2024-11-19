@@ -7,6 +7,9 @@ pub struct Track {
     pub album: Option<String>,
     pub title: Option<String>,
     pub liked: bool,
+    pub plays: u32,
+    pub length_ms: Option<u64>,
+    pub media_position: Option<u32>,
 }
 
 // // https://musicbrainz.org/doc/Track
@@ -62,6 +65,7 @@ mod tests {
             album: Some("album".to_string()),
             title: Some("title".to_string()),
             liked: true,
+            ..Default::default()
         };
         let diff = a.diff(&b);
         assert!(diff.len() == 5);
@@ -81,6 +85,7 @@ mod tests {
             album: Some("album".to_string()),
             title: Some("title".to_string()),
             liked: true,
+            ..Default::default()
         };
         let diff = a.diff(&b);
         let mut c = Track::default();

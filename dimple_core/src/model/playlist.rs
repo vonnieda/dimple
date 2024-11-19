@@ -54,7 +54,7 @@ impl Diff for Playlist {
 }
 
 impl Model for Playlist {
-    fn table_name() -> String {
+    fn table_name(&self) -> String {
         "Playlist".to_string()
     }
 
@@ -73,7 +73,7 @@ impl Model for Playlist {
         self.key = key.clone()
     }
         
-    fn log_changes() -> bool {
+    fn log_changes(&self) -> bool {
         true
     }
 

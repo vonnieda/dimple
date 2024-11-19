@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use rusqlite::{Connection, Row};
 
 mod artist;
@@ -21,6 +23,9 @@ pub use media_file::MediaFile;
 mod blob;
 pub use blob::Blob;
 
+mod genre;
+pub use genre::Genre;
+
 mod release;
 pub use release::Release;
 
@@ -35,12 +40,12 @@ pub trait Diff {
     fn apply_diff(&mut self, diff: &[ChangeLog]);
 }
 
-pub trait Model: Sized + FromRow + Diff + Default + Clone {
-    fn table_name() -> String;
+pub trait Model: Sized + FromRow + Diff + Default + Clone + Send {
+    fn table_name(&self) -> String;
     fn key(&self) -> Option<String>;
     fn set_key(&mut self, key: Option<String>);
     fn upsert(&self, conn: &Connection);
-    fn log_changes() -> bool;
+    fn log_changes(&self) -> bool;
     fn hydrate(&mut self, library: &Library) {}
 }
 
@@ -103,3 +108,52 @@ impl From<ChangeLogValue> for u64 {
         u64::from_str_radix(&value.val.unwrap(), 10).unwrap()
     }
 }
+
+impl From<ChangeLogValue> for Option<u64> {
+    fn from(value: ChangeLogValue) -> Self {
+        if let Some(value) = value.val {
+            return Some(u64::from_str_radix(&value, 10).unwrap())
+        }
+        None
+    }
+}
+
+impl From<Option<u64>> for ChangeLogValue {
+    fn from(value: Option<u64>) -> Self {
+        ChangeLogValue {
+            val: value.map(|v| v.to_string())
+        }
+    }
+}
+
+impl From<u32> for ChangeLogValue {
+    fn from(value: u32) -> Self {
+        ChangeLogValue {
+            val: Some(value.to_string())
+        }
+    }
+}
+
+impl From<ChangeLogValue> for u32 {
+    fn from(value: ChangeLogValue) -> Self {
+        u32::from_str_radix(&value.val.unwrap(), 10).unwrap()
+    }
+}
+
+impl From<ChangeLogValue> for Option<u32> {
+    fn from(value: ChangeLogValue) -> Self {
+        if let Some(value) = value.val {
+            return Some(u32::from_str_radix(&value, 10).unwrap())
+        }
+        None
+    }
+}
+
+impl From<Option<u32>> for ChangeLogValue {
+    fn from(value: Option<u32>) -> Self {
+        ChangeLogValue {
+            val: value.map(|v| v.to_string())
+        }
+    }
+}
+

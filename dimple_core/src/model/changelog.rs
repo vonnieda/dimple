@@ -40,7 +40,7 @@ impl Diff for ChangeLog {
 }
 
 impl Model for ChangeLog {
-    fn table_name() -> String {
+    fn table_name(&self) -> String {
         "ChangeLog".to_string()
     }
 
@@ -60,7 +60,7 @@ impl Model for ChangeLog {
         self.key = key.clone();
     }
     
-    fn log_changes() -> bool {
+    fn log_changes(&self) -> bool {
         false
     }
 }

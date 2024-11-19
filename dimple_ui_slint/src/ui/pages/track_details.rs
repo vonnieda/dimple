@@ -1,7 +1,5 @@
 use dimple_core::model::Artist;
-use dimple_core::model::Entity;
 use dimple_core::model::Genre;
-use dimple_core::model::Recording;
 use dimple_core::model::Track;
 use slint::ComponentHandle;
 use slint::ModelRc;

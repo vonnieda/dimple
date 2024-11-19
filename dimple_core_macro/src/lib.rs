@@ -81,7 +81,7 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                         }
 
                         impl Model for #name {
-                            fn table_name() -> String {
+                            fn table_name(&self) -> String {
                                 #name_str.to_string()
                             }
                         
@@ -97,7 +97,7 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                                 self.key = key.clone();
                             }
                             
-                            fn log_changes() -> bool {
+                            fn log_changes(&self) -> bool {
                                 true
                             }
                         }    

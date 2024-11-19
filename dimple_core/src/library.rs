@@ -1,5 +1,6 @@
 use std::{sync::{Arc, Mutex, RwLock}, time::{Duration, Instant}};
 
+use image::DynamicImage;
 use log::info;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rusqlite::{backup::Backup, Connection, OptionalExtension};
@@ -70,6 +71,10 @@ impl Library {
         let src = self.conn();
         let backup = Backup::new(&src, &mut dst).unwrap();
         backup.run_to_completion(250, Duration::from_millis(10), None).unwrap();
+    }
+
+    pub fn reset(&self) -> Result<String, ()> {
+        todo!()
     }
 
     /// Import MediaFiles into the Library, creating or updating Tracks,
@@ -157,7 +162,7 @@ impl Library {
         obj.upsert(&self.conn());
         // load the newly inserted object
         let new: T = self.get(&key.unwrap()).unwrap();
-        if T::log_changes() {
+        if obj.log_changes() {
             // if we're logging changes, diff the old to the new
             let diff = old.diff(&new);
             for mut change in diff {
@@ -191,13 +196,13 @@ impl Library {
     }
 
     pub fn get<T: Model>(&self, key: &str) -> Option<T> {
-        let sql = format!("SELECT * FROM {} WHERE key = ?1", T::table_name());
+        let sql = format!("SELECT * FROM {} WHERE key = ?1", T::default().table_name());
         self.conn().query_row(&sql, (key,), 
             |row| Ok(T::from_row(row))).optional().unwrap()
     }
 
     pub fn list<T: Model>(&self) -> Vec<T> {
-        let sql = format!("SELECT * FROM {}", T::table_name());
+        let sql = format!("SELECT * FROM {}", T::default().table_name());
         self.conn().prepare(&sql).unwrap()
             .query_map((), |row| Ok(T::from_row(row))).unwrap()
             .map(|m| m.unwrap())
@@ -211,6 +216,80 @@ impl Library {
             .map(|m| m.unwrap())
             .collect();
         result
+    }
+
+    // TODO Need to profile the whole image path and see
+    // why it's so slow in dev mode. It's just unbearable. And maybe I really
+    // just do need to use smaller images? Mik's album images are a good test.
+    pub fn image<T: Model>(&self, model: &T) -> Option<DynamicImage> {
+        // let t = Instant::now();
+        // let dimage = self.db.list(&Dimage::default().into(), &Some(model.clone()))
+        //     .unwrap()
+        //     .map(Into::<Dimage>::into)
+        //     .next();
+        // if let Some(dimage) = dimage {
+        //     log::debug!("image from database {:?} {}x{} in {}ms", dimage.key, dimage.width, 
+        //         dimage.height, t.elapsed().as_millis());
+        //     return Some(dimage.get_image())
+        // }
+
+        // // TODO note, this uses a specialization of list that returns on the 
+        // // first valid result to speed things up. Eventually I want Dimage to
+        // // not include the blob, and then this won't be needed, or wanted,
+        // // because we'll want to be able to offer the user all the different
+        // // images, not just one.
+        // let t = Instant::now();
+        // let dimage = self._list(&Dimage::default().into(), &Some(model.clone()), true)
+        //     .unwrap()
+        //     .map(Into::<Dimage>::into)
+        //     .next();
+        // if let Some(dimage) = dimage {
+        //     log::debug!("image from plugins {:?} {}x{} in {}ms", dimage.key, dimage.width, 
+        //         dimage.height, t.elapsed().as_millis());
+        //     return Some(dimage.get_image())
+        // }
+
+        // // If nothing found specific to the model, see if there's something related.
+        // let t = Instant::now();
+        // match model {
+        //     Model::Artist(artist) => {
+        //         let release_groups = self.list2(ReleaseGroup::default(), Some(artist.clone()));
+        //         if let Ok(release_groups) = release_groups {
+        //             for release_group in release_groups {
+        //                 if let Some(dimage) = self.image(&release_group.model()) {
+        //                     log::debug!("image from relations {}x{} in {}ms", dimage.width(), 
+        //                         dimage.height(), t.elapsed().as_millis());
+        //                     return Some(dimage)
+        //                 }
+        //             }
+        //         }
+        //     },
+        //     Model::Genre(genre) => {
+        //         let release_groups = self.list2(ReleaseGroup::default(), Some(genre.clone()));
+        //         if let Ok(release_groups) = release_groups {
+        //             for release_group in release_groups {
+        //                 if let Some(dimage) = self.image(&release_group.model()) {
+        //                     log::debug!("image from relations {}x{} in {}ms", dimage.width(), 
+        //                         dimage.height(), t.elapsed().as_millis());
+        //                     return Some(dimage)
+        //                 }
+        //             }
+        //         }
+        //         let artists = self.list2(Artist::default(), Some(genre.clone()));
+        //         if let Ok(artists) = artists {
+        //             for artist in artists {
+        //                 if let Some(dimage) = self.image(&artist.model()) {
+        //                     log::debug!("image from relations {}x{} in {}ms", dimage.width(), 
+        //                         dimage.height(), t.elapsed().as_millis());
+        //                     return Some(dimage)
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     _ => ()
+        // }
+
+        None
     }
 
     pub fn changelogs(&self) -> Vec<ChangeLog> {
@@ -388,19 +467,19 @@ mod tests {
     fn import() {
         let library = Library::open("file:6384d9e0-74c1-4ecd-9ea3-b5d0118f134e?mode=memory&cache=shared");
         assert!(library.list::<MediaFile>().len() == 0);
-        let media_files = Scanner::scan_directory("media_files_small");
+        let media_files = Scanner::scan_directory("tests/data/media_files");
         assert!(media_files.len() > 0);
         library.import(&media_files);
         let num_mediafiles = library.list::<MediaFile>().len();
         assert!(library.list::<MediaFile>().len() > 0);
-        library.import(&Scanner::scan_directory("media_files_small"));
+        library.import(&Scanner::scan_directory("tests/data/media_files"));
         assert!(library.list::<MediaFile>().len() == num_mediafiles);
     }
 
     #[test]
     fn load_track_content() {
         let library = Library::open("file:6384d9e0-74c1-4e1d-9ea3-b5d0198f134e?mode=memory&cache=shared");
-        library.import(&Scanner::scan_directory("media_files_small"));
+        library.import(&Scanner::scan_directory("tests/data/media_files"));
         let track = &library.tracks()[0];
         let content = library.load_track_content(track).unwrap();
         assert!(content.len() > 0);
