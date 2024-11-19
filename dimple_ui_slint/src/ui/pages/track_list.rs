@@ -10,11 +10,22 @@ use slint::ModelRc;
 use slint::StandardListViewItem;
 use slint::VecModel;
 
+pub struct TrackListController {
+    app: App,
+    adapter: TrackListAdapter,    
+}
+
+impl TrackListController {
+    pub fn new(app: &App) -> TrackListController {
+        
+    }
+}
+
 // https://github.com/slint-ui/slint/discussions/2329
 pub fn track_list(app: &App) {
     let app = app.clone();
-    let tracks: Vec<Track> = app.librarian.list();
     thread::spawn(move || {
+        let tracks: Vec<Track> = app.librarian.list();
         app.ui.upgrade_in_event_loop(move |ui| {
             let rows: VecModel<ModelRc<StandardListViewItem>> = Default::default();
             for track in tracks {
@@ -24,16 +35,19 @@ pub fn track_list(app: &App) {
                 let length = format_length(length);
 
                 // Title, Album, Artist, Track #, Plays, Length                
-                row.push(StandardListViewItem::from(track.title.unwrap_or_default().as_str()));
+                row.push(StandardListViewItem::from(track.title.unwrap_or_default().as_str())); // Title
 
-                row.push(StandardListViewItem::from(track.album.unwrap_or_default().as_str()));
+                row.push(StandardListViewItem::from(track.album.unwrap_or_default().as_str())); // Album
 
-                row.push(StandardListViewItem::from(track.artist.unwrap_or_default().as_str()));
+                row.push(StandardListViewItem::from(track.artist.unwrap_or_default().as_str())); // Artist
 
-                row.push(StandardListViewItem::from("1")); // track no
+                row.push(StandardListViewItem::from("1")); // Track #
                 // row.push(StandardListViewItem::from(format!("{}", track.media_position.unwrap_or_default()).as_str()));
 
-                row.push(StandardListViewItem::from(length.as_str())); // len
+                row.push(track.plays.to_string().as_str().into()); // Plays
+
+                row.push(StandardListViewItem::from(length.as_str())); // Length
+
                 rows.push(row.into());
             }
             let adapter = TrackListAdapter {
@@ -50,4 +64,8 @@ fn format_length(length: Duration) -> String {
     let minutes = length.as_secs() / 60;
     let seconds = length.as_secs() % 60;
     format!("{}:{:02}", minutes, seconds)
+}
+
+pub fn track_list_track_selected(app: &App, row_index: u32) {
+
 }

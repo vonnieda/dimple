@@ -1,4 +1,5 @@
 use dimple_core::{library::{self, Library}, model::{Artist, Model}, player::Player};
+use pages::track_list;
 
 use std::{borrow::BorrowMut, collections::VecDeque, path::{Path, PathBuf}, sync::{Arc, Mutex}};
 
@@ -74,7 +75,11 @@ impl AppWindowController {
         let app = self.app.clone();
         self.ui.global::<AppState>().on_settings_set_debug(
             move |debug| settings::settings_set_debug(&app, debug));
-    
+        
+        let app = self.app.clone();
+        self.ui.global::<AppState>().on_track_list_track_selected(
+            move |row_index| track_list::track_list_track_selected(&app, row_index as u32));
+            
         // let app = self.app.clone();
         // self.ui.global::<AppState>().on_release_group_details_release_selected(
         //     move |s| release_group_details::release_group_details_release_selected(&app, s.to_string()));
@@ -216,9 +221,9 @@ impl App {
         else if url.starts_with("dimple://tracks") {
             crate::ui::pages::track_list::track_list(self);
         }
-        // else if url.starts_with("dimple://track/") {
-        //     crate::ui::pages::track_details::track_details(&url, self);
-        // }
+        else if url.starts_with("dimple://track/") {
+            crate::ui::pages::track_details::track_details(&url, self);
+        }
         // else if url.starts_with("dimple://genres") {
         //     crate::ui::pages::genre_list::genre_list(self);
         // }

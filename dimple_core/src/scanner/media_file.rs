@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Visual}, probe::Hint};
+use symphonia::core::{errors::Error, formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Visual}, probe::Hint};
 
 #[derive(Clone, Debug)]
 pub struct ScannedFile {
@@ -10,7 +10,7 @@ pub struct ScannedFile {
 }
 
 impl ScannedFile {
-    pub fn new(path: &str) -> Result<ScannedFile, String> {
+    pub fn new(path: &str) -> Result<ScannedFile, Error> {
         let path = std::fs::canonicalize(path).unwrap();
 
         let media_source = File::open(&path).unwrap();
@@ -30,8 +30,9 @@ impl ScannedFile {
         let probed = symphonia::default::get_probe()
             .format(&hint, media_source_stream, &fmt_opts, &meta_opts);
 
-        if probed.is_err() {
-            return Err("No media found in probe.".to_string());
+        if let Err(e) = probed {
+            log::error!("{:?} {:?}", &path, e.to_string());
+            return Err(e)
         }
 
         let mut probed = probed.unwrap();

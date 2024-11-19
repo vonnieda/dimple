@@ -2,9 +2,11 @@ use std::thread;
 
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
+use dimple_core::model::MediaFile;
 use dimple_core::model::Playlist;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
+use dimple_core::model::TrackSource;
 use size::Size;
 use slint::{ModelRc, SharedString};
 
@@ -24,24 +26,21 @@ pub fn settings(app: &App) {
         let db = app.librarian.clone();
 
         let mut database_stats: Vec<String> = vec![];
-        // database_stats.push(format!("Artists: {}", 
-        //     db.list(&Artist::default().model(), &None).unwrap().count()));
+        database_stats.push(format!("Artists: {}", db.list::<Artist>().len()));
+        database_stats.push(format!("Genres: {}", db.list::<Genre>().len()));
+        database_stats.push(format!("MediaFiles: {}", db.list::<MediaFile>().len()));
+        database_stats.push(format!("Playlists: {}", db.list::<Playlist>().len()));
+        database_stats.push(format!("Tracks: {}", db.list::<Track>().len()));
+        database_stats.push(format!("TrackSources: {}", db.list::<TrackSource>().len()));
+        database_stats.push(format!("Releases: {}", db.list::<Release>().len()));
         // database_stats.push(format!("Release Groups: {}", 
         //     db.list(&ReleaseGroup::default().model(), &None).unwrap().count()));
-        // database_stats.push(format!("Releases: {}", 
-        //     db.list(&Release::default().model(), &None).unwrap().count()));
         // database_stats.push(format!("Media: {}", 
         //     db.list(&Medium::default().model(), &None).unwrap().count()));
-        // database_stats.push(format!("Tracks: {}", 
-        //     db.list(&Track::default().model(), &None).unwrap().count()));
         // database_stats.push(format!("Recordings: {}", 
         //     db.list(&Recording::default().model(), &None).unwrap().count()));
         // database_stats.push(format!("Recording Sources: {}", 
         //     db.list(&RecordingSource::default().model(), &None).unwrap().count()));
-        // database_stats.push(format!("Genres: {}", 
-        //     db.list(&Genre::default().model(), &None).unwrap().count()));
-        // database_stats.push(format!("Playlists: {}", 
-        //     db.list(&Playlist::default().model(), &None).unwrap().count()));
         // TODO disabled until performance is better
         // database_stats.push(format!("Pictures: {}", 
         //         db.list(&Picture::default().model(), &None).unwrap().count()));

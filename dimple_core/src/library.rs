@@ -20,6 +20,8 @@ pub struct Library {
 
 /// TODO change notifications
 /// TODO start changing to Release and friends to easier port to GUI
+/// TODO Tantivy search
+/// TODO directory
 impl Library {
     /// Open the library located at the specified path. The path is to an
     /// optionally existing Sqlite database. Blobs will be stored in the
@@ -63,6 +65,9 @@ impl Library {
     }
 
     pub fn conn(&self) -> Connection {
+        // TODO wait, wait, why did I change this from a single connection?
+        // Cause that is probably slowing things down a lot. So if I need
+        // it this way (why?) then I need to pool.
         Connection::open(self.database_path.clone()).unwrap()
     }
 
