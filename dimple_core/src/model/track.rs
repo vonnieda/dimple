@@ -9,7 +9,7 @@ pub struct Track {
     pub liked: bool,
     pub plays: u32,
     pub length_ms: Option<u64>,
-    pub media_position: Option<u32>,
+    // pub media_position: Option<u32>,
 }
 
 // // https://musicbrainz.org/doc/Track

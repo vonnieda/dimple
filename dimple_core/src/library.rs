@@ -23,8 +23,20 @@ pub struct Library {
 impl Library {
     /// Open the library located at the specified path. The path is to an
     /// optionally existing Sqlite database. Blobs will be stored in the
-    /// same directory as the specified file.
+    /// same directory as the specified file. If the directory does not exist
+    /// it (and all parents) will be created.
     pub fn open(database_path: &str) -> Self {
+        // std::fs::create_dir_all(path).unwrap();
+        // let db_path = Path::new(path).join("library.db");
+        // let plugin_cache_path = Path::new(path).join("plugin_cache");
+        // fs::create_dir_all(plugin_cache_path.clone()).unwrap();
+        // let librarian = Self {
+        //     db: SqliteDb::new(db_path.to_str().unwrap()).unwrap(),
+        //     plugins: Default::default(),
+        //     network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
+        //     plugin_context: PluginContext::new(plugin_cache_path.to_str().unwrap()),
+        // };
+        // librarian
 
         let conn = Connection::open(database_path).unwrap();
 

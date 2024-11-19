@@ -1,6 +1,7 @@
 use std::{env, sync::Arc};
 
 use dimple_core::{library::Library, model::{Blob, ChangeLog, Track}, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
+use directories::ProjectDirs;
 
 fn main() {
     let mut builder = env_logger::Builder::new();
@@ -24,8 +25,20 @@ fn main() {
         println!("    blobs                           List blobs.");
         return
     }
-    let library_path = "dimple.db";
-    let library = Arc::new(Library::open(library_path));
+
+    let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
+    let data_dir = dirs.data_dir();
+    let cache_dir = dirs.cache_dir();
+    let config_dir = dirs.config_dir();
+    let image_cache_dir = cache_dir.join("image_cache");
+    let library_path = data_dir.join("library.db");
+    dbg!(&data_dir, &cache_dir, &config_dir, &library_path, &image_cache_dir);
+    std::fs::create_dir_all(&data_dir).unwrap();
+    std::fs::create_dir_all(&cache_dir).unwrap();
+    std::fs::create_dir_all(&config_dir).unwrap();
+    std::fs::create_dir_all(&image_cache_dir).unwrap();
+
+    let library = Arc::new(Library::open(library_path.to_str().unwrap()));
 
     let access_key = env::var("DIMPLE_TEST_S3_ACCESS_KEY").unwrap();
     let secret_key = env::var("DIMPLE_TEST_S3_SECRET_KEY").unwrap();

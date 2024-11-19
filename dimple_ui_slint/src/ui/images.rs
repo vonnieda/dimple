@@ -107,11 +107,11 @@ impl ImageMangler {
     }
 
     pub fn cache_len(&self) -> usize {
-        // TODO this might not be working, I think it's always returning 0
         let mut len = 0;
-        for entry in cacache::list_sync(self.cache_path.clone()) {
-            len += entry.unwrap().size;
-        }
+        // TODO explodes when directory not created yet
+        // for entry in cacache::list_sync(self.cache_path.clone()) {
+        //     len += entry.unwrap().size;
+        // }
         len
     }
 

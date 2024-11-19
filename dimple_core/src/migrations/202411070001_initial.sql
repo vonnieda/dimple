@@ -21,7 +21,9 @@ CREATE TABLE IF NOT EXISTS Track (
     artist    TEXT,
     album     TEXT,
     title     TEXT,
-    liked     BOOL NOT NULL DEFAULT false
+    liked     BOOL NOT NULL DEFAULT false,
+    plays     INT NOT NULL DEFAULT 0,
+    length_ms INT
 );
 CREATE INDEX IF NOT EXISTS Track_idx_1 ON Track (artist, album, title);
 

@@ -1,5 +1,4 @@
-use dimple_core::{library::Library, model::{Artist, Model}, player::Player};
-use serde::de;
+use dimple_core::{library::{self, Library}, model::{Artist, Model}, player::Player};
 
 use std::{borrow::BorrowMut, collections::VecDeque, path::{Path, PathBuf}, sync::{Arc, Mutex}};
 
@@ -31,24 +30,19 @@ impl AppWindowController {
         // TODO This and librarian should happen once the UI is up so that we
         // can show errors if needed. 
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
-        let dir = dirs.data_dir().to_str().unwrap();
-        // let librarian = Librarian::new_in_memory();
-        panic!("that's a directory, not a file!");
-        let librarian = Library::open(dir);
+        let data_dir = dirs.data_dir();
+        let cache_dir = dirs.cache_dir();
+        let config_dir = dirs.config_dir();
+        let image_cache_dir = cache_dir.join("image_cache");
+        let library_path = data_dir.join("library.db");
+        dbg!(&data_dir, &cache_dir, &config_dir, &library_path, &image_cache_dir);
+        std::fs::create_dir_all(&data_dir).unwrap();
+        std::fs::create_dir_all(&cache_dir).unwrap();
+        std::fs::create_dir_all(&config_dir).unwrap();
+        std::fs::create_dir_all(&image_cache_dir).unwrap();
 
-        let image_cache_path = Path::new(dir).join("images_cache");
-        let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_path.to_str().unwrap());
-        
-        // let mediafiles_plugin = MediaFilesPlugin::new();
-        // mediafiles_plugin.monitor_directory(&PathBuf::from("/Users/jason/Music"));
-        // librarian.add_plugin(Box::new(mediafiles_plugin));
-
-        // librarian.add_plugin(Box::new(MusicBrainzPlugin::default()));
-        // librarian.add_plugin(Box::new(WikidataPlugin::default()));
-        // librarian.add_plugin(Box::new(FanartTvPlugin::default()));
-        // librarian.add_plugin(Box::new(TheAudioDbPlugin::default()));
-        // librarian.add_plugin(Box::new(CoverArtArchivePlugin::default()));
-
+        let librarian = Library::open(library_path.to_str().unwrap());
+        let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         let player = Player::new(Arc::new(librarian.clone()));
         let ui_weak = ui.as_weak();
         Self {

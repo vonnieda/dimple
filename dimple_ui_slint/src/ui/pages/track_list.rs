@@ -19,13 +19,20 @@ pub fn track_list(app: &App) {
             let rows: VecModel<ModelRc<StandardListViewItem>> = Default::default();
             for track in tracks {
                 let row = Rc::new(VecModel::default());
-                // Title, Album, Artist, Track #, Plays, Length
+
                 let length = Duration::from_millis(track.length_ms.unwrap_or_default() as u64);
                 let length = format_length(length);
+
+                // Title, Album, Artist, Track #, Plays, Length                
                 row.push(StandardListViewItem::from(track.title.unwrap_or_default().as_str()));
+
                 row.push(StandardListViewItem::from(track.album.unwrap_or_default().as_str()));
+
                 row.push(StandardListViewItem::from(track.artist.unwrap_or_default().as_str()));
-                row.push(StandardListViewItem::from(format!("{}", track.media_position.unwrap_or_default()).as_str()));
+
+                row.push(StandardListViewItem::from("1")); // track no
+                // row.push(StandardListViewItem::from(format!("{}", track.media_position.unwrap_or_default()).as_str()));
+
                 row.push(StandardListViewItem::from(length.as_str())); // len
                 rows.push(row.into());
             }

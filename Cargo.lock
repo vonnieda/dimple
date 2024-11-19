@@ -1560,6 +1560,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "dimple_core_macro",
+ "directories",
  "env_logger 0.11.5",
  "image 0.25.5",
  "log",
