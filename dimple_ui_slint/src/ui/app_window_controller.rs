@@ -78,7 +78,7 @@ impl AppWindowController {
         
         let app = self.app.clone();
         self.ui.global::<AppState>().on_track_list_track_selected(
-            move |row_index| track_list::track_list_track_selected(&app, row_index as u32));
+            move |row| track_list::track_list_track_selected(&app, row));
             
         // let app = self.app.clone();
         // self.ui.global::<AppState>().on_release_group_details_release_selected(

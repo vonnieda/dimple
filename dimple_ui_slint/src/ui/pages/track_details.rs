@@ -38,8 +38,6 @@ pub fn track_details(url: &str, app: &App) {
         //     .unwrap().map(Into::into).collect();
         // track.genres.sort_by_key(|genre| genre.name.clone().unwrap_or_default().to_lowercase());
 
-        dbg!(&track);
-
         let artists: Vec<Artist> = vec![];
         let genres: Vec<Genre> = vec![];
         let links: Vec<String> = vec![];
