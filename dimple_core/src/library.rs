@@ -1,8 +1,7 @@
-use std::{sync::{Arc, Mutex, RwLock}, time::{Duration, Instant}};
+use std::{sync::{Arc, Mutex, RwLock}, time::Duration};
 
 use image::DynamicImage;
 use log::info;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rusqlite::{backup::Backup, Connection, OptionalExtension};
 use symphonia::core::meta::StandardTagKey;
 use ulid::Generator;
@@ -99,7 +98,7 @@ impl Library {
     /// TODO okay this is slow cause we are scanning all the files first no
     /// matter what, reading all their tags and images and shit, and we might
     /// just ignore that file based on it's sha, so fix that.
-    pub fn import(&self, input: &[crate::scanner::media_file::ScannedFile]) {
+    pub fn import(&self, input: &[ScannedFile]) {
         let library = self.clone();
         // TODO getting a lot of "database table is locked: ChangeLog" when using par_iter
         input.iter().for_each(|input| {

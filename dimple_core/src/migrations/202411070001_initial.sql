@@ -12,8 +12,12 @@ CREATE TABLE IF NOT EXISTS Blob (
 );
 
 CREATE TABLE IF NOT EXISTS Artist (
-    key       TEXT PRIMARY KEY,
-    name      TEXT
+    key            TEXT PRIMARY KEY,
+    name           TEXT,
+    disambiguation TEXT,
+    summary        TEXT,
+    liked          BOOL NOT NULL DEFAULT false,
+    country        TEXT
 );
 
 CREATE TABLE IF NOT EXISTS Track (
@@ -26,6 +30,15 @@ CREATE TABLE IF NOT EXISTS Track (
     length_ms INT
 );
 CREATE INDEX IF NOT EXISTS Track_idx_1 ON Track (artist, album, title);
+
+CREATE TABLE IF NOT EXISTS Genre (
+    key            TEXT PRIMARY KEY,
+    name           TEXT,
+    disambiguation TEXT,
+    summary        TEXT,
+    liked          BOOL NOT NULL DEFAULT false
+);
+
 
 CREATE TABLE IF NOT EXISTS MediaFile (
     key       TEXT PRIMARY KEY,

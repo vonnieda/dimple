@@ -85,10 +85,10 @@ mod tests {
         assert!(c == b);
     }
 
-    // #[test]
-    // fn read() {
-    //     let a = Blob::read("tests/artifacts/hello.txt");
-    //     assert!(&a.sha256 == "319b0878313c131df1382eaac03be8ef59d466f81d16717c751368da578051ca");
-    //     assert!(a.length == 28);
-    // }
+    #[test]
+    fn read() {
+        let a = Blob::read("tests/data/hello.txt");
+        assert!(&a.sha256 == "319b0878313c131df1382eaac03be8ef59d466f81d16717c751368da578051ca");
+        assert!(a.length == 28);
+    }
 }
