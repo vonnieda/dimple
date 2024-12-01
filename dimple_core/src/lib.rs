@@ -52,9 +52,10 @@ mod tests {
     
             let tracks = library.tracks();
             let track = tracks.get(0).unwrap();
-            player.play_queue_add(&track.key.clone().unwrap());
+            let play_queue = player.play_queue();
+            library.playlist_add(&play_queue, &track.key.clone().unwrap());
             assert!(player.play_queue().tracks.len() == 1);
-            player.play_queue_add(&track.key.clone().unwrap());
+            library.playlist_add(&play_queue, &track.key.clone().unwrap());
             assert!(player.play_queue().tracks.len() == 2);
 
             library.sync();

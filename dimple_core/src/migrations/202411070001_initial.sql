@@ -39,7 +39,6 @@ CREATE TABLE IF NOT EXISTS Genre (
     liked          BOOL NOT NULL DEFAULT false
 );
 
-
 CREATE TABLE IF NOT EXISTS MediaFile (
     key       TEXT PRIMARY KEY,
     file_path TEXT UNIQUE NOT NULL,
@@ -49,19 +48,15 @@ CREATE TABLE IF NOT EXISTS MediaFile (
     title     TEXT
 );
 
--- Note because I keep forgetting it myself: There can be multiple TrackSources
--- with the same media_file_key for various reasons. For example, a greatest
--- hits may include the exact recording from the original hit and would thus
--- reference the same piece of media.
 CREATE TABLE IF NOT EXISTS TrackSource (
     key            TEXT PRIMARY KEY,
     track_key      TEXT NOT NULL,
     blob_key       TEXT
-    -- TODO blobs, urls, etc.
-    -- TODO probably unique across that plus track_key
-    -- FOREIGN KEY (track_key) REFERENCES Track(key) -- TODO breaks a test cause no tracks exist
+    -- FOREIGN KEY (track_key) REFERENCES Track(key),
+    -- FOREIGN KEY (blob_key) REFERENCES Blob(key)
 );
 CREATE INDEX IF NOT EXISTS TrackSource_idx_1 ON TrackSource (blob_key);
+CREATE UNIQUE INDEX IF NOT EXISTS TrackSource_idx_2 ON TrackSource (track_key, blob_key);
 
 CREATE TABLE IF NOT EXISTS Playlist (
     key       TEXT PRIMARY KEY,

@@ -4,23 +4,26 @@ use dimple_core_macro::ModelSupport;
 pub struct TrackSource {
     pub key: Option<String>,
     pub track_key: String,
-    pub blob_key: Option<String>,
+    pub blob_key: String,
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Diff, TrackSource}};
+    use crate::{library::Library, model::{Blob, Diff, Track, TrackSource}};
 
     #[test]
     fn library_crud() {
         let library = Library::open("file:712f9444-5755-4795-a75f-a4c33fd695c6?mode=memory&cache=shared");
-        let mut model = library.save(&TrackSource::default());
-        assert!(model.key.is_some());
-        assert!(model.blob_key.is_none());
-        model.blob_key = Some("blob_key".to_string());
+        let blob = library.save(&Blob::default());
+        let track = library.save(&Track::default());
+        let model = library.save(&TrackSource {
+            track_key: track.key.clone().unwrap(),
+            blob_key: blob.key.clone().unwrap(),
+            ..Default::default()
+        });
         let model = library.save(&model);
         let model: TrackSource = library.get(&model.key.unwrap()).unwrap();
-        assert!(model.blob_key == Some("blob_key".to_string()));
+        assert!(model.blob_key == blob.key.unwrap());
     }
 
     #[test]
@@ -29,7 +32,8 @@ mod tests {
         let b = TrackSource {
             key: Some("key".to_string()),
             track_key: "track_key".to_string(),
-            blob_key: Some("blob_key".to_string()),
+            blob_key: "blob_key".to_string(),
+            ..Default::default()
         };
         let diff = a.diff(&b);
         assert!(diff.len() == 3);
@@ -44,7 +48,8 @@ mod tests {
         let b = TrackSource {
             key: Some("key".to_string()),
             track_key: "track_key".to_string(),
-            blob_key: Some("blob_key".to_string()),
+            blob_key: "blob_key".to_string(),
+            ..Default::default()
         };
         let diff = a.diff(&b);
         let mut c = TrackSource::default();

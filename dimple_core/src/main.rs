@@ -100,14 +100,14 @@ fn main() {
     }
     else if command == "add" {
         let track_key = &args[2];
-        player.play_queue_add(track_key);
+        library.playlist_add(&player.play_queue(), track_key);
         let play_queue = player.play_queue();
         for track in play_queue.tracks {
             print_track(&track);
         }
     }
     else if command == "clear" {
-        player.play_queue_clear();
+        library.playlist_clear(&player.play_queue());
         let play_queue = player.play_queue();
         for track in play_queue.tracks {
             print_track(&track);

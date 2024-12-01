@@ -1,23 +1,14 @@
-# Dimple
+# Dimple Music Player
 
-Dimple is:
-- an open source and cross-platform music player that celebrates music and privacy.
-- an open source, cross-platform music player for the open Internet.
-- a private music streaming service, just for you, in a single app.
-- a local first, open source, music platform in an app.
+Dimple is a music player app for the future. It is local first, open source,
+private, and cross-platform.
 
-It runs on all the common desktops and mobiles, and gives you all the power of
-a streaming service in a beautiful, self-contained app.
+It runs on all the common desktops and mobiles*, and gives you all the power
+of an online streaming service in a single self-contained app that you own
+forever.
 
-Dimple is $6.99 on any app store, or you can download it for free right here. 
-The only difference between the two is that app store sales pay for Dimple's
-development.
-
-**Dimple is my full time job and I'm working hard to make it the best music 
-player I can.**
-
-If you don't purchase through an app store, please consider:
-- Donating to or sponsoring Dimple:
+If you don't purchase through an app store, please consider donating to or
+sponsoring Dimple:
   - Merch: https://dimple.lol/store
   - BTC: 3FMNgdEjbVcxVoAUtgFFpzsuccnU9KMuhx
   - ETH: 0xf1CE557bE8645dC70e78Cbb601bAF2b3649169A0
@@ -28,9 +19,6 @@ If you don't purchase through an app store, please consider:
   - Ko-Fi: https://ko-fi.com/vonnieda
   - Buy Me a Coffee: https://www.buymeacoffee.com/vonnieda
   - Patreon: (Pending)
-- Donating to Musicbrainz: https://metabrainz.org/donate
-- Donating to fanart.tv: https://fanart.tv/
-- Sponsoring TheAudioDB: https://www.patreon.com/thedatadb
 
 # Features
 
@@ -70,6 +58,9 @@ If you don't purchase through an app store, please consider:
 - Scrobble to Last.fm, Listenbrainz, Maloja, and more.
 
 ## "Smart"
+
+*Ed: explain the feature, drop the silly names.*
+
 - "Deep Scrobbling" keeps track of your volume adjustments, repeats, skips,
   scrubs, likes, dislikes, and dozens of other interactive data points. This
   powers features like Current Obsessions, Mood Radio, AI DJ, ReplayGain,

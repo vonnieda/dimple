@@ -21,6 +21,7 @@ pub struct Library {
 /// TODO start changing to Release and friends to easier port to GUI
 /// TODO Tantivy search
 /// TODO directory
+/// TODO I think drop Option from key, and just use empty as new key.
 impl Library {
     /// Open the library located at the specified path. The path is to an
     /// optionally existing Sqlite database. Blobs will be stored in the
@@ -141,7 +142,7 @@ impl Library {
 
             let _source = self.save(&TrackSource {
                 track_key: track.key.unwrap(),
-                blob_key: blob.key.clone(),
+                blob_key: blob.key.unwrap(),
                 ..Default::default()
             });
         }
@@ -414,11 +415,9 @@ impl Library {
 
     pub fn load_track_content(&self, track: &Track) -> Option<Vec<u8>> {
         for source in self.track_sources_for_track(track) {
-            if let Some(blob_key) = source.blob_key {
-                if let Some(blob) = self.get::<Blob>(&blob_key) {
-                    if let Some(content) = self.load_blob_content(&blob) {
-                        return Some(content)
-                    }
+            if let Some(blob) = self.get::<Blob>(&source.blob_key) {
+                if let Some(content) = self.load_blob_content(&blob) {
+                    return Some(content)
                 }
             }
         }
