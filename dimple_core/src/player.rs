@@ -1,4 +1,4 @@
-use std::{sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, time::Duration};
+use std::{sync::{mpsc::{self, Receiver, Sender}, Arc, RwLock}, time::Duration};
 
 use crate::{library::Library, model::{Model, Playlist}};
 
@@ -9,6 +9,7 @@ pub struct Player {
     shared_state: Arc<RwLock<SharedState>>,
     // songs: Arc<RwLock<HashMap<String, MediaStatus>>>,
 }
+
 
 impl Player {
     pub fn new(library: Arc<Library>) -> Player {
@@ -40,7 +41,9 @@ impl Player {
                 ..Default::default()
             })
         };
-        // TODO should happen in library.get
+        // TODO should happen in library.get or maybe just let the caller
+        // do if it they want. Reading potentially thousands of items into
+        // a list might not be the goal.
         playlist.hydrate(&self.library);
         playlist
     }
@@ -97,6 +100,7 @@ impl Player {
     /// Process commands on the player thread.
     fn process_commands(&self, receiver: &Receiver<PlayerCommand>, inner: &playback_rs::Player) {
         while let Ok(command) = receiver.recv_timeout(Duration::from_millis(100)) {
+            log::info!("command received: {:?}", command);
             match command {
                 PlayerCommand::Play => inner.set_playing(true),
                 PlayerCommand::Pause => inner.set_playing(false),
@@ -150,7 +154,7 @@ pub enum PlayerState {
     Paused,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum PlayerCommand {
     Play,
     Pause,
@@ -162,9 +166,9 @@ enum PlayerCommand {
 
 #[cfg(test)]
 mod tests {
-    use std::{sync::Arc, thread::sleep, time::Duration};
+    use std::{sync::Arc, time::Instant};
 
-    use crate::{library::{self, Library}, scanner::Scanner};
+    use crate::library::Library;
 
     use super::Player;
 
@@ -172,12 +176,15 @@ mod tests {
     fn it_works() {
         let library = Arc::new(Library::open("file:ee2e5b97-b997-431d-8224-d361e905d071?mode=memory&cache=shared"));
         let player = Player::new(library.clone());
-        library.import(&Scanner::scan_directory("tests/data/media_files"));
+        library.import("tests/data/media_files");
         let tracks = library.tracks();
+        let play_queue = player.play_queue();
         for track in &tracks[0..3] {
-            // player.play_queue_add(track.key.as_ref().unwrap());
+            library.playlist_add(&play_queue, track.key.as_ref().unwrap());
         }
+        let t = Instant::now();
         player.play();
+        assert!(t.elapsed().as_secs() > 5);
     }
 }
 

@@ -30,11 +30,11 @@ impl FromRow for ChangeLog {
 }
 
 impl Diff for ChangeLog {
-    fn diff(&self, other: &Self) -> Vec<ChangeLog> where Self: Sized {
+    fn diff(&self, _other: &Self) -> Vec<ChangeLog> where Self: Sized {
         todo!()
     }
 
-    fn apply_diff(&mut self, diff: &[ChangeLog]) {
+    fn apply_diff(&mut self, _diff: &[ChangeLog]) {
         todo!()
     }
 }

@@ -2,16 +2,15 @@ use std::{sync::{Arc, Mutex, RwLock}, time::Duration};
 
 use image::DynamicImage;
 use log::info;
-use rusqlite::{backup::Backup, Connection, OptionalExtension};
-use symphonia::core::meta::StandardTagKey;
+use rusqlite::{backup::Backup, Connection, OptionalExtension, Params};
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::{model::{Blob, ChangeLog, FromRow, MediaFile, Model, Playlist, Track, TrackSource}, scanner::media_file::ScannedFile, sync::Sync};
+use crate::{model::{Blob, ChangeLog, FromRow, MediaFile, Model, Playlist, Track, TrackSource}, sync::Sync};
 
 #[derive(Clone)]
 pub struct Library {
-    _conn: Arc<Mutex<Connection>>,
+    conn: Arc<Mutex<Connection>>,
     database_path: String,
     ulids: Arc<Mutex<Generator>>,
     synchronizers: Arc<RwLock<Vec<Sync>>>,
@@ -20,7 +19,7 @@ pub struct Library {
 /// TODO change notifications
 /// TODO start changing to Release and friends to easier port to GUI
 /// TODO Tantivy search
-/// TODO directory
+/// TODO directory/blobs
 /// TODO I think drop Option from key, and just use empty as new key.
 impl Library {
     /// Open the library located at the specified path. The path is to an
@@ -55,7 +54,7 @@ impl Library {
         ).unwrap();
 
         let library = Library {
-            _conn: Arc::new(Mutex::new(conn)),
+            conn: Arc::new(Mutex::new(conn)),
             database_path: database_path.to_string(),
             ulids: Arc::new(Mutex::new(Generator::new())),
             synchronizers: Arc::new(RwLock::new(vec![])),
@@ -64,7 +63,7 @@ impl Library {
         library
     }
 
-    pub fn conn(&self) -> Connection {
+    fn conn(&self) -> Connection {
         // TODO wait, wait, why did I change this from a single connection?
         // Cause that is probably slowing things down a lot. So if I need
         // it this way (why?) then I need to pool.
@@ -95,57 +94,10 @@ impl Library {
     }
 
     /// Import MediaFiles into the Library, creating or updating Tracks,
-    /// TrackSources, Blobs, etc.
-    /// TODO okay this is slow cause we are scanning all the files first no
-    /// matter what, reading all their tags and images and shit, and we might
-    /// just ignore that file based on it's sha, so fix that.
-    pub fn import(&self, input: &[ScannedFile]) {
-        let library = self.clone();
-        // TODO getting a lot of "database table is locked: ChangeLog" when using par_iter
-        input.iter().for_each(|input| {
-            library.import_internal(input);
-        });
-    }
-
-    fn import_internal(&self, input: &ScannedFile) {
-        // TODO txn
-        let file_path = std::fs::canonicalize(&input.path).unwrap();
-        let file_path = file_path.to_str().unwrap();
-
-        let blob = Blob::read(file_path);
-        let blob = self.find_blob_by_sha256(&blob.sha256)
-            .or_else(|| Some(self.save(&blob)))
-            .unwrap();
-
-        let media_file = self.find_media_file_by_file_path(file_path)
-            .or_else(|| Some(self.save(&MediaFile {
-                file_path: file_path.to_owned(),
-                sha256: blob.sha256.clone(),
-                artist: input.tag(StandardTagKey::Artist),
-                album: input.tag(StandardTagKey::Album),
-                title: input.tag(StandardTagKey::TrackTitle),
-                ..Default::default()
-            })))
-            .unwrap();
-
-        if self.track_sources_by_blob(&blob).is_empty() {
-            // TODO temp, eventually uses more matching
-            // or maybe just always create and de-dupe?
-            let track = self.find_track_for_media_file(&media_file)
-                .or_else(|| Some(self.save(&Track {
-                    artist: media_file.artist,
-                    album: media_file.album,
-                    title: media_file.title,
-                    ..Default::default()
-                })))
-                .unwrap();
-
-            let _source = self.save(&TrackSource {
-                track_key: track.key.unwrap(),
-                blob_key: blob.key.unwrap(),
-                ..Default::default()
-            });
-        }
+    /// TrackSources, Blobs, etc. path can be either a file or directory. If
+    /// it is a directory it will be recursively scanned.
+    pub fn import(&self, path: &str) {
+        crate::import::import(self, path);
     }
 
     pub fn add_sync(&self, sync: Sync) {
@@ -226,10 +178,10 @@ impl Library {
             .collect()
     }
 
-    pub fn query<T: Model>(&self, sql: &str) -> Vec<T> {
+    pub fn query<T: Model, P: Params>(&self, sql: &str, params: P) -> Vec<T> {
         let conn = self.conn();
         let result = conn.prepare(&sql).unwrap()
-            .query_map((), |row| Ok(T::from_row(row))).unwrap()
+            .query_map(params, |row| Ok(T::from_row(row))).unwrap()
             .map(|m| m.unwrap())
             .collect();
         result
@@ -310,11 +262,11 @@ impl Library {
     }
 
     pub fn changelogs(&self) -> Vec<ChangeLog> {
-        self.query("SELECT * FROM ChangeLog ORDER BY timestamp ASC")
+        self.query("SELECT * FROM ChangeLog ORDER BY timestamp ASC", ())
     }
 
     pub fn tracks(&self) -> Vec<Track> {
-        self.query("SELECT * FROM Track ORDER BY artist, album, title")
+        self.query("SELECT * FROM Track ORDER BY artist, album, title", ())
     }
 
     pub fn playlist_add(&self, playlist: &Playlist, track_key: &str) {
@@ -432,7 +384,7 @@ impl Library {
 
 #[cfg(test)]
 mod tests {
-    use crate::{model::{Diff, MediaFile, Track}, scanner::Scanner};
+    use crate::model::{Diff, MediaFile, Track};
 
     use super::Library;
 
@@ -482,19 +434,17 @@ mod tests {
     fn import() {
         let library = Library::open("file:6384d9e0-74c1-4ecd-9ea3-b5d0118f134e?mode=memory&cache=shared");
         assert!(library.list::<MediaFile>().len() == 0);
-        let media_files = Scanner::scan_directory("tests/data/media_files");
-        assert!(media_files.len() > 0);
-        library.import(&media_files);
+        library.import("tests/data/media_files");
         let num_mediafiles = library.list::<MediaFile>().len();
         assert!(library.list::<MediaFile>().len() > 0);
-        library.import(&Scanner::scan_directory("tests/data/media_files"));
+        library.import("tests/data/media_files");
         assert!(library.list::<MediaFile>().len() == num_mediafiles);
     }
 
     #[test]
     fn load_track_content() {
         let library = Library::open("file:6384d9e0-74c1-4e1d-9ea3-b5d0198f134e?mode=memory&cache=shared");
-        library.import(&Scanner::scan_directory("tests/data/media_files"));
+        library.import("tests/data/media_files");
         let track = &library.tracks()[0];
         let content = library.load_track_content(track).unwrap();
         assert!(content.len() > 0);

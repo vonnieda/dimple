@@ -78,22 +78,19 @@ impl Model for Playlist {
     }
 
     fn hydrate(&mut self, library: &Library) {
-        let conn = library.conn();
-        let mut stmt = conn.prepare("SELECT
-            Track.*
+        let sql = "
+            SELECT Track.*
             FROM PlaylistItem
             JOIN Track ON (Track.key = PlaylistItem.Track_key)
-            WHERE PlaylistItem.playlist_key = ?1").unwrap();
-        let mut rows = stmt.query((self.key.clone(),)).unwrap();
-        while let Some(row) = rows.next().unwrap() {
-            self.tracks.push(Track::from_row(row)); 
-        }
+            WHERE PlaylistItem.playlist_key = ?1
+        ";
+        self.tracks = library.query(sql, (self.key.clone(),));
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Diff, Playlist}};
+    use crate::{library::Library, model::{Diff, Model, Playlist, Track}};
 
     #[test]
     fn library_crud() {
@@ -133,5 +130,19 @@ mod tests {
         let mut c = Playlist::default();
         c.apply_diff(&diff);
         assert!(c == b);
+    }
+
+    #[test]
+    fn hydrate() {
+        let library = Library::open("file:5d29e64a-5418-4773-b557-56448ae09efd?mode=memory&cache=shared");
+        let playlist = library.save(&Playlist::default());
+        for _ in 0..3 {
+            let track = library.save(&Track::default());
+            library.playlist_add(&playlist, &track.key.unwrap());
+        }
+        let mut playlist: Playlist = library.get(&playlist.key.unwrap()).unwrap();
+        assert!(playlist.tracks.len() == 0);
+        playlist.hydrate(&library);
+        assert!(playlist.tracks.len() == 3);
     }
 }

@@ -1,7 +1,6 @@
 pub mod model;
 pub mod library;
-pub mod scanner;
-pub mod play_queue;
+pub mod import;
 pub mod player;
 pub mod sync;
 
@@ -11,7 +10,7 @@ mod tests {
 
     use uuid::Uuid;
 
-    use crate::{library::Library, player::Player, scanner::Scanner, sync::{memory_storage::MemoryStorage, Sync}};
+    use crate::{library::Library, player::Player, sync::{memory_storage::MemoryStorage, Sync}};
 
 // - [x] I can add MP3 and FLAC tracks by selecting a directory.
 // 	- [x] Adding the same track twice should not duplicate it.
@@ -40,11 +39,11 @@ mod tests {
             let library = Arc::new(Library::open("file:23728bbc-945c-4239-92e7-50d5080cead1?mode=memory&cache=shared"));
             library.add_sync(Sync::new(sync_storage.clone(), &sync_path));
             assert!(library.tracks().len() == 0);
-            library.import(&Scanner::scan_directory("tests/data/media_files"));
+            library.import("tests/data/media_files");
             assert!(library.tracks().len() > 0);
     
             let tracks = library.tracks();
-            library.import(&Scanner::scan_directory("tests/data/media_files"));
+            library.import("tests/data/media_files");
             assert!(tracks.len() == library.tracks().len());
     
             let player = Player::new(library.clone());

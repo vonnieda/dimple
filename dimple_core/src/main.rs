@@ -1,6 +1,6 @@
 use std::{env, sync::Arc};
 
-use dimple_core::{library::Library, model::{Blob, ChangeLog, Track}, player::Player, scanner::Scanner, sync::{s3_storage::S3Storage, Sync}};
+use dimple_core::{library::Library, model::{Blob, ChangeLog, Track}, player::Player, sync::{s3_storage::S3Storage, Sync}};
 use directories::ProjectDirs;
 
 fn main() {
@@ -27,7 +27,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     if args.get(1).is_none() {
         println!("Help:");
-        println!("    import [/media/my_music]        Import tracks from the directory.");
+        println!("    import [/media/my_music]        Import tracks from the file or directory.");
         println!("    tracks                          List all tracks in the library.");
         println!("    like [1234-12341234-1234-1234]  Toggle 'liked' for the specified track key.");
         println!("    queue                           List the tracks in the play queue.");
@@ -68,14 +68,10 @@ fn main() {
     let player = Player::new(library.clone());
     let command = &args[1];
     if command == "import" {
-        let directory = &args[2];
+        let path = &args[2];
         println!("Library currently contains {} tracks.", library.tracks().len());
-        println!("Scanning {}.", directory);
-        let media_files = Scanner::scan_directory(directory);
-        println!("Scanned {} media files.", media_files.len());
-
-        println!("Importing {} media files.", media_files.len());
-        library.import(&media_files);
+        println!("Importing {}.", path);
+        library.import(&path);
         println!("Library now contains {} tracks.", library.tracks().len());
     }
     else if command == "tracks" {
@@ -115,6 +111,7 @@ fn main() {
     }
     else if command == "play" {
         player.play();
+        loop {}
     }
     else if command == "sync" {
         library.sync();
