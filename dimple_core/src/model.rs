@@ -1,4 +1,3 @@
-use std::str::FromStr;
 
 use rusqlite::{Connection, Row};
 
@@ -46,7 +45,7 @@ pub trait Model: Sized + FromRow + Diff + Default + Clone + Send {
     fn set_key(&mut self, key: Option<String>);
     fn upsert(&self, conn: &Connection);
     fn log_changes(&self) -> bool;
-    fn hydrate(&mut self, library: &Library) {}
+    fn hydrate(&mut self, _library: &Library) {}
 }
 
 struct ChangeLogValue {

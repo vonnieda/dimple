@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex, RwLock}, time::Duration};
+use std::{collections::HashMap, sync::{Arc, Mutex, RwLock}, time::Duration};
 
 use image::DynamicImage;
 use log::info;
@@ -8,16 +8,17 @@ use uuid::Uuid;
 
 use crate::{model::{Blob, ChangeLog, FromRow, MediaFile, Model, Playlist, Track, TrackSource}, sync::Sync};
 
+type ChangeListener = Arc<Box<dyn Fn(&Library, &str, &str) + Send + std::marker::Sync + 'static>>;
+
 #[derive(Clone)]
 pub struct Library {
     conn: Arc<Mutex<Connection>>,
     database_path: String,
     ulids: Arc<Mutex<Generator>>,
     synchronizers: Arc<RwLock<Vec<Sync>>>,
+    change_listeners: Arc<Mutex<Vec<ChangeListener>>>,
 }
 
-/// TODO change notifications
-/// TODO start changing to Release and friends to easier port to GUI
 /// TODO Tantivy search
 /// TODO directory/blobs
 /// TODO I think drop Option from key, and just use empty as new key.
@@ -58,16 +59,10 @@ impl Library {
             database_path: database_path.to_string(),
             ulids: Arc::new(Mutex::new(Generator::new())),
             synchronizers: Arc::new(RwLock::new(vec![])),
+            change_listeners: Arc::new(Mutex::new(Vec::new())),
         };
 
         library
-    }
-
-    fn conn(&self) -> Connection {
-        // TODO wait, wait, why did I change this from a single connection?
-        // Cause that is probably slowing things down a lot. So if I need
-        // it this way (why?) then I need to pool.
-        Connection::open(self.database_path.clone()).unwrap()
     }
 
     /// Returns the unique, permanent ID of this Library. This is created when
@@ -112,6 +107,24 @@ impl Library {
         }
     }
 
+    pub fn on_change(&self, callback: impl Fn(&Library, &str, &str) + Send + std::marker::Sync + 'static) {
+        let mut listeners = self.change_listeners.lock().unwrap();
+        listeners.push(Arc::new(Box::new(callback)));
+    }
+
+    fn emit_change(&self, table_name: &str, key: &str) {
+        let listeners = self.change_listeners.lock().unwrap().clone();
+        let library = self.clone();
+        let table_name = table_name.to_string();
+        let key = key.to_string();
+            
+        std::thread::spawn(move || {
+            for callback in listeners {
+                callback(&library, &table_name, &key);
+            }
+        });
+    }
+
     /// Generates a ulid that is guaranteed to be monotonic.
     pub fn ulid(&self) -> String {
         self.ulids.lock().unwrap().generate().unwrap().to_string()
@@ -144,6 +157,7 @@ impl Library {
             }
         }
         // TODO maybe like library.notify(diff)
+        self.emit_change(&obj.table_name(), &obj.key().unwrap());
         new
     }
 
@@ -261,6 +275,18 @@ impl Library {
         None
     }
 
+    fn conn(&self) -> Connection {
+        // TODO wait, wait, why did I change this from a single connection?
+        // Cause that is probably slowing things down a lot. So if I need
+        // it this way (why?) then I need to pool.
+        // > library conn() is now a function that returns a new connection - 
+        // > needed to make Library sharable, and this paves the way for
+        // > transactions. Previously would have needed mut Library.
+        Connection::open(self.database_path.clone()).unwrap()
+    }
+
+    // TODO now that library.query takes params most of these can be moved into
+    // their caller's code
     pub fn changelogs(&self) -> Vec<ChangeLog> {
         self.query("SELECT * FROM ChangeLog ORDER BY timestamp ASC", ())
     }
@@ -384,7 +410,9 @@ impl Library {
 
 #[cfg(test)]
 mod tests {
-    use crate::model::{Diff, MediaFile, Track};
+    use std::time::Duration;
+
+    use crate::model::{Diff, MediaFile, Model, Track};
 
     use super::Library;
 
@@ -448,5 +476,16 @@ mod tests {
         let track = &library.tracks()[0];
         let content = library.load_track_content(track).unwrap();
         assert!(content.len() > 0);
+    }
+
+    #[test]
+    fn change_notifications() {
+        let library = Library::open("file:40c65129-2e84-4eff-8b25-9a03519da1e1?mode=memory&cache=shared");
+        let (tx, rx) = std::sync::mpsc::channel();
+        library.on_change(move |_library, table_name, _key| if table_name == "Track" {
+            tx.send(()).unwrap();
+        });
+        library.save(&Track::default());
+        assert!(rx.recv_timeout(Duration::from_secs(1)).is_ok());
     }
 }
