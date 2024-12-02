@@ -1,4 +1,4 @@
-use std::{env, sync::Arc};
+use std::{env, sync::Arc, time::Duration};
 
 use dimple_core::{library::Library, model::{Blob, ChangeLog, Track}, player::Player, sync::{s3_storage::S3Storage, Sync}};
 use directories::ProjectDirs;
@@ -111,7 +111,9 @@ fn main() {
     }
     else if command == "play" {
         player.play();
-        loop {}
+        loop {
+            std::thread::sleep(Duration::from_secs(1));
+        }
     }
     else if command == "sync" {
         library.sync();

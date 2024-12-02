@@ -32,7 +32,7 @@ pub fn settings(app: &App) {
         database_stats.push(format!("Playlists: {}", db.list::<Playlist>().len()));
         database_stats.push(format!("Tracks: {}", db.list::<Track>().len()));
         database_stats.push(format!("TrackSources: {}", db.list::<TrackSource>().len()));
-        database_stats.push(format!("Releases: {}", db.list::<Release>().len()));
+        // database_stats.push(format!("Releases: {}", db.list::<Release>().len()));
         // database_stats.push(format!("Release Groups: {}", 
         //     db.list(&ReleaseGroup::default().model(), &None).unwrap().count()));
         // database_stats.push(format!("Media: {}", 
