@@ -89,23 +89,23 @@ fn main() {
         print_track(&track);
     }
     else if command == "queue" {
-        let play_queue = player.play_queue();
-        for track in play_queue.tracks {
+        let play_queue = player.queue();
+        for track in play_queue.tracks(&library) {
             print_track(&track);
         }
     }
     else if command == "add" {
         let track_key = &args[2];
-        library.playlist_add(&player.play_queue(), track_key);
-        let play_queue = player.play_queue();
-        for track in play_queue.tracks {
+        library.playlist_add(&player.queue(), track_key);
+        let play_queue = player.queue();
+        for track in play_queue.tracks(&library) {
             print_track(&track);
         }
     }
     else if command == "clear" {
-        library.playlist_clear(&player.play_queue());
-        let play_queue = player.play_queue();
-        for track in play_queue.tracks {
+        library.playlist_clear(&player.queue());
+        let play_queue = player.queue();
+        for track in play_queue.tracks(&library) {
             print_track(&track);
         }
     }

@@ -3,13 +3,10 @@ use std::thread;
 use std::time::Duration;
 
 use crate::ui::app_window_controller::App;
-use crate::ui::TrackListAdapter;
-use crate::ui::Navigator;
 use crate::ui::Page;
 use dimple_core::model::Model;
 use dimple_core::model::Playlist;
 use dimple_core::model::Track;
-use slint::ComponentHandle as _;
 use slint::Model as _;
 use slint::ModelRc;
 use slint::SharedString;
@@ -22,15 +19,14 @@ use crate::ui::PlaylistDetailsAdapter;
 pub fn playlist_details(url: &str, app: &App) {
     let app = app.clone();
     let url = url.to_owned();
-    let librarian = app.librarian.clone();
+    let library = app.library.clone();
     let ui = app.ui.clone();
     let images = app.images.clone();
     thread::spawn(move || {
         let url = Url::parse(&url).unwrap();
         let key = url.path_segments().unwrap().nth(0).unwrap();
-        let mut playlist: Playlist = librarian.get(key).unwrap();
-        playlist.hydrate(&librarian);
-        let tracks: Vec<Track> = playlist.tracks;
+        let playlist: Playlist = library.get(key).unwrap();
+        let tracks = playlist.tracks(&library);
         app.ui.upgrade_in_event_loop(move |ui| {
             let rows: VecModel<ModelRc<StandardListViewItem>> = Default::default();
             for track in &tracks {
@@ -68,7 +64,7 @@ pub fn playlist_details_track_selected(app: &App, row: i32) {
         // let rows = adapter.rows.as_any().downcast_ref::<VecModel<ModelRc<StandardListViewItem>>>().unwrap();
         let key = adapter.keys.row_data(row as usize).unwrap().to_string();
         // ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
-        let play_queue = app.player.play_queue();
+        let play_queue = app.player.queue();
         // TODO remove from play queue as a test.
     }).unwrap();
 }

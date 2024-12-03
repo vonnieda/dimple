@@ -57,10 +57,10 @@ fn update_model(player: &Player, ui: &crate::ui::AppWindow) {
     let current_track = player.current_queue_item().unwrap_or_default();
     let next_track = player.next_queue_item().unwrap_or_default();
     let adapter = crate::ui::PlayerBarAdapter {
-        duration_seconds: player.duration().as_secs() as i32,
-        duration_label: format_duration(&player.duration()).into(),
-        position_seconds: player.position().as_secs() as i32,
-        position_label: format_duration(&player.position()).into(),
+        duration_seconds: player.track_duration().as_secs() as i32,
+        duration_label: format_duration(&player.track_duration()).into(),
+        position_seconds: player.track_position().as_secs() as i32,
+        position_label: format_duration(&player.track_position()).into(),
         player_state: player.state().into(),
         now_playing_recording: current_track.into(),
         up_next_recording: next_track.into(),

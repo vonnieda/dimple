@@ -13,7 +13,7 @@ use self::{images::ImageMangler, pages::settings};
 
 #[derive(Clone)]
 pub struct App {
-    pub librarian: Library,
+    pub library: Library,
     pub history: Arc<Mutex<VecDeque<String>>>,
     pub player: Player,
     pub images: ImageMangler,
@@ -49,7 +49,7 @@ impl AppWindowController {
         Self {
             ui,
             app: App {
-                librarian: librarian.clone(),
+                library: librarian.clone(),
                 history: Arc::new(Mutex::new(VecDeque::new())),
                 player,
                 images,
@@ -86,7 +86,7 @@ impl AppWindowController {
         
         player_bar::player_bar_init(&self.app);
 
-        self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
+        self.ui.global::<Navigator>().invoke_navigate("dimple://queue".into());
 
         self.ui.run()
     }
@@ -151,7 +151,7 @@ impl App {
             crate::ui::pages::playlist_details::playlist_details(&url, self);
         }
         else if url.starts_with("dimple://queue") {
-            let play_queue = self.player.play_queue();
+            let play_queue = self.player.queue();
             self.navigate(format!("dimple://playlist/{}", &play_queue.key.unwrap()).into());
         }
         else if url == "dimple://settings" {
@@ -294,3 +294,46 @@ impl App {
         //     }).unwrap();
         // });
 
+
+
+        // use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, PlatformConfig};
+        // desktop_integration();
+
+        // // TODO desktop integration using souvlaki. currently broken on Windows.
+        // fn desktop_integration() {
+        //     #[cfg(not(target_os = "windows"))]
+        //     let hwnd = None;
+        
+        //     #[cfg(target_os = "windows")]
+        //     let hwnd = {
+        //         use raw_window_handle::windows::WindowsHandle;
+        
+        //         let handle: WindowsHandle = unimplemented!();
+        //         Some(handle.hwnd)
+        //     };
+        
+        //     let config = PlatformConfig {
+        //         dbus_name: "dimple",
+        //         display_name: "Dimple",
+        //         hwnd,
+        //     };
+        
+        //     let mut controls = MediaControls::new(config).unwrap();
+        
+        //     // The closure must be Send and have a static lifetime.
+        //     controls
+        //         .attach(|event: MediaControlEvent| println!("Event received: {:?}", event))
+        //         .unwrap();
+        
+        //     // Update the media metadata.
+        //     controls
+        //         .set_metadata(MediaMetadata {
+        //             title: Some("Time to get Dimply"),
+        //             artist: Some("Dimple"),
+        //             album: Some("Dimple Time"),
+        //             ..Default::default()
+        //         })
+        //         .unwrap();
+        // }
+        
+        

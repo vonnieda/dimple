@@ -23,11 +23,11 @@ use super::image_gen::gen_fuzzy_rects;
 pub struct ImageMangler {
     librarian: Library,
     ui: Weak<AppWindow>,
-    default_artist: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
-    default_release_group: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
-    default_release: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
-    default_genre: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
-    default_other: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    // default_artist: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    // default_release_group: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    // default_release: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    // default_genre: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    // default_other: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     threadpool: ThreadPool,
     cache_path: String,
 }
@@ -37,11 +37,14 @@ impl ImageMangler {
         let images = Self {
             ui,
             librarian: librarian.clone(),
-            default_artist: Self::load_default_image("images/artist_placeholder.png"),
-            default_release_group: Self::load_default_image("images/release_group_placeholder.png"),
-            default_release: Self::load_default_image("images/release_placeholder.png"),
-            default_genre: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
-            default_other: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_rects(128, 128)))),
+            // TODO breaks in bundle cause images are not included. Opening the
+            // app from the Projects//dimple_ui_slint directory works and it can
+            // find the images.
+            // default_artist: Self::load_default_image("images/artist_placeholder.png"),
+            // default_release_group: Self::load_default_image("images/release_group_placeholder.png"),
+            // default_release: Self::load_default_image("images/release_placeholder.png"),
+            // default_genre: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
+            // default_other: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_rects(128, 128)))),
             threadpool: ThreadPool::new(1),
             cache_path: cache_path.to_string(),
         };
@@ -77,13 +80,14 @@ impl ImageMangler {
     }
 
     pub fn default_model_image(&self, model: impl Model) -> SharedPixelBuffer<Rgba8Pixel> {
-        match model {
+        todo!()
+        // match model {
             // Model::Artist(_) => return self.default_artist.lock().unwrap().clone(),
             // Model::ReleaseGroup(_) => return self.default_release_group.lock().unwrap().clone(),
             // Model::Release(_) => return self.default_release.lock().unwrap().clone(),
             // Model::Genre(_) => return self.default_genre.lock().unwrap().clone(),
-            _ => return self.default_other.lock().unwrap().clone(),
-        }
+            // _ => return self.default_other.lock().unwrap().clone(),
+        // }
     }
 
     pub fn cancel_all_pending(&self) {

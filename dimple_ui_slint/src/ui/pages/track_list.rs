@@ -21,7 +21,7 @@ use slint::VecModel;
 pub fn track_list(app: &App) {
     let app = app.clone();
     thread::spawn(move || {
-        let tracks: Vec<Track> = app.librarian.list();
+        let tracks: Vec<Track> = app.library.list();
         app.ui.upgrade_in_event_loop(move |ui| {
             let rows: VecModel<ModelRc<StandardListViewItem>> = Default::default();
             for track in &tracks {
@@ -59,8 +59,8 @@ pub fn track_list_track_selected(app: &App, row: i32) {
         // let rows = adapter.rows.as_any().downcast_ref::<VecModel<ModelRc<StandardListViewItem>>>().unwrap();
         let key = adapter.keys.row_data(row as usize).unwrap().to_string();
         // ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
-        let play_queue = app.player.play_queue();
-        app.librarian.playlist_add(&play_queue, &key);
+        let play_queue = app.player.queue();
+        app.library.playlist_add(&play_queue, &key);
     }).unwrap();
 }
 

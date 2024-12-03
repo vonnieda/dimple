@@ -28,29 +28,6 @@ impl Player {
         player
     }
 
-
-    pub fn play_queue(&self) -> Playlist {
-        // TODO maybe this is a metadata item?
-        // TODO magic
-        let key = format!("__dimple_system_play_queue_{}", self.library.id());
-        let mut playlist = match self.library.get::<Playlist>(&key) {
-            Some(play_queue) => play_queue,
-            None => self.library.save(&Playlist {
-                key: Some(key.to_string()),
-                ..Default::default()
-            })
-        };
-        // TODO should happen in library.get or maybe just let the caller
-        // do if it they want. Reading potentially thousands of items into
-        // a list might not be the goal.
-        // In fact, hydrate is just a hard coded single purpose query, and
-        // I should probably just drop it.
-        // and maybe Playlist should just have a get_track_by_index that can
-        // by dynamic if needed.
-        playlist.hydrate(&self.library);
-        playlist
-    }
-
     pub fn play(&self) {
         self.sender.send(PlayerCommand::Play).unwrap();
     }
@@ -71,12 +48,12 @@ impl Player {
         self.sender.send(PlayerCommand::Previous).unwrap();
     }
 
-    pub fn duration(&self) -> Duration {
-        self.shared_state.read().unwrap().duration
+    pub fn track_duration(&self) -> Duration {
+        self.shared_state.read().unwrap().track_duration
     }
 
-    pub fn position(&self) -> Duration {
-        self.shared_state.read().unwrap().position
+    pub fn track_position(&self) -> Duration {
+        self.shared_state.read().unwrap().track_position
     }
 
     pub fn seek(&self, position: Duration) {
@@ -89,6 +66,24 @@ impl Player {
 
     pub fn is_playing(&self) -> bool {
         self.state() == PlayerState::Playing
+    }
+
+    /// TODO magic. maybe this is a metadata item?
+    /// Starting to think maybe this goes away completely and we have
+    /// set_play_queue(Playlist) which copies in the tracks and
+    /// such so that that metadata is always available. The play queue
+    /// key can live in Library, and I suppose Library::default_play_queue()
+    pub fn queue(&self) -> Playlist {
+        let key = format!("__dimple_system_play_queue_{}", self.library.id());
+        let mut playlist = match self.library.get::<Playlist>(&key) {
+            Some(play_queue) => play_queue,
+            None => self.library.save(&Playlist {
+                key: Some(key.to_string()),
+                ..Default::default()
+            })
+        };
+        playlist.hydrate(&self.library);
+        playlist
     }
 
     fn player_worker(&self, receiver: Receiver<PlayerCommand>) {
@@ -104,19 +99,22 @@ impl Player {
             self.load_media(&inner);
 
             // Update shared state
+            // TODO this is failing due to a race condition with the above.
+            // I'll need to combine parts of these two functions to get things
+            // in order because the song may cease playing between runs of the loop
+            // or even during running of the loop.
             self.update_shared_state(&inner);
         }
     }
 
     /// Process commands on the player thread.
     fn process_commands(&self, receiver: &Receiver<PlayerCommand>, inner: &playback_rs::Player) {
-        // TODO make sure we are handling multi
         while let Ok(command) = receiver.recv_timeout(Duration::from_millis(100)) {
             match command {
                 PlayerCommand::Play => inner.set_playing(true),
                 PlayerCommand::Pause => inner.set_playing(false),
                 PlayerCommand::Stop => {
-                    self.shared_state.write().unwrap().index = 0;
+                    self.shared_state.write().unwrap().queue_index = 0;
                     inner.set_playing(false);
                     inner.stop();
                 },
@@ -143,8 +141,6 @@ impl Player {
         }
     }
 
-    /// TODO as always, need to handle auto advancing the queue.
-
     /// Load media, if needed, into the inner player. To support gapless
     /// playback we need to make sure the next track is loaded before the
     /// current one finishes. This ensures that happens, along with loading
@@ -161,6 +157,28 @@ impl Player {
         // TODO this doesn't seem to trigger until we actually set_playing = true
         // which is surprising and messes up the UI by not updating position and
         // duration.
+
+        /// When does the media need to be changed?
+        /// - When there is no current song loaded.
+        /// - When there is no next song loaded.
+        /// - When the player advances automatically from the current to the next.
+        /// - When next() is called
+        /// - When previous() is called
+        /// 
+        /// Okay, yea, I think change the commands to not manipulate the player
+        /// but to instead manipulate the state, and have the player react
+        /// to the changes. I think it fixes everything.
+        /// 
+        /// next increases the index but doesn't skip or anything
+        /// previous decreases """"
+        /// state DRIVES the player (thread), rather than the opposite
+        /// the only thing we need to detect is auto advance and that just
+        /// becomes a "next" command?
+        /// 
+        /// Note I just realized an issue is that next and previous just should
+        /// change the index of the playlist and then the player thread should
+        /// react. This will keep the UI snappy and maybe solves the above.
+
         if !inner.has_next_song() {
             if let Some(track) = self.next_queue_item() {
                 log::info!("Loading next Track:{:?} {:?}", track.key, track.title);
@@ -175,48 +193,58 @@ impl Player {
     /// single state variable and updates other externally accessible state
     /// that can only be read from this thread.
     fn update_shared_state(&self, inner: &playback_rs::Player) {
-        self.shared_state.write().unwrap().inner_player_state = match (inner.is_playing(), inner.has_current_song()) {
-            (true, true) => PlayerState::Playing,
-            (true, false) => PlayerState::Stopped,
-            (false, true) => PlayerState::Paused,
-            (false, false) => PlayerState::Stopped,
-        };
-        if let Some((position, duration)) = inner.get_playback_position() {
-            self.shared_state.write().unwrap().position = position;
-            self.shared_state.write().unwrap().duration = duration;
-        }
-        else {
-            self.shared_state.write().unwrap().position = Duration::ZERO;
-            self.shared_state.write().unwrap().duration = Duration::ZERO;
+        if let Ok(mut shared_state) = self.shared_state.write() {
+            shared_state.inner_player_state = match (inner.is_playing(), inner.has_current_song()) {
+                (true, true) => PlayerState::Playing,
+                (true, false) => PlayerState::Stopped,
+                (false, true) => PlayerState::Paused,
+                (false, false) => PlayerState::Stopped,
+            };
+
+            if let Some((position, duration)) = inner.get_playback_position() {
+                shared_state.track_position = position;
+                shared_state.track_duration = duration;
+            }
+            else {
+                shared_state.track_position = Duration::ZERO;
+                shared_state.track_duration = Duration::ZERO;
+            }
+
+            if shared_state.inner_player_was_playing 
+                && shared_state.inner_player_had_current
+                && shared_state.inner_player_had_next
+                && inner.is_playing()
+                && inner.has_current_song()
+                && (!inner.has_next_song()) {
+                log::info!("song finished, and nothing new is loaded, advancing queue");
+                shared_state.queue_index = (shared_state.queue_index + 1) % self.queue().len(&self.library);
+            }
+            shared_state.inner_player_was_playing = inner.is_playing();
+            shared_state.inner_player_had_current = inner.has_current_song();
+            shared_state.inner_player_had_next = inner.has_next_song();
         }
     }
 
     fn queue_next(&self) {
         let mut shared_state = self.shared_state.write().unwrap();
-        shared_state.index = (shared_state.index + 1) % self.queue().len();
+        shared_state.queue_index = (shared_state.queue_index + 1) % self.queue().len(&self.library);
     }
 
     fn queue_previous(&self) {
         let mut shared_state = self.shared_state.write().unwrap();
-        shared_state.index = 0.max(shared_state.index - 1);
-    }
-
-    /// TODO note this is a remnant of a refactor and can be factored out
-    /// eventually once the API settles.
-    pub fn queue(&self) -> Vec<Track> {
-        self.play_queue().tracks
+        shared_state.queue_index = 0.max(shared_state.queue_index - 1);
     }
 
     pub fn current_queue_index(&self) -> usize {
-        self.shared_state.read().unwrap().index
+        self.shared_state.read().unwrap().queue_index
     }
 
     pub fn current_queue_item(&self) -> Option<Track> {
         if let Ok(state) = self.shared_state.read() {
-            if state.index >= self.queue().len() {
+            if state.queue_index >= self.queue().len(&self.library) {
                 return None;
             }
-            Some(self.queue()[state.index].clone())
+            Some(self.queue().tracks(&self.library)[state.queue_index].clone())
         }
         else {
             None
@@ -225,10 +253,10 @@ impl Player {
 
     pub fn next_queue_item(&self) -> Option<Track> {
         if let Ok(state) = self.shared_state.read() {
-            if state.index + 1 >= self.queue().len() {
+            if state.queue_index + 1 >= self.queue().len(&self.library) {
                 return None;
             }
-            Some(self.queue()[state.index + 1].clone())
+            Some(self.queue().tracks(&self.library)[state.queue_index + 1].clone())
         }
         else {
             None
@@ -238,10 +266,14 @@ impl Player {
 
 #[derive(Default)]
 struct SharedState {
-    pub index: usize,
-    pub duration: Duration,
-    pub position: Duration,
+    pub queue_index: usize,
+    pub queue_length: usize,
+    pub track_duration: Duration,
+    pub track_position: Duration,
     pub inner_player_state: PlayerState,
+    pub inner_player_was_playing: bool,
+    pub inner_player_had_current: bool,
+    pub inner_player_had_next: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -277,19 +309,15 @@ mod tests {
         let player = Player::new(library.clone());
         library.import("tests/data/media_files");
         let tracks = library.tracks();
-        let play_queue = player.play_queue();
+        let play_queue = player.queue();
 
         std::thread::sleep(Duration::from_secs(5));
-        dbg!("loading tracks");
         for track in &tracks[0..3] {
             library.playlist_add(&play_queue, track.key.as_ref().unwrap());
         }
-        dbg!("loaded");
 
         std::thread::sleep(Duration::from_secs(5));
-        dbg!("playing");
         player.play();
-        dbg!("played");
 
         std::thread::sleep(Duration::from_secs(5));
         // let t = Instant::now();

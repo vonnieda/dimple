@@ -47,15 +47,15 @@ mod tests {
             assert!(tracks.len() == library.tracks().len());
     
             let player = Player::new(library.clone());
-            assert!(player.play_queue().tracks.len() == 0);
+            assert!(player.queue().len(&library) == 0);
     
             let tracks = library.tracks();
             let track = tracks.get(0).unwrap();
-            let play_queue = player.play_queue();
+            let play_queue = player.queue();
             library.playlist_add(&play_queue, &track.key.clone().unwrap());
-            assert!(player.play_queue().tracks.len() == 1);
+            assert!(player.queue().len(&library) == 1);
             library.playlist_add(&play_queue, &track.key.clone().unwrap());
-            assert!(player.play_queue().tracks.len() == 2);
+            assert!(player.queue().len(&library) == 2);
 
             library.sync();
 

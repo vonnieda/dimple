@@ -23,7 +23,7 @@ pub fn settings(app: &App) {
     let app = app.clone();
     std::thread::spawn(move || {
         // let db: &dyn Db = &app.librarian as &dyn Db;
-        let db = app.librarian.clone();
+        let db = app.library.clone();
 
         let mut database_stats: Vec<String> = vec![];
         database_stats.push(format!("Artists: {}", db.list::<Artist>().len()));
@@ -70,7 +70,7 @@ pub fn settings_reset_database(app: &App) {
     let app = app.clone();
     thread::spawn(move || {
         log::info!("Resetting database.");
-        app.librarian.reset().unwrap();
+        app.library.reset().unwrap();
         log::info!("Done resetting database.");
     });
 }

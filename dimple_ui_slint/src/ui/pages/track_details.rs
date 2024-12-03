@@ -12,7 +12,7 @@ use crate::ui::LinkAdapter;
 
 pub fn track_details(url: &str, app: &App) {
     let url = url.to_owned();
-    let librarian = app.librarian.clone();
+    let librarian = app.library.clone();
     let ui = app.ui.clone();
     let images = app.images.clone();
     std::thread::spawn(move || {        

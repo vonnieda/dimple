@@ -8,7 +8,22 @@ use super::{ChangeLog, Diff, FromRow, Model, Track};
 pub struct Playlist {
     pub key: Option<String>,
     pub name: Option<String>,
-    pub tracks: Vec<Track>,
+}
+
+impl Playlist {
+    pub fn len(&self, library: &Library) -> usize {
+        self.tracks(library).len()
+    }
+
+    pub fn tracks(&self, library: &Library) -> Vec<Track> {
+        let sql = "
+            SELECT Track.*
+            FROM PlaylistItem
+            JOIN Track ON (Track.key = PlaylistItem.Track_key)
+            WHERE PlaylistItem.playlist_key = ?1
+        ";
+        library.query(sql, (self.key.clone(),))
+    }
 }
 
 impl FromRow for Playlist {
@@ -76,16 +91,6 @@ impl Model for Playlist {
     fn log_changes(&self) -> bool {
         true
     }
-
-    fn hydrate(&mut self, library: &Library) {
-        let sql = "
-            SELECT Track.*
-            FROM PlaylistItem
-            JOIN Track ON (Track.key = PlaylistItem.Track_key)
-            WHERE PlaylistItem.playlist_key = ?1
-        ";
-        self.tracks = library.query(sql, (self.key.clone(),));
-    }
 }
 
 #[cfg(test)]
@@ -141,8 +146,8 @@ mod tests {
             library.playlist_add(&playlist, &track.key.unwrap());
         }
         let mut playlist: Playlist = library.get(&playlist.key.unwrap()).unwrap();
-        assert!(playlist.tracks.len() == 0);
+        assert!(playlist.len(&library) == 0);
         playlist.hydrate(&library);
-        assert!(playlist.tracks.len() == 3);
+        assert!(playlist.len(&library) == 3);
     }
 }
