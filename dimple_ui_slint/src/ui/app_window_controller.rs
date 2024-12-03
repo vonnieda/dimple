@@ -1,9 +1,9 @@
-use dimple_core::{library::{self, Library}, model::{Artist, Model}, player::Player};
+use dimple_core::{library::Library, model::{Artist, Model}, player::Player};
 use pages::track_list;
+use player_bar;
+use std::{collections::VecDeque, sync::{Arc, Mutex}, time::Duration};
 
-use std::{borrow::BorrowMut, collections::VecDeque, path::{Path, PathBuf}, sync::{Arc, Mutex}};
-
-use slint::{ComponentHandle, Model as _, ModelRc, SharedString, Weak};
+use slint::{SharedString, Weak};
 
 use directories::ProjectDirs;
 
@@ -79,7 +79,154 @@ impl AppWindowController {
         let app = self.app.clone();
         self.ui.global::<AppState>().on_track_list_track_selected(
             move |row| track_list::track_list_track_selected(&app, row));
-            
+
+        player_bar::player_bar_init(&self.app);
+
+        self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
+
+        self.ui.run()
+    }
+}
+
+impl App {
+    pub fn navigate(&self, url: SharedString) {
+        log::info!("{}", &url);
+        if url.starts_with("http") {
+            let _ = opener::open_browser(url.to_string());
+        }
+        else if url == "dimple://back" {
+            self.back();
+        }
+        else if url == "dimple://refresh" {
+            self.refresh();
+        }
+        // else if url.starts_with("dimple://search") {
+        //     crate::ui::pages::search::search(&url, self);
+        // }
+        else if url.starts_with("dimple://home") {
+            // TODO
+            self.set_page(Page::Home);
+        } 
+        // else if url.starts_with("dimple://artists") {
+        //     crate::ui::pages::artist_list::artist_list(self);
+        // }
+        // else if url.starts_with("dimple://artist/") {
+        //     crate::ui::pages::artist_details::artist_details(&url, self);
+        // }
+        // else if url.starts_with("dimple://release-groups") {
+        //     crate::ui::pages::release_group_list::release_group_list(self);
+        // }
+        // else if url.starts_with("dimple://release-group/") {
+        //     crate::ui::pages::release_group_details::release_group_details(&url, self);
+        // }
+        // else if url.starts_with("dimple://releases") {
+        //     crate::ui::pages::release_list::release_list(self);
+        // }
+        // else if url.starts_with("dimple://release/") {
+        //     crate::ui::pages::release_details::release_details(&url, self);
+        // }
+        // else if url.starts_with("dimple://recording/") {
+        //     crate::ui::pages::recording_details::recording_details(&url, self);
+        // }
+        else if url.starts_with("dimple://tracks") {
+            crate::ui::pages::track_list::track_list(self);
+        }
+        else if url.starts_with("dimple://track/") {
+            crate::ui::pages::track_details::track_details(&url, self);
+        }
+        // else if url.starts_with("dimple://genres") {
+        //     crate::ui::pages::genre_list::genre_list(self);
+        // }
+        // else if url.starts_with("dimple://genre/") {
+        //     crate::ui::pages::genre_details::genre_details(&url, self);
+        // }
+        // else if url.starts_with("dimple://playlists") {
+        //     crate::ui::pages::playlist_list::playlist_list(self);
+        // }
+        else if url.starts_with("dimple://playlist/") {
+            crate::ui::pages::playlist_details::playlist_details(&url, self);
+        }
+        else if url.starts_with("dimple://queue") {
+            let play_queue = self.player.play_queue();
+            self.navigate(format!("dimple://playlist/{}", &play_queue.key.unwrap()).into());
+        }
+        else if url == "dimple://settings" {
+            crate::ui::pages::settings::settings(self);
+        }
+
+        // Store history.
+        // TODO magic
+        if url != "dimple://back" && url != "dimple://refresh" && !url.starts_with("http") {
+            self.history.lock().unwrap().push_back(url.into());
+        }
+    }
+
+    pub fn back(&self) {
+        let app = self.clone();
+        self.ui.upgrade_in_event_loop(move |ui| {
+            let url: Option<String> = app.history.lock().ok()
+                .and_then(|mut history| {
+                    let _ = history.pop_back()?;
+                    history.pop_back()
+                });
+            if let Some(url) = url {
+                app.navigate(url.into());
+            }
+        }).unwrap();
+    }
+
+    pub fn refresh(&self) {
+        let app = self.clone();
+        self.ui.upgrade_in_event_loop(move |ui| {
+            let url: Option<String> = app.history.lock().ok()
+                .and_then(|mut history| {
+                    history.pop_back()
+                });
+            if let Some(url) = url {
+                app.navigate(url.into());
+            }
+        }).unwrap();
+    }    
+
+    pub fn set_page(&self, page: Page) {
+        self.ui.upgrade_in_event_loop(move |ui| {
+            ui.set_page(page);
+        }).unwrap();
+    }
+}
+
+// fn model_card(model: impl Model) -> CardAdapter {
+//     match model {
+//         // Model::Artist(artist) => artist_card(artist),
+//         // Model::ReleaseGroup(release_group) => release_group_card(release_group),
+//         // Model::Genre(genre) => genre_card(genre),
+//         // Model::Recording(recording) => recording_card(recording),
+//         _ => todo!(),
+//     }
+// }
+
+// pub fn artist_card(artist: &Artist) -> CardAdapter {
+//     CardAdapter {
+//         image: ImageLinkAdapter {
+//             image: Default::default(),
+//             name: artist.name.clone().unwrap_or_default().into(),
+//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+//         },
+//         title: LinkAdapter {
+//             name: artist.name.clone().unwrap_or_default().into(),
+//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+//         },
+//         sub_title: LinkAdapter {
+//             name: "Artist".to_string().into(),
+//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+//         },
+//     }
+// }
+
+
+
+
+     
         // let app = self.app.clone();
         // self.ui.global::<AppState>().on_release_group_details_release_selected(
         //     move |s| release_group_details::release_group_details_release_selected(&app, s.to_string()));
@@ -143,137 +290,3 @@ impl AppWindowController {
         //     }).unwrap();
         // });
 
-        self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
-
-        self.ui.run()
-    }
-}
-
-fn model_card(model: impl Model) -> CardAdapter {
-    match model {
-        // Model::Artist(artist) => artist_card(artist),
-        // Model::ReleaseGroup(release_group) => release_group_card(release_group),
-        // Model::Genre(genre) => genre_card(genre),
-        // Model::Recording(recording) => recording_card(recording),
-        _ => todo!(),
-    }
-}
-
-fn artist_card(artist: &Artist) -> CardAdapter {
-    CardAdapter {
-        image: ImageLinkAdapter {
-            image: Default::default(),
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-        },
-        title: LinkAdapter {
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-        },
-        sub_title: LinkAdapter {
-            name: "Artist".to_string().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-        },
-    }
-}
-
-
-impl App {
-    pub fn navigate(&self, url: SharedString) {
-        log::info!("{}", &url);
-        if url.starts_with("http") {
-            let _ = opener::open_browser(url.to_string());
-        }
-        else if url == "dimple://back" {
-            self.back();
-        }
-        else if url == "dimple://refresh" {
-            self.refresh();
-        }
-        // else if url.starts_with("dimple://search") {
-        //     crate::ui::pages::search::search(&url, self);
-        // }
-        else if url.starts_with("dimple://home") {
-            // TODO
-            self.set_page(Page::Home);
-        } 
-        // else if url.starts_with("dimple://artists") {
-        //     crate::ui::pages::artist_list::artist_list(self);
-        // }
-        // else if url.starts_with("dimple://artist/") {
-        //     crate::ui::pages::artist_details::artist_details(&url, self);
-        // }
-        // else if url.starts_with("dimple://release-groups") {
-        //     crate::ui::pages::release_group_list::release_group_list(self);
-        // }
-        // else if url.starts_with("dimple://release-group/") {
-        //     crate::ui::pages::release_group_details::release_group_details(&url, self);
-        // }
-        // else if url.starts_with("dimple://releases") {
-        //     crate::ui::pages::release_list::release_list(self);
-        // }
-        // else if url.starts_with("dimple://release/") {
-        //     crate::ui::pages::release_details::release_details(&url, self);
-        // }
-        // else if url.starts_with("dimple://recording/") {
-        //     crate::ui::pages::recording_details::recording_details(&url, self);
-        // }
-        else if url.starts_with("dimple://tracks") {
-            crate::ui::pages::track_list::track_list(self);
-        }
-        else if url.starts_with("dimple://track/") {
-            crate::ui::pages::track_details::track_details(&url, self);
-        }
-        // else if url.starts_with("dimple://genres") {
-        //     crate::ui::pages::genre_list::genre_list(self);
-        // }
-        // else if url.starts_with("dimple://genre/") {
-        //     crate::ui::pages::genre_details::genre_details(&url, self);
-        // }
-        // else if url.starts_with("dimple://playlists") {
-        //     crate::ui::pages::playlist_list::playlist_list(self);
-        // }
-        else if url == "dimple://settings" {
-            crate::ui::pages::settings::settings(self);
-        }
-
-        // Store history.
-        // TODO magic
-        if url != "dimple://back" && url != "dimple://refresh" && !url.starts_with("http") {
-            self.history.lock().unwrap().push_back(url.into());
-        }
-    }
-
-    pub fn back(&self) {
-        let app = self.clone();
-        self.ui.upgrade_in_event_loop(move |ui| {
-            let url: Option<String> = app.history.lock().ok()
-                .and_then(|mut history| {
-                    let _ = history.pop_back()?;
-                    history.pop_back()
-                });
-            if let Some(url) = url {
-                app.navigate(url.into());
-            }
-        }).unwrap();
-    }
-
-    pub fn refresh(&self) {
-        let app = self.clone();
-        self.ui.upgrade_in_event_loop(move |ui| {
-            let url: Option<String> = app.history.lock().ok()
-                .and_then(|mut history| {
-                    history.pop_back()
-                });
-            if let Some(url) = url {
-                app.navigate(url.into());
-            }
-        }).unwrap();
-    }    
-
-    pub fn set_page(&self, page: Page) {
-        self.ui.upgrade_in_event_loop(move |ui| {
-            ui.set_page(page);
-        }).unwrap();
-    }
-}

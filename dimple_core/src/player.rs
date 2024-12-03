@@ -110,15 +110,32 @@ impl Player {
 
     /// Process commands on the player thread.
     fn process_commands(&self, receiver: &Receiver<PlayerCommand>, inner: &playback_rs::Player) {
+        // TODO make sure we are handling multi
         while let Ok(command) = receiver.recv_timeout(Duration::from_millis(100)) {
             match command {
                 PlayerCommand::Play => inner.set_playing(true),
                 PlayerCommand::Pause => inner.set_playing(false),
                 PlayerCommand::Stop => {
+                    self.shared_state.write().unwrap().index = 0;
+                    inner.set_playing(false);
                     inner.stop();
                 },
-                PlayerCommand::Next => todo!(),
-                PlayerCommand::Previous => todo!(),
+                PlayerCommand::Next => {
+                    self.queue_next();
+                    inner.skip();
+                },
+                PlayerCommand::Previous => {
+                    if let Some((position, _duration)) = inner.get_playback_position() {
+                        const REWIND_SECONDS: u64 = 3;
+                        if position.as_secs() < REWIND_SECONDS {
+                            self.queue_previous();
+                            inner.stop();
+                        }
+                        else {
+                            inner.seek(Duration::ZERO);
+                        }
+                    }
+                },
                 PlayerCommand::Seek(position) => {
                     inner.seek(position);
                 },
@@ -126,12 +143,13 @@ impl Player {
         }
     }
 
+    /// TODO as always, need to handle auto advancing the queue.
+
     /// Load media, if needed, into the inner player. To support gapless
     /// playback we need to make sure the next track is loaded before the
     /// current one finishes. This ensures that happens, along with loading
     /// the current and/or first track as needed.
     fn load_media(&self, inner: &playback_rs::Player) {
-        log::info!("{} {}", inner.has_current_song(), inner.has_next_song());
         if !inner.has_current_song() {
             if let Some(track) = self.current_queue_item() {
                 log::info!("Loading Track:{:?} {:?}", track.key, track.title);
@@ -142,6 +160,9 @@ impl Player {
                 inner.play_song_now(&song, None).unwrap();
             }
         }
+        // TODO this doesn't seem to trigger until we actually set_playing = true
+        // which is surprising and messes up the UI by not updating position and
+        // duration.
         if !inner.has_next_song() {
             if let Some(track) = self.next_queue_item() {
                 log::info!("Loading next Track:{:?} {:?}", track.key, track.title);
@@ -174,9 +195,14 @@ impl Player {
         }
     }
 
-    fn advance_queue(&self) {
+    fn queue_next(&self) {
         let mut shared_state = self.shared_state.write().unwrap();
         shared_state.index = (shared_state.index + 1) % self.queue().len();
+    }
+
+    fn queue_previous(&self) {
+        let mut shared_state = self.shared_state.write().unwrap();
+        shared_state.index = 0.max(shared_state.index - 1);
     }
 
     /// TODO note this is a remnant of a refactor and can be factored out

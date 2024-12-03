@@ -1,8 +1,14 @@
 import { Slider , GroupBox, HorizontalBox} from "std-widgets.slint";
-import { StyleMetrics } from "std-widgets.slint";
+import { StyleMetrics, Button } from "std-widgets.slint";
 import { CardAdapter } from "components/card.slint";
 import {Link, LinkAdapter} from "./components/link.slint";
-import { Palette, Navigator } from "./common.slint";
+import { Palette, Navigator, AppState } from "common.slint";
+
+export enum PlayerState {
+    Playing,
+    Paused,
+    Stopped,
+}
 
 export struct PlayerBarAdapter {
     now_playing_artist: CardAdapter,
@@ -15,6 +21,7 @@ export struct PlayerBarAdapter {
     duration_seconds: int,
     position_label: string,
     duration_label: string,
+    player_state: PlayerState,
 }
 
 component InfoAreaLabel inherits HorizontalLayout {
@@ -65,26 +72,87 @@ export component PlayerBar {
             clip: true;
             VerticalLayout {
                 spacing: 2px;
-                InfoAreaLabel {
-                    icon: @image-url("../icons/phosphor/SVGs/bold/music-notes-bold.svg");
-                    link: model.now-playing-artist.title;
-                    font-weight: Palette.font-weight-bold;
-                }
-                InfoAreaLabel {
-                    icon: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
-                    link: model.now-playing-release.title;
-                }
-                InfoAreaLabel {
-                    icon: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
-                    link: model.now-playing-recording.title;
+                HorizontalLayout {
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        InfoAreaLabel {
+                            icon: @image-url("../icons/phosphor/SVGs/fill/music-notes-fill.svg");
+                            link: model.now-playing-artist.title;
+                            font-weight: Palette.font-weight-bold;
+                        }
+                        InfoAreaLabel {
+                            icon: @image-url("../icons/phosphor/SVGs/fill/vinyl-record-fill.svg");
+                            link: model.now-playing-release.title;
+                        }
+                        InfoAreaLabel {
+                            icon: @image-url("../icons/phosphor/SVGs/fill/users-three-fill.svg");
+                            link: model.now-playing-recording.title;
+                        }
+                    }
+                    TouchArea {
+                        width: 46px;
+                        height: 46px;
+                        clicked => { AppState.player_previous(); }
+                        Image {
+                            source: @image-url("../icons/phosphor/SVGs/fill/skip-back-circle-fill.svg");
+                            width: 46px;
+                            height: 46px;
+                            colorize: parent.has-hover 
+                                ? Palette.link-color-hover
+                                : StyleMetrics.default-text-color;
+                        }                
+                    }
+                    TouchArea {
+                        width: 46px;
+                        height: 46px;
+                        clicked => { AppState.player_play_pause(); }
+                        if model.player-state == PlayerState.Playing: Image {
+                            source: @image-url("../icons/phosphor/SVGs/fill/pause-circle-fill.svg");
+                            width: 46px;
+                            height: 46px;
+                            colorize: parent.has-hover 
+                                ? Palette.link-color-hover
+                                : StyleMetrics.default-text-color;
+                        }                
+                        if model.player-state != PlayerState.Playing: Image {
+                            source: @image-url("../icons/phosphor/SVGs/fill/play-circle-fill.svg");
+                            width: 46px;
+                            height: 46px;
+                            colorize: parent.has-hover 
+                                ? Palette.link-color-hover
+                                : StyleMetrics.default-text-color;
+                        }                
+                    }
+                    TouchArea {
+                        width: 46px;
+                        height: 46px;
+                        clicked => { AppState.player_next(); }
+                        Image {
+                            source: @image-url("../icons/phosphor/SVGs/fill/skip-forward-circle-fill.svg");
+                            width: 46px;
+                            height: 46px;
+                            colorize: parent.has-hover 
+                                ? Palette.link-color-hover
+                                : StyleMetrics.default-text-color;
+                        }                
+                    }
                 }
                 Rectangle {
                     vertical-stretch: 1;
                 }
                 Slider { 
+                    // Once the user drags the slider this binding gets broken
+                    // and stops updating. See:
+                    // https://github.com/slint-ui/slint/issues/5990
+                    // It may be possible to fix by adding a two way binding at
+                    // the root of this component ala:
+                    // in-out property <float> position-seconds
+                    // and binding to that instead.
+
                     value: model.position-seconds;
                     maximum: model.duration-seconds;
                     vertical-stretch: 0;
+                    changed => { AppState.player_seek(self.value) }
                 }
                 HorizontalLayout {
                     Text {
@@ -99,41 +167,44 @@ export component PlayerBar {
                 }
             }
         }
-        VerticalLayout {
-            alignment: start;
-            spacing: 2px;
-            width: inner_rect.width * 1.5;
-            HorizontalLayout {
-                alignment: center;
-                inner_rect := Rectangle {
-                    width: inner_img.width;
-                    height: inner_img.height;
-                    border-radius: Palette.thumbnail-border-radius;
-                    border-width: Palette.thumbnail-border-width;
-                    border-color: Palette.thumbnail-border-color;
-                    clip: true;
-                    inner_img := Image {
-                        source: @image-url("../images/light.png");
-                        width: Palette.thumbnail-width-small;
-                        height: Palette.thumbnail-width-small;
-                    }    
-                }
-            }
-            Text {
-                horizontal-alignment: center;
-                text: "Finality Season";
-                wrap: word-wrap;
-                overflow: elide;
-                font-weight: Palette.font-weight-bold;
-                max-height: 3rem;
-            }
-            Text {
-                horizontal-alignment: center;
-                text: "The Frigid Depths of the Heart of the Kit-Kat CEO";
-                wrap: word-wrap;
-                overflow: elide;
-                max-height: 3rem;
-            }
-        }
     }
 }
+
+
+
+        // VerticalLayout {
+        //     alignment: start;
+        //     spacing: 2px;
+        //     width: inner_rect.width * 1.5;
+        //     HorizontalLayout {
+        //         alignment: center;
+        //         inner_rect := Rectangle {
+        //             width: inner_img.width;
+        //             height: inner_img.height;
+        //             border-radius: Palette.thumbnail-border-radius;
+        //             border-width: Palette.thumbnail-border-width;
+        //             border-color: Palette.thumbnail-border-color;
+        //             clip: true;
+        //             inner_img := Image {
+        //                 source: @image-url("../images/light.png");
+        //                 width: Palette.thumbnail-width-small;
+        //                 height: Palette.thumbnail-width-small;
+        //             }    
+        //         }
+        //     }
+        //     Text {
+        //         horizontal-alignment: center;
+        //         text: "Finality Season";
+        //         wrap: word-wrap;
+        //         overflow: elide;
+        //         font-weight: Palette.font-weight-bold;
+        //         max-height: 3rem;
+        //     }
+        //     Text {
+        //         horizontal-alignment: center;
+        //         text: "The Frigid Depths of the Heart of the Kit-Kat CEO";
+        //         wrap: word-wrap;
+        //         overflow: elide;
+        //         max-height: 3rem;
+        //     }
+        // }

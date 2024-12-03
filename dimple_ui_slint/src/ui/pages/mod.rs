@@ -12,3 +12,4 @@ pub mod settings;
 // pub mod genre_list;
 // pub mod genre_details;
 // pub mod playlist_list;
+pub mod playlist_details;

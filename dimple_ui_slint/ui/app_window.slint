@@ -31,6 +31,8 @@ import { TrackList } from "pages/track_list.slint";
 import { Search } from "pages/search.slint";
 import { GenreList } from "pages/genre_list.slint";
 import { GenreDetailsAdapter, GenreDetails } from "pages/genre_details.slint";
+import { PlaylistList } from "pages/playlist_list.slint";
+import { PlaylistDetailsAdapter, PlaylistDetails } from "pages/playlist_details.slint";
 
 import "../fonts/Roboto/Roboto-Black.ttf";
 import "../fonts/Roboto/Roboto-BlackItalic.ttf";
@@ -44,7 +46,6 @@ import "../fonts/Roboto/Roboto-MediumItalic.ttf";
 import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
-import { PlaylistList } from "pages/playlist_list.slint";
 
 export { Navigator, Palette, AppState }
 
@@ -58,7 +59,7 @@ export enum Page { Home, Search,
 
 
 export component AppWindow inherits Window {
-    in-out property <Page> page: Settings;
+    in-out property <Page> page: TrackList;
 
     // TODO Note to self: Currently you can't expose properties on
     // sub-components, so we have to bubble them all to the top.
@@ -80,6 +81,7 @@ export component AppWindow inherits Window {
     in-out property <TrackDetailsAdapter> track-details;
     in-out property <RecordingDetailsAdapter> recording-details;
     in-out property <CardGridAdapter> playlist-list;
+    in-out property <PlaylistDetailsAdapter> playlist-details;
     in-out property <SettingsAdapter> settings;
     in-out property <PlayerBarAdapter> player-bar;
     in-out property <SideBarAdapter> sidebar;
@@ -97,6 +99,7 @@ export component AppWindow inherits Window {
             spacing: 8px;
             padding: 0;
             GroupBox {
+                min-width: 200px;
                 SideBar {
                     model: root.sidebar;
                 }
@@ -146,9 +149,9 @@ export component AppWindow inherits Window {
                     if page == Page.PlaylistList: PlaylistList {  
                         model: root.playlist-list;
                     }
-                    // if page == Page.PlaylistDetails: PlaylistDetails {  
-                    //     model: root.playlist-details;
-                    // }
+                    if page == Page.PlaylistDetails: PlaylistDetails {  
+                        model: root.playlist-details;
+                    }
                     if page == Page.Settings: Settings {  
                         model: root.settings;
                     }
