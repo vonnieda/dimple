@@ -16,6 +16,7 @@ use slint::SharedString;
 use slint::StandardListViewItem;
 use slint::VecModel;
 use url::Url;
+use crate::ui::PlaylistDetailsAdapter;
 
 // https://github.com/slint-ui/slint/discussions/2329
 pub fn playlist_details(url: &str, app: &App) {
@@ -49,23 +50,26 @@ pub fn playlist_details(url: &str, app: &App) {
                 .map(|track| track.key.clone().unwrap())
                 .map(|key| SharedString::from(key))
                 .collect();
-            let adapter = TrackListAdapter {
+            let adapter = PlaylistDetailsAdapter {
                 rows: ModelRc::new(rows),
                 keys: ModelRc::from(keys.as_slice()),
             };
-            ui.set_track_list(adapter);
-            ui.set_page(Page::TrackList);
+            ui.set_playlist_details(adapter);
+            ui.set_page(Page::PlaylistDetails);
         })
         .unwrap();
     });
 }
 
 pub fn playlist_details_track_selected(app: &App, row: i32) {
+    let app = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
         let adapter = ui.get_track_list();
         // let rows = adapter.rows.as_any().downcast_ref::<VecModel<ModelRc<StandardListViewItem>>>().unwrap();
         let key = adapter.keys.row_data(row as usize).unwrap().to_string();
-        ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
+        // ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
+        let play_queue = app.player.play_queue();
+        // TODO remove from play queue as a test.
     }).unwrap();
 }
 

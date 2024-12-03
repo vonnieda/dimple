@@ -154,9 +154,7 @@ impl Player {
             if let Some(track) = self.current_queue_item() {
                 log::info!("Loading Track:{:?} {:?}", track.key, track.title);
                 let content = self.library.load_track_content(&track).expect("No valid sources found.");
-                log::info!("track content.len = {}", content.len());
                 let song = Song::new(Box::new(Cursor::new(content)), &Hint::new(), None).unwrap();            
-                log::info!("song loaded");
                 inner.play_song_now(&song, None).unwrap();
             }
         }
@@ -167,9 +165,7 @@ impl Player {
             if let Some(track) = self.next_queue_item() {
                 log::info!("Loading next Track:{:?} {:?}", track.key, track.title);
                 let content = self.library.load_track_content(&track).expect("No valid sources found.");
-                log::info!("next track content.len = {}", content.len());
                 let song = Song::new(Box::new(Cursor::new(content)), &Hint::new(), None).unwrap();            
-                log::info!("next song loaded");
                 inner.play_song_next(&song, None).unwrap();
             }
         }

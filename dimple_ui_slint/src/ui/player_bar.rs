@@ -39,7 +39,8 @@ pub fn player_bar_init(app: &App) {
                 let player = app.player.clone();
                 app.ui.upgrade_in_event_loop(move |ui| update_model(&player, &ui)).unwrap();
     
-                std::thread::sleep(Duration::from_millis(1000 / 24));
+                // TODO magic
+                std::thread::sleep(Duration::from_millis(100));
             }
         });
     }

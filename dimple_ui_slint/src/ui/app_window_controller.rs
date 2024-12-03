@@ -1,5 +1,5 @@
 use dimple_core::{library::Library, model::{Artist, Model}, player::Player};
-use pages::track_list;
+use pages::{playlist_details, track_list};
 use player_bar;
 use std::{collections::VecDeque, sync::{Arc, Mutex}, time::Duration};
 
@@ -77,9 +77,13 @@ impl AppWindowController {
             move |debug| settings::settings_set_debug(&app, debug));
         
         let app = self.app.clone();
+        self.ui.global::<AppState>().on_playlist_details_track_selected(
+            move |row| playlist_details::playlist_details_track_selected(&app, row));
+    
+        let app = self.app.clone();
         self.ui.global::<AppState>().on_track_list_track_selected(
             move |row| track_list::track_list_track_selected(&app, row));
-
+        
         player_bar::player_bar_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
