@@ -138,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn hydrate() {
+    fn tracks() {
         let library = Library::open("file:5d29e64a-5418-4773-b557-56448ae09efd?mode=memory&cache=shared");
         let playlist = library.save(&Playlist::default());
         for _ in 0..3 {
@@ -147,7 +147,8 @@ mod tests {
         }
         let mut playlist: Playlist = library.get(&playlist.key.unwrap()).unwrap();
         assert!(playlist.len(&library) == 0);
-        playlist.hydrate(&library);
+        // TODO
+        // playlist.hydrate(&library);
         assert!(playlist.len(&library) == 3);
     }
 }

@@ -62,9 +62,9 @@ pub fn playlist_details_track_selected(app: &App, row: i32) {
     app.ui.upgrade_in_event_loop(move |ui| {
         let adapter = ui.get_track_list();
         // let rows = adapter.rows.as_any().downcast_ref::<VecModel<ModelRc<StandardListViewItem>>>().unwrap();
-        let key = adapter.keys.row_data(row as usize).unwrap().to_string();
+        // let key = adapter.keys.row_data(row as usize).unwrap().to_string();
         // ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
-        let play_queue = app.player.queue();
+        // let play_queue = app.player.queue();
         // TODO remove from play queue as a test.
     }).unwrap();
 }

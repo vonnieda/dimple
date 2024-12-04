@@ -54,8 +54,8 @@ fn format_duration(dur: &Duration) -> String {
 }
 
 fn update_model(player: &Player, ui: &crate::ui::AppWindow) {
-    let current_track = player.current_queue_item().unwrap_or_default();
-    let next_track = player.next_queue_item().unwrap_or_default();
+    let current_track = player.current_queue_track().unwrap_or_default();
+    let next_track = player.next_queue_track().unwrap_or_default();
     let adapter = crate::ui::PlayerBarAdapter {
         duration_seconds: player.track_duration().as_secs() as i32,
         duration_label: format_duration(&player.track_duration()).into(),
