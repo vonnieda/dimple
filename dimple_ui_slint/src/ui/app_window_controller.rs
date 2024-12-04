@@ -1,7 +1,7 @@
 use dimple_core::{library::Library, model::{Artist, Model}, player::Player};
 use pages::{playlist_details, track_list};
 use player_bar;
-use std::{collections::VecDeque, sync::{Arc, Mutex}, time::Duration};
+use std::{collections::VecDeque, sync::{Arc, Mutex, MutexGuard}, time::Duration};
 
 use slint::{SharedString, Weak};
 
@@ -11,6 +11,8 @@ use crate::ui::{*};
 
 use self::{images::ImageMangler, pages::settings};
 
+use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
+
 #[derive(Clone)]
 pub struct App {
     pub library: Library,
@@ -18,6 +20,7 @@ pub struct App {
     pub player: Player,
     pub images: ImageMangler,
     pub ui: Weak<AppWindow>,
+    pub controls: Arc<Mutex<Option<MediaControls>>>,
 }
 
 pub struct AppWindowController {
@@ -54,7 +57,8 @@ impl AppWindowController {
                 player,
                 images,
                 ui: ui_weak,
-            }
+                controls: Arc::new(Mutex::new(None)),
+            },
         }
     }
 
@@ -87,6 +91,18 @@ impl AppWindowController {
         player_bar::player_bar_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://queue".into());
+
+        let app = self.app.clone();
+        self.ui.window().on_close_requested(move || {
+            app.ui.upgrade_in_event_loop(|ui| ui.window().set_minimized(true)).unwrap();
+            slint::CloseRequestResponse::KeepWindowShown
+        });
+
+        let app = self.app.clone();
+        self.app.ui.upgrade_in_event_loop(move |ui| {
+            let controls = desktop_integration(&app);
+            *app.controls.lock().unwrap() = Some(controls);
+        }).unwrap();
 
         self.ui.run()
     }
@@ -199,141 +215,84 @@ impl App {
     }
 }
 
-// fn model_card(model: impl Model) -> CardAdapter {
-//     match model {
-//         // Model::Artist(artist) => artist_card(artist),
-//         // Model::ReleaseGroup(release_group) => release_group_card(release_group),
-//         // Model::Genre(genre) => genre_card(genre),
-//         // Model::Recording(recording) => recording_card(recording),
-//         _ => todo!(),
-//     }
-// }
+// TODO desktop integration using souvlaki. currently broken on Windows.
+fn desktop_integration(app: &App) -> MediaControls {
+    #[cfg(not(target_os = "windows"))]
+    let hwnd = None;
 
-// pub fn artist_card(artist: &Artist) -> CardAdapter {
-//     CardAdapter {
-//         image: ImageLinkAdapter {
-//             image: Default::default(),
-//             name: artist.name.clone().unwrap_or_default().into(),
-//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-//         },
-//         title: LinkAdapter {
-//             name: artist.name.clone().unwrap_or_default().into(),
-//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-//         },
-//         sub_title: LinkAdapter {
-//             name: "Artist".to_string().into(),
-//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-//         },
-//     }
-// }
+    #[cfg(target_os = "windows")]
+    let hwnd = {
+        use raw_window_handle::windows::WindowsHandle;
 
+        let handle: WindowsHandle = unimplemented!();
+        Some(handle.hwnd)
+    };
 
+    let config = PlatformConfig {
+        dbus_name: "dimple",
+        display_name: "Dimple",
+        hwnd,
+    };
 
+    let mut controls = MediaControls::new(config).unwrap();
+    
+    {
+        let app = app.clone();
+        controls.attach(move |event: MediaControlEvent| {
+            println!("Event received: {:?}", event);
+            match event {
+                MediaControlEvent::Play => app.player.play(),
+                MediaControlEvent::Pause => app.player.pause(),
+                MediaControlEvent::Toggle => {
+                    if app.player.is_playing() {
+                        app.player.pause();
+                    }
+                    else {
+                        app.player.play();
+                    }
+                },
+                MediaControlEvent::Next => app.player.next(),
+                MediaControlEvent::Previous => app.player.previous(),
+                MediaControlEvent::Stop => app.player.pause(),
+                MediaControlEvent::Seek(seek_direction) => todo!(),
+                MediaControlEvent::SeekBy(seek_direction, duration) => todo!(),
+                MediaControlEvent::SetPosition(media_position) => app.player.seek(media_position.0),
+                MediaControlEvent::SetVolume(_) => todo!(),
+                MediaControlEvent::OpenUri(_) => todo!(),
+                MediaControlEvent::Raise => {
+                    app.ui.upgrade_in_event_loop(|ui| ui.window().set_minimized(false)).unwrap();
+                },
+                MediaControlEvent::Quit => todo!(),
+            }
+        })
+        .unwrap();
+    }
 
-     
-        // let app = self.app.clone();
-        // self.ui.global::<AppState>().on_release_group_details_release_selected(
-        //     move |s| release_group_details::release_group_details_release_selected(&app, s.to_string()));
-        
-        // // Load the sidebar
-        // let app = self.app.clone();
-        // std::thread::spawn(move || {
-        //     let mut pinned_items: Vec<Model> = vec![];
-        //     pinned_items.push(app.librarian.get2(Artist {
-        //         known_ids: KnownIds {
-        //             musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
-        //             ..Default::default()
-        //         },
-        //         ..Default::default()
-        //     }).unwrap().model());
-        //     pinned_items.push(app.librarian.get2(Artist {
-        //         known_ids: KnownIds {
-        //             musicbrainz_id: Some("65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab".to_string()),
-        //             ..Default::default()
-        //         },
-        //         ..Default::default()
-        //     }).unwrap().model());
-        //     pinned_items.push(app.librarian.get2(Artist {
-        //         known_ids: KnownIds {
-        //             musicbrainz_id: Some("c14b4180-dc87-481e-b17a-64e4150f90f6".to_string()),
-        //             ..Default::default()
-        //         },
-        //         ..Default::default()
-        //     }).unwrap().model());
-        //     pinned_items.push(app.librarian.get2(Artist {
-        //         known_ids: KnownIds {
-        //             musicbrainz_id: Some("69158f97-4c07-4c4e-baf8-4e4ab1ed666e".to_string()),
-        //             ..Default::default()
-        //         },
-        //         ..Default::default()
-        //     }).unwrap().model());
-        //     pinned_items.push(app.librarian.get2(Artist {
-        //         known_ids: KnownIds {
-        //             musicbrainz_id: Some("f1686ac4-3f28-4789-88eb-083ccb3a213a".to_string()),
-        //             ..Default::default()
-        //         },
-        //         ..Default::default()
-        //     }).unwrap().model());
-        //     let images = app.images.clone();
-        //     app.ui.upgrade_in_event_loop(move |ui| {
-        //         let cards: Vec<CardAdapter> = pinned_items.iter().cloned().enumerate()
-        //             .map(|(index, model)| {
-        //                 let mut card: CardAdapter = model_card(&model);
-        //                 card.image.image = images.lazy_get(model, 48, 48, move |ui, image| {
-        //                     let mut card = ui.get_sidebar().pinned_items.row_data(index).unwrap();
-        //                     card.image.image = image;
-        //                     ui.get_sidebar().pinned_items.set_row_data(index, card);
-        //                 });
-        //                 card
-        //             })
-        //             .collect();
-        //         let adapter = SideBarAdapter {
-        //             pinned_items: ModelRc::from(cards.as_slice()),
-        //         };
-        //         ui.set_sidebar(adapter);
-        //     }).unwrap();
-        // });
+    {
+        let app = app.clone();
+        app.player.on_change(move |player, event| {
+            let track_position = player.track_position();
+            let track_duration = player.track_duration();
+            let current_track = player.current_queue_track();
+            let is_playing = player.is_playing();
 
+            let playback = match is_playing {
+                true => MediaPlayback::Playing { progress: Some(MediaPosition(track_position)) },
+                false => MediaPlayback::Paused { progress: Some(MediaPosition(track_position)) },
+            };
+            let metadata = MediaMetadata {
+                duration: Some(track_duration),
+                ..Default::default()
+            };
+            if let Ok(mut controls) = app.controls.lock() {
+                if let Some(controls) = controls.as_mut() {
+                    controls.set_playback(playback).unwrap();
+                    controls.set_metadata(metadata).unwrap();
+                }
+            }
+        });
+    }
 
+    controls
+}
 
-        // use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, PlatformConfig};
-        // desktop_integration();
-
-        // // TODO desktop integration using souvlaki. currently broken on Windows.
-        // fn desktop_integration() {
-        //     #[cfg(not(target_os = "windows"))]
-        //     let hwnd = None;
-        
-        //     #[cfg(target_os = "windows")]
-        //     let hwnd = {
-        //         use raw_window_handle::windows::WindowsHandle;
-        
-        //         let handle: WindowsHandle = unimplemented!();
-        //         Some(handle.hwnd)
-        //     };
-        
-        //     let config = PlatformConfig {
-        //         dbus_name: "dimple",
-        //         display_name: "Dimple",
-        //         hwnd,
-        //     };
-        
-        //     let mut controls = MediaControls::new(config).unwrap();
-        
-        //     // The closure must be Send and have a static lifetime.
-        //     controls
-        //         .attach(|event: MediaControlEvent| println!("Event received: {:?}", event))
-        //         .unwrap();
-        
-        //     // Update the media metadata.
-        //     controls
-        //         .set_metadata(MediaMetadata {
-        //             title: Some("Time to get Dimply"),
-        //             artist: Some("Dimple"),
-        //             album: Some("Dimple Time"),
-        //             ..Default::default()
-        //         })
-        //         .unwrap();
-        // }
-        
-        

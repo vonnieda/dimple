@@ -1,14 +1,20 @@
-use std::{collections::HashMap, io::Cursor, sync::{mpsc::{self, Receiver, Sender}, Arc, RwLock}, time::Duration};
+pub mod track_downloader;
 
-use playback_rs::{Hint, Song};
+use std::{sync::{mpsc::{Receiver, Sender}, Arc, Mutex, RwLock}, time::Duration};
 
-use crate::{library::Library, model::{Model, Playlist, Track, TrackSource}};
+use track_downloader::{TrackDownloadStatus, TrackDownloader};
+
+use crate::{library::Library, model::{Playlist, Track}};
+
+type ChangeListener = Arc<Box<dyn Fn(&Player, &str) + Send + std::marker::Sync + 'static>>;
 
 #[derive(Clone)]
 pub struct Player {
     library: Arc<Library>,
     sender: Sender<PlayerCommand>,
     shared_state: Arc<RwLock<SharedState>>,
+    track_downloader: TrackDownloader,
+    change_listeners: Arc<Mutex<Vec<ChangeListener>>>,
 }
 
 impl Player {
@@ -18,6 +24,8 @@ impl Player {
             library,
             sender,
             shared_state: Arc::new(RwLock::new(SharedState::default())),
+            track_downloader: TrackDownloader::default(),
+            change_listeners: Arc::new(Mutex::new(vec![])),
         };
         // TODO library.on_change() and watch for changes to the playlist, which
         // will cause us to need to reevaulate if the right song is loaded.
@@ -47,13 +55,20 @@ impl Player {
     pub fn previous(&self) {
         if let Ok(mut shared_state) = self.shared_state.write() {
             const REWIND_SECONDS: u64 = 3;
-            if shared_state.track_position.as_secs() < REWIND_SECONDS {
-                shared_state.queue_index = (shared_state.queue_index - 1).max(0);
-            }
-            else {
+            if shared_state.track_position.as_secs() >= REWIND_SECONDS {
                 self.sender.send(PlayerCommand::Seek(Duration::ZERO)).unwrap();
             }
+            else {
+                let queue_index = shared_state.queue_index;
+                if queue_index > 0 {
+                    shared_state.queue_index = queue_index - 1;
+                }
+            }
         }
+    }
+
+    pub fn set_queue_index(&self, index: usize) {
+        self.shared_state.write().unwrap().queue_index = index;
     }
 
     pub fn seek(&self, position: Duration) {
@@ -93,78 +108,6 @@ impl Player {
         playlist
     }
 
-    // TODO woops need playlistitem instead of track cause if a track is right after itself it
-    // gets skipped cause next track appears already loaded. So we need the
-    // playlist item which includes the ordinal, or at least has a different key so
-    // not equal.
-    fn player_worker(&self, receiver: Receiver<PlayerCommand>) {
-        let inner = playback_rs::Player::new(None).unwrap();
-        inner.set_playing(false);
-        loop {
-            while let Ok(command) = receiver.recv_timeout(Duration::from_millis(100)) {
-                match command {
-                    PlayerCommand::Play => inner.set_playing(true),
-                    PlayerCommand::Pause => inner.set_playing(false),
-                    PlayerCommand::Seek(position) => {inner.seek(position);},
-                }
-            }
-
-            // If the player has no next song set, but we had set one previously
-            // then the current song finished and the next song is now playing.
-            // We need to advance the queue and update the state so that it
-            // reflects which song is now loaded.
-            if !inner.has_next_song() && self.shared_state.read().unwrap().next_loaded_track.is_some() {
-                log::warn!("song finished, advancing the queue!");
-                if let Ok(mut shared_state) = self.shared_state.write() {
-                    // TODO detect end of queue and send pause or stop
-                    shared_state.current_loaded_track = shared_state.next_loaded_track.clone();
-                    shared_state.next_loaded_track = None;
-                }
-                self.next();
-            }
-
-            if let Some(current_queue_track) = self.current_queue_track() {
-                if let Ok(mut shared_state) = self.shared_state.write() {
-                    if shared_state.current_loaded_track != Some(current_queue_track.clone()) {
-                        log::warn!("current track mismatch, loading current track");
-                        inner.play_song_now(&self.get_song(&current_queue_track), None).unwrap();
-                        shared_state.current_loaded_track = Some(current_queue_track.clone());
-                    }
-                }
-            }
-
-            if self.state() == PlayerState::Playing {
-                if let Some(next_queue_track) = self.next_queue_track() {
-                    if let Ok(mut shared_state) = self.shared_state.write() {
-                        if shared_state.next_loaded_track != Some(next_queue_track.clone()) {
-                            log::warn!("next track mismatch, loading next track");
-                            inner.play_song_next(&self.get_song(&next_queue_track), None).unwrap();
-                            shared_state.next_loaded_track = Some(next_queue_track.clone());
-                        }
-                    }
-                }
-            }
-
-            let (position, duration) = inner.get_playback_position().unwrap_or_default();
-            if let Ok(mut shared_state) = self.shared_state.write() {
-                shared_state.track_position = position;
-                shared_state.track_duration = duration;
-                shared_state.inner_player_state = match (inner.is_playing(), inner.has_current_song()) {
-                    (false, false) => PlayerState::Stopped,
-                    (false, true) => PlayerState::Paused,
-                    (true, false) => PlayerState::Stopped,
-                    (true, true) => PlayerState::Playing,                    
-                };
-            }
-        }
-    }
-
-    fn get_song(&self, track: &Track) -> Song {
-        let content = self.library.load_track_content(track).expect("No valid sources found.");
-        let song = Song::new(Box::new(Cursor::new(content)), &Hint::new(), None).unwrap();            
-        song
-    }
-
     pub fn current_queue_index(&self) -> usize {
         self.shared_state.read().unwrap().queue_index
     }
@@ -192,14 +135,111 @@ impl Player {
             None
         }
     }
-}
 
-struct SongCache {
-    songs_by_track_key: Arc<RwLock<HashMap<String, Song>>>,
-}
+    pub fn on_change(&self, callback: impl Fn(&Player, &str) + Send + std::marker::Sync + 'static) {
+        let mut listeners = self.change_listeners.lock().unwrap();
+        listeners.push(Arc::new(Box::new(callback)));
+    }
 
-impl SongCache {
-    
+    fn emit_change(&self, event: &str) {
+        let listeners = self.change_listeners.lock().unwrap().clone();
+        let player = self.clone();
+        let event = event.to_string();
+            
+        std::thread::spawn(move || {
+            for callback in listeners {
+                callback(&player, &event);
+            }
+        });
+    }
+
+    // TODO woops need playlistitem instead of track cause if a track is right after itself it
+    // gets skipped cause next track appears already loaded. So we need the
+    // playlist item which includes the ordinal, or at least has a different key so
+    // not equal.
+    fn player_worker(&self, receiver: Receiver<PlayerCommand>) {
+        let inner = playback_rs::Player::new(None).unwrap();
+        inner.set_playing(false);
+        loop {
+            while let Ok(command) = receiver.recv_timeout(Duration::from_millis(100)) {
+                match command {
+                    PlayerCommand::Play => inner.set_playing(true),
+                    PlayerCommand::Pause => inner.set_playing(false),
+                    PlayerCommand::Seek(position) => {inner.seek(position);},
+                }
+            }
+
+            // TODO pretty sure this is still messing stuff up when using next()
+            // okay yea, just tested with this commented out (and next track loading
+            // commented out too) and the interactions were all correct and smooth
+
+            // If the player has no next song set, but we had set one previously
+            // then the current song finished and the next song is now playing.
+            // We need to advance the queue and update the state so that it
+            // reflects which song is now loaded.
+            // if !inner.has_next_song() && self.shared_state.read().unwrap().next_loaded_track.is_some() {
+            //     log::warn!("song finished, advancing the queue!");
+            //     if let Ok(mut shared_state) = self.shared_state.write() {
+            //         // TODO detect end of queue and send pause or stop
+            //         shared_state.current_loaded_track = shared_state.next_loaded_track.clone();
+            //         shared_state.next_loaded_track = None;
+            //     }
+            //     self.next();
+            // }
+
+            // Okay, thought about this more and I think I need to think in
+            // terms of next song only. I only ever worry about loading
+            // a next song when one isn't there. And if one isn't there and
+            // I already loaded one, that's a song finished.
+
+            if let Some(current_queue_track) = self.current_queue_track() {
+                if let Ok(mut shared_state) = self.shared_state.write() {
+                    if shared_state.current_loaded_track != Some(current_queue_track.clone()) {
+                        log::warn!("current track mismatch, loading current track");
+                        let status = self.track_downloader.get(&current_queue_track, &self.library);
+                        if let TrackDownloadStatus::Ready(song) = status {
+                            inner.play_song_now(&song, None).unwrap();
+                            shared_state.current_loaded_track = Some(current_queue_track.clone());
+                        }
+                    }
+                }
+            }
+
+            // // This one has to check if playing because the inner player, when
+            // // first loaded with a track but not yet playing, says it has both
+            // // a current and a next track even though only one has been loaded. 
+            // // This ensures that condition is bypassed so that we don't
+            // // accidentally load the "next" track over the freshly loaded
+            // // "current" track.
+            // if self.state() == PlayerState::Playing {
+            //     if let Some(next_queue_track) = self.next_queue_track() {
+            //         if let Ok(mut shared_state) = self.shared_state.write() {
+            //             if shared_state.next_loaded_track != Some(next_queue_track.clone()) {
+            //                 log::warn!("next track mismatch, loading next track");
+            //                 let status = self.track_downloader.get(&next_queue_track, &self.library);
+            //                 if let TrackDownloadStatus::Ready(song) = status {
+            //                     inner.play_song_next(&song, None).unwrap();
+            //                     shared_state.next_loaded_track = Some(next_queue_track.clone());
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+
+            let (position, duration) = inner.get_playback_position().unwrap_or_default();
+            if let Ok(mut shared_state) = self.shared_state.write() {
+                shared_state.track_position = position;
+                shared_state.track_duration = duration;
+                shared_state.inner_player_state = match (inner.is_playing(), inner.has_current_song()) {
+                    (false, false) => PlayerState::Stopped,
+                    (false, true) => PlayerState::Paused,
+                    (true, false) => PlayerState::Stopped,
+                    (true, true) => PlayerState::Playing,                    
+                };
+            }
+            self.emit_change("");
+        }
+    }
 }
 
 #[derive(Default)]

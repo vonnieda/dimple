@@ -332,3 +332,35 @@ impl From<Track> for CardAdapter {
 
 //     score / 4.
 // }
+
+
+// fn model_card(model: impl Model) -> CardAdapter {
+//     match model {
+//         // Model::Artist(artist) => artist_card(artist),
+//         // Model::ReleaseGroup(release_group) => release_group_card(release_group),
+//         // Model::Genre(genre) => genre_card(genre),
+//         // Model::Recording(recording) => recording_card(recording),
+//         _ => todo!(),
+//     }
+// }
+
+// pub fn artist_card(artist: &Artist) -> CardAdapter {
+//     CardAdapter {
+//         image: ImageLinkAdapter {
+//             image: Default::default(),
+//             name: artist.name.clone().unwrap_or_default().into(),
+//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+//         },
+//         title: LinkAdapter {
+//             name: artist.name.clone().unwrap_or_default().into(),
+//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+//         },
+//         sub_title: LinkAdapter {
+//             name: "Artist".to_string().into(),
+//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+//         },
+//     }
+// }
+
+
+

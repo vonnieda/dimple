@@ -66,6 +66,7 @@ pub fn playlist_details_track_selected(app: &App, row: i32) {
         // ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
         // let play_queue = app.player.queue();
         // TODO remove from play queue as a test.
+        app.player.set_queue_index(row as usize);
     }).unwrap();
 }
 
