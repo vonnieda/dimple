@@ -2,7 +2,6 @@ pub mod track_downloader;
 
 use std::{sync::{mpsc::{Receiver, Sender}, Arc, Mutex, RwLock}, time::Duration};
 
-use playback_rs::Song;
 use threadpool::ThreadPool;
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
@@ -20,6 +19,8 @@ pub struct Player {
     threadpool: ThreadPool,
 }
 
+// TODO change most or all emit to happen inside setters for fields, and of
+// course switch everything to use the setters.
 impl Player {
     pub fn new(library: Arc<Library>) -> Player {
         let (sender, receiver) = std::sync::mpsc::channel();
@@ -76,6 +77,7 @@ impl Player {
 
     pub fn set_queue_index(&self, index: usize) {
         self.shared_state.write().unwrap().queue_index = index;
+        self.sender.send(PlayerCommand::Stop).unwrap();
     }
 
     pub fn seek(&self, position: Duration) {
@@ -120,27 +122,11 @@ impl Player {
     }
 
     pub fn current_queue_track(&self) -> Option<Track> {
-        if let Ok(state) = self.shared_state.read() {
-            if state.queue_index >= self.queue().len(&self.library) {
-                return None;
-            }
-            Some(self.queue().tracks(&self.library)[state.queue_index].clone())
-        }
-        else {
-            None
-        }
+        self.queue().tracks(&self.library).get(self.current_queue_index()).cloned()
     }
 
     pub fn next_queue_track(&self) -> Option<Track> {
-        if let Ok(state) = self.shared_state.read() {
-            if state.queue_index + 1 >= self.queue().len(&self.library) {
-                return None;
-            }
-            Some(self.queue().tracks(&self.library)[state.queue_index + 1].clone())
-        }
-        else {
-            None
-        }
+        self.queue().tracks(&self.library).get(self.current_queue_index() + 1).cloned()
     }
 
     pub fn on_change(&self, callback: impl Fn(&Player, &str) + Send + std::marker::Sync + 'static) {
@@ -160,23 +146,24 @@ impl Player {
         });
     }
 
-    // TODO woops need playlistitem instead of track cause if a track is right after itself it
-    // gets skipped cause next track appears already loaded. So we need the
-    // playlist item which includes the ordinal, or at least has a different key so
-    // not equal.
     fn player_worker(&self, receiver: Receiver<PlayerCommand>) {
         let inner = playback_rs::Player::new(None).unwrap();
         inner.set_playing(false);
         loop {
             while let Ok(command) = receiver.recv_timeout(Duration::from_millis(100)) {
                 match command {
-                    PlayerCommand::Play => inner.set_playing(true),
-                    PlayerCommand::Pause => inner.set_playing(false),
+                    PlayerCommand::Play => {
+                        inner.set_playing(true);
+                    },
+                    PlayerCommand::Pause => {
+                        inner.set_playing(false);
+                    },
                     PlayerCommand::Seek(position) => {
                         inner.seek(position);
-                        self.emit_change("position");
                     },
-                    PlayerCommand::Skip => inner.skip(),
+                    PlayerCommand::Skip => {
+                        inner.skip();
+                    },
                     PlayerCommand::Stop => {
                         inner.stop();
                         self.shared_state.write().unwrap().last_loaded_queue_index = None;
@@ -212,35 +199,34 @@ impl Player {
         match last_loaded_queue_index {
             Some(last_loaded_queue_index) => {
                 if last_loaded_queue_index == current_queue_index {
-                    // log::info!("current song was loaded, preloading next song for gapless playback");
                     self.load_next_available_song(current_queue_index + 1, inner);        
                 }
                 else {
-                    // log::info!("the previously loaded song advanced, advancing the queue");
                     self.advance_queue();
                 }
             },
             None => {
-                // log::info!("no song has been loaded, loading the current song");
                 self.load_next_available_song(current_queue_index, inner);
             },
         }
     }
 
-    fn load_next_available_song(&self, start_index: usize, inner: &playback_rs::Player) -> bool {
+    fn load_next_available_song(&self, start_index: usize, inner: &playback_rs::Player) {
         let mut queue_index = start_index;
+        // TODO querying the db every 1/10 seconds?
+        // TODO I suppose this will change when playlist is more of an API than a list.
+        let tracks = self.queue().tracks(&self.library);
         loop {
-            // TODO querying the db every 1/10 seconds?
-            match self.queue().tracks(&self.library).get(queue_index) {
+            match tracks.get(queue_index) {
                 Some(track) => {
                     match self.downloader.get(&track, &self.library) {
                         TrackDownloadStatus::Downloading => {
-                            return false
+                            return
                         },
                         TrackDownloadStatus::Ready(song) => { 
                             inner.play_song_next(&song, None).unwrap();
                             self.shared_state.write().unwrap().last_loaded_queue_index = Some(queue_index);
-                            return true
+                            return
                         },
                         TrackDownloadStatus::Error(e) => {
                             log::error!("Error loading next track {:?}, trying next. {}", track, e);
@@ -250,8 +236,10 @@ impl Player {
                     }
                 },
                 None => {
-                    log::warn!("Reached end of queue looking for next song. Giving up.");
-                    return false
+                    log::info!("End of queue, stopping playback.");
+                    inner.set_playing(false);
+                    inner.stop();
+                    return
                 },
             }
         }
@@ -265,6 +253,14 @@ impl Player {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum PlayerState {
+    #[default]
+    Stopped,
+    Playing,
+    Paused,
+}
+
 #[derive(Default)]
 struct SharedState {
     queue_index: usize,
@@ -272,36 +268,6 @@ struct SharedState {
     track_duration: Duration,
     track_position: Duration,
     inner_player_state: PlayerState,
-}
-
-impl SharedState {
-    pub fn set_queue_index(&mut self, queue_index: usize, player: &Player) {
-        self.queue_index = queue_index;
-        player.emit_change("queue_index");
-    }
-    
-    pub fn set_track_duration(&mut self, track_duration: &Duration, player: &Player) {
-        self.track_duration = track_duration.clone();
-        player.emit_change("track_duration");
-    }
-    
-    pub fn set_track_position(&mut self, track_position: &Duration, player: &Player) {
-        self.track_position = track_position.clone();
-        player.emit_change("track_position");
-    }
-    
-    pub fn set_inner_player_state(&mut self, inner_player_state: &PlayerState, player: &Player) {
-        self.inner_player_state = inner_player_state.clone();
-        player.emit_change("inner_player_state");
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub enum PlayerState {
-    #[default]
-    Stopped,
-    Playing,
-    Paused,
 }
 
 #[derive(Clone, Debug)]
@@ -315,9 +281,9 @@ enum PlayerCommand {
 
 #[cfg(test)]
 mod tests {
-    use std::{sync::Arc, time::{Duration, Instant}};
+    use std::{sync::Arc, time::Duration};
 
-    use crate::{library::Library, player::PlayerState};
+    use crate::library::Library;
 
     use super::Player;
 

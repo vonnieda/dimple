@@ -19,6 +19,9 @@ pub struct TrackDownloader {
 }
 
 impl TrackDownloader {
+    // TODO limit the cache of ready tracks to N so memory doesn't grow forever.
+    // They can always be reloaded.
+    // Or, this moves to the real cache which is memory + disk based
     pub fn get(&self, track: &Track, library: &Library) -> TrackDownloadStatus {
         let track = track.clone();
         let track_key = track.key.clone().unwrap();
