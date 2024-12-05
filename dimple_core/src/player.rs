@@ -281,7 +281,7 @@ enum PlayerCommand {
 
 #[cfg(test)]
 mod tests {
-    use std::{sync::Arc, time::Duration};
+    use std::{sync::Arc, time::{Duration, Instant}};
 
     use crate::library::Library;
 
@@ -289,27 +289,23 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let _ = env_logger::try_init();
+        // Note, if this test is failing randomly make sure it's running in
+        // release mode. Symphonia is too slow in debug mode to keep up.
+        let _ = env_logger::init();
         let library = Arc::new(Library::open("file:ee2e5b97-b997-431d-8224-d361e905d071?mode=memory&cache=shared"));
         let player = Player::new(library.clone());
         library.import("tests/data/media_files");
         let tracks = library.tracks();
         let play_queue = player.queue();
-
-        std::thread::sleep(Duration::from_secs(5));
         for track in &tracks[0..3] {
             library.playlist_add(&play_queue, track.key.as_ref().unwrap());
         }
-
-        std::thread::sleep(Duration::from_secs(5));
+        assert!(!player.is_playing());
         player.play();
 
-        std::thread::sleep(Duration::from_secs(5));
-        // let t = Instant::now();
-        // loop {
-        //     std::thread::sleep(Duration::from_secs(1));
-        // }
-        // while player.state() == PlayerState::Playing {}
-        // assert!(t.elapsed().as_secs() > 5);
+        // Wait for player to start.
+        let t = Instant::now();
+        while !player.is_playing() && t.elapsed().as_secs() < 3 {}
+        assert!(player.is_playing());
     }
 }

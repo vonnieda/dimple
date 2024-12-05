@@ -12,6 +12,7 @@ pub struct Playlist {
 
 impl Playlist {
     pub fn len(&self, library: &Library) -> usize {
+        // TODO Change to select count()
         self.tracks(library).len()
     }
 
@@ -145,10 +146,7 @@ mod tests {
             let track = library.save(&Track::default());
             library.playlist_add(&playlist, &track.key.unwrap());
         }
-        let mut playlist: Playlist = library.get(&playlist.key.unwrap()).unwrap();
-        assert!(playlist.len(&library) == 0);
-        // TODO
-        // playlist.hydrate(&library);
+        let playlist = library.get::<Playlist>(&playlist.key.unwrap()).unwrap();
         assert!(playlist.len(&library) == 3);
     }
 }
