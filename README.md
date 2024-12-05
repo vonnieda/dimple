@@ -1,24 +1,31 @@
 # Dimple Music Player
 
-Dimple is a music player app for the future. It is local first, open source,
-private, and cross-platform.
+Dimple is a music player app for everyone. It is local first, open source,
+private, and cross-platform. With Dimple you can listen to your music on
+all your devices without expensive streaming subscriptions.
 
-It runs on all the common desktops and mobiles*, and gives you all the power
-of an online streaming service in a single self-contained app that you own
+Dimple runs on all the common desktops and mobiles*, and gives you all the
+power of an online streaming service in a self-contained app that you own
 forever.
 
-If you don't purchase through an app store, please consider donating to or
-sponsoring Dimple:
-  - Merch: https://dimple.lol/store
-  - BTC: 3FMNgdEjbVcxVoAUtgFFpzsuccnU9KMuhx
-  - ETH: 0xf1CE557bE8645dC70e78Cbb601bAF2b3649169A0
-  - DOGE: DGNKBH3AN4pUnHs9ZNQpC42ABzJG4mVF3t
-  - Paypal: jason@vonnieda.org
-  - Github: https://github.com/vonnieda
-  - Venmo: @Jason-vonNieda-1
-  - Ko-Fi: https://ko-fi.com/vonnieda
-  - Buy Me a Coffee: https://www.buymeacoffee.com/vonnieda
-  - Patreon: (Pending)
+If you find Dimple useful, and would like to help fund it's development, please
+consider donating or purchasing from one of the links below. Every dollar helps
+me work on open source software full time:
+
+- Merch: https://dimple.lol/store
+- BTC: 3FMNgdEjbVcxVoAUtgFFpzsuccnU9KMuhx
+- ETH: 0xf1CE557bE8645dC70e78Cbb601bAF2b3649169A0
+- DOGE: DGNKBH3AN4pUnHs9ZNQpC42ABzJG4mVF3t
+- Paypal: jason@vonnieda.org
+- Github: https://github.com/vonnieda
+- Venmo: @Jason-vonNieda-1
+- Ko-Fi: https://ko-fi.com/vonnieda
+- Buy Me a Coffee: https://www.buymeacoffee.com/vonnieda
+- Patreon: (Pending)
+
+# TODO TODO TODO stop fucking around with the features and bullets and distill
+# it into a feature list.
+
 
 # Features
 
@@ -43,19 +50,18 @@ sponsoring Dimple:
 - Works offline with your downloaded music.
 
 ## Sync
-- Stream and download your music on any supported device, with any S3
-  compatible storage service. Dimple offers a cheap and built in option that
-  helps pay for development, or use any S3 compatible storage you like. You
-  can even self-host!
-- Keep your likes, listens, and playlists synchronized between your devices
-  and popular music services like Tidal, Deezer, Apple Music, Spotify,
-  Last.fm, and more.
+- Sync, stream, and download your music on any supported device, with any S3
+  compatible storage service. 
+- Dimple offers a cheap and built in option that helps pay for development,
+  or use any S3 compatible storage you like. Youcan even self-host!
+- Keep your likes, listens, playlists, metadata and more synchronized between
+  your devices
 
-## All The Metadata
-- Metadata from MusicBrainz, Wikipedia, ListenBrainz, Last.fm, Discogs, and more.
-- Artwork from Cover Art Archive, fanart.tv, Wiki Commons, and more.
-- Lyrics from Genius, Musixmatch, Muzikum, and more.
-- Scrobble to Last.fm, Listenbrainz, Maloja, and more.
+## Rich Metadata
+- Metadata from MusicBrainz, Wikipedia, ListenBrainz, Last.fm, Discogs, etc.
+- Artwork from Cover Art Archive, fanart.tv, Wiki Commons, etc.
+- Lyrics from Genius, Musixmatch, Muzikum, etc.
+- Scrobble to Last.fm, Listenbrainz, Maloja, etc.
 
 ## "Smart"
 
@@ -118,7 +124,8 @@ sponsoring Dimple:
 - Fast, reliable, and worldwide. Based on Backblaze B2 Cloud Storage.
 - $0.99 for 100GB per month, or a year for $8.99. Pay only for what you use.
   100GB stores roughly 30,000 songs.
-- All features also available for free using any S3 compatible storage provider.
+- All features above are also available for free using any S3 compatible storage
+  provider.
 
 # Mantras
 - If a song has an outro that runs into the intro of the next song, don't play

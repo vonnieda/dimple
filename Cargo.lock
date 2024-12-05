@@ -1602,6 +1602,7 @@ dependencies = [
  "symphonia",
  "tantivy",
  "tempfile",
+ "threadpool",
  "ulid",
  "uuid 1.10.0",
  "walkdir",
