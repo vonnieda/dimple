@@ -95,19 +95,21 @@ impl ImageMangler {
     }
 
     fn cache_get(&self, key: &str) -> Option<DynamicImage> {
-        if let Ok(bytes) = cacache::read_sync(self.cache_path.clone(), key) {
-            if let Ok(dyn_image) = image::load_from_memory(&bytes) {
-                return Some(dyn_image)
-            }
-        }
-        None
+        todo!()
+        // if let Ok(bytes) = cacache::read_sync(self.cache_path.clone(), key) {
+        //     if let Ok(dyn_image) = image::load_from_memory(&bytes) {
+        //         return Some(dyn_image)
+        //     }
+        // }
+        // None
     }
 
     fn cache_set(&self, key: &str, image: &DynamicImage) {
-        let mut bytes = vec![];
-        let mut cursor = Cursor::new(&mut bytes);
-        image.write_to(&mut cursor, ImageFormat::Png).unwrap();
-        cacache::write_sync(self.cache_path.clone(), key, bytes).unwrap();
+        todo!()
+        // let mut bytes = vec![];
+        // let mut cursor = Cursor::new(&mut bytes);
+        // image.write_to(&mut cursor, ImageFormat::Png).unwrap();
+        // cacache::write_sync(self.cache_path.clone(), key, bytes).unwrap();
     }
 
     pub fn cache_len(&self) -> usize {

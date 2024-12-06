@@ -138,3 +138,7 @@ me work on open source software full time:
   open a PR or Issue and let me know! I'm still learning, and I appreciate the
   help!
 
+# Acknowledgements
+- Slint UI
+- Phosphor Icons
+- Tantivy Search
