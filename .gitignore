@@ -1,7 +1,5 @@
 target
 .vscode
-data
-dumps
 draft
 dimple.db
 config.yaml

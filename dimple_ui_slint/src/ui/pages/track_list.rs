@@ -15,7 +15,7 @@ use slint::StandardListViewItem;
 use slint::VecModel;
 
 // TODO hm. if I go the route of relatively smart playlists, then track list
-// is really just a playlist of liked Track.saved = true
+// is really just a playlist of like Track.saved = true
 
 // https://github.com/slint-ui/slint/discussions/2329
 pub fn track_list(app: &App) {

@@ -1,6 +1,7 @@
 use crate::{library::Library, model::{Blob, MediaFile, Track, TrackSource}};
 
 pub mod media_file;
+pub mod spotify;
 
 use media_file::ScannedFile;
 use rayon::iter::{ParallelBridge, ParallelIterator};
@@ -18,11 +19,11 @@ pub fn import(library: &Library, path: &str) {
 }
 
 
-    // /// Import MediaFiles into the Library, creating or updating Tracks,
-    // /// TrackSources, Blobs, etc.
-    // /// TODO okay this is slow cause we are scanning all the files first no
-    // /// matter what, reading all their tags and images and shit, and we might
-    // /// just ignore that file based on it's sha, so fix that.
+// /// Import MediaFiles into the Library, creating or updating Tracks,
+// /// TrackSources, Blobs, etc.
+// /// TODO okay this is slow cause we are scanning all the files first no
+// /// matter what, reading all their tags and images and shit, and we might
+// /// just ignore that file based on it's sha, so fix that.
 fn import_internal(library: &Library, input: &ScannedFile) {
     // TODO txn
     let file_path = std::fs::canonicalize(&input.path).unwrap();

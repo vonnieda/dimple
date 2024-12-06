@@ -1,5 +1,7 @@
 
-use rusqlite::{Connection, Row};
+use std::time::SystemTime;
+
+use rusqlite::{types::FromSql, Connection, Row, ToSql};
 
 mod artist;
 pub use artist::Artist;
@@ -28,7 +30,8 @@ pub use genre::Genre;
 mod release;
 pub use release::Release;
 
-use crate::library::Library;
+mod event;
+pub use event::Event;
 
 pub trait FromRow {
     fn from_row(row: &Row) -> Self;
@@ -154,4 +157,7 @@ impl From<Option<u32>> for ChangeLogValue {
         }
     }
 }
+
+// TODO I think I can replace all of the above with a generic over impl FromSql
+// and ToSql
 

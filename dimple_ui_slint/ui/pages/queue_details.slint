@@ -1,0 +1,45 @@
+import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { CardAdapter } from "../components/card.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { AppState } from "../common.slint";
+
+export struct PlaylistDetailsAdapter {
+    keys: [string],
+    rows: [[StandardListViewItem]],
+}
+
+export component PlaylistDetails inherits VerticalLayout {
+    in-out property <PlaylistDetailsAdapter> model: {
+        rows: [
+            [
+                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
+            ],
+            [
+                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
+            ],
+            [
+                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
+            ]
+        ],
+    };
+
+    StandardTableView {
+        height: 100%;
+        width: 100%;
+        columns: [
+            { title: "Title" },
+            { title: "Album" },
+            { title: "Artist" },
+            { title: "Track #" },
+            { title: "Plays" },
+            { title: "Length" },
+        ];
+        rows: model.rows;
+        current-row-changed => { AppState.playlist_details_track_selected(self.current-row) }
+    }
+    Text {
+        horizontal-alignment: right;
+        text: model.rows.length + " items";
+    }
+}

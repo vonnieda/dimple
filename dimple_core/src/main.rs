@@ -1,6 +1,6 @@
 use std::{env, sync::Arc, time::Duration};
 
-use dimple_core::{library::Library, model::{Blob, ChangeLog, Track}, player::Player, sync::{s3_storage::S3Storage, Sync}};
+use dimple_core::{import::spotify, library::Library, model::{Blob, ChangeLog, Track}, player::Player, sync::{s3_storage::S3Storage, Sync}};
 use directories::ProjectDirs;
 
 fn main() {
@@ -133,6 +133,10 @@ fn main() {
             i += 1;
         }
         println!("{} blobs", i);
+    }
+    if command == "import_spotify" {
+        let path = &args[2];
+        spotify::import(&library, path);
     }
 }
 

@@ -85,3 +85,17 @@ CREATE TABLE IF NOT EXISTS ChangeLog (
 );
 CREATE INDEX IF NOT EXISTS ChangeLog_idx_1 ON ChangeLog (model, model_key, field);
 
+CREATE TABLE IF NOT EXISTS Event (
+    key         TEXT PRIMARY KEY,
+    timestamp   TEXT NOT NULL,
+    event_type  TEXT NOT NULL,
+    artist      TEXT,
+    album       TEXT,
+    title       TEXT,
+    source_type TEXT NOT NULL,
+    source      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS Event_idx_1 ON Event (timestamp, event_type);
+CREATE INDEX IF NOT EXISTS Event_idx_2 ON Event (timestamp);
+CREATE INDEX IF NOT EXISTS Event_idx_3 ON Event (event_type);
+CREATE UNIQUE INDEX IF NOT EXISTS Event_idx_4 ON Event (source_type, source);

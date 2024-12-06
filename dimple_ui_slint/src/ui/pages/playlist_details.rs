@@ -65,7 +65,7 @@ pub fn playlist_details_track_selected(app: &App, row: i32) {
         // let key = adapter.keys.row_data(row as usize).unwrap().to_string();
         // ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
         // let play_queue = app.player.queue();
-        // TODO remove from play queue as a test.
+        // TODO this only belongs on queue details, not playlist details
         app.player.set_queue_index(row as usize);
     }).unwrap();
 }
