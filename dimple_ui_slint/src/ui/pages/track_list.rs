@@ -8,7 +8,6 @@ use dimple_core::model::Track;
 use slint::Model as _;
 use slint::ModelExt as _;
 use slint::ModelRc;
-use slint::SharedString;
 use slint::StandardListViewItem;
 use slint::VecModel;
 use slint::ComponentHandle as _;
@@ -55,7 +54,7 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
 
 fn row_selected(app: &App, row: i32) {
     let app = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
+    app.ui.upgrade_in_event_loop(move |_ui| {
         println!("row_selected {}", row);
         // let adapter = ui.get_track_list();
         // let rows = adapter.rows.as_any().downcast_ref::<VecModel<ModelRc<StandardListViewItem>>>().unwrap();
@@ -71,7 +70,6 @@ fn sort_model(
     sort_index: i32,
     sort_ascending: bool,
 ) -> ModelRc<ModelRc<StandardListViewItem>> {
-    println!("sort model {} {}", sort_index, sort_ascending);
     let mut model = source_model.clone();
 
     if sort_index >= 0 {

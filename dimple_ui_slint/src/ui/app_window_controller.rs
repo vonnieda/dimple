@@ -1,5 +1,5 @@
 use dimple_core::{library::Library, model::{Artist, Model}, player::Player};
-use pages::{playlist_details, track_list};
+use pages::{event_list, playlist_details, track_list};
 use player_bar;
 use std::{collections::VecDeque, sync::{Arc, Mutex, MutexGuard}, time::Duration};
 
@@ -86,6 +86,7 @@ impl AppWindowController {
     
         player_bar::player_bar_init(&self.app);
         track_list::track_list_init(&self.app);
+        event_list::event_list_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://queue".into());
 

@@ -4,14 +4,16 @@ import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { AppState } from "../common.slint";
 
-export struct EventListAdapter {
-    keys: [string],
-    rows: [[StandardListViewItem]],
+export global EventListAdapter {
+    in property <[[StandardListViewItem]]> row_data;
+    pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
+    pure callback current_row_changed(int);
 }
-
+ 
 export component EventList inherits VerticalLayout {
-    in-out property <EventListAdapter> model;
-
+    property <int> sort-index: -1;
+    property <bool> sort-acending;
+        
     StandardTableView {
         height: 100%;
         width: 100%;
@@ -20,13 +22,23 @@ export component EventList inherits VerticalLayout {
             { title: "Type" },
             { title: "Artist" },
             { title: "Album" },
-            { title: "Track" },
+            { title: "Title" },
         ];
-        rows: model.rows;
-        current-row-changed => { AppState.event_list_event_selected(self.current-row) }
+        rows: EventListAdapter.sort_model(EventListAdapter.row_data, root.sort-index, root.sort-acending);
+        current-row-changed(row) => { 
+            EventListAdapter.current_row_changed(row);
+        }
+        sort-ascending(index) => {
+            root.sort-index = index;
+            root.sort-acending = true;
+        }
+        sort-descending(index) => {
+            root.sort-index = index;
+            root.sort-acending = false;
+        }        
     }
     Text {
         horizontal-alignment: right;
-        text: model.rows.length + " items";
+        text: EventListAdapter.row_data.length + " items";
     }
 }
