@@ -97,9 +97,9 @@ mod tests {
     fn it_works() {
         let _ = env_logger::try_init();
         let library = Library::open("file:929bc1d7-9ad3-4e3a-bc2b-aa989203cc7f?mode=memory&cache=shared");
-        // let library = Library::open("spotify.db");
+        assert!(library.list::<Event>().len() == 0);
         import::spotify::import(&library, "tests/data/spotify_history");
-        dbg!(library.list::<Event>().len());
+        assert!(library.list::<Event>().len() > 0);
     }
 }
 

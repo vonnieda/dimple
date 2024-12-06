@@ -307,5 +307,6 @@ mod tests {
         let t = Instant::now();
         while !player.is_playing() && t.elapsed().as_secs() < 3 {}
         assert!(player.is_playing());
+        player.pause();
     }
 }
