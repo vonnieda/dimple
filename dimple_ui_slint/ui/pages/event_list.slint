@@ -1,0 +1,32 @@
+import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { CardAdapter } from "../components/card.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { AppState } from "../common.slint";
+
+export struct EventListAdapter {
+    keys: [string],
+    rows: [[StandardListViewItem]],
+}
+
+export component EventList inherits VerticalLayout {
+    in-out property <EventListAdapter> model;
+
+    StandardTableView {
+        height: 100%;
+        width: 100%;
+        columns: [
+            { title: "Date" },
+            { title: "Type" },
+            { title: "Artist" },
+            { title: "Album" },
+            { title: "Track" },
+        ];
+        rows: model.rows;
+        current-row-changed => { AppState.event_list_event_selected(self.current-row) }
+    }
+    Text {
+        horizontal-alignment: right;
+        text: model.rows.length + " items";
+    }
+}

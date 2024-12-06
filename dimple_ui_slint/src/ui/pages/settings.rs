@@ -1,17 +1,12 @@
 use std::thread;
 
 use dimple_core::model::Artist;
-use dimple_core::model::Entity;
 use dimple_core::model::Genre;
-use dimple_core::model::Medium;
-use dimple_core::model::Dimage;
+use dimple_core::model::MediaFile;
 use dimple_core::model::Playlist;
-use dimple_core::model::Recording;
-use dimple_core::model::RecordingSource;
 use dimple_core::model::Release;
-use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
-use dimple_librarian::plugin::NetworkMode;
+use dimple_core::model::TrackSource;
 use size::Size;
 use slint::{ModelRc, SharedString};
 
@@ -28,34 +23,31 @@ pub fn settings(app: &App) {
     let app = app.clone();
     std::thread::spawn(move || {
         // let db: &dyn Db = &app.librarian as &dyn Db;
-        let db = app.librarian.clone();
+        let db = app.library.clone();
 
         let mut database_stats: Vec<String> = vec![];
-        database_stats.push(format!("Artists: {}", 
-            db.list(&Artist::default().model(), &None).unwrap().count()));
-        database_stats.push(format!("Release Groups: {}", 
-            db.list(&ReleaseGroup::default().model(), &None).unwrap().count()));
-        database_stats.push(format!("Releases: {}", 
-            db.list(&Release::default().model(), &None).unwrap().count()));
-        database_stats.push(format!("Media: {}", 
-            db.list(&Medium::default().model(), &None).unwrap().count()));
-        database_stats.push(format!("Tracks: {}", 
-            db.list(&Track::default().model(), &None).unwrap().count()));
-        database_stats.push(format!("Recordings: {}", 
-            db.list(&Recording::default().model(), &None).unwrap().count()));
-        database_stats.push(format!("Recording Sources: {}", 
-            db.list(&RecordingSource::default().model(), &None).unwrap().count()));
-        database_stats.push(format!("Genres: {}", 
-            db.list(&Genre::default().model(), &None).unwrap().count()));
-        database_stats.push(format!("Playlists: {}", 
-            db.list(&Playlist::default().model(), &None).unwrap().count()));
+        database_stats.push(format!("Artists: {}", db.list::<Artist>().len()));
+        database_stats.push(format!("Genres: {}", db.list::<Genre>().len()));
+        database_stats.push(format!("MediaFiles: {}", db.list::<MediaFile>().len()));
+        database_stats.push(format!("Playlists: {}", db.list::<Playlist>().len()));
+        database_stats.push(format!("Tracks: {}", db.list::<Track>().len()));
+        database_stats.push(format!("TrackSources: {}", db.list::<TrackSource>().len()));
+        // database_stats.push(format!("Releases: {}", db.list::<Release>().len()));
+        // database_stats.push(format!("Release Groups: {}", 
+        //     db.list(&ReleaseGroup::default().model(), &None).unwrap().count()));
+        // database_stats.push(format!("Media: {}", 
+        //     db.list(&Medium::default().model(), &None).unwrap().count()));
+        // database_stats.push(format!("Recordings: {}", 
+        //     db.list(&Recording::default().model(), &None).unwrap().count()));
+        // database_stats.push(format!("Recording Sources: {}", 
+        //     db.list(&RecordingSource::default().model(), &None).unwrap().count()));
         // TODO disabled until performance is better
         // database_stats.push(format!("Pictures: {}", 
         //         db.list(&Picture::default().model(), &None).unwrap().count()));
 
         let mut cache_stats = vec![];
         cache_stats.push(format!("Thumbnail cache: {}", Size::from_bytes(app.images.cache_len())));
-        cache_stats.push(format!("Plugin cache: {}", Size::from_bytes(app.librarian.plugin_cache_len())));
+        // cache_stats.push(format!("Plugin cache: {}", Size::from_bytes(app.librarian.plugin_cache_len())));
         
         app.ui.upgrade_in_event_loop(move |ui| {
             let database_stats: Vec<SharedString> = database_stats.into_iter()
@@ -78,17 +70,17 @@ pub fn settings_reset_database(app: &App) {
     let app = app.clone();
     thread::spawn(move || {
         log::info!("Resetting database.");
-        app.librarian.reset().unwrap();
+        app.library.reset().unwrap();
         log::info!("Done resetting database.");
     });
 }
 
 pub fn settings_set_online(app: &App, online: bool) {
     let app = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        app.librarian.set_network_mode(if online { &NetworkMode::Online } else { &NetworkMode::Offline });
-        ui.global::<AppState>().set_online(app.librarian.network_mode() == NetworkMode::Online);
-    }).unwrap();
+    // app.ui.upgrade_in_event_loop(move |ui| {
+    //     app.librarian.set_network_mode(if online { &NetworkMode::Online } else { &NetworkMode::Offline });
+    //     ui.global::<AppState>().set_online(app.librarian.network_mode() == NetworkMode::Online);
+    // }).unwrap();
 }
 
 pub fn settings_set_debug(app: &App, debug: bool) {

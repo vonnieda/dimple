@@ -1,16 +1,9 @@
 use std::collections::HashSet;
 
-use dimple_core::db::Db;
 use dimple_core::model::Artist;
-use dimple_core::model::Entity;
 use dimple_core::model::Genre;
-use dimple_core::model::KnownIds;
-use dimple_core::model::Medium;
-use dimple_core::model::Dimage;
 use dimple_core::model::Playlist;
-use dimple_core::model::Recording;
 use dimple_core::model::Release;
-use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -43,25 +36,25 @@ impl From<Artist> for CardAdapter {
     }
 }
 
-impl From<ReleaseGroup> for CardAdapter {
-    fn from(value: ReleaseGroup) -> Self {
-        CardAdapter {
-            image: ImageLinkAdapter {
-                image: Default::default(),
-                name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
-            },
-            title: LinkAdapter {
-                name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
-            },
-            sub_title: LinkAdapter {
-                name: format!("{} {}", value.first_release_date.unwrap_or_default(), value.primary_type.unwrap_or_default()).into(),
-                url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
-            },
-        }
-    }
-}
+// impl From<ReleaseGroup> for CardAdapter {
+//     fn from(value: ReleaseGroup) -> Self {
+//         CardAdapter {
+//             image: ImageLinkAdapter {
+//                 image: Default::default(),
+//                 name: value.title.clone().unwrap_or_default().into(),
+//                 url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
+//             },
+//             title: LinkAdapter {
+//                 name: value.title.clone().unwrap_or_default().into(),
+//                 url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
+//             },
+//             sub_title: LinkAdapter {
+//                 name: format!("{} {}", value.first_release_date.unwrap_or_default(), value.primary_type.unwrap_or_default()).into(),
+//                 url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
+//             },
+//         }
+//     }
+// }
 
 impl From<Release> for CardAdapter {
     fn from(value: Release) -> Self {
@@ -145,26 +138,26 @@ impl From<Track> for CardAdapter {
     }
 }
 
-impl From<Recording> for CardAdapter {
-    fn from(value: Recording) -> Self {
-        CardAdapter {
-            image: ImageLinkAdapter {
-                image: Default::default(),
-                name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://recording/{}", value.key.clone().unwrap_or_default()).into(),
-            },
-            title: LinkAdapter {
-                name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://recording/{}", value.key.clone().unwrap_or_default()).into(),
-            },
-            ..Default::default()
-            // sub_title: LinkAdapter {
-            //     name: value.disambiguation.unwrap_or_default().into(),
-            //     url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
-            // },
-        }
-    }
-}
+// impl From<Recording> for CardAdapter {
+//     fn from(value: Recording) -> Self {
+//         CardAdapter {
+//             image: ImageLinkAdapter {
+//                 image: Default::default(),
+//                 name: value.title.clone().unwrap_or_default().into(),
+//                 url: format!("dimple://recording/{}", value.key.clone().unwrap_or_default()).into(),
+//             },
+//             title: LinkAdapter {
+//                 name: value.title.clone().unwrap_or_default().into(),
+//                 url: format!("dimple://recording/{}", value.key.clone().unwrap_or_default()).into(),
+//             },
+//             ..Default::default()
+//             // sub_title: LinkAdapter {
+//             //     name: value.disambiguation.unwrap_or_default().into(),
+//             //     url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
+//             // },
+//         }
+//     }
+// }
 
 
 
@@ -339,3 +332,35 @@ impl From<Recording> for CardAdapter {
 
 //     score / 4.
 // }
+
+
+// fn model_card(model: impl Model) -> CardAdapter {
+//     match model {
+//         // Model::Artist(artist) => artist_card(artist),
+//         // Model::ReleaseGroup(release_group) => release_group_card(release_group),
+//         // Model::Genre(genre) => genre_card(genre),
+//         // Model::Recording(recording) => recording_card(recording),
+//         _ => todo!(),
+//     }
+// }
+
+// pub fn artist_card(artist: &Artist) -> CardAdapter {
+//     CardAdapter {
+//         image: ImageLinkAdapter {
+//             image: Default::default(),
+//             name: artist.name.clone().unwrap_or_default().into(),
+//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+//         },
+//         title: LinkAdapter {
+//             name: artist.name.clone().unwrap_or_default().into(),
+//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+//         },
+//         sub_title: LinkAdapter {
+//             name: "Artist".to_string().into(),
+//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+//         },
+//     }
+// }
+
+
+

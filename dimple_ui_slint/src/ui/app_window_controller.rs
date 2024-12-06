@@ -1,21 +1,9 @@
-use dimple_core::model::{Artist, Entity, KnownIds, Model};
-use dimple_coverartarchive_plugin::CoverArtArchivePlugin;
-use dimple_fanart_tv_plugin::FanartTvPlugin;
-use dimple_mediafiles_plugin::MediaFilesPlugin;
-use dimple_musicbrainz_plugin::MusicBrainzPlugin;
-use dimple_player::player::Player;
-use dimple_theaudiodb_plugin::TheAudioDbPlugin;
-use dimple_wikidata_plugin::WikidataPlugin;
-use pages::release_group_details::{self, release_group_details};
-use serde::de;
+use dimple_core::{library::Library, model::{Artist, Model}, player::Player};
+use pages::{playlist_details, track_list};
+use player_bar;
+use std::{collections::VecDeque, sync::{Arc, Mutex, MutexGuard}, time::Duration};
 
-use std::{borrow::BorrowMut, collections::VecDeque, path::{Path, PathBuf}, sync::{Arc, Mutex}};
-
-use dimple_core::db::Db;
-
-use slint::{ComponentHandle, Model as _, ModelRc, SharedString, Weak};
-
-use dimple_librarian::librarian::Librarian;
+use slint::{SharedString, Weak};
 
 use directories::ProjectDirs;
 
@@ -23,13 +11,16 @@ use crate::ui::{*};
 
 use self::{images::ImageMangler, pages::settings};
 
+use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
+
 #[derive(Clone)]
 pub struct App {
-    pub librarian: Librarian,
+    pub library: Library,
     pub history: Arc<Mutex<VecDeque<String>>>,
     pub player: Player,
     pub images: ImageMangler,
     pub ui: Weak<AppWindow>,
+    pub controls: Arc<Mutex<Option<MediaControls>>>,
 }
 
 pub struct AppWindowController {
@@ -43,34 +34,31 @@ impl AppWindowController {
         // TODO This and librarian should happen once the UI is up so that we
         // can show errors if needed. 
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
-        let dir = dirs.data_dir().to_str().unwrap();
-        // let librarian = Librarian::new_in_memory();
-        let librarian = Librarian::new(dir);
+        let data_dir = dirs.data_dir();
+        let cache_dir = dirs.cache_dir();
+        let config_dir = dirs.config_dir();
+        let image_cache_dir = cache_dir.join("image_cache");
+        let library_path = data_dir.join("library.db");
+        dbg!(&data_dir, &cache_dir, &config_dir, &library_path, &image_cache_dir);
+        std::fs::create_dir_all(&data_dir).unwrap();
+        std::fs::create_dir_all(&cache_dir).unwrap();
+        std::fs::create_dir_all(&config_dir).unwrap();
+        std::fs::create_dir_all(&image_cache_dir).unwrap();
 
-        let image_cache_path = Path::new(dir).join("images_cache");
-        let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_path.to_str().unwrap());
-        
-        // let mediafiles_plugin = MediaFilesPlugin::new();
-        // mediafiles_plugin.monitor_directory(&PathBuf::from("/Users/jason/Music"));
-        // librarian.add_plugin(Box::new(mediafiles_plugin));
-
-        librarian.add_plugin(Box::new(MusicBrainzPlugin::default()));
-        librarian.add_plugin(Box::new(WikidataPlugin::default()));
-        librarian.add_plugin(Box::new(FanartTvPlugin::default()));
-        librarian.add_plugin(Box::new(TheAudioDbPlugin::default()));
-        librarian.add_plugin(Box::new(CoverArtArchivePlugin::default()));
-
+        let librarian = Library::open(library_path.to_str().unwrap());
+        let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         let player = Player::new(Arc::new(librarian.clone()));
         let ui_weak = ui.as_weak();
         Self {
             ui,
             app: App {
-                librarian: librarian.clone(),
+                library: librarian.clone(),
                 history: Arc::new(Mutex::new(VecDeque::new())),
                 player,
                 images,
                 ui: ui_weak,
-            }
+                controls: Arc::new(Mutex::new(None)),
+            },
         }
     }
 
@@ -91,104 +79,34 @@ impl AppWindowController {
         let app = self.app.clone();
         self.ui.global::<AppState>().on_settings_set_debug(
             move |debug| settings::settings_set_debug(&app, debug));
+        
+        let app = self.app.clone();
+        self.ui.global::<AppState>().on_playlist_details_track_selected(
+            move |row| playlist_details::playlist_details_track_selected(&app, row));
     
         let app = self.app.clone();
-        self.ui.global::<AppState>().on_release_group_details_release_selected(
-            move |s| release_group_details::release_group_details_release_selected(&app, s.to_string()));
+        self.ui.global::<AppState>().on_track_list_track_selected(
+            move |row| track_list::track_list_track_selected(&app, row));
         
-                    // Load the sidebar
+        player_bar::player_bar_init(&self.app);
+
+        self.ui.global::<Navigator>().invoke_navigate("dimple://queue".into());
+
         let app = self.app.clone();
-        std::thread::spawn(move || {
-            let mut pinned_items: Vec<Model> = vec![];
-            pinned_items.push(app.librarian.get2(Artist {
-                known_ids: KnownIds {
-                    musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
-                    ..Default::default()
-                },
-                ..Default::default()
-            }).unwrap().model());
-            pinned_items.push(app.librarian.get2(Artist {
-                known_ids: KnownIds {
-                    musicbrainz_id: Some("65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab".to_string()),
-                    ..Default::default()
-                },
-                ..Default::default()
-            }).unwrap().model());
-            pinned_items.push(app.librarian.get2(Artist {
-                known_ids: KnownIds {
-                    musicbrainz_id: Some("c14b4180-dc87-481e-b17a-64e4150f90f6".to_string()),
-                    ..Default::default()
-                },
-                ..Default::default()
-            }).unwrap().model());
-            pinned_items.push(app.librarian.get2(Artist {
-                known_ids: KnownIds {
-                    musicbrainz_id: Some("69158f97-4c07-4c4e-baf8-4e4ab1ed666e".to_string()),
-                    ..Default::default()
-                },
-                ..Default::default()
-            }).unwrap().model());
-            pinned_items.push(app.librarian.get2(Artist {
-                known_ids: KnownIds {
-                    musicbrainz_id: Some("f1686ac4-3f28-4789-88eb-083ccb3a213a".to_string()),
-                    ..Default::default()
-                },
-                ..Default::default()
-            }).unwrap().model());
-            let images = app.images.clone();
-            app.ui.upgrade_in_event_loop(move |ui| {
-                let cards: Vec<CardAdapter> = pinned_items.iter().cloned().enumerate()
-                    .map(|(index, model)| {
-                        let mut card: CardAdapter = model_card(&model);
-                        card.image.image = images.lazy_get(model, 48, 48, move |ui, image| {
-                            let mut card = ui.get_sidebar().pinned_items.row_data(index).unwrap();
-                            card.image.image = image;
-                            ui.get_sidebar().pinned_items.set_row_data(index, card);
-                        });
-                        card
-                    })
-                    .collect();
-                let adapter = SideBarAdapter {
-                    pinned_items: ModelRc::from(cards.as_slice()),
-                };
-                ui.set_sidebar(adapter);
-            }).unwrap();
+        self.ui.window().on_close_requested(move || {
+            app.ui.upgrade_in_event_loop(|ui| ui.window().set_minimized(true)).unwrap();
+            slint::CloseRequestResponse::KeepWindowShown
         });
 
-        self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
+        let app = self.app.clone();
+        self.app.ui.upgrade_in_event_loop(move |ui| {
+            let controls = desktop_integration(&app);
+            *app.controls.lock().unwrap() = Some(controls);
+        }).unwrap();
 
         self.ui.run()
     }
 }
-
-fn model_card(model: &Model) -> CardAdapter {
-    match model {
-        Model::Artist(artist) => artist_card(artist),
-        // Model::ReleaseGroup(release_group) => release_group_card(release_group),
-        // Model::Genre(genre) => genre_card(genre),
-        // Model::Recording(recording) => recording_card(recording),
-        _ => todo!(),
-    }
-}
-
-fn artist_card(artist: &Artist) -> CardAdapter {
-    CardAdapter {
-        image: ImageLinkAdapter {
-            image: Default::default(),
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-        },
-        title: LinkAdapter {
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-        },
-        sub_title: LinkAdapter {
-            name: "Artist".to_string().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-        },
-    }
-}
-
 
 impl App {
     pub fn navigate(&self, url: SharedString) {
@@ -202,48 +120,58 @@ impl App {
         else if url == "dimple://refresh" {
             self.refresh();
         }
-        else if url.starts_with("dimple://search") {
-            crate::ui::pages::search::search(&url, self);
-        }
+        // else if url.starts_with("dimple://search") {
+        //     crate::ui::pages::search::search(&url, self);
+        // }
         else if url.starts_with("dimple://home") {
             // TODO
             self.set_page(Page::Home);
         } 
-        else if url.starts_with("dimple://artists") {
-            crate::ui::pages::artist_list::artist_list(self);
-        }
-        else if url.starts_with("dimple://artist/") {
-            crate::ui::pages::artist_details::artist_details(&url, self);
-        }
-        else if url.starts_with("dimple://release-groups") {
-            crate::ui::pages::release_group_list::release_group_list(self);
-        }
-        else if url.starts_with("dimple://release-group/") {
-            crate::ui::pages::release_group_details::release_group_details(&url, self);
-        }
-        else if url.starts_with("dimple://releases") {
-            crate::ui::pages::release_list::release_list(self);
-        }
-        else if url.starts_with("dimple://release/") {
-            crate::ui::pages::release_details::release_details(&url, self);
-        }
-        else if url.starts_with("dimple://recording/") {
-            crate::ui::pages::recording_details::recording_details(&url, self);
-        }
+        // else if url.starts_with("dimple://artists") {
+        //     crate::ui::pages::artist_list::artist_list(self);
+        // }
+        // else if url.starts_with("dimple://artist/") {
+        //     crate::ui::pages::artist_details::artist_details(&url, self);
+        // }
+        // else if url.starts_with("dimple://release-groups") {
+        //     crate::ui::pages::release_group_list::release_group_list(self);
+        // }
+        // else if url.starts_with("dimple://release-group/") {
+        //     crate::ui::pages::release_group_details::release_group_details(&url, self);
+        // }
+        // else if url.starts_with("dimple://releases") {
+        //     crate::ui::pages::release_list::release_list(self);
+        // }
+        // else if url.starts_with("dimple://release/") {
+        //     crate::ui::pages::release_details::release_details(&url, self);
+        // }
+        // else if url.starts_with("dimple://recording/") {
+        //     crate::ui::pages::recording_details::recording_details(&url, self);
+        // }
         else if url.starts_with("dimple://tracks") {
             crate::ui::pages::track_list::track_list(self);
         }
         else if url.starts_with("dimple://track/") {
             crate::ui::pages::track_details::track_details(&url, self);
         }
-        else if url.starts_with("dimple://genres") {
-            crate::ui::pages::genre_list::genre_list(self);
+        // else if url.starts_with("dimple://genres") {
+        //     crate::ui::pages::genre_list::genre_list(self);
+        // }
+        // else if url.starts_with("dimple://genre/") {
+        //     crate::ui::pages::genre_details::genre_details(&url, self);
+        // }
+        // else if url.starts_with("dimple://playlists") {
+        //     crate::ui::pages::playlist_list::playlist_list(self);
+        // }
+        else if url.starts_with("dimple://playlist/") {
+            crate::ui::pages::playlist_details::playlist_details(&url, self);
         }
-        else if url.starts_with("dimple://genre/") {
-            crate::ui::pages::genre_details::genre_details(&url, self);
+        else if url.starts_with("dimple://queue") {
+            let play_queue = self.player.queue();
+            self.navigate(format!("dimple://playlist/{}", &play_queue.key.unwrap()).into());
         }
-        else if url.starts_with("dimple://playlists") {
-            crate::ui::pages::playlist_list::playlist_list(self);
+        else if url.starts_with("dimple://history") {
+            crate::ui::pages::event_list::event_list(self);
         }
         else if url == "dimple://settings" {
             crate::ui::pages::settings::settings(self);
@@ -289,3 +217,85 @@ impl App {
         }).unwrap();
     }
 }
+
+// TODO desktop integration using souvlaki. currently broken on Windows.
+fn desktop_integration(app: &App) -> MediaControls {
+    #[cfg(not(target_os = "windows"))]
+    let hwnd = None;
+
+    #[cfg(target_os = "windows")]
+    let hwnd = {
+        use raw_window_handle::windows::WindowsHandle;
+
+        let handle: WindowsHandle = unimplemented!();
+        Some(handle.hwnd)
+    };
+
+    let config = PlatformConfig {
+        dbus_name: "dimple",
+        display_name: "Dimple",
+        hwnd,
+    };
+
+    let mut controls = MediaControls::new(config).unwrap();
+    
+    {
+        let app = app.clone();
+        controls.attach(move |event: MediaControlEvent| {
+            println!("Event received: {:?}", event);
+            match event {
+                MediaControlEvent::Play => app.player.play(),
+                MediaControlEvent::Pause => app.player.pause(),
+                MediaControlEvent::Toggle => {
+                    if app.player.is_playing() {
+                        app.player.pause();
+                    }
+                    else {
+                        app.player.play();
+                    }
+                },
+                MediaControlEvent::Next => app.player.next(),
+                MediaControlEvent::Previous => app.player.previous(),
+                MediaControlEvent::Stop => app.player.pause(),
+                MediaControlEvent::Seek(seek_direction) => todo!(),
+                MediaControlEvent::SeekBy(seek_direction, duration) => todo!(),
+                MediaControlEvent::SetPosition(media_position) => app.player.seek(media_position.0),
+                MediaControlEvent::SetVolume(_) => todo!(),
+                MediaControlEvent::OpenUri(_) => todo!(),
+                MediaControlEvent::Raise => {
+                    app.ui.upgrade_in_event_loop(|ui| ui.window().set_minimized(false)).unwrap();
+                },
+                MediaControlEvent::Quit => todo!(),
+            }
+        })
+        .unwrap();
+    }
+
+    {
+        let app = app.clone();
+        app.player.on_change(move |player, event| {
+            let track_position = player.track_position();
+            let track_duration = player.track_duration();
+            let current_track = player.current_queue_track();
+            let is_playing = player.is_playing();
+
+            let playback = match is_playing {
+                true => MediaPlayback::Playing { progress: Some(MediaPosition(track_position)) },
+                false => MediaPlayback::Paused { progress: Some(MediaPosition(track_position)) },
+            };
+            let metadata = MediaMetadata {
+                duration: Some(track_duration),
+                ..Default::default()
+            };
+            if let Ok(mut controls) = app.controls.lock() {
+                if let Some(controls) = controls.as_mut() {
+                    controls.set_playback(playback).unwrap();
+                    controls.set_metadata(metadata).unwrap();
+                }
+            }
+        });
+    }
+
+    controls
+}
+

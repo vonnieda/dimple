@@ -9,6 +9,8 @@ export struct CardGridAdapter {
 
 // TODO See: https://github.com/slint-ui/slint/discussions/4661
 // TODO See: https://releases.slint.dev/1.4.1/docs/slint/src/recipes/recipes#custom-table-view
+// TODO noticed that Slint 1.8.0 added ScrollView.scrolled, which I think would let me
+// implement something similar to StandardTableView for scrolling long lists. 
 export component CardGrid inherits VerticalLayout {
     in-out property <[CardAdapter]> cards: cards_ph;
 

@@ -33,4 +33,15 @@ export global AppState {
     callback settings_reset_database();
 
     callback release_group_details_release_selected(string);
+
+    callback track_list_track_selected(int);
+
+    callback event_list_event_selected(int);
+
+    callback player_previous();
+    callback player_play_pause();
+    callback player_next();
+    callback player_seek(int);
+
+    callback playlist_details_track_selected(int);
 }

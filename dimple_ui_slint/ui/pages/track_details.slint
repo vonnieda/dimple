@@ -1,5 +1,5 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, Button} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
@@ -29,20 +29,20 @@ export component TrackDetails inherits ScrollView {
         HorizontalLayout {
             alignment: start;
             spacing: StyleMetrics.layout-spacing;
-            // Image
-            Rectangle {
-                width: Palette.thumbnail-width-extra-large;
-                height: Palette.thumbnail-width-extra-large;
-                border-radius: Palette.thumbnail-border-radius;
-                border-color: Palette.thumbnail-border-color;
-                border-width: Palette.thumbnail-border-width;
-                clip: true;
-                Image {
+                // Image
+                Rectangle {
                     width: Palette.thumbnail-width-extra-large;
                     height: Palette.thumbnail-width-extra-large;
-                    source: model.card.image.image;
+                    border-radius: Palette.thumbnail-border-radius;
+                    border-color: Palette.thumbnail-border-color;
+                    border-width: Palette.thumbnail-border-width;
+                    clip: true;
+                    Image {
+                        width: Palette.thumbnail-width-extra-large;
+                        height: Palette.thumbnail-width-extra-large;
+                        source: model.card.image.image;
+                    }
                 }
-            }
             VerticalBox {
                 alignment: start;
                 // Title

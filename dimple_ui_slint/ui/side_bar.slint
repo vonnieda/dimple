@@ -81,7 +81,6 @@ component SideBarMenuItem inherits HorizontalLayout {
         }
     }
     VerticalLayout {
-        alignment: center;
         Link {
             font-size: 1.4rem;
             name: text;
@@ -156,7 +155,7 @@ export component SideBar inherits VerticalBox {
     LineEdit {
         placeholder-text: "Search...";
         // TODO change back to edited when better handling in the search function
-        accepted(query) => { Navigator.navigate("dimple://search/" + query); }
+        edited(query) => { Navigator.navigate("dimple://search/" + query); }
         font-size: 1.3rem;
         height: 36px;
     }
@@ -189,7 +188,7 @@ export component SideBar inherits VerticalBox {
         text: "Tracks";
     }
     SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/regular/list.svg");
+        image: @image-url("../icons/phosphor/SVGs/regular/playlist.svg");
         url: "dimple://playlists";
         text: "Playlists";
     }
@@ -197,6 +196,16 @@ export component SideBar inherits VerticalBox {
         image: @image-url("../icons/phosphor/SVGs/regular/globe-simple.svg");
         url: "dimple://genres";
         text: "Genres";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/clock-counter-clockwise.svg");
+        url: "dimple://history";
+        text: "History";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/queue.svg");
+        url: "dimple://queue";
+        text: "Queue";
     }
 
     // Pinned items

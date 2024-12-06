@@ -1,13 +1,6 @@
 target
 .vscode
-data
-config.yaml
-dumps
-config.toml
-dimple_sled_library/.sled
 draft
-dimple_ui_slint/dimple-librarian-plugin-cache
-dimple_musicbrainz_plugin/dimple-librarian-plugin-cache
-dimple_coverartarchive_plugin/dimple-librarian-plugin-cache
-dimple_librarian_tests/dimple-librarian-plugin-cache
-dimple_librarian_tests/librarian_test
+dimple.db
+config.yaml
+archive

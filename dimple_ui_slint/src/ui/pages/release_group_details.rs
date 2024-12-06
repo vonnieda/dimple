@@ -158,13 +158,13 @@ pub fn release_group_details(url: &str, app: &App) {
 
 fn release_option(release: &Release) -> String {
     let release = release.clone();
-    format!("{} {} {} {} {} {} ({})", 
+    format!("{} {} {} {} {} ({})", 
         release.title.unwrap_or_default(),
         release.country.unwrap_or_default(),
         release.date.unwrap_or_default(),
         release.status.unwrap_or_default(),
         release.quality.unwrap_or_default(),
-        release.primary_type.unwrap_or_default(),
+        // release.primary_type.unwrap_or_default(),
         release.disambiguation.unwrap_or_default())
 }
 

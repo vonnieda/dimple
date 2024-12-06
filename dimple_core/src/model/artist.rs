@@ -1,87 +1,73 @@
-use std::collections::HashSet;
-use std::fmt::Display;
-use std::hash::Hash;
-
 use dimple_core_macro::ModelSupport;
-use serde::Deserialize;
-use serde::Serialize;
-
-use super::known_id::KnownIds;
-use super::Genre;
 
 // https://musicbrainz.org/doc/Artist
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default, ModelSupport)]
+#[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
 pub struct Artist {
     pub key: Option<String>,
     pub name: Option<String>,
-    pub known_ids: KnownIds,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
-    pub links: HashSet<String>,
+    pub liked: bool,
 
     pub country: Option<String>,
-    
-    pub saved: bool,
 
-    #[serde(skip)]
-    pub genres: Vec<Genre>,
-}
-
-impl Hash for Artist {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.key.hash(state);
-        self.name.hash(state);
-        self.known_ids.hash(state);
-        self.disambiguation.hash(state);
-        self.summary.hash(state);
-        // self.links.hash(state);
-        self.country.hash(state);
-        self.genres.hash(state);
-    }
-}
-
-impl Display for Artist {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(format!("{}{}", 
-            self.name.clone().unwrap_or_default(),
-            self.disambiguation.clone().map(|d| format!(" ({})", d)).unwrap_or_default()
-        ).as_str())
-    }
-}
-
-impl Artist {
-    pub fn new_with_mbid(mbid: &str) -> Self {
-            Self { 
-                known_ids: KnownIds { 
-                    musicbrainz_id: Some(mbid.to_string()), 
-                    ..Default::default() 
-                },
-             ..Default::default() 
-        }
-    }
+    // pub known_ids: KnownIds,
+    // pub links: HashSet<String>,
+    // pub genres: Vec<Genre>,
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::{library::Library, model::{Artist, Diff}};
 
     #[test]
-    fn basics() {
-        assert!(Artist::default().model().entity().type_name() == "Artist")
+    fn library_crud() {
+        let library = Library::open("file:59eec92b-6e8e-4839-9eb5-89142890a6a2?mode=memory&cache=shared");
+        let mut model = library.save(&Artist::default());
+        assert!(model.key.is_some());
+        assert!(model.name.is_none());
+        model.name = Some("Name".to_string());
+        let model = library.save(&model);
+        let model: Artist = library.get(&model.key.unwrap()).unwrap();
+        assert!(model.name == Some("Name".to_string()));
     }
 
     #[test]
-    fn display() {
-        let artist = Artist {
-            name: Some("Blue Plate".to_string()),
-            disambiguation: Some("Small one".to_string()),
-            ..Default::default()
+    fn diff() {
+        let a = Artist::default();
+        let b = Artist {
+            key: Some("key".to_string()),
+            name: Some("name".to_string()),
+            disambiguation: Some("disambiguation".to_string()),
+            summary: Some("summary".to_string()),
+            liked: true,
+            country: Some("country".to_string()),
         };
-        assert!(artist.to_string() == "Blue Plate (Small one)");
-        let artist = Artist {
-            name: Some("Red Plate".to_string()),
-            ..Default::default()
+        let diff = a.diff(&b);
+        assert!(diff.len() == 6);
+        dbg!(&diff);
+        assert!(diff[0].field == Some("key".to_string()));
+        assert!(diff[1].field == Some("name".to_string()));
+        assert!(diff[2].field == Some("disambiguation".to_string()));
+        assert!(diff[3].field == Some("summary".to_string()));
+        assert!(diff[4].field == Some("liked".to_string()));
+        assert!(diff[5].field == Some("country".to_string()));
+    }
+
+    #[test]
+    fn apply_diff() {
+        let a = Artist::default();
+        let b = Artist {
+            key: Some("key".to_string()),
+            name: Some("name".to_string()),
+            disambiguation: Some("disambiguation".to_string()),
+            summary: Some("summary".to_string()),
+            liked: true,
+            country: Some("country".to_string()),
         };
-        assert!(artist.to_string() == "Red Plate");
+        let diff = a.diff(&b);
+        let mut c = Artist::default();
+        c.apply_diff(&diff);
+        assert!(c == b);
     }
 }

@@ -2,8 +2,10 @@ import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { AppState } from "../common.slint";
 
 export struct TrackListAdapter {
+    keys: [string],
     rows: [[StandardListViewItem]],
 }
 
@@ -34,6 +36,7 @@ export component TrackList inherits VerticalLayout {
             { title: "Length" },
         ];
         rows: model.rows;
+        current-row-changed => { AppState.track_list_track_selected(self.current-row) }
     }
     Text {
         horizontal-alignment: right;
