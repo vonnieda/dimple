@@ -33,7 +33,6 @@ import { GenreList } from "pages/genre_list.slint";
 import { GenreDetailsAdapter, GenreDetails } from "pages/genre_details.slint";
 import { PlaylistList } from "pages/playlist_list.slint";
 import { PlaylistDetailsAdapter, PlaylistDetails } from "pages/playlist_details.slint";
-import { QueueDetailsAdapter, QueueDetails } from "pages/queue_details.slint";
 import { EventListAdapter, EventList } from "pages/event_list.slint";
 
 import "../fonts/Roboto/Roboto-Black.ttf";
@@ -49,7 +48,7 @@ import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 
-export { Navigator, Palette, AppState, TrackListAdapter, EventListAdapter }
+export { Navigator, Palette, AppState, TrackListAdapter, EventListAdapter, PlaylistDetailsAdapter }
 
 export enum Page { Home, Search,
     ArtistList, ArtistDetails,
@@ -83,11 +82,9 @@ export component AppWindow inherits Window {
     in-out property <TrackDetailsAdapter> track-details;
     in-out property <RecordingDetailsAdapter> recording-details;
     in-out property <CardGridAdapter> playlist-list;
-    in-out property <PlaylistDetailsAdapter> playlist-details;
     in-out property <SettingsAdapter> settings;
     in-out property <PlayerBarAdapter> player-bar;
     in-out property <SideBarAdapter> sidebar;
-    in-out property <QueueDetailsAdapter> queue-details;
 
     title: "Dimple";
     icon: @image-url("../images/app_icon_512x512.png");
@@ -150,12 +147,7 @@ export component AppWindow inherits Window {
                     if page == Page.PlaylistList: PlaylistList {  
                         model: root.playlist-list;
                     }
-                    if page == Page.PlaylistDetails: PlaylistDetails {  
-                        model: root.playlist-details;
-                    }
-                    if page == Page.QueueDetails: QueueDetails {  
-                        model: root.queue-details;
-                    }
+                    if page == Page.PlaylistDetails: PlaylistDetails {}
                     if page == Page.EventList: EventList {}
                     if page == Page.Settings: Settings {  
                         model: root.settings;

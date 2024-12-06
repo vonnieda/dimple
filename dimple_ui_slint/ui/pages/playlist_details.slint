@@ -4,30 +4,41 @@ import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { AppState } from "../common.slint";
 
-export struct PlaylistDetailsAdapter {
-    keys: [string],
-    rows: [[StandardListViewItem]],
+export global PlaylistDetailsAdapter {
+    in property <[[StandardListViewItem]]> row_data;
+    pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
+    pure callback current_row_changed(int);
 }
-
+ 
 export component PlaylistDetails inherits VerticalLayout {
-    in-out property <PlaylistDetailsAdapter> model;
-
+    property <int> sort-index: -1;
+    property <bool> sort-acending;
+        
     StandardTableView {
         height: 100%;
         width: 100%;
         columns: [
+            { title: "#" },
             { title: "Title" },
             { title: "Album" },
             { title: "Artist" },
-            { title: "Track #" },
-            { title: "Plays" },
             { title: "Length" },
         ];
-        rows: model.rows;
-        current-row-changed => { AppState.playlist_details_track_selected(self.current-row) }
+        rows: PlaylistDetailsAdapter.sort_model(PlaylistDetailsAdapter.row_data, root.sort-index, root.sort-acending);
+        current-row-changed(row) => { 
+            PlaylistDetailsAdapter.current_row_changed(row);
+        }
+        sort-ascending(index) => {
+            root.sort-index = index;
+            root.sort-acending = true;
+        }
+        sort-descending(index) => {
+            root.sort-index = index;
+            root.sort-acending = false;
+        }        
     }
     Text {
         horizontal-alignment: right;
-        text: model.rows.length + " items";
+        text: PlaylistDetailsAdapter.row_data.length + " items";
     }
 }

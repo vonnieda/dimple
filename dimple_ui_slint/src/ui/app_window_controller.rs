@@ -1,7 +1,7 @@
-use dimple_core::{library::Library, model::{Artist, Model}, player::Player};
+use dimple_core::{library::Library, player::Player};
 use pages::{event_list, playlist_details, track_list};
 use player_bar;
-use std::{collections::VecDeque, sync::{Arc, Mutex, MutexGuard}, time::Duration};
+use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
 use slint::{SharedString, Weak};
 
@@ -80,13 +80,10 @@ impl AppWindowController {
         self.ui.global::<AppState>().on_settings_set_debug(
             move |debug| settings::settings_set_debug(&app, debug));
         
-        let app = self.app.clone();
-        self.ui.global::<AppState>().on_playlist_details_track_selected(
-            move |row| playlist_details::playlist_details_track_selected(&app, row));
-    
         player_bar::player_bar_init(&self.app);
         track_list::track_list_init(&self.app);
         event_list::event_list_init(&self.app);
+        playlist_details::playlist_details_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://queue".into());
 
