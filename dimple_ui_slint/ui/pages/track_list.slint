@@ -4,26 +4,17 @@ import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { AppState } from "../common.slint";
 
-export struct TrackListAdapter {
-    keys: [string],
-    rows: [[StandardListViewItem]],
+export global TrackListAdapter {
+    in property <[[StandardListViewItem]]> row_data;
+    pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
+    pure callback current_row_changed(int);
 }
-
+ 
 export component TrackList inherits VerticalLayout {
-    in-out property <TrackListAdapter> model: {
-        rows: [
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ],
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ],
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ]
-        ],
-    };
-
+    // https://github.com/slint-ui/slint/blob/master/examples/gallery/ui/pages/table_view_page.slint
+    property <int> sort-index: -1;
+    property <bool> sort-acending;
+        
     StandardTableView {
         height: 100%;
         width: 100%;
@@ -35,11 +26,21 @@ export component TrackList inherits VerticalLayout {
             { title: "Plays" },
             { title: "Length" },
         ];
-        rows: model.rows;
-        current-row-changed => { AppState.track_list_track_selected(self.current-row) }
+        rows: TrackListAdapter.sort_model(TrackListAdapter.row_data, root.sort-index, root.sort-acending);
+        current-row-changed(row) => { 
+            TrackListAdapter.current_row_changed(row);
+        }
+        sort-ascending(index) => {
+            root.sort-index = index;
+            root.sort-acending = true;
+        }
+        sort-descending(index) => {
+            root.sort-index = index;
+            root.sort-acending = false;
+        }        
     }
     Text {
         horizontal-alignment: right;
-        text: model.rows.length + " items";
+        text: TrackListAdapter.row_data.length + " items";
     }
 }

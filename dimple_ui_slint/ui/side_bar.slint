@@ -64,29 +64,27 @@ component SideBarMenuItem inherits HorizontalLayout {
     in property <image> image: @image-url("../icons/phosphor/SVGs/regular/house.svg");
     in property <string> url: "dimple://home";
     in property <string> text: "Home";
-    in property <bool> spin: false;
-
     spacing: 8px;
+
     TouchArea {
-        width: Palette.thumbnail-width-sidebar;
-        height: 24px;
+        width: Palette.icon-width-sidebar;
+        height: Palette.icon-width-sidebar;
         clicked => { Navigator.navigate(url); }
         Image {
             source: image;
-            width: 24px;
+            width: Palette.icon-width-sidebar;
+            height: Palette.icon-width-sidebar;
             colorize: parent.has-hover 
                 ? Palette.link-color-hover
                 : StyleMetrics.default-text-color;
 
         }
     }
-    VerticalLayout {
-        Link {
-            font-size: 1.4rem;
-            name: text;
-            font-weight: Palette.font-weight-bold;
-            url: url;
-        }
+    Link {
+        font-size: 1.4rem;
+        name: text;
+        font-weight: Palette.font-weight-bold;
+        url: url;
     }
 }
 
@@ -99,16 +97,16 @@ component SideBarRefreshItem inherits HorizontalLayout {
     if !Navigator.busy: HorizontalLayout {
         spacing: 8px;
         TouchArea {
-            width: Palette.thumbnail-width-sidebar;
-            height: 24px;
+            width: Palette.icon-width-sidebar;
+            height: Palette.icon-width-sidebar;
             clicked => { Navigator.navigate(url); }
             Image {
                 source: image;
-                width: 24px;
+                width: Palette.icon-width-sidebar;
+                height: Palette.icon-width-sidebar;
                 colorize: parent.has-hover 
                     ? Palette.link-color-hover
                     : StyleMetrics.default-text-color;
-    
             }
         }
         VerticalLayout {
@@ -125,13 +123,13 @@ component SideBarRefreshItem inherits HorizontalLayout {
     if Navigator.busy: HorizontalLayout {
         spacing: 8px;
         TouchArea {
-            width: Palette.thumbnail-width-sidebar;
-            height: 24px;
+            width: Palette.icon-width-sidebar;
+            height: Palette.icon-width-sidebar;
             clicked => { Navigator.navigate(url); }
             Spinner {
                 indeterminate: true;
-                width: 24px;
-                height: 24px;
+                width: Palette.icon-width-sidebar;
+                height: Palette.icon-width-sidebar;
             }                
         }
         VerticalLayout {

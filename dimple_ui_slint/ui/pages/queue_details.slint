@@ -10,19 +10,7 @@ export struct QueueDetailsAdapter {
 }
 
 export component QueueDetails inherits VerticalLayout {
-    in-out property <QueueDetailsAdapter> model: {
-        rows: [
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ],
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ],
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ]
-        ],
-    };
+    in-out property <QueueDetailsAdapter> model;
 
     StandardTableView {
         height: 100%;

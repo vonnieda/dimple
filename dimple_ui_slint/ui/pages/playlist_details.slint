@@ -10,19 +10,7 @@ export struct PlaylistDetailsAdapter {
 }
 
 export component PlaylistDetails inherits VerticalLayout {
-    in-out property <PlaylistDetailsAdapter> model: {
-        rows: [
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ],
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ],
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ]
-        ],
-    };
+    in-out property <PlaylistDetailsAdapter> model;
 
     StandardTableView {
         height: 100%;

@@ -49,7 +49,7 @@ import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 
-export { Navigator, Palette, AppState }
+export { Navigator, Palette, AppState, TrackListAdapter }
 
 export enum Page { Home, Search,
     ArtistList, ArtistDetails,
@@ -60,7 +60,6 @@ export enum Page { Home, Search,
     Settings, GenreList, GenreDetails, RecordingDetails,
     QueueDetails, EventList,
 }
-
 
 export component AppWindow inherits Window {
     in-out property <Page> page: TrackList;
@@ -81,7 +80,6 @@ export component AppWindow inherits Window {
     in-out property <ReleaseDetailsAdapter> release-details;
     in-out property <CardGridAdapter> genre-list;
     in-out property <GenreDetailsAdapter> genre-details;
-    in-out property <TrackListAdapter> track-list;
     in-out property <TrackDetailsAdapter> track-details;
     in-out property <RecordingDetailsAdapter> recording-details;
     in-out property <CardGridAdapter> playlist-list;
@@ -137,9 +135,7 @@ export component AppWindow inherits Window {
                     if page == Page.ReleaseDetails: ReleaseDetails {  
                         model: root.release-details;
                     }                
-                    if page == Page.TrackList: TrackList {  
-                        model: root.track-list;
-                    }
+                    if page == Page.TrackList: TrackList {}
                     if page == Page.TrackDetails: TrackDetails {  
                         model: root.track-details;
                     }

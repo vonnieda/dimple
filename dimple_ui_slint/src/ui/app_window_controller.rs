@@ -84,11 +84,8 @@ impl AppWindowController {
         self.ui.global::<AppState>().on_playlist_details_track_selected(
             move |row| playlist_details::playlist_details_track_selected(&app, row));
     
-        let app = self.app.clone();
-        self.ui.global::<AppState>().on_track_list_track_selected(
-            move |row| track_list::track_list_track_selected(&app, row));
-        
         player_bar::player_bar_init(&self.app);
+        track_list::track_list_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://queue".into());
 
@@ -238,7 +235,6 @@ fn desktop_integration(app: &App) -> MediaControls {
     };
 
     let mut controls = MediaControls::new(config).unwrap();
-    
     {
         let app = app.clone();
         controls.attach(move |event: MediaControlEvent| {

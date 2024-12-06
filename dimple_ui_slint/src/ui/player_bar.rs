@@ -46,7 +46,6 @@ pub fn player_bar_init(app: &App) {
     }
 }
 
-
 fn format_duration(dur: &Duration) -> String {
     format!("{}:{:02}", 
         dur.as_millis() / (60 * 1000), 
