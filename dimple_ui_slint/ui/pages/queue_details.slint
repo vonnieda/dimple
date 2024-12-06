@@ -4,13 +4,13 @@ import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { AppState } from "../common.slint";
 
-export struct PlaylistDetailsAdapter {
+export struct QueueDetailsAdapter {
     keys: [string],
     rows: [[StandardListViewItem]],
 }
 
-export component PlaylistDetails inherits VerticalLayout {
-    in-out property <PlaylistDetailsAdapter> model: {
+export component QueueDetails inherits VerticalLayout {
+    in-out property <QueueDetailsAdapter> model: {
         rows: [
             [
                 { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 

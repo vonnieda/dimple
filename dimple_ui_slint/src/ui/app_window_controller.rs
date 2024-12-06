@@ -170,6 +170,9 @@ impl App {
             let play_queue = self.player.queue();
             self.navigate(format!("dimple://playlist/{}", &play_queue.key.unwrap()).into());
         }
+        else if url.starts_with("dimple://history") {
+            crate::ui::pages::event_list::event_list(self);
+        }
         else if url == "dimple://settings" {
             crate::ui::pages::settings::settings(self);
         }

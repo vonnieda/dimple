@@ -4,39 +4,26 @@ import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { AppState } from "../common.slint";
 
-export struct TrackListAdapter {
+export struct EventListAdapter {
     keys: [string],
     rows: [[StandardListViewItem]],
 }
 
-export component TrackList inherits VerticalLayout {
-    in-out property <TrackListAdapter> model: {
-        rows: [
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ],
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ],
-            [
-                { text: "!!!!!!!" }, { text: "Phrenology" }, { text: "The Roots" },  { text: "3" },  { text: "127" }, { text: "00:25" }, 
-            ]
-        ],
-    };
+export component EventList inherits VerticalLayout {
+    in-out property <EventListAdapter> model;
 
     StandardTableView {
         height: 100%;
         width: 100%;
         columns: [
-            { title: "Title" },
-            { title: "Album" },
+            { title: "Date" },
+            { title: "Type" },
             { title: "Artist" },
-            { title: "Track #" },
-            { title: "Plays" },
-            { title: "Length" },
+            { title: "Album" },
+            { title: "Track" },
         ];
         rows: model.rows;
-        current-row-changed => { AppState.track_list_track_selected(self.current-row) }
+        current-row-changed => { AppState.event_list_event_selected(self.current-row) }
     }
     Text {
         horizontal-alignment: right;

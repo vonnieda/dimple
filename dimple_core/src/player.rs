@@ -5,7 +5,7 @@ use std::{sync::{mpsc::{Receiver, Sender}, Arc, Mutex, RwLock}, time::Duration};
 use threadpool::ThreadPool;
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
-use crate::{library::Library, model::{Playlist, Track}};
+use crate::{library::Library, model::{Event, Playlist, Track}};
 
 type ChangeListener = Arc<Box<dyn Fn(&Player, &str) + Send + std::marker::Sync + 'static>>;
 
@@ -52,6 +52,7 @@ impl Player {
     }
 
     pub fn next(&self) {
+        self.scrobble("track_skipped");
         if let Ok(mut shared_state) = self.shared_state.write() {
             shared_state.queue_index = (shared_state.queue_index + 1).min(self.queue().len(&self.library) - 1);
             // TODO change to skip and check if current is playing to use gapless prebuffer
@@ -60,9 +61,11 @@ impl Player {
     }
 
     pub fn previous(&self) {
+        let mut restarted: bool = false;
         if let Ok(mut shared_state) = self.shared_state.write() {
             const REWIND_SECONDS: u64 = 3;
             if shared_state.track_position.as_secs() >= REWIND_SECONDS {
+                restarted = true;
                 self.sender.send(PlayerCommand::Seek(Duration::ZERO)).unwrap();
             }
             else {
@@ -72,6 +75,14 @@ impl Player {
                     self.sender.send(PlayerCommand::Stop).unwrap();
                 }
             }
+        }
+        // TODO note this is done outside of the logic above because the above
+        // is inside the lock. Should be refactored.
+        if restarted {
+            self.scrobble("track_restarted");
+        }
+        else {
+            self.scrobble("previous_track");
         }
     }
 
@@ -194,6 +205,30 @@ impl Player {
         }
     }
 
+    fn scrobble(&self, event_type: &str) {
+        if let Some(current_track) = self.current_queue_track() {
+            // TODO quick hack, getting a feel for this, but also want to be
+            // storing the history I'm listening to.
+            // To that point, implementing Last.fm scrobbling early would be smart.
+            let timestamp = chrono::Utc::now().to_rfc3339();
+            self.library.save_unlogged(&Event {
+                key: None,
+                timestamp: timestamp.clone(),
+                event_type: event_type.to_string(),
+                artist: current_track.artist.clone(),
+                album: current_track.album.clone(),
+                title: current_track.title.clone(),
+                source_type: "dimple_testing".to_string(),
+                source: format!("{}:{}:{:?}:{:?}:{:?}",
+                    &timestamp,
+                    event_type,
+                    &current_track.artist,
+                    &current_track.album,
+                    &current_track.title),
+            });
+        }
+    }
+
     fn load_next_song(&self, inner: &playback_rs::Player) {
         let last_loaded_queue_index = self.shared_state.read().unwrap().last_loaded_queue_index;
         let current_queue_index = self.current_queue_index();
@@ -203,6 +238,7 @@ impl Player {
                     self.load_next_available_song(current_queue_index + 1, inner);        
                 }
                 else {
+                    self.scrobble("track_played");
                     self.advance_queue();
                 }
             },
