@@ -66,20 +66,7 @@ impl AppWindowController {
         let app = self.app.clone();
         self.ui.global::<Navigator>().on_navigate(move |url| app.navigate(url));
 
-        // TODO I think this stuff moves into init on settings or something,
-        // and we use that pattern for each page?
-        let app = self.app.clone();
-        self.ui.global::<AppState>().on_settings_reset_database(
-            move || settings::settings_reset_database(&app));
-    
-        let app = self.app.clone();
-        self.ui.global::<AppState>().on_settings_set_online(
-            move |online| settings::settings_set_online(&app, online));
-
-        let app = self.app.clone();
-        self.ui.global::<AppState>().on_settings_set_debug(
-            move |debug| settings::settings_set_debug(&app, debug));
-        
+        settings::settings_init(&self.app);        
         player_bar::player_bar_init(&self.app);
         track_list::track_list_init(&self.app);
         event_list::event_list_init(&self.app);

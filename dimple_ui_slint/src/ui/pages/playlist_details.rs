@@ -68,6 +68,8 @@ fn row_selected(app: &App, row: i32) {
         // let play_queue = app.player.queue();
         // app.library.playlist_add(&play_queue, &key);
         // app.player.set_queue_index(row as usize);
+        // TODO this only belongs on queue details, not playlist details
+        app.player.set_queue_index(row as usize);
     }).unwrap();
 }
 

@@ -19,10 +19,26 @@ use crate::ui::AppState;
 
 use slint::{ComponentHandle, Weak};
 
+pub fn settings_init(app: &App) {
+    let app_ = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        let app = app_.clone();
+        ui.global::<AppState>().on_settings_reset_database(
+            move || reset_database(&app));
+        
+        let app = app_.clone();
+        ui.global::<AppState>().on_settings_set_online(
+            move |online| set_online(&app, online));
+
+        let app = app_.clone();
+        ui.global::<AppState>().on_settings_set_debug(
+            move |debug| set_debug(&app, debug));
+    }).unwrap();
+}
+
 pub fn settings(app: &App) {
     let app = app.clone();
     std::thread::spawn(move || {
-        // let db: &dyn Db = &app.librarian as &dyn Db;
         let db = app.library.clone();
 
         let mut database_stats: Vec<String> = vec![];
@@ -66,7 +82,7 @@ pub fn settings(app: &App) {
     });
 }
 
-pub fn settings_reset_database(app: &App) {
+fn reset_database(app: &App) {
     let app = app.clone();
     thread::spawn(move || {
         log::info!("Resetting database.");
@@ -75,7 +91,7 @@ pub fn settings_reset_database(app: &App) {
     });
 }
 
-pub fn settings_set_online(app: &App, online: bool) {
+fn set_online(app: &App, online: bool) {
     let app = app.clone();
     // app.ui.upgrade_in_event_loop(move |ui| {
     //     app.librarian.set_network_mode(if online { &NetworkMode::Online } else { &NetworkMode::Offline });
@@ -83,7 +99,7 @@ pub fn settings_set_online(app: &App, online: bool) {
     // }).unwrap();
 }
 
-pub fn settings_set_debug(app: &App, debug: bool) {
+fn set_debug(app: &App, debug: bool) {
     let app = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
         ui.global::<AppState>().set_debug(debug);
