@@ -14,14 +14,15 @@ import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox} from "std-widgets.slint";
 import { AppState, Palette, Navigator } from "../common.slint";
 
-export struct SettingsAdapter {
-    cache_stats: [string],
-    database_stats: [string],
+export global SettingsAdapter {
+    in property <[string]> cache_stats;
+    in property <[string]> database_stats;
+    pure callback set_online(bool);
+    pure callback set_debug(bool);
+
 }
 
 export component Settings inherits ScrollView {
-    in property <SettingsAdapter> model;
-
     VerticalLayout {
         alignment: start;
         VerticalBox {
@@ -32,7 +33,7 @@ export component Settings inherits ScrollView {
             }
             CheckBox {
                 checked: AppState.online;
-                toggled => { AppState.settings_set_online(self.checked); }
+                toggled => { SettingsAdapter.set_online(self.checked); }
                 text: "Online?";
             }
         }
@@ -42,7 +43,7 @@ export component Settings inherits ScrollView {
                 font-size: 2rem;
                 font-weight: Palette.font-weight-bold;
             }
-            for stat in model.database-stats: 
+            for stat in SettingsAdapter.database-stats: 
                 Text {
                     text: stat;
                 }
@@ -53,7 +54,7 @@ export component Settings inherits ScrollView {
                 font-size: 2rem;
                 font-weight: Palette.font-weight-bold;
             }
-            for stat in model.cache-stats: 
+            for stat in SettingsAdapter.cache-stats: 
                 Text {
                     text: stat;
                 }
@@ -66,15 +67,8 @@ export component Settings inherits ScrollView {
             }
             CheckBox {
                 checked: AppState.debug;
-                toggled => { AppState.settings_set_debug(self.checked); }
+                toggled => { SettingsAdapter.set_debug(self.checked); }
                 text: "Show object dumps?";
-            }
-            HorizontalLayout {
-                alignment: start;
-                Button {
-                    text: "Reset Database";
-                    clicked => { AppState.settings_reset_database() }
-                }
             }
         }
     }

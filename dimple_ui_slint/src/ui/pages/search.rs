@@ -1,8 +1,7 @@
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Model;
-use dimple_core::model::Recording;
-use dimple_core::model::ReleaseGroup;
+use dimple_core::model::Track;
 use slint::ComponentHandle;
 use slint::ModelRc;
 use slint::VecModel;
@@ -18,7 +17,7 @@ use crate::ui::LinkAdapter;
 
 // TODO Think this is a general problem with the lazy load, in that it can
 // still be running after the page has changed. Needs to be cancellable, either
-// way, but also should lfail more gracefully.
+// way, but also should fail more gracefully.
 // 
 // thread 'main' panicked at dimple_ui_slint/src/ui/pages/search.rs:48:78:
 // called `Option::unwrap()` on a `None` value
@@ -29,7 +28,7 @@ use crate::ui::LinkAdapter;
 
 pub fn search(url: &str, app: &App) {
     let url = url.to_owned();
-    let librarian = app.librarian.clone();
+    let library = app.library.clone();
     let ui = app.ui.clone();
     let images = app.images.clone();
 
@@ -40,7 +39,7 @@ pub fn search(url: &str, app: &App) {
         let query = percent_encoding::percent_decode_str(query).decode_utf8_lossy().to_string();
 
         ui.upgrade_in_event_loop(move |ui| {
-            ui.global::<Navigator>().set_busy(true);
+            // ui.global::<Navigator>().set_busy(true);
             let adapter = CardGridAdapter {
                 cards: ModelRc::new(VecModel::<CardAdapter>::default()),
                 ..Default::default()
@@ -49,7 +48,7 @@ pub fn search(url: &str, app: &App) {
             ui.set_page(Page::Search);
         }).unwrap();
 
-        let results = librarian.search(&query).unwrap();
+        let results: Vec<Track> = library.list();
         for result in results {
             // TODO I'd like to have a simple way to throttle this, so that
             // like we queue up the incoming and only send sets of changes
@@ -71,18 +70,18 @@ pub fn search(url: &str, app: &App) {
             }).unwrap();
         }
 
-        ui.upgrade_in_event_loop(move |ui| {
-            ui.global::<Navigator>().set_busy(false);
-        }).unwrap();
+        // ui.upgrade_in_event_loop(move |ui| {
+        //     ui.global::<Navigator>().set_busy(false);
+        // }).unwrap();
     });
 }
 
-fn model_card(model: &Model) -> CardAdapter {
+fn model_card(model: &impl Model) -> CardAdapter {
     match model {
-        Model::Artist(artist) => artist_card(artist),
-        Model::ReleaseGroup(release_group) => release_group_card(release_group),
-        Model::Genre(genre) => genre_card(genre),
-        Model::Recording(recording) => recording_card(recording),
+        // Model::Artist(artist) => artist_card(artist),
+        // Model::ReleaseGroup(release_group) => release_group_card(release_group),
+        // Model::Genre(genre) => genre_card(genre),
+        // Model::Recording(recording) => recording_card(recording),
         _ => todo!(),
     }
 }
@@ -106,61 +105,61 @@ fn artist_card(artist: &Artist) -> CardAdapter {
     }
 }
 
-fn release_group_card(release_group: &ReleaseGroup) -> CardAdapter {
-    CardAdapter {
-        image: ImageLinkAdapter {
-            image: Default::default(),
-            name: release_group.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release-group/{}", release_group.key.clone().unwrap_or_default()).into(),
-        },
-        title: LinkAdapter {
-            name: release_group.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release-group/{}", release_group.key.clone().unwrap_or_default()).into(),
-        },
-        sub_title: LinkAdapter {
-            name: format!("{} {}", 
-                release_group.first_release_date.clone().map(|date| date[..4].to_string()).unwrap_or_default(), 
-                release_group.primary_type.clone().unwrap_or("Album".to_string())).into(),
-            url: format!("dimple://release-group/{}", release_group.key.clone().unwrap_or_default()).into(),
-        },
-    }    
-}
+// fn release_group_card(release_group: &ReleaseGroup) -> CardAdapter {
+//     CardAdapter {
+//         image: ImageLinkAdapter {
+//             image: Default::default(),
+//             name: release_group.title.clone().unwrap_or_default().into(),
+//             url: format!("dimple://release-group/{}", release_group.key.clone().unwrap_or_default()).into(),
+//         },
+//         title: LinkAdapter {
+//             name: release_group.title.clone().unwrap_or_default().into(),
+//             url: format!("dimple://release-group/{}", release_group.key.clone().unwrap_or_default()).into(),
+//         },
+//         sub_title: LinkAdapter {
+//             name: format!("{} {}", 
+//                 release_group.first_release_date.clone().map(|date| date[..4].to_string()).unwrap_or_default(), 
+//                 release_group.primary_type.clone().unwrap_or("Album".to_string())).into(),
+//             url: format!("dimple://release-group/{}", release_group.key.clone().unwrap_or_default()).into(),
+//         },
+//     }    
+// }
 
-fn genre_card(genre: &Genre) -> CardAdapter {
-    let genre = genre.clone();
-    CardAdapter {
-        image: ImageLinkAdapter {
-            image: Default::default(),
-            name: genre.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
-        },
-        title: LinkAdapter {
-            name: genre.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
-        },
-        sub_title: LinkAdapter {
-            name: "Genre".into(),
-            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
-        },
-    }
-}
+// fn genre_card(genre: &Genre) -> CardAdapter {
+//     let genre = genre.clone();
+//     CardAdapter {
+//         image: ImageLinkAdapter {
+//             image: Default::default(),
+//             name: genre.name.clone().unwrap_or_default().into(),
+//             url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+//         },
+//         title: LinkAdapter {
+//             name: genre.name.clone().unwrap_or_default().into(),
+//             url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+//         },
+//         sub_title: LinkAdapter {
+//             name: "Genre".into(),
+//             url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+//         },
+//     }
+// }
 
-fn recording_card(recording: &Recording) -> CardAdapter {
-    let recording = recording.clone();
-    CardAdapter {
-        image: ImageLinkAdapter {
-            image: Default::default(),
-            name: recording.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
-        },
-        title: LinkAdapter {
-            name: recording.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
-        },
-        sub_title: LinkAdapter {
-            name: "Song".into(),
-            url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
-        },
-    }
-}
+// fn recording_card(recording: &Recording) -> CardAdapter {
+//     let recording = recording.clone();
+//     CardAdapter {
+//         image: ImageLinkAdapter {
+//             image: Default::default(),
+//             name: recording.title.clone().unwrap_or_default().into(),
+//             url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
+//         },
+//         title: LinkAdapter {
+//             name: recording.title.clone().unwrap_or_default().into(),
+//             url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
+//         },
+//         sub_title: LinkAdapter {
+//             name: "Song".into(),
+//             url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
+//         },
+//     }
+// }
 

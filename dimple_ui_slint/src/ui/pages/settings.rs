@@ -23,15 +23,12 @@ pub fn settings_init(app: &App) {
     let app_ = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
         let app = app_.clone();
-        ui.global::<AppState>().on_settings_reset_database(
-            move || reset_database(&app));
-        
         let app = app_.clone();
-        ui.global::<AppState>().on_settings_set_online(
+        ui.global::<SettingsAdapter>().on_set_online(
             move |online| set_online(&app, online));
 
         let app = app_.clone();
-        ui.global::<AppState>().on_settings_set_debug(
+        ui.global::<SettingsAdapter>().on_set_debug(
             move |debug| set_debug(&app, debug));
     }).unwrap();
 }
@@ -48,18 +45,6 @@ pub fn settings(app: &App) {
         database_stats.push(format!("Playlists: {}", db.list::<Playlist>().len()));
         database_stats.push(format!("Tracks: {}", db.list::<Track>().len()));
         database_stats.push(format!("TrackSources: {}", db.list::<TrackSource>().len()));
-        // database_stats.push(format!("Releases: {}", db.list::<Release>().len()));
-        // database_stats.push(format!("Release Groups: {}", 
-        //     db.list(&ReleaseGroup::default().model(), &None).unwrap().count()));
-        // database_stats.push(format!("Media: {}", 
-        //     db.list(&Medium::default().model(), &None).unwrap().count()));
-        // database_stats.push(format!("Recordings: {}", 
-        //     db.list(&Recording::default().model(), &None).unwrap().count()));
-        // database_stats.push(format!("Recording Sources: {}", 
-        //     db.list(&RecordingSource::default().model(), &None).unwrap().count()));
-        // TODO disabled until performance is better
-        // database_stats.push(format!("Pictures: {}", 
-        //         db.list(&Picture::default().model(), &None).unwrap().count()));
 
         let mut cache_stats = vec![];
         cache_stats.push(format!("Thumbnail cache: {}", Size::from_bytes(app.images.cache_len())));
@@ -72,22 +57,10 @@ pub fn settings(app: &App) {
             let cache_stats: Vec<SharedString> = cache_stats.into_iter()
                 .map(Into::into)
                 .collect();
-            let adapter = SettingsAdapter {
-                database_stats: ModelRc::from(database_stats.as_slice()),
-                cache_stats: ModelRc::from(cache_stats.as_slice()),
-            };
-            ui.set_settings(adapter);
+            ui.global::<SettingsAdapter>().set_database_stats(ModelRc::from(database_stats.as_slice()));
+            ui.global::<SettingsAdapter>().set_cache_stats(ModelRc::from(cache_stats.as_slice()));
             ui.set_page(Page::Settings);
         }).unwrap();
-    });
-}
-
-fn reset_database(app: &App) {
-    let app = app.clone();
-    thread::spawn(move || {
-        log::info!("Resetting database.");
-        app.library.reset().unwrap();
-        log::info!("Done resetting database.");
     });
 }
 

@@ -152,7 +152,6 @@ export component SideBar inherits VerticalBox {
 
     LineEdit {
         placeholder-text: "Search...";
-        // TODO change back to edited when better handling in the search function
         edited(query) => { Navigator.navigate("dimple://search/" + query); }
         font-size: 1.3rem;
         height: 36px;

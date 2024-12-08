@@ -29,11 +29,6 @@ export global AppState {
     in-out property <bool> online: true;
     in-out property <bool> debug: false;
 
-    callback settings_set_online(bool);
-    callback settings_set_debug(bool);
-    callback settings_generate_artists();
-    callback settings_reset_database();
-
     callback release_group_details_release_selected(string);
 
     callback track_list_track_selected(int);

@@ -102,9 +102,9 @@ impl App {
         else if url == "dimple://refresh" {
             self.refresh();
         }
-        // else if url.starts_with("dimple://search") {
-        //     crate::ui::pages::search::search(&url, self);
-        // }
+        else if url.starts_with("dimple://search") {
+            crate::ui::pages::search::search(&url, self);
+        }
         else if url.starts_with("dimple://home") {
             // TODO
             self.set_page(Page::Home);
@@ -264,8 +264,14 @@ fn desktop_integration(app: &App) -> MediaControls {
                 true => MediaPlayback::Playing { progress: Some(MediaPosition(track_position)) },
                 false => MediaPlayback::Paused { progress: Some(MediaPosition(track_position)) },
             };
+            let artist = current_track.clone().map(|t| t.artist).flatten();
+            let album = current_track.clone().map(|t| t.album).flatten();
+            let title = current_track.clone().map(|t| t.title).flatten();
             let metadata = MediaMetadata {
                 duration: Some(track_duration),
+                artist: artist.as_deref(),
+                album: album.as_deref(),
+                title: title.as_deref(),
                 ..Default::default()
             };
             if let Ok(mut controls) = app.controls.lock() {

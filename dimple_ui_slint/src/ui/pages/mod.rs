@@ -9,7 +9,7 @@ pub mod settings;
 // pub mod release_list;
 // pub mod release_details;
 // pub mod recording_details;
-// pub mod search;
+pub mod search;
 // pub mod genre_list;
 // pub mod genre_details;
 // pub mod playlist_list;

@@ -84,10 +84,6 @@ impl Library {
         backup.run_to_completion(250, Duration::from_millis(10), None).unwrap();
     }
 
-    pub fn reset(&self) -> Result<String, ()> {
-        todo!()
-    }
-
     /// Import MediaFiles into the Library, creating or updating Tracks,
     /// TrackSources, Blobs, etc. path can be either a file or directory. If
     /// it is a directory it will be recursively scanned.
