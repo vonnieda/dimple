@@ -11,7 +11,7 @@
 
 
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox, Slider} from "std-widgets.slint";
 import { AppState, Palette, Navigator } from "../common.slint";
 
 export global SettingsAdapter {
@@ -19,56 +19,83 @@ export global SettingsAdapter {
     in property <[string]> database_stats;
     pure callback set_online(bool);
     pure callback set_debug(bool);
-
+    pure callback set_font_size(float);
 }
 
 export component Settings inherits ScrollView {
+    in property <length> header-font-size: 1.5rem;
+
     VerticalLayout {
         alignment: start;
         VerticalBox {
             Text {
                 text: "General";
-                font-size: 2rem;
                 font-weight: Palette.font-weight-bold;
+                font-size: header-font-size;
             }
-            CheckBox {
-                checked: AppState.online;
-                toggled => { SettingsAdapter.set_online(self.checked); }
-                text: "Online?";
+            HorizontalBox {
+                alignment: LayoutAlignment.start;
+                Text {
+                    text: "Font Size";
+                    vertical-alignment: center;
+                }
+                Slider {
+                    width: 200px;
+                    minimum: 1;
+                    maximum: 24;
+                    changed => { SettingsAdapter.set_font_size(self.value); }
+                }
+            }
+            HorizontalBox {
+                Text {
+                    text: "Online?";
+                    vertical-alignment: center;
+                }
+                CheckBox {
+                    checked: AppState.online;
+                    toggled => { SettingsAdapter.set_online(self.checked); }
+                }
             }
         }
         VerticalBox {
             Text {
                 text: "Database";
-                font-size: 2rem;
+                font-size: header-font-size;
                 font-weight: Palette.font-weight-bold;
             }
             for stat in SettingsAdapter.database-stats: 
                 Text {
                     text: stat;
+                    vertical-alignment: center;
                 }
         }
         VerticalBox {
             Text {
                 text: "Cache";
-                font-size: 2rem;
+                font-size: header-font-size;
                 font-weight: Palette.font-weight-bold;
             }
             for stat in SettingsAdapter.cache-stats: 
                 Text {
                     text: stat;
+                    vertical-alignment: center;
                 }
         }
         VerticalBox {
             Text {
                 text: "Development";
-                font-size: 2rem;
+                font-size: header-font-size;
                 font-weight: Palette.font-weight-bold;
             }
-            CheckBox {
-                checked: AppState.debug;
-                toggled => { SettingsAdapter.set_debug(self.checked); }
-                text: "Show object dumps?";
+            HorizontalBox {
+                Text {
+                    text: "Show model JSON?";
+                    vertical-alignment: center;
+                }
+                CheckBox {
+                    checked: AppState.debug;
+                    toggled => { SettingsAdapter.set_debug(self.checked); }
+                }
             }
         }
     }

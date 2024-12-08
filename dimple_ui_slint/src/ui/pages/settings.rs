@@ -30,7 +30,11 @@ pub fn settings_init(app: &App) {
         let app = app_.clone();
         ui.global::<SettingsAdapter>().on_set_debug(
             move |debug| set_debug(&app, debug));
-    }).unwrap();
+
+        let app = app_.clone();
+        ui.global::<SettingsAdapter>().on_set_font_size(
+            move |font_size| set_font_size(&app, font_size));
+        }).unwrap();
 }
 
 pub fn settings(app: &App) {
@@ -76,6 +80,13 @@ fn set_debug(app: &App, debug: bool) {
     let app = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
         ui.global::<AppState>().set_debug(debug);
+    }).unwrap();
+}
+
+fn set_font_size(app: &App, font_size: f32) {
+    let app = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        ui.global::<AppState>().set_default_font_size(font_size);
     }).unwrap();
 }
 

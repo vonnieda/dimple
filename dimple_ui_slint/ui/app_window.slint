@@ -47,7 +47,6 @@ import "../fonts/Roboto/Roboto-MediumItalic.ttf";
 import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
-import { NavBar } from "nav_bar.slint";
 
 export { Navigator, Palette, AppState, TrackListAdapter, 
     EventListAdapter, PlaylistDetailsAdapter,
@@ -107,6 +106,8 @@ export component AppWindow inherits Window {
     icon: @image-url("../images/app_icon_512x512.png");
     preferred-width: 1440px;
     preferred-height: 1024px;
+    default-font-size: AppState.default-font-size;
+    default-font-family: "Roboto";
 
     VerticalLayout {
         padding: 8px;
@@ -117,7 +118,7 @@ export component AppWindow inherits Window {
             spacing: 8px;
             padding: 0;
             GroupBox {
-                min-width: 200px;
+                min-width: 220px;
                 SideBar {
                     model: root.sidebar;
                 }
