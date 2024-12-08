@@ -1,165 +1,85 @@
-use dimple_core::model::Artist;
-use dimple_core::model::Genre;
-use dimple_core::model::Model;
+use std::rc::Rc;
+use std::time::Duration;
+
 use dimple_core::model::Track;
-use slint::ComponentHandle;
 use slint::ModelRc;
+use slint::StandardListViewItem;
 use slint::VecModel;
 use url::Url;
 use crate::ui::app_window_controller::App;
-use crate::ui::Navigator;
-use crate::ui::Page;
 use crate::ui::CardAdapter;
-use crate::ui::CardGridAdapter;
 use crate::ui::ImageLinkAdapter;
+use crate::ui::TrackListAdapter;
 use crate::ui::LinkAdapter;
-
-
-// TODO Think this is a general problem with the lazy load, in that it can
-// still be running after the page has changed. Needs to be cancellable, either
-// way, but also should fail more gracefully.
-// 
-// thread 'main' panicked at dimple_ui_slint/src/ui/pages/search.rs:48:78:
-// called `Option::unwrap()` on a `None` value
-// note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-// fatal runtime error: failed to initiate panic, error 5
-// Abort trap: 6
-
+use crate::ui::Page;
+use slint::ComponentHandle as _;
 
 pub fn search(url: &str, app: &App) {
+    let app = app.clone();
     let url = url.to_owned();
-    let library = app.library.clone();
-    let ui = app.ui.clone();
-    let images = app.images.clone();
-
     std::thread::spawn(move || {
-        log::info!("{}", url);
         let url = Url::parse(&url).unwrap();
         let query = url.path_segments().unwrap().next().unwrap();
         let query = percent_encoding::percent_decode_str(query).decode_utf8_lossy().to_string();
+        let query = format!("%{}%", query);
 
-        ui.upgrade_in_event_loop(move |ui| {
-            // ui.global::<Navigator>().set_busy(true);
-            let adapter = CardGridAdapter {
-                cards: ModelRc::new(VecModel::<CardAdapter>::default()),
-                ..Default::default()
-            };
-            ui.set_search(adapter);
-            ui.set_page(Page::Search);
+        let tracks: Vec<Track> = app.library.query("SELECT * FROM Track
+            WHERE artist LIKE ?1 OR album LIKE ?1 OR title LIKE ?1", (query,));
+        app.ui.upgrade_in_event_loop(move |ui| {
+            ui.global::<TrackListAdapter>().set_row_data(row_data(&tracks));
+            ui.set_page(Page::TrackList);
+
+            // let mut adapter = ui.get_search();
+            // let cards: VecModel<CardAdapter> = Default::default();
+            // for track in tracks.iter() {
+            //     cards.push(track_card(track));
+            // }
+            // adapter.cards = ModelRc::new(cards);
+            // ui.set_search(adapter);
+            // ui.set_page(Page::Search);
         }).unwrap();
-
-        let results: Vec<Track> = library.list();
-        for result in results {
-            // TODO I'd like to have a simple way to throttle this, so that
-            // like we queue up the incoming and only send sets of changes
-            // every max like 200ms or something.
-            let images = images.clone();
-            ui.upgrade_in_event_loop(move |ui| {
-                let adapter = ui.get_search();
-                let cards: &slint::VecModel<CardAdapter> = slint::Model::as_any(&adapter.cards)
-                    .downcast_ref().unwrap();
-                let mut card: CardAdapter = model_card(&result);
-                let index = slint::Model::row_count(cards);
-                card.image.image = images.lazy_get(result, 200, 200, move |ui, image| {
-                    let mut card = slint::Model::row_data(&ui.get_search().cards, index).unwrap();
-                    card.image.image = image;
-                    slint::Model::set_row_data(&ui.get_search().cards, index, card);
-                });
-                // TODO race condition with lazy_get, index might not be there yet.
-                cards.push(card);
-            }).unwrap();
-        }
-
-        // ui.upgrade_in_event_loop(move |ui| {
-        //     ui.global::<Navigator>().set_busy(false);
-        // }).unwrap();
     });
 }
 
-fn model_card(model: &impl Model) -> CardAdapter {
-    match model {
-        // Model::Artist(artist) => artist_card(artist),
-        // Model::ReleaseGroup(release_group) => release_group_card(release_group),
-        // Model::Genre(genre) => genre_card(genre),
-        // Model::Recording(recording) => recording_card(recording),
-        _ => todo!(),
+fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
+    let row_data: Rc<VecModel<ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
+    for track in tracks {
+        let track = track.clone();
+        let row = Rc::new(VecModel::default());
+        let length = Duration::from_millis(track.length_ms.unwrap_or_default() as u64);
+        let length = format_length(length);
+        row.push(StandardListViewItem::from(track.title.unwrap_or_default().as_str())); // Title
+        row.push(StandardListViewItem::from(track.album.unwrap_or_default().as_str())); // Album
+        row.push(StandardListViewItem::from(track.artist.unwrap_or_default().as_str())); // Artist
+        row.push(StandardListViewItem::from("1")); // Track #
+        row.push(track.plays.to_string().as_str().into()); // Plays
+        row.push(StandardListViewItem::from(length.as_str())); // Length
+        row_data.push(row.into());
     }
+    row_data.into()
 }
 
-
-fn artist_card(artist: &Artist) -> CardAdapter {
+fn track_card(track: &Track) -> CardAdapter {
+    let track = track.clone();
     CardAdapter {
         image: ImageLinkAdapter {
             image: Default::default(),
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            name: track.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
         },
         title: LinkAdapter {
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            name: track.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
         },
         sub_title: LinkAdapter {
-            name: artist.disambiguation.clone().unwrap_or("Artist".to_string()).into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            name: "Track".into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
         },
     }
 }
 
-// fn release_group_card(release_group: &ReleaseGroup) -> CardAdapter {
-//     CardAdapter {
-//         image: ImageLinkAdapter {
-//             image: Default::default(),
-//             name: release_group.title.clone().unwrap_or_default().into(),
-//             url: format!("dimple://release-group/{}", release_group.key.clone().unwrap_or_default()).into(),
-//         },
-//         title: LinkAdapter {
-//             name: release_group.title.clone().unwrap_or_default().into(),
-//             url: format!("dimple://release-group/{}", release_group.key.clone().unwrap_or_default()).into(),
-//         },
-//         sub_title: LinkAdapter {
-//             name: format!("{} {}", 
-//                 release_group.first_release_date.clone().map(|date| date[..4].to_string()).unwrap_or_default(), 
-//                 release_group.primary_type.clone().unwrap_or("Album".to_string())).into(),
-//             url: format!("dimple://release-group/{}", release_group.key.clone().unwrap_or_default()).into(),
-//         },
-//     }    
-// }
-
-// fn genre_card(genre: &Genre) -> CardAdapter {
-//     let genre = genre.clone();
-//     CardAdapter {
-//         image: ImageLinkAdapter {
-//             image: Default::default(),
-//             name: genre.name.clone().unwrap_or_default().into(),
-//             url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
-//         },
-//         title: LinkAdapter {
-//             name: genre.name.clone().unwrap_or_default().into(),
-//             url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
-//         },
-//         sub_title: LinkAdapter {
-//             name: "Genre".into(),
-//             url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
-//         },
-//     }
-// }
-
-// fn recording_card(recording: &Recording) -> CardAdapter {
-//     let recording = recording.clone();
-//     CardAdapter {
-//         image: ImageLinkAdapter {
-//             image: Default::default(),
-//             name: recording.title.clone().unwrap_or_default().into(),
-//             url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
-//         },
-//         title: LinkAdapter {
-//             name: recording.title.clone().unwrap_or_default().into(),
-//             url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
-//         },
-//         sub_title: LinkAdapter {
-//             name: "Song".into(),
-//             url: format!("dimple://recording/{}", recording.key.clone().unwrap_or_default()).into(),
-//         },
-//     }
-// }
-
+fn format_length(length: Duration) -> String {
+    let minutes = length.as_secs() / 60;
+    let seconds = length.as_secs() % 60;
+    format!("{}:{:02}", minutes, seconds)
+}
