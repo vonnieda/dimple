@@ -47,6 +47,7 @@ import "../fonts/Roboto/Roboto-MediumItalic.ttf";
 import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
+import { NavBar } from "nav_bar.slint";
 
 export { Navigator, Palette, AppState, TrackListAdapter, 
     EventListAdapter, PlaylistDetailsAdapter,
@@ -90,12 +91,12 @@ export component AppWindow inherits Window {
         },
         now-playing-release: {
             image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-            title: {name: "A Reign of Fish",url: "internal://release/1234"},
+            title: {name: "Fresh Pliers",url: "internal://release/1234"},
             sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
         },
         now-playing-recording: {
-            image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-            title: {name: "A Reign of Fish",url: "internal://release/1234"},
+            image: {image: @image-url("../images/light.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+            title: {name: "Lemon on Fire",url: "internal://release/1234"},
             sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
         },
         player-state: PlayerState.Playing,
@@ -111,6 +112,7 @@ export component AppWindow inherits Window {
         padding: 8px;
         padding-top: 4px;
         spacing: 4px;
+        // NavBar {}
         HorizontalLayout {
             spacing: 8px;
             padding: 0;
@@ -120,54 +122,56 @@ export component AppWindow inherits Window {
                     model: root.sidebar;
                 }
             }
-            GroupBox {
-                horizontal-stretch: 1;
-                Rectangle {
-                    if page == Page.Home: Home {
-                        model: root.home;
+            VerticalLayout {
+                GroupBox {
+                    horizontal-stretch: 1;
+                    Rectangle {
+                        if page == Page.Home: Home {
+                            model: root.home;
+                        }
+                        if page == Page.Search: Search {
+                            model: root.search;
+                        }
+                        if page == Page.ArtistList: ArtistList {
+                            model: root.artist-list;
+                        }
+                        if page == Page.ArtistDetails: ArtistDetails {  
+                            model: root.artist-details;
+                        }
+                        if page == Page.ReleaseGroupList: ReleaseGroupList {  
+                            model: root.release-group-list;
+                        }
+                        if page == Page.ReleaseGroupDetails: ReleaseGroupDetails {  
+                            model: root.release-group-details;
+                        }
+                        if page == Page.ReleaseList: ReleaseList {  
+                            model: root.release-list;
+                        }                
+                        if page == Page.ReleaseDetails: ReleaseDetails {  
+                            model: root.release-details;
+                        }                
+                        if page == Page.TrackList: TrackList {}
+                        if page == Page.TrackDetails: TrackDetails {  
+                            model: root.track-details;
+                        }
+                        if page == Page.RecordingDetails: RecordingDetails {  
+                            model: root.recording-details;
+                        }
+                        if page == Page.GenreList: GenreList {  
+                            model: root.genre-list;
+                        }
+                        if page == Page.GenreDetails: GenreDetails {  
+                            model: root.genre-details;
+                        }
+                        if page == Page.PlaylistList: PlaylistList {  
+                            model: root.playlist-list;
+                        }
+                        if page == Page.PlaylistDetails: PlaylistDetails {}
+                        if page == Page.EventList: EventList {}
+                        if page == Page.Settings: Settings {}
                     }
-                    if page == Page.Search: Search {
-                        model: root.search;
-                    }
-                    if page == Page.ArtistList: ArtistList {
-                        model: root.artist-list;
-                    }
-                    if page == Page.ArtistDetails: ArtistDetails {  
-                        model: root.artist-details;
-                    }
-                    if page == Page.ReleaseGroupList: ReleaseGroupList {  
-                        model: root.release-group-list;
-                    }
-                    if page == Page.ReleaseGroupDetails: ReleaseGroupDetails {  
-                        model: root.release-group-details;
-                    }
-                    if page == Page.ReleaseList: ReleaseList {  
-                        model: root.release-list;
-                    }                
-                    if page == Page.ReleaseDetails: ReleaseDetails {  
-                        model: root.release-details;
-                    }                
-                    if page == Page.TrackList: TrackList {}
-                    if page == Page.TrackDetails: TrackDetails {  
-                        model: root.track-details;
-                    }
-                    if page == Page.RecordingDetails: RecordingDetails {  
-                        model: root.recording-details;
-                    }
-                    if page == Page.GenreList: GenreList {  
-                        model: root.genre-list;
-                    }
-                    if page == Page.GenreDetails: GenreDetails {  
-                        model: root.genre-details;
-                    }
-                    if page == Page.PlaylistList: PlaylistList {  
-                        model: root.playlist-list;
-                    }
-                    if page == Page.PlaylistDetails: PlaylistDetails {}
-                    if page == Page.EventList: EventList {}
-                    if page == Page.Settings: Settings {}
-                }
-            }    
+                }    
+            }
         }   
         GroupBox {
             vertical-stretch: 0;

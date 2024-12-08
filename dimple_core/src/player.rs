@@ -19,8 +19,6 @@ pub struct Player {
     threadpool: ThreadPool,
 }
 
-// TODO change most or all emit to happen inside setters for fields, and of
-// course switch everything to use the setters.
 impl Player {
     pub fn new(library: Arc<Library>) -> Player {
         let (sender, receiver) = std::sync::mpsc::channel();
@@ -178,7 +176,7 @@ impl Player {
                     },
                     PlayerCommand::Stop => {
                         inner.stop();
-                        self.shared_state.write().unwrap().last_loaded_queue_index = None;
+                        self.set_last_loaded_queue_index(None);
                     },
                 }
             }
@@ -230,7 +228,7 @@ impl Player {
     }
 
     fn load_next_song(&self, inner: &playback_rs::Player) {
-        let last_loaded_queue_index = self.shared_state.read().unwrap().last_loaded_queue_index;
+        let last_loaded_queue_index = self.last_loaded_queue_index();
         let current_queue_index = self.current_queue_index();
         match last_loaded_queue_index {
             Some(last_loaded_queue_index) => {
@@ -262,7 +260,7 @@ impl Player {
                         },
                         TrackDownloadStatus::Ready(song) => { 
                             inner.play_song_next(&song, None).unwrap();
-                            self.shared_state.write().unwrap().last_loaded_queue_index = Some(queue_index);
+                            self.set_last_loaded_queue_index(Some(queue_index));
                             return
                         },
                         TrackDownloadStatus::Error(e) => {
@@ -288,6 +286,15 @@ impl Player {
         let queue_len = self.queue().tracks(&self.library).len();
         self.shared_state.write().unwrap().queue_index = (queue_index + 1).min(queue_len);
     }
+
+    fn last_loaded_queue_index(&self) -> Option<usize> {
+        self.shared_state.read().unwrap()._last_loaded_queue_index
+    }
+
+    fn set_last_loaded_queue_index(&self, last_loaded_queue_index: Option<usize>) {
+        self.shared_state.write().unwrap()._last_loaded_queue_index = last_loaded_queue_index;
+        self.emit_change("last_loaded_queue_index");
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -301,7 +308,7 @@ pub enum PlayerState {
 #[derive(Default)]
 struct SharedState {
     queue_index: usize,
-    last_loaded_queue_index: Option<usize>,
+    _last_loaded_queue_index: Option<usize>,
     track_duration: Duration,
     track_position: Duration,
     inner_player_state: PlayerState,

@@ -20,7 +20,7 @@ pub struct App {
     pub player: Player,
     pub images: ImageMangler,
     pub ui: Weak<AppWindow>,
-    pub controls: Arc<Mutex<Option<MediaControls>>>,
+    pub media_controls: Arc<Mutex<Option<MediaControls>>>,
 }
 
 pub struct AppWindowController {
@@ -57,7 +57,7 @@ impl AppWindowController {
                 player,
                 images,
                 ui: ui_weak,
-                controls: Arc::new(Mutex::new(None)),
+                media_controls: Arc::new(Mutex::new(None)),
             },
         }
     }
@@ -83,7 +83,7 @@ impl AppWindowController {
         let app = self.app.clone();
         self.app.ui.upgrade_in_event_loop(move |ui| {
             let controls = desktop_integration(&app);
-            *app.controls.lock().unwrap() = Some(controls);
+            *app.media_controls.lock().unwrap() = Some(controls);
         }).unwrap();
 
         self.ui.run()
@@ -274,7 +274,7 @@ fn desktop_integration(app: &App) -> MediaControls {
                 title: title.as_deref(),
                 ..Default::default()
             };
-            if let Ok(mut controls) = app.controls.lock() {
+            if let Ok(mut controls) = app.media_controls.lock() {
                 if let Some(controls) = controls.as_mut() {
                     controls.set_playback(playback).unwrap();
                     controls.set_metadata(metadata).unwrap();

@@ -17,6 +17,9 @@ export global Palette  {
 
     in-out property<color> link-color: StyleMetrics.default-text-color;
     in-out property<color> link-color-hover: StyleMetrics.default-text-color.mix(blue, 0.60);
+
+    in-out property<color> icon-color: self.link-color;
+    in-out property<color> icon-color-hover: self.link-color-hover;
 }
 
 export global Navigator {

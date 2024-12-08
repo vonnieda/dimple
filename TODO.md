@@ -18,3 +18,4 @@ Dump new things at the bottom, move things to the top to prioritize.
   history, Apple Music history, etc.
 - Double click in queue to start playing, inclusing starting the player. Single
   click is just for select.
+- OTCH: Text is too small.
