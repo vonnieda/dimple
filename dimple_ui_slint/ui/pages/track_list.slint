@@ -13,10 +13,10 @@ export global TrackListAdapter {
 export component TrackList inherits VerticalLayout {
     property <int> sort-index: -1;
     property <bool> sort-acending;
-        
+
     StandardTableView {
-        height: 100%;
-        width: 100%;
+        vertical-stretch: 1;
+        horizontal-stretch: 1;
         columns: [
             { title: "Title" },
             { title: "Album" },
