@@ -10,7 +10,7 @@ export global TrackListAdapter {
     pure callback current_row_changed(int);
 }
  
-export component TrackList inherits VerticalLayout {
+export component TrackList inherits VerticalBox {
     property <int> sort-index: -1;
     property <bool> sort-acending;
         
