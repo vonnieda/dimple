@@ -138,7 +138,7 @@ impl Player {
         self.queue().tracks(&self.library).get(self.current_queue_index() + 1).cloned()
     }
 
-    pub fn on_change(&self, callback: impl Fn(&Player, &str) + Send + std::marker::Sync + 'static) {
+    pub fn on_change(&self, callback: impl Fn(&Player, &str) + Send + Sync + 'static) {
         let mut listeners = self.change_listeners.lock().unwrap();
         listeners.push(Arc::new(Box::new(callback)));
     }

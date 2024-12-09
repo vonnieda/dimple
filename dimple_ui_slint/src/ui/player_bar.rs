@@ -1,6 +1,11 @@
 use std::time::Duration;
+use crate::ui::CardAdapter;
+use crate::ui::ImageLinkAdapter;
+use crate::ui::TrackListAdapter;
+use crate::ui::LinkAdapter;
+use crate::ui::AppWindow;
 
-use dimple_core::player::{Player, PlayerState};
+use dimple_core::{model::Track, player::{Player, PlayerState}};
 
 use super::app_window_controller::App;
 
@@ -12,7 +17,7 @@ pub fn player_bar_init(app: &App) {
         app.ui.upgrade_in_event_loop(move |ui| {
             let player = app.player.clone();
             ui.global::<crate::ui::AppState>().on_player_previous(move || player.previous());
-
+    
             let player = app.player.clone();
             ui.global::<crate::ui::AppState>().on_player_play_pause(move || {
                 if player.is_playing() { 
@@ -22,10 +27,10 @@ pub fn player_bar_init(app: &App) {
                     player.play();
                 }
             });
-
+    
             let player = app.player.clone();
             ui.global::<crate::ui::AppState>().on_player_next(move || player.next());
-
+    
             let player = app.player.clone();
             ui.global::<crate::ui::AppState>().on_player_seek(
                 move |seconds| player.seek(Duration::from_secs(seconds as u64)));
@@ -42,8 +47,8 @@ pub fn player_bar_init(app: &App) {
                 // TODO magic
                 std::thread::sleep(Duration::from_millis(100));
             }
-        });
-    }
+    });
+}
 }
 
 fn format_duration(dur: &Duration) -> String {
@@ -52,7 +57,7 @@ fn format_duration(dur: &Duration) -> String {
         dur.as_millis() % (60 * 1000) / 1000)
 }
 
-fn update_model(player: &Player, ui: &crate::ui::AppWindow) {
+fn update_model(player: &Player, ui: &AppWindow) {
     let current_track = player.current_queue_track().unwrap_or_default();
     let next_track = player.next_queue_track().unwrap_or_default();
     let adapter = crate::ui::PlayerBarAdapter {
@@ -61,9 +66,12 @@ fn update_model(player: &Player, ui: &crate::ui::AppWindow) {
         position_seconds: player.track_position().as_secs() as i32,
         position_label: format_duration(&player.track_position()).into(),
         player_state: player.state().into(),
-        now_playing_recording: current_track.into(),
-        up_next_recording: next_track.into(),
-        ..Default::default()
+        now_playing_artist: artist_card(&current_track),
+        up_next_artist: artist_card(&next_track),
+        now_playing_release: release_card(&current_track),
+        up_next_release: release_card(&next_track),
+        now_playing_recording: track_card(&current_track),
+        up_next_recording: track_card(&next_track),
     };
     ui.set_player_bar(adapter);
 }
@@ -75,6 +83,63 @@ impl From<PlayerState> for crate::ui::PlayerState {
             PlayerState::Playing => crate::ui::PlayerState::Playing,
             PlayerState::Paused => crate::ui::PlayerState::Paused,
         }            
+    }
+}
+
+fn artist_card(track: &Track) -> CardAdapter {
+    let track = track.clone();
+    CardAdapter {
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: track.artist.clone().unwrap_or_default().into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+        },
+        title: LinkAdapter {
+            name: track.artist.clone().unwrap_or_default().into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+        },
+        sub_title: LinkAdapter {
+            name: "Artist".into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+        },
+    }
+}
+
+fn release_card(track: &Track) -> CardAdapter {
+    let track = track.clone();
+    CardAdapter {
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: track.album.clone().unwrap_or_default().into(),
+            url: format!("dimple://release/{}", track.key.clone().unwrap_or_default()).into(),
+        },
+        title: LinkAdapter {
+            name: track.album.clone().unwrap_or_default().into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+        },
+        sub_title: LinkAdapter {
+            name: "Release".into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+        },
+    }
+}
+
+fn track_card(track: &Track) -> CardAdapter {
+    let track = track.clone();
+    CardAdapter {
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: track.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+        },
+        title: LinkAdapter {
+            name: track.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+        },
+        sub_title: LinkAdapter {
+            name: "Track".into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+        },
     }
 }
 
