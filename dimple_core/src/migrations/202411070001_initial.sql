@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS Playlist (
 
 CREATE TABLE IF NOT EXISTS PlaylistItem (
     key          TEXT PRIMARY KEY,
-    -- TODO ordinal, probably
+    -- ordinal      INT NOT NULL DEFAULT -1,
     playlist_key TEXT NOT NULL,
     track_key    TEXT NOT NULL,
     FOREIGN KEY (playlist_key) REFERENCES Playlist(key),

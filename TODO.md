@@ -5,8 +5,10 @@ Dump new things at the bottom, move things to the top to prioritize.
 - Lyrics.
 - Tantivy search.
 - Change player bar to use player.on_change.
-- Figure out how I'm going to implement queueing controls on table rows.
+- [x] Figure out how I'm going to implement queueing controls on table rows.
 - Show currently playing track as playing in queue.
+- Clicking on a playbar item should take you to the item in the queue, from
+  there you can click the item to go to details if you want.
 - Bug: Music skips when switching from the Dimple window to another app, maybe
   other times too.
 - After starting the app, if there is music in the queue, pressing play on the
@@ -18,4 +20,21 @@ Dump new things at the bottom, move things to the top to prioritize.
   history, Apple Music history, etc.
 - Double click in queue to start playing, inclusing starting the player. Single
   click is just for select.
+- [x] comment: not enough space between search and home.
 - OTCH: Text is too small.
+  I did a short pass on this sort of. I had previously disabled the font
+  settings somehow so I got those back and that made the text larger and
+  more clear. I also increased the text side of the sidebar items, and
+  spaced them out further.
+- Bug: Dragging the seek slider breaks the binding, so it stops updating
+  after the first drag. 
+- Bug: Sorting by ordinal is lex not numeric. 
+- TODO an indicator in a playlist (or queue) that is dynamic and shows the
+  delta between two songs based on a sum of stats. So like, you could tell
+  at a glance when a playlist is going to switch up. I guess maybe if the 
+  playlist had the moodbar or whatever and you could scroll them that would
+  be insanely baller. They could be images, stored like images, handled like
+  images. Or maybe "images" and actually what we store is a serialized vector
+  so it scales nice. These will be plugins like "generate_audiogram(Song)" 
+  so I can make a ton of them. This will be awesome cause we'll use the same
+  code in the scrubber.

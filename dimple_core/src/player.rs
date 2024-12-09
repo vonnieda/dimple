@@ -84,7 +84,6 @@ impl Player {
         }
     }
 
-    // TODO bug when setting to last track, pausing playback I think
     pub fn set_queue_index(&self, index: usize) {
         self.shared_state.write().unwrap().queue_index = index;
         self.sender.send(PlayerCommand::Stop).unwrap();
@@ -203,11 +202,12 @@ impl Player {
         }
     }
 
+    // TODO might be worth making a quick way to backup or dump the data
+    // I'm storing in case I kill my database.
     fn scrobble(&self, event_type: &str) {
         if let Some(current_track) = self.current_queue_track() {
             // TODO quick hack, getting a feel for this, but also want to be
             // storing the history I'm listening to.
-            // To that point, implementing Last.fm scrobbling early would be smart.
             let timestamp = chrono::Utc::now().to_rfc3339();
             self.library.save_unlogged(&Event {
                 key: None,
@@ -248,8 +248,8 @@ impl Player {
 
     fn load_next_available_song(&self, start_index: usize, inner: &playback_rs::Player) {
         let mut queue_index = start_index;
-        // TODO querying the db every 1/10 seconds?
-        // TODO I suppose this will change when playlist is more of an API than a list.
+        // TODO querying the db every 1/10 seconds? Need to copy tracks, or at least
+        // the next N tracks into the state and then reload on changes to the playlist.
         let tracks = self.queue().tracks(&self.library);
         loop {
             match tracks.get(queue_index) {
@@ -271,9 +271,10 @@ impl Player {
                     }
                 },
                 None => {
-                    log::info!("End of queue, stopping playback.");
-                    inner.set_playing(false);
-                    inner.stop();
+                    // TODO temp commented out to fix the last song not playing bug
+                    // log::info!("End of queue, stopping playback.");
+                    // inner.set_playing(false);
+                    // inner.stop();
                     return
                 },
             }

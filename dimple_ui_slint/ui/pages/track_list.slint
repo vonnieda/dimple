@@ -1,18 +1,53 @@
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
-import { AppState } from "../common.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox, StandardListView, Palette} from "std-widgets.slint";
+import { AppState, Palette } from "../common.slint";
 
 export global TrackListAdapter {
-    in property <[[StandardListViewItem]]> row_data;
+    in property <[[StandardListViewItem]]> row_data: [
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+    ];
     pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
     pure callback current_row_changed(int);
+    pure callback add_to_queue(int);
+    pure callback play_now(int);
+    pure callback play_next(int);
 }
  
 export component TrackList inherits VerticalLayout {
     property <int> sort-index: -1;
     property <bool> sort-acending;
+    in-out property <length> popup-x;
+    in-out property <length> popup-y;
+    in-out property <int> popup-row;
+
+    popup := PopupWindow {
+        x: popup-x; 
+        y: popup-y; 
+        Rectangle {
+            border-width: 1px;
+            border-color: StyleMetrics.default-text-color;
+            border-radius: 8px;
+            background: StyleMetrics.window-background;
+            VerticalBox {
+                Button {
+                    text: "Add to Queue";
+                    clicked => { TrackListAdapter.add_to_queue(popup-row); }
+                }
+                // Button {
+                //     text: "Play Now";
+                //     clicked => { TrackListAdapter.play_now(popup-row); }
+                // }
+                // Button {
+                //     text: "Play Next";
+                //     clicked => { TrackListAdapter.play_next(popup-row); }
+                // }
+            }
+        }
+    }    
 
     StandardTableView {
         vertical-stretch: 1;
@@ -26,6 +61,7 @@ export component TrackList inherits VerticalLayout {
             { title: "Length" },
         ];
         rows: TrackListAdapter.sort_model(TrackListAdapter.row_data, root.sort-index, root.sort-acending);
+        // rows: TrackListAdapter.row_data;
         current-row-changed(row) => { 
             TrackListAdapter.current_row_changed(row);
         }
@@ -37,9 +73,20 @@ export component TrackList inherits VerticalLayout {
             root.sort-index = index;
             root.sort-acending = false;
         }        
+        row-pointer-event(row, event, point) => {
+            if event.button == PointerEventButton.right 
+                    && event.kind == PointerEventKind.down {
+                popup-x = point.x;
+                popup-y = point.y;
+                popup-row = row;
+                popup.show();
+            }
+        }
     }
     Text {
         horizontal-alignment: right;
         text: TrackListAdapter.row_data.length + " items";
     }
 }
+
+

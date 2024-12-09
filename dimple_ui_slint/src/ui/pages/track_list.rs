@@ -5,6 +5,7 @@ use std::time::Duration;
 use crate::ui::app_window_controller::App;
 use crate::ui::Page;
 use dimple_core::model::Track;
+use slint::Model;
 use slint::Model as _;
 use slint::ModelExt as _;
 use slint::ModelRc;
@@ -16,9 +17,15 @@ use crate::ui::TrackListAdapter;
 pub fn track_list_init(app: &App) {
     let app_ = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
-        let app = app_;
+        let app = app_.clone();
         ui.global::<TrackListAdapter>().on_current_row_changed(move |row| row_selected(&app, row));
         ui.global::<TrackListAdapter>().on_sort_model(sort_model);
+        let app = app_.clone();
+        ui.global::<TrackListAdapter>().on_add_to_queue(move |row| add_to_queue(&app, row));
+        let app = app_.clone();
+        ui.global::<TrackListAdapter>().on_play_now(move |row| play_now(&app, row));
+        let app = app_.clone();
+        ui.global::<TrackListAdapter>().on_play_next(move |row| play_next(&app, row));
     }).unwrap();
 }
 
@@ -47,6 +54,7 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
         row.push(StandardListViewItem::from("1")); // Track #
         row.push(track.plays.to_string().as_str().into()); // Plays
         row.push(StandardListViewItem::from(length.as_str())); // Length
+        row.push(StandardListViewItem::from(track.key.unwrap().as_str())); // Key (Hidden)
         row_data.push(row.into());
     }
     row_data.into()
@@ -62,6 +70,43 @@ fn row_selected(app: &App, row: i32) {
         // ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
         // let play_queue = app.player.queue();
         // app.library.playlist_add(&play_queue, &key);
+    }).unwrap();
+}
+
+fn add_to_queue(app: &App, row: i32) {
+    let app = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        let row_data = ui.global::<TrackListAdapter>().get_row_data();
+        let cell_data = row_data.row_data(row as usize).unwrap().row_data(6).unwrap();
+        let key = cell_data.text.as_str();
+        let play_queue = app.player.queue();
+        app.library.playlist_add(&play_queue, &key);
+    }).unwrap();
+}
+
+fn play_now(app: &App, row: i32) {
+    let app = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        // TODO think about ephemeral or secondary playlist, or even
+        // a playlist inserted inbetween the playing items
+        // let row_data = ui.global::<TrackListAdapter>().get_row_data();
+        // let cell_data = row_data.row_data(row as usize).unwrap().row_data(6).unwrap();
+        // let key = cell_data.text.as_str();
+        // let play_queue = app.player.queue();
+        // app.library.playlist_insert(&play_queue, &key, row);
+    }).unwrap();
+}
+
+fn play_next(app: &App, row: i32) {
+    let app = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        // TODO think about ephemeral or secondary playlist, or even
+        // a playlist inserted inbetween the playing items
+        // let row_data = ui.global::<TrackListAdapter>().get_row_data();
+        // let cell_data = row_data.row_data(row as usize).unwrap().row_data(6).unwrap();
+        // let key = cell_data.text.as_str();
+        // let play_queue = app.player.queue();
+        // app.library.playlist_insert(&play_queue, &key);
     }).unwrap();
 }
 

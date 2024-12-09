@@ -10,7 +10,7 @@ mod tests {
 
     use uuid::Uuid;
 
-    use crate::{library::Library, player::Player, sync::{memory_storage::MemoryStorage, Sync}};
+    use crate::{library::Library, model::Track, player::Player, sync::{memory_storage::MemoryStorage, Sync}};
 
 // - [x] I can add MP3 and FLAC tracks by selecting a directory.
 // 	- [x] Adding the same track twice should not duplicate it.
