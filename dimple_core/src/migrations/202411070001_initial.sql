@@ -21,15 +21,28 @@ CREATE TABLE IF NOT EXISTS Artist (
 );
 
 CREATE TABLE IF NOT EXISTS Track (
-    key       TEXT PRIMARY KEY,
-    artist    TEXT,
-    album     TEXT,
-    title     TEXT,
-    liked     BOOL NOT NULL DEFAULT false,
-    plays     INT NOT NULL DEFAULT 0,
-    length_ms INT,
+    key            TEXT PRIMARY KEY,
+    artist         TEXT,
+    album          TEXT,
+    title          TEXT,
+    liked          BOOL NOT NULL DEFAULT false,
+    plays          INT NOT NULL DEFAULT 0,
+    length_ms      INT,
 
-    lyrics    TEXT
+    save           BOOL NOT NULL DEFAULT false,
+    download       BOOL NOT NULL DEFAULT false,
+    disambiguation TEXT,
+    summary        TEXT,
+
+    musicbrainz_id TEXT,
+    wikidata_id    TEXT,
+    spotify_id     TEXT,
+    -- see comments on Track model
+    -- discogs_id     TEXT,
+    -- lastfm_id      TEXT,
+
+    lyrics         TEXT,
+    synced_lyrics  TEXT
 );
 CREATE INDEX IF NOT EXISTS Track_idx_1 ON Track (artist, album, title);
 

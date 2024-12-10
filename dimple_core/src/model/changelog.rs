@@ -40,7 +40,7 @@ impl Diff for ChangeLog {
 }
 
 impl Model for ChangeLog {
-    fn table_name(&self) -> String {
+    fn type_name(&self) -> String {
         "ChangeLog".to_string()
     }
 

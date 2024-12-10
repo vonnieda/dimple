@@ -81,7 +81,7 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                         }
 
                         impl Model for #name {
-                            fn table_name(&self) -> String {
+                            fn type_name(&self) -> String {
                                 #name_str.to_string()
                             }
                         

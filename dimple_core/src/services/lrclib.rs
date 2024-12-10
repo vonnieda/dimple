@@ -1,4 +1,4 @@
-// https://lrclib.net/docs
+// Lyrics via https://lrclib.net/docs
 
 use reqwest::blocking::Client;
 use serde::Deserialize;

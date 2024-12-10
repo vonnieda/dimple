@@ -10,6 +10,7 @@ use crate::ui::TrackDetailsAdapter;
 use crate::ui::LinkAdapter;
 
 pub fn track_details_init(_app: &App) {
+    _app.library.on_change(|library, type_name, key| println!("{} {}", type_name, key));
     // let app = _app.clone();
     // _app.library.on_change(move |library, model_type, key| {       
     //     let app = app.clone();
@@ -81,23 +82,18 @@ pub fn track_details(url: &str, app: &App) {
                 }
             }).collect();
 
-            let mut links: Vec<LinkAdapter> = links.iter().map(|link| {
+            let links: Vec<LinkAdapter> = links.iter().map(|link| {
                     LinkAdapter {
                         name: link.into(),
                         url: link.into(),
                     }
                 })
                 .collect();
-            // links.push(LinkAdapter {
-            //     name: format!("dimple://recording/{}", track.recording.key.clone().unwrap_or_default()).into(),
-            //     url: format!("dimple://recording/{}", track.recording.key.clone().unwrap_or_default()).into(),
-            // });
 
-
-            let adapter = TrackDetailsAdapter {
+            let mut adapter = TrackDetailsAdapter {
                 card: track.clone().into(),
                 artists: ModelRc::from(artists.as_slice()),                
-                // summary: track.summary.clone().unwrap_or_default().into(),
+                summary: track.summary.clone().unwrap_or_default().into(),
                 genres: ModelRc::from(genres.as_slice()),
                 lyrics: track.lyrics.clone().unwrap_or_default().into(),
                 links: ModelRc::from(links.as_slice()),
@@ -105,11 +101,11 @@ pub fn track_details(url: &str, app: &App) {
                 ..Default::default()
             };
 
-            // adapter.card.image.image = images.lazy_get(track.model(), 275, 275, |ui, image| {
-            //     let mut model = ui.get_track_details();
-            //     model.card.image.image = image;
-            //     ui.set_track_details(model);
-            // });
+            adapter.card.image.image = images.lazy_get(track, 275, 275, |ui, image| {
+                let mut model = ui.get_track_details();
+                model.card.image.image = image;
+                ui.set_track_details(model);
+            });
 
             ui.set_track_details(adapter);
             ui.set_page(Page::TrackDetails);

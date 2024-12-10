@@ -23,11 +23,12 @@ use super::image_gen::gen_fuzzy_rects;
 pub struct ImageMangler {
     librarian: Library,
     ui: Weak<AppWindow>,
-    // default_artist: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
-    // default_release_group: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
-    // default_release: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
-    // default_genre: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
-    // default_other: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    artist_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    release_group_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    release_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    genre_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    track_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    other_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     threadpool: ThreadPool,
     cache_path: String,
 }
@@ -40,11 +41,15 @@ impl ImageMangler {
             // TODO breaks in bundle cause images are not included. Opening the
             // app from the Projects//dimple_ui_slint directory works and it can
             // find the images.
-            // default_artist: Self::load_default_image("images/artist_placeholder.png"),
-            // default_release_group: Self::load_default_image("images/release_group_placeholder.png"),
-            // default_release: Self::load_default_image("images/release_placeholder.png"),
-            // default_genre: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_circles(128, 128)))),
-            // default_other: Arc::new(Mutex::new(dynamic_to_buffer(&gen_fuzzy_rects(128, 128)))),
+            // I can include file these, or maybe see if I can do a placeholder
+            // in the Slint component instead - that would be better for UI work.
+
+            artist_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/music-notes.png"),
+            release_group_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/vinyl-record.png"),
+            release_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/vinyl-record.png"),
+            track_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/music-notes.png"),
+            genre_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/globe-simple.png"),
+            other_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/question.png"),
             threadpool: ThreadPool::new(1),
             cache_path: cache_path.to_string(),
         };
@@ -54,40 +59,40 @@ impl ImageMangler {
 
     pub fn lazy_get<F>(&self, model: impl Model + 'static, width: u32, height: u32, set_image: F) -> slint::Image
             where F: Fn(AppWindow, Image) + Send + Copy + 'static {
-        let cache_key = format!("{}:{}:{}:{}", 
-            model.table_name(), model.key().unwrap(), width, height);
-        if let Some(dyn_image) = self.cache_get(&cache_key) {
-            let buffer = dynamic_to_buffer(&dyn_image);
-            return Image::from_rgba8_premultiplied(buffer.clone())
-        }
-        {
-            let images = self.clone();
-            let model = model.clone();
-            let ui = self.ui.clone();
-            self.threadpool.execute(move || {
-                if let Some(dyn_image) = images.librarian.image(&model) {
-                    let dyn_image = resize(dyn_image, width, height);
-                    images.cache_set(&cache_key, &dyn_image);
-                    let buffer = dynamic_to_buffer(&dyn_image);
-                    ui.upgrade_in_event_loop(move |ui| {
-                        let image = Image::from_rgba8_premultiplied(buffer);
-                        set_image(ui, image);
-                    }).unwrap();                    
-                }
-            });
-        }
-        Image::from_rgba8_premultiplied(self.default_model_image(model))
+        // let cache_key = format!("{}:{}:{}:{}", 
+        //     model.type_name(), model.key().unwrap(), width, height);
+        // if let Some(dyn_image) = self.cache_get(&cache_key) {
+        //     let buffer = dynamic_to_buffer(&dyn_image);
+        //     return Image::from_rgba8_premultiplied(buffer.clone())
+        // }
+        // {
+        //     let images = self.clone();
+        //     let model = model.clone();
+        //     let ui = self.ui.clone();
+        //     self.threadpool.execute(move || {
+        //         if let Some(dyn_image) = images.librarian.image(&model) {
+        //             let dyn_image = resize(dyn_image, width, height);
+        //             images.cache_set(&cache_key, &dyn_image);
+        //             let buffer = dynamic_to_buffer(&dyn_image);
+        //             ui.upgrade_in_event_loop(move |ui| {
+        //                 let image = Image::from_rgba8_premultiplied(buffer);
+        //                 set_image(ui, image);
+        //             }).unwrap();                    
+        //         }
+        //     });
+        // }
+        Image::from_rgba8_premultiplied(self.get_model_placeholder(model))
     }
 
-    pub fn default_model_image(&self, model: impl Model) -> SharedPixelBuffer<Rgba8Pixel> {
-        todo!()
-        // match model {
-            // Model::Artist(_) => return self.default_artist.lock().unwrap().clone(),
-            // Model::ReleaseGroup(_) => return self.default_release_group.lock().unwrap().clone(),
-            // Model::Release(_) => return self.default_release.lock().unwrap().clone(),
-            // Model::Genre(_) => return self.default_genre.lock().unwrap().clone(),
-            // _ => return self.default_other.lock().unwrap().clone(),
-        // }
+    pub fn get_model_placeholder(&self, model: impl Model) -> SharedPixelBuffer<Rgba8Pixel> {
+        match model.type_name().as_str() {
+            "Artist" => return self.artist_placeholder.lock().unwrap().clone(),
+            "ReleaseGroup" => return self.release_group_placeholder.lock().unwrap().clone(),
+            "Release" => return self.release_placeholder.lock().unwrap().clone(),
+            "Genre" => return self.genre_placeholder.lock().unwrap().clone(),
+            "Track" => return self.track_placeholder.lock().unwrap().clone(),
+            _ => return self.other_placeholder.lock().unwrap().clone(),
+        }
     }
 
     pub fn cancel_all_pending(&self) {

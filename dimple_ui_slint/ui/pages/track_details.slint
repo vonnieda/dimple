@@ -1,5 +1,5 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView, Button} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
@@ -10,19 +10,28 @@ export struct TrackDetailsAdapter {
     disambiguation: string,
     summary: string,
     genres: [LinkAdapter],
-    // releases: [CardAdapter],
     links: [LinkAdapter],
     lyrics: string,
-    // primary_type: string,
     artists: [LinkAdapter],
     isrcs: [LinkAdapter],
 
-    // From the default and/or selected release.
-    // media: [MediumAdapter],
     dump: string,
 }
 
 export component TrackDetails inherits ScrollView {
+    in property <TrackDetailsAdapter> model: {
+        card: {
+            image: {image: @image-url("../../images/release_placeholder.png")},
+            title: {name: "A Reign of Fish"},
+        },
+        disambiguation: "Not to be confused with Rain of Fish by Fargo.",
+        summary: "Fresh Pliers does it again with 'A Reign of Fish'. Magna est quis laboris veniam do laborum. Cupidatat ea ipsum aliquip fugiat eu magna labore est eu est labore. Ex nostrud culpa id veniam aliqua aliqua ipsum. Velit do id amet labore mollit id cillum commodo Lorem proident labore eu. Incididunt minim irure culpa excepteur officia sit consequat est mollit. Ipsum anim anim sunt dolore. Laborum consequat deserunt laboris ullamco cillum. Ullamco deserunt ut quis dolore aliquip esse consequat velit amet. Nulla tempor veniam dolor amet occaecat adipisicing nulla laboris.\n\nQui non irure anim irure nisi nulla ex aliquip. Sit do irure esse magna sit do eiusmod. Anim commodo velit non enim nulla.\n\nAnim incididunt dolore nulla laboris eu mollit Lorem minim reprehenderit in quis magna mollit. Labore Lorem esse anim ipsum esse irure ipsum proident deserunt officia consequat sunt sit. Ex laborum ipsum laboris nisi proident. Nulla culpa est commodo dolor. Magna sint id et ut esse mollit qui elit voluptate ea.\n\nDuis amet qui reprehenderit cupidatat qui proident pariatur non ea aute reprehenderit nisi qui. Et elit anim culpa amet eu excepteur voluptate ad adipisicing esse eiusmod. Aliqua Lorem excepteur fugiat aute ullamco ea nostrud ipsum mollit cupidatat id magna. Nisi consectetur cillum incididunt deserunt non officia non laborum non ullamco non eiusmod dolor. Eu sit aute adipisicing Lorem consectetur nisi excepteur laboris eiusmod exercitation proident eu laborum fugiat. Ad id velit minim laboris eu. Do ex aliqua nisi aliqua laborum sunt qui quis officia labore do. Deserunt culpa culpa Lorem reprehenderit consequat ad pariatur anim quis. Nulla officia id ipsum adipisicing commodo labore culpa consectetur nostrud labore. Reprehenderit minim magna qui ullamco aute incididunt. Ipsum eu ad ex consequat et amet.",
+        genres: [{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},],
+        artists: [{name: "Fresh Pliers"},{name: "Example Band"},{name: "Teal Cup"},],
+        lyrics: "Hurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk",
+        links: [{name: "https://bandcamp.com/arof",url: "internal://release/1234"}],
+    };
+
     VerticalBox {
         alignment: start;
         // Header: Image, Title, Artists, Genres, Summary
@@ -52,9 +61,9 @@ export component TrackDetails inherits ScrollView {
                     wrap: word-wrap;
                 }
                 // Disambiguation
-                if model.disambiguation > 0: Text {
+                if model.disambiguation != "": Text {
                     text: model.disambiguation;
-                    // font-weight: Palette.font-weight-bold;
+                    font-weight: Palette.font-weight-bold;
                     font-size: 1.3rem;
                 }
                 // Type and artists
@@ -66,6 +75,7 @@ export component TrackDetails inherits ScrollView {
                     }
                     Links {
                         links: model.artists;
+                        font-size: 1.3rem;
                     }
                 }
                 // Genres
@@ -77,10 +87,11 @@ export component TrackDetails inherits ScrollView {
                     }    
                     Links {
                         links: model.genres;
+                        font-size: 1.3rem;
                     }
                 }
                 // Summary
-                Text {
+                if model.summary != "": Text {
                     text: model.summary;
                     wrap: word-wrap;
                     font-size: 1.2rem;
@@ -98,7 +109,7 @@ export component TrackDetails inherits ScrollView {
             Text {
                 text: model.lyrics;
                 wrap: word-wrap;
-                font-size: 1.4rem;
+                font-size: 1.3rem;
             }
         }
 
@@ -112,6 +123,7 @@ export component TrackDetails inherits ScrollView {
             for link in model.links: Link {
                 url: link.url;
                 name: link.name;
+                font-size: 1.3rem;
             }
         }
 
@@ -125,79 +137,8 @@ export component TrackDetails inherits ScrollView {
             Text {
                 text: model.dump;
                 wrap: word-wrap;
+                font-size: 1.3rem;
             }
         }
     }
-
-    in property <TrackDetailsAdapter> model: {
-        // id: "123-123-123-123",
-        // title: "A Reign of Fish",
-        card: {
-            image: {image: @image-url("../../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-            title: {name: "A Reign of Fish",url: "internal://release/1234"},
-            sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        },
-        disambiguation: "regular kind",
-        summary: "Cupidatat do excepteur sit quis officia nulla. Excepteur eu ad reprehenderit eiusmod minim esse ullamco eiusmod quis esse eiusmod. Pariatur minim aliquip voluptate aliquip irure Lorem incididunt adipisicing sit ullamco consectetur. Esse mollit eu sint aliqua dolor consectetur exercitation officia. Sit ad voluptate enim dolor irure. Dolore incididunt ipsum officia aliqua sit consectetur ex et sunt consequat minim.Amet tempor officia nulla est commodo officia exercitation et sint eiusmod proident velit adipisicing. Qui commodo consectetur ea in voluptate. Id laborum aute fugiat consequat fugiat dolor ullamco aliquip nostrud elit anim magna et.",
-        genres: [ {name: "fish jazz",url: "internal://release/1234"} ],
-        artists: [ 
-            { name: "Shield Fish", url: "internal://release/1234" }, 
-            { name: "Zim Babwe", url: "internal://release/1234" }, 
-            { name: "Vic Toria", url: "internal://release/1234" }, 
-        ],
-        links: [ 
-            { name: "Shield Fish", url: "internal://release/1234" }, 
-            { name: "Zim Babwe", url: "internal://release/1234" }, 
-            { name: "Vic Toria", url: "internal://release/1234" }, 
-        ],
-        lyrics: "Down on Texas Road\nThere lives a man. A fish man.\nNot a man who is a fish, but a fish who is a man."
-        // releases: [
-        //     { 
-        //         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        //         title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        //         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        //     },
-        //     { 
-        //         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        //         title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        //         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        //     },
-        //     { 
-        //         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        //         title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        //         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        //     },
-        // ],
-        // primary-type: "Album",
-        // media: [
-        //     {
-        //         title: "Disc 1 of 2",
-        //         tracks: [
-        //             { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 17, },
-        //             { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 21, },
-        //             { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 79, },
-        //         ]
-        //     },
-        //     {
-        //         title: "Disc 2 of 2",
-        //         tracks: [
-        //             { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 17, },
-        //             { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 21, },
-        //             { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 79, },
-        //         ]
-        //     },
-        // ]
-    };
 }

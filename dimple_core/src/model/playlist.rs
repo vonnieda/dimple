@@ -70,7 +70,7 @@ impl Diff for Playlist {
 }
 
 impl Model for Playlist {
-    fn table_name(&self) -> String {
+    fn type_name(&self) -> String {
         "Playlist".to_string()
     }
 

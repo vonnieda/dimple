@@ -108,15 +108,15 @@ impl Library {
         listeners.push(Arc::new(Box::new(callback)));
     }
 
-    fn emit_change(&self, table_name: &str, key: &str) {
+    fn emit_change(&self, type_name: &str, key: &str) {
         let listeners = self.change_listeners.lock().unwrap().clone();
         let library = self.clone();
-        let table_name = table_name.to_string();
+        let type_name = type_name.to_string();
         let key = key.to_string();
             
         std::thread::spawn(move || {
             for callback in listeners {
-                callback(&library, &table_name, &key);
+                callback(&library, &type_name, &key);
             }
         });
     }
@@ -152,7 +152,7 @@ impl Library {
                 self.save(&change);
             }
         }
-        self.emit_change(&obj.table_name(), &obj.key().unwrap());
+        self.emit_change(&obj.type_name(), &obj.key().unwrap());
         new
     }
 
@@ -174,13 +174,13 @@ impl Library {
     }
 
     pub fn get<T: Model>(&self, key: &str) -> Option<T> {
-        let sql = format!("SELECT * FROM {} WHERE key = ?1", T::default().table_name());
+        let sql = format!("SELECT * FROM {} WHERE key = ?1", T::default().type_name());
         self.conn().query_row(&sql, (key,), 
             |row| Ok(T::from_row(row))).optional().unwrap()
     }
 
     pub fn list<T: Model>(&self) -> Vec<T> {
-        let sql = format!("SELECT * FROM {}", T::default().table_name());
+        let sql = format!("SELECT * FROM {}", T::default().type_name());
         self.conn().prepare(&sql).unwrap()
             .query_map((), |row| Ok(T::from_row(row))).unwrap()
             .map(|m| m.unwrap())
@@ -477,7 +477,7 @@ mod tests {
     fn change_notifications() {
         let library = Library::open("file:40c65129-2e84-4eff-8b25-9a03519da1e1?mode=memory&cache=shared");
         let (tx, rx) = std::sync::mpsc::channel();
-        library.on_change(move |_library, table_name, _key| if table_name == "Track" {
+        library.on_change(move |_library, type_name, _key| if type_name == "Track" {
             tx.send(()).unwrap();
         });
         library.save(&Track::default());

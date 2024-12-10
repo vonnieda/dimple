@@ -1,5 +1,11 @@
 use dimple_core_macro::ModelSupport;
 
+// // https://musicbrainz.org/doc/Track
+// // https://musicbrainz.org/ws/2/release/4d3ce256-ea71-44c5-8ce9-deb8f1e7dce4?inc=aliases%2Bartist-credits%2Blabels%2Bdiscids%2Brecordings&fmt=json
+// // > This entity is not visible to users on its own, only in the context of a
+// // release. It has an MBID, and contains a link to a recording, a title, 
+// // artist credit and position on its associated medium. 
+// // In the schema image it also has a medium (ref)
 #[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
 pub struct Track {
     pub key: Option<String>,
@@ -12,47 +18,24 @@ pub struct Track {
     pub length_ms: Option<u64>,
     // pub media_position: Option<u32>,
 
-    // pub save: bool,
-    // pub download: bool,
-    // pub disambiguation: Option<String>,
-    // pub summary: Option<String>,
+    pub save: bool,
+    pub download: bool,
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
 
-    // pub musicbrainz_id: Option<String>,
+    pub musicbrainz_id: Option<String>,
+    pub wikidata_id: Option<String>,
+    pub spotify_id: Option<String>,
+    // TODO I can't add these till I change how the code generator works to
+    // to handle longer tuples of params. (Uncomment to see)
     // pub discogs_id: Option<String>,
     // pub lastfm_id: Option<String>,
-    // pub wikidata_id: Option<String>,
-    // pub spotify_id: Option<String>,
 
     pub lyrics: Option<String>,
+    // TODO LRC format (https://en.wikipedia.org/wiki/LRC_(file_format)) for
+    // now, convert to a model later.
+    pub synced_lyrics: Option<String>,
 }
-
-// // https://musicbrainz.org/doc/Track
-// // https://musicbrainz.org/ws/2/release/4d3ce256-ea71-44c5-8ce9-deb8f1e7dce4?inc=aliases%2Bartist-credits%2Blabels%2Bdiscids%2Brecordings&fmt=json
-// // > This entity is not visible to users on its own, only in the context of a
-// // release. It has an MBID, and contains a link to a recording, a title, 
-// // artist credit and position on its associated medium. 
-// // In the schema image it also has a medium (ref)
-// #[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
-// pub struct Track {
-//     pub key: Option<String>,
-//     pub title: Option<String>,
-//     // pub known_ids: KnownIds,
-
-//     // pub length: Option<u32>,
-//     // A text description of the position in the media, such as A1
-//     // pub number: Option<u32>,
-//     // 1 based ordinal within the media
-//     // pub position: Option<u32>,
-
-//     pub recording_key: String,
-
-//     // #[serde(skip)]
-//     // pub recording: Recording,
-//     // #[serde(skip)]
-//     // pub genres: Vec<Genre>,
-//     // #[serde(skip)]
-//     // pub artist_credits: Vec<ArtistCredit>,
-// }
 
 #[cfg(test)]
 mod tests {

@@ -43,7 +43,7 @@ pub trait Diff {
 }
 
 pub trait Model: Sized + FromRow + Diff + Default + Clone + Send {
-    fn table_name(&self) -> String;
+    fn type_name(&self) -> String;
     fn key(&self) -> Option<String>;
     fn set_key(&mut self, key: Option<String>);
     fn upsert(&self, conn: &Connection);

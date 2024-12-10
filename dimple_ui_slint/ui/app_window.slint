@@ -48,6 +48,26 @@ import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 
+// import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-ExtraLight.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-Light.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-Medium.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-Regular.ttf";
+// import "../fonts/Manrope/fonts/ttf/Manrope-SemiBold.ttf";
+
+// import "../fonts/Commissioner/static/Commissioner/Commissioner-Black.ttf";
+// import "../fonts/Commissioner/static/Commissioner/Commissioner-Bold.ttf";
+// import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraBold.ttf";
+// import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraLight.ttf";
+// import "../fonts/Commissioner/static/Commissioner/Commissioner-Light.ttf";
+// import "../fonts/Commissioner/static/Commissioner/Commissioner-Medium.ttf";
+// import "../fonts/Commissioner/static/Commissioner/Commissioner-Regular.ttf";
+// import "../fonts/Commissioner/static/Commissioner/Commissioner-SemiBold.ttf";
+// import "../fonts/Commissioner/static/Commissioner/Commissioner-Thin.ttf";
+
+import "../icons/phosphor/Fonts/regular/Phosphor.ttf";
+
 export { Navigator, Palette, AppState, TrackListAdapter, 
     EventListAdapter, PlaylistDetailsAdapter,
     SettingsAdapter }
@@ -63,6 +83,16 @@ export enum Page { Home, Search,
 }
 
 export component AppWindow inherits Window {
+    title: "Dimple";
+    icon: @image-url("../images/app_icon_512x512.png");
+    preferred-width: 1440px;
+    preferred-height: 1024px;
+    default-font-size: AppState.default-font-size;
+    default-font-family: "Roboto";
+    // default-font-family: "Manrope";
+    // default-font-family: "Commissioner";
+    // default-font-weight: 500;
+
     in-out property <Page> page: TrackList;
 
     in-out property <HomeAdapter> home;
@@ -101,13 +131,6 @@ export component AppWindow inherits Window {
         player-state: PlayerState.Playing,
     };
     in-out property <SideBarAdapter> sidebar;
-
-    title: "Dimple";
-    icon: @image-url("../images/app_icon_512x512.png");
-    preferred-width: 1440px;
-    preferred-height: 1024px;
-    default-font-size: AppState.default-font-size;
-    default-font-family: "Roboto";
 
     VerticalLayout {
         padding: 8px;
