@@ -41,3 +41,5 @@ Dump new things at the bottom, move things to the top to prioritize.
 - Add a changelist page for debug and add it to settings.
 - Mac menubar: https://mrmekon.github.io/fruitbasket/fruitbasket/,
   https://github.com/rust-windowing/winit/issues/1855
+- bug: I think the last track in the queue is not getting scrobbled after finish
+  playing.

@@ -18,10 +18,23 @@ export struct TrackDetailsAdapter {
     dump: string,
 }
 
+export component BorderImage inherits Rectangle {
+    in-out property <image> image;
+
+    border-radius: Palette.thumbnail-border-radius;
+    border-color: Palette.thumbnail-border-color;
+    border-width: Palette.thumbnail-border-width;
+    clip: true;
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: image;
+    }
+}
 export component TrackDetails inherits ScrollView {
     in property <TrackDetailsAdapter> model: {
         card: {
-            image: {image: @image-url("../../images/release_placeholder.png")},
+            image: {image: @image-url("../../icons/release_placeholder.png")},
             title: {name: "A Reign of Fish"},
         },
         disambiguation: "Not to be confused with Rain of Fish by Fargo.",
@@ -37,20 +50,56 @@ export component TrackDetails inherits ScrollView {
         // Header: Image, Title, Artists, Genres, Summary
         HorizontalBox {
             alignment: start;
-                // Image
-                Rectangle {
+            VerticalLayout {
+                BorderImage {
                     width: Palette.thumbnail-width-extra-large;
                     height: Palette.thumbnail-width-extra-large;
-                    border-radius: Palette.thumbnail-border-radius;
-                    border-color: Palette.thumbnail-border-color;
-                    border-width: Palette.thumbnail-border-width;
-                    clip: true;
-                    Image {
-                        width: Palette.thumbnail-width-extra-large;
-                        height: Palette.thumbnail-width-extra-large;
-                        source: model.card.image.image;
-                    }
+                    image: model.card.image.image;
                 }
+                HorizontalLayout {
+                    padding-top: StyleMetrics.layout-spacing;
+                    spacing: StyleMetrics.layout-spacing;
+
+                    // So thinking here queue should be dropping tracks off the end as they get played
+                    // and then:
+                    // Play Now: adds to front of queue and switches to it
+                    // Play Next: add to next in queue and switches to it
+                    // Play Later: add to end of queue and start playing
+                    
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+                        colorize-icon: true;
+                        width: 46px;
+                        height: 46px;
+                        primary: true;
+                        accessible-label: @tr("Play Now");
+                        accessible-role: button;
+                    }
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+                        // icon: @image-url("../../icons/phosphor/SVGs/regular/clock-clockwise.svg");
+                        // icon: @image-url("../../icons/phosphor/SVGs/regular/skip-forward.svg");
+                        colorize-icon: true;
+                        width: 46px;
+                        height: 46px;
+                        accessible-label: @tr("Play Later");
+                        accessible-role: button;
+                    }
+                    // Button {
+                    //     // icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+                    //     icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+                    //     // icon: @image-url("../../icons/phosphor/SVGs/regular/playlist.svg");
+                    //     colorize-icon: true;
+                    //     width: 46px;
+                    //     height: 46px;
+                    //     accessible-label: @tr("Play Next");
+                    //     accessible-role: button;
+                    // }
+                }
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+            }
             VerticalBox {
                 alignment: start;
                 // Title
@@ -63,7 +112,7 @@ export component TrackDetails inherits ScrollView {
                 // Disambiguation
                 if model.disambiguation != "": Text {
                     text: model.disambiguation;
-                    font-weight: Palette.font-weight-bold;
+                    font-italic: true;
                     font-size: 1.3rem;
                 }
                 // Type and artists
@@ -100,7 +149,7 @@ export component TrackDetails inherits ScrollView {
         }
 
         // Lyrics
-        VerticalBox {
+        if model.lyrics != "": VerticalBox {
             Text {
                 text: "Lyrics";
                 font-weight: Palette.font-weight-bold;
