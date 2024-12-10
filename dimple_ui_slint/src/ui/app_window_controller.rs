@@ -1,5 +1,5 @@
 use dimple_core::{library::Library, player::Player};
-use pages::{event_list, playlist_details, track_list};
+use pages::{event_list, playlist_details, track_details, track_list};
 use player_bar;
 use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
@@ -69,6 +69,7 @@ impl AppWindowController {
         settings::settings_init(&self.app);        
         player_bar::player_bar_init(&self.app);
         track_list::track_list_init(&self.app);
+        track_details::track_details_init(&self.app);
         event_list::event_list_init(&self.app);
         playlist_details::playlist_details_init(&self.app);
 

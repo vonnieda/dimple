@@ -38,3 +38,6 @@ Dump new things at the bottom, move things to the top to prioritize.
   so it scales nice. These will be plugins like "generate_audiogram(Song)" 
   so I can make a ton of them. This will be awesome cause we'll use the same
   code in the scrubber.
+- Add a changelist page for debug and add it to settings.
+- Mac menubar: https://mrmekon.github.io/fruitbasket/fruitbasket/,
+  https://github.com/rust-windowing/winit/issues/1855

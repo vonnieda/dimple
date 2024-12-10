@@ -3,6 +3,7 @@ pub mod library;
 pub mod import;
 pub mod player;
 pub mod sync;
+pub mod services;
 
 #[cfg(test)]
 mod tests {

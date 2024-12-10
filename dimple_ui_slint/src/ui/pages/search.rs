@@ -54,6 +54,7 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
         row.push(StandardListViewItem::from("1")); // Track #
         row.push(track.plays.to_string().as_str().into()); // Plays
         row.push(StandardListViewItem::from(length.as_str())); // Length
+        row.push(StandardListViewItem::from(track.key.unwrap().as_str())); // Key (Hidden)
         row_data.push(row.into());
     }
     row_data.into()

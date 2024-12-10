@@ -1,25 +1,44 @@
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Track;
-use slint::ComponentHandle;
+use dimple_core::services::lrclib::LrclibService;
 use slint::ModelRc;
 use url::Url;
 use crate::ui::app_window_controller::App;
-use crate::ui::Navigator;
 use crate::ui::Page;
 use crate::ui::TrackDetailsAdapter;
 use crate::ui::LinkAdapter;
 
+pub fn track_details_init(_app: &App) {
+    // let app = _app.clone();
+    // _app.library.on_change(move |library, model_type, key| {       
+    //     let app = app.clone();
+    //     let model_type = model_type.to_string();
+    //     let ui = app.ui.clone();
+    //     ui.upgrade_in_event_loop(move |ui| {
+    //         if ui.get_page() == Page::TrackDetails && model_type == "Track" {
+    //             app.refresh();
+    //         }
+    //     });
+    // });
+}
+
 pub fn track_details(url: &str, app: &App) {
     let url = url.to_owned();
-    let librarian = app.library.clone();
+    let library = app.library.clone();
     let ui = app.ui.clone();
     let images = app.images.clone();
     std::thread::spawn(move || {        
         let url = Url::parse(&url).unwrap();
         let key = url.path_segments().unwrap().nth(0).unwrap();
 
-        let mut track: Track = librarian.get(key).unwrap();
+        let track: Track = library.get(key).unwrap();
+        let track1 = track.clone();
+        let library1 = library.clone();
+        std::thread::spawn(move || {
+            let lrclib = LrclibService {};
+            lrclib.track_lyrics(&library1, &track1);
+        });
 
         // track.recording = librarian.list(&Recording::default().model(), &Some(track.model()))
         //     .unwrap().map(Into::<Recording>::into).next().unwrap();
@@ -38,7 +57,12 @@ pub fn track_details(url: &str, app: &App) {
         //     .unwrap().map(Into::into).collect();
         // track.genres.sort_by_key(|genre| genre.name.clone().unwrap_or_default().to_lowercase());
 
-        let artists: Vec<Artist> = vec![];
+        let artists: Vec<Artist> = vec![ Artist {
+            // TODO wrong key, just for testing.
+            key: track.key.clone(),
+            name: track.artist.clone(),
+            ..Default::default()
+        }];
         let genres: Vec<Genre> = vec![];
         let links: Vec<String> = vec![];
 
@@ -70,15 +94,14 @@ pub fn track_details(url: &str, app: &App) {
             // });
 
 
-            let mut adapter = TrackDetailsAdapter {
+            let adapter = TrackDetailsAdapter {
                 card: track.clone().into(),
                 artists: ModelRc::from(artists.as_slice()),                
-                // summary: track.recording.summary.clone().unwrap_or_default().into(),
+                // summary: track.summary.clone().unwrap_or_default().into(),
                 genres: ModelRc::from(genres.as_slice()),
+                lyrics: track.lyrics.clone().unwrap_or_default().into(),
                 links: ModelRc::from(links.as_slice()),
-                // dump: format!("{}\n{}", 
-                //     serde_json::to_string_pretty(&track).unwrap(),
-                //     serde_json::to_string_pretty(&track.recording).unwrap()).into(),
+                dump: format!("{:?}", track).into(),
                 ..Default::default()
             };
 
@@ -90,7 +113,6 @@ pub fn track_details(url: &str, app: &App) {
 
             ui.set_track_details(adapter);
             ui.set_page(Page::TrackDetails);
-            ui.global::<Navigator>().set_busy(false);
         }).unwrap();
     });
 }

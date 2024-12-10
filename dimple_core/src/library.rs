@@ -15,13 +15,13 @@ pub struct Library {
     conn: Arc<Mutex<Connection>>,
     database_path: String,
     ulids: Arc<Mutex<Generator>>,
+    // TODO I really think I want to get rid of this and put it somewhere
+    // higher level.
     synchronizers: Arc<RwLock<Vec<Sync>>>,
+    // TODO go back to HashMap, turn into a struct. 
     change_listeners: Arc<Mutex<Vec<ChangeListener>>>,
 }
 
-/// TODO Tantivy search
-/// TODO directory/blobs
-/// TODO I think drop Option from key, and just use empty as new key.
 impl Library {
     /// Open the library located at the specified path. The path is to an
     /// optionally existing Sqlite database. Blobs will be stored in the
@@ -152,7 +152,6 @@ impl Library {
                 self.save(&change);
             }
         }
-        // TODO maybe like library.notify(diff)
         self.emit_change(&obj.table_name(), &obj.key().unwrap());
         new
     }

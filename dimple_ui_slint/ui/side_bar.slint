@@ -87,62 +87,6 @@ component SideBarMenuItem inherits HorizontalLayout {
     }
 }
 
-component SideBarRefreshItem inherits HorizontalLayout {
-    in property <image> image: @image-url("../icons/phosphor/SVGs/light/arrow-clockwise-light.svg");
-    in property <string> url: "dimple://refresh";
-    in property <string> text: "Refresh";
-    in property <bool> spin: false;
-
-    if !Navigator.busy: HorizontalLayout {
-        spacing: 8px;
-        TouchArea {
-            width: Palette.icon-width-sidebar;
-            height: Palette.icon-width-sidebar;
-            clicked => { Navigator.navigate(url); }
-            Image {
-                source: image;
-                width: Palette.icon-width-sidebar;
-                height: Palette.icon-width-sidebar;
-                colorize: parent.has-hover 
-                    ? Palette.link-color-hover
-                    : StyleMetrics.default-text-color;
-            }
-        }
-        VerticalLayout {
-            alignment: center;
-            Link {
-                font-size: 1.4rem;
-                name: text;
-                font-weight: Palette.font-weight-bold;
-                url: url;
-            }
-        }
-    }
-
-    if Navigator.busy: HorizontalLayout {
-        spacing: 8px;
-        TouchArea {
-            width: Palette.icon-width-sidebar;
-            height: Palette.icon-width-sidebar;
-            clicked => { Navigator.navigate(url); }
-            Spinner {
-                indeterminate: true;
-                width: Palette.icon-width-sidebar;
-                height: Palette.icon-width-sidebar;
-            }                
-        }
-        VerticalLayout {
-            alignment: center;
-            Link {
-                font-size: 1.4rem;
-                name: "Cancel";
-                font-weight: Palette.font-weight-bold;
-                url: url;
-            }
-        }
-    }
-}
-
 export component SideBar inherits VerticalLayout {
     in-out property <SideBarAdapter> model;
 
@@ -212,6 +156,11 @@ export component SideBar inherits VerticalLayout {
         image: @image-url("../icons/phosphor/SVGs/light/arrow-left-light.svg");
         text: "Back";
         url: "dimple://back";
+    }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/light/arrow-clockwise-light.svg");
+        text: "Refresh";
+        url: "dimple://refresh";
     }
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/light/gear-light.svg");

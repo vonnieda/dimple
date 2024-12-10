@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use crate::ui::app_window_controller::App;
 use crate::ui::Page;
+use crate::ui::Navigator;
 use dimple_core::model::Playlist;
 use dimple_core::model::Track;
 use slint::Model as _;
@@ -52,6 +53,7 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
         row.push(StandardListViewItem::from(track.album.unwrap_or_default().as_str())); // Album
         row.push(StandardListViewItem::from(track.artist.unwrap_or_default().as_str())); // Artist
         row.push(StandardListViewItem::from(length.as_str())); // Length
+        row.push(StandardListViewItem::from(track.key.unwrap().as_str())); // Key (Hidden)
         row_data.push(row.into());
     }
     row_data.into()
@@ -59,17 +61,11 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
 
 fn row_selected(app: &App, row: i32) {
     let app = app.clone();
-    app.ui.upgrade_in_event_loop(move |_ui| {
-        println!("row_selected {}", row);
-        // let adapter = ui.get_track_list();
-        // let rows = adapter.rows.as_any().downcast_ref::<VecModel<ModelRc<StandardListViewItem>>>().unwrap();
-        // let key = adapter.keys.row_data(row as usize).unwrap().to_string();
-        // ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
-        // let play_queue = app.player.queue();
-        // app.library.playlist_add(&play_queue, &key);
-        // app.player.set_queue_index(row as usize);
-        // TODO this only belongs on queue details, not playlist details
-        app.player.set_queue_index(row as usize);
+    app.ui.upgrade_in_event_loop(move |ui| {
+        let row_data = ui.global::<PlaylistDetailsAdapter>().get_row_data();
+        let cell_data = row_data.row_data(row as usize).unwrap().row_data(5).unwrap();
+        let key = cell_data.text.as_str();
+        ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
     }).unwrap();
 }
 

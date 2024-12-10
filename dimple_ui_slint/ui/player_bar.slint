@@ -138,15 +138,15 @@ component TrackInfo inherits VerticalLayout {
     spacing: 4px;
     InfoAreaLabel {
         icon: @image-url("../icons/phosphor/SVGs/fill/music-notes-fill.svg");
+        link: recording;
+    }
+    InfoAreaLabel {
+        icon: @image-url("../icons/phosphor/SVGs/fill/users-three-fill.svg");
         link: artist;
     }
     InfoAreaLabel {
         icon: @image-url("../icons/phosphor/SVGs/fill/vinyl-record-fill.svg");
         link: release;
-    }
-    InfoAreaLabel {
-        icon: @image-url("../icons/phosphor/SVGs/fill/users-three-fill.svg");
-        link: recording;
     }
 }
 

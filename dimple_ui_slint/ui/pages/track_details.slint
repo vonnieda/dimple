@@ -12,6 +12,7 @@ export struct TrackDetailsAdapter {
     genres: [LinkAdapter],
     // releases: [CardAdapter],
     links: [LinkAdapter],
+    lyrics: string,
     // primary_type: string,
     artists: [LinkAdapter],
     isrcs: [LinkAdapter],
@@ -24,11 +25,9 @@ export struct TrackDetailsAdapter {
 export component TrackDetails inherits ScrollView {
     VerticalBox {
         alignment: start;
-        spacing: StyleMetrics.layout-spacing * 2;
         // Header: Image, Title, Artists, Genres, Summary
-        HorizontalLayout {
+        HorizontalBox {
             alignment: start;
-            spacing: StyleMetrics.layout-spacing;
                 // Image
                 Rectangle {
                     width: Palette.thumbnail-width-extra-large;
@@ -89,50 +88,22 @@ export component TrackDetails inherits ScrollView {
             }
         }
 
-        // // Media and Tracks
-        // if model.media.length > 0: VerticalBox {
-        //     for medium in model.media: VerticalBox {
-        //         // Text {
-        //         //     text: medium.title;
-        //         //     font-weight: Palette.font-weight-bold;
-        //         //     font-size: 2rem;
-        //         // }
-        //         // https://github.com/slint-ui/slint/blob/master/internal/compiler/widgets/cupertino-base/tableview.slint
-        //         TrackList {
-        //             tracks: medium.tracks;
-        //         }
-        //     }
-        // }
-
-        // // Releases
-        // if model.releases.length > 0: VerticalLayout {
-        //     spacing: StyleMetrics.layout-spacing * 0.50;
-        //     Text {
-        //         text: "Other Releases";
-        //         font-weight: Palette.font-weight-bold;
-        //         font-size: 2rem;
-        //     }
-        //     CardGrid {
-        //         cards: model.releases;
-        //         parent-width: root.width;
-        //     }
-        // }
-
-        // Links
-        if model.isrcs.length > 0: VerticalLayout {
+        // Lyrics
+        VerticalBox {
             Text {
-                text: "ISRCs";
+                text: "Lyrics";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
-            for link in model.isrcs: Link {
-                url: link.url;
-                name: link.name;
+            Text {
+                text: model.lyrics;
+                wrap: word-wrap;
+                font-size: 1.4rem;
             }
         }
 
         // Links
-        if model.links.length > 0: VerticalLayout {
+        if model.links.length > 0: VerticalBox {
             Text {
                 text: "Links";
                 font-weight: Palette.font-weight-bold;
@@ -145,7 +116,7 @@ export component TrackDetails inherits ScrollView {
         }
 
         // Debug Dump
-        if AppState.debug: VerticalLayout {
+        if AppState.debug: VerticalBox {
             Text {
                 text: "Debug";
                 font-weight: Palette.font-weight-bold;
@@ -179,6 +150,7 @@ export component TrackDetails inherits ScrollView {
             { name: "Zim Babwe", url: "internal://release/1234" }, 
             { name: "Vic Toria", url: "internal://release/1234" }, 
         ],
+        lyrics: "Down on Texas Road\nThere lives a man. A fish man.\nNot a man who is a fish, but a fish who is a man."
         // releases: [
         //     { 
         //         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},

@@ -8,8 +8,22 @@ pub struct Track {
     pub title: Option<String>,
     pub liked: bool,
     pub plays: u32,
+    // TODO Duration, I think, and probably ns vs ms.
     pub length_ms: Option<u64>,
     // pub media_position: Option<u32>,
+
+    // pub save: bool,
+    // pub download: bool,
+    // pub disambiguation: Option<String>,
+    // pub summary: Option<String>,
+
+    // pub musicbrainz_id: Option<String>,
+    // pub discogs_id: Option<String>,
+    // pub lastfm_id: Option<String>,
+    // pub wikidata_id: Option<String>,
+    // pub spotify_id: Option<String>,
+
+    pub lyrics: Option<String>,
 }
 
 // // https://musicbrainz.org/doc/Track

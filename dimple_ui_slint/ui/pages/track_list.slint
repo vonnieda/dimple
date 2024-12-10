@@ -10,6 +10,7 @@ export global TrackListAdapter {
         [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
         [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
     ];
+    in property <[string]> row_keys;
     pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
     pure callback current_row_changed(int);
     pure callback add_to_queue(int);
