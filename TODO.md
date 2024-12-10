@@ -10,7 +10,8 @@ Dump new things at the bottom, move things to the top to prioritize.
 - Clicking on a playbar item should take you to the item in the queue, from
   there you can click the item to go to details if you want.
 - Bug: Music skips when switching from the Dimple window to another app, maybe
-  other times too.
+  other times too. https://docs.rs/thread-priority/latest/thread_priority/
+  I think it's due to thread priority.
 - After starting the app, if there is music in the queue, pressing play on the
   keyboard should start playing. Right now it seems macos doesn't forward the
   play event until we've actually played at least once.

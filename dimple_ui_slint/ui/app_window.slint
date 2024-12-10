@@ -70,7 +70,7 @@ import "../icons/phosphor/Fonts/regular/Phosphor.ttf";
 
 export { Navigator, Palette, AppState, TrackListAdapter, 
     EventListAdapter, PlaylistDetailsAdapter,
-    SettingsAdapter }
+    SettingsAdapter, TrackDetailsAdapter }
 
 export enum Page { Home, Search,
     ArtistList, ArtistDetails,
@@ -105,7 +105,6 @@ export component AppWindow inherits Window {
     in-out property <ReleaseDetailsAdapter> release-details;
     in-out property <CardGridAdapter> genre-list;
     in-out property <GenreDetailsAdapter> genre-details;
-    in-out property <TrackDetailsAdapter> track-details;
     in-out property <RecordingDetailsAdapter> recording-details;
     in-out property <CardGridAdapter> playlist-list;
     in-out property <PlayerBarAdapter> player-bar: {
@@ -175,9 +174,7 @@ export component AppWindow inherits Window {
                             model: root.release-details;
                         }                
                         if page == Page.TrackList: TrackList {}
-                        if page == Page.TrackDetails: TrackDetails {  
-                            model: root.track-details;
-                        }
+                        if page == Page.TrackDetails: TrackDetails {}  
                         if page == Page.RecordingDetails: RecordingDetails {  
                             model: root.recording-details;
                         }

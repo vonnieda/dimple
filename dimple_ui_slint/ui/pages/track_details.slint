@@ -5,17 +5,39 @@ import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Palette, Navigator, AppState } from "../common.slint";
 
-export struct TrackDetailsAdapter {
-    card: CardAdapter,
-    disambiguation: string,
-    summary: string,
-    genres: [LinkAdapter],
-    links: [LinkAdapter],
-    lyrics: string,
-    artists: [LinkAdapter],
-    isrcs: [LinkAdapter],
+    // in property <TrackDetailsAdapter> model: {
+    //     card,
+    //     disambiguation,
+    //     summary
+    //     genres: ,
+    //     artists: ,
+    //     lyrics: "Hurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk",
+    //     links: [{name: "https://bandcamp.com/arof",url: "internal://release/1234"}],
+    // };
 
-    dump: string,
+export global TrackDetailsAdapter {
+    in property <string> key: "123";
+    in property <CardAdapter> card: {
+                image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+                title: {name: "A Reign of Fish"},
+            };
+    in property <string> disambiguation: "Not to be confused with Rain of Fish by Fargo.";
+    in property <string> summary: "Fresh Pliers does it again with 'A Reign of Fish'. Magna est quis laboris veniam do laborum. Cupidatat ea ipsum aliquip fugiat eu magna labore est eu est labore. Ex nostrud culpa id veniam aliqua aliqua ipsum. Velit do id amet labore mollit id cillum commodo Lorem proident labore eu. Incididunt minim irure culpa excepteur officia sit consequat est mollit. Ipsum anim anim sunt dolore. Laborum consequat deserunt laboris ullamco cillum. Ullamco deserunt ut quis dolore aliquip esse consequat velit amet. Nulla tempor veniam dolor amet occaecat adipisicing nulla laboris.\n\nQui non irure anim irure nisi nulla ex aliquip. Sit do irure esse magna sit do eiusmod. Anim commodo velit non enim nulla.\n\nAnim incididunt dolore nulla laboris eu mollit Lorem minim reprehenderit in quis magna mollit. Labore Lorem esse anim ipsum esse irure ipsum proident deserunt officia consequat sunt sit. Ex laborum ipsum laboris nisi proident. Nulla culpa est commodo dolor. Magna sint id et ut esse mollit qui elit voluptate ea.\n\nDuis amet qui reprehenderit cupidatat qui proident pariatur non ea aute reprehenderit nisi qui. Et elit anim culpa amet eu excepteur voluptate ad adipisicing esse eiusmod. Aliqua Lorem excepteur fugiat aute ullamco ea nostrud ipsum mollit cupidatat id magna. Nisi consectetur cillum incididunt deserunt non officia non laborum non ullamco non eiusmod dolor. Eu sit aute adipisicing Lorem consectetur nisi excepteur laboris eiusmod exercitation proident eu laborum fugiat. Ad id velit minim laboris eu. Do ex aliqua nisi aliqua laborum sunt qui quis officia labore do. Deserunt culpa culpa Lorem reprehenderit consequat ad pariatur anim quis. Nulla officia id ipsum adipisicing commodo labore culpa consectetur nostrud labore. Reprehenderit minim magna qui ullamco aute incididunt. Ipsum eu ad ex consequat et amet.";
+    in property <[LinkAdapter]> genres: [{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},];
+    in property <[LinkAdapter]> links: [{name: "https://bandcamp.com/arof",url: "internal://release/1234"}];
+    in property <string> lyrics: "Hurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk";
+    in property <[LinkAdapter]> artists: [{name: "Fresh Pliers"},{name: "Example Band"},{name: "Teal Cup"},];
+    in property <[LinkAdapter]> isrcs;
+    in property <string> dump;
+    in property <bool> save;
+    in property <bool> love;
+    in property <bool> download;
+
+    pure callback play_now(string);
+    pure callback add_to_queue(string);
+    pure callback set_save(bool);
+    pure callback set_download(bool);
+    pure callback set_love(bool);
 }
 
 export component BorderImage inherits Rectangle {
@@ -32,33 +54,22 @@ export component BorderImage inherits Rectangle {
     }
 }
 export component TrackDetails inherits ScrollView {
-    in property <TrackDetailsAdapter> model: {
-        card: {
-            image: {image: @image-url("../../icons/release_placeholder.png")},
-            title: {name: "A Reign of Fish"},
-        },
-        disambiguation: "Not to be confused with Rain of Fish by Fargo.",
-        summary: "Fresh Pliers does it again with 'A Reign of Fish'. Magna est quis laboris veniam do laborum. Cupidatat ea ipsum aliquip fugiat eu magna labore est eu est labore. Ex nostrud culpa id veniam aliqua aliqua ipsum. Velit do id amet labore mollit id cillum commodo Lorem proident labore eu. Incididunt minim irure culpa excepteur officia sit consequat est mollit. Ipsum anim anim sunt dolore. Laborum consequat deserunt laboris ullamco cillum. Ullamco deserunt ut quis dolore aliquip esse consequat velit amet. Nulla tempor veniam dolor amet occaecat adipisicing nulla laboris.\n\nQui non irure anim irure nisi nulla ex aliquip. Sit do irure esse magna sit do eiusmod. Anim commodo velit non enim nulla.\n\nAnim incididunt dolore nulla laboris eu mollit Lorem minim reprehenderit in quis magna mollit. Labore Lorem esse anim ipsum esse irure ipsum proident deserunt officia consequat sunt sit. Ex laborum ipsum laboris nisi proident. Nulla culpa est commodo dolor. Magna sint id et ut esse mollit qui elit voluptate ea.\n\nDuis amet qui reprehenderit cupidatat qui proident pariatur non ea aute reprehenderit nisi qui. Et elit anim culpa amet eu excepteur voluptate ad adipisicing esse eiusmod. Aliqua Lorem excepteur fugiat aute ullamco ea nostrud ipsum mollit cupidatat id magna. Nisi consectetur cillum incididunt deserunt non officia non laborum non ullamco non eiusmod dolor. Eu sit aute adipisicing Lorem consectetur nisi excepteur laboris eiusmod exercitation proident eu laborum fugiat. Ad id velit minim laboris eu. Do ex aliqua nisi aliqua laborum sunt qui quis officia labore do. Deserunt culpa culpa Lorem reprehenderit consequat ad pariatur anim quis. Nulla officia id ipsum adipisicing commodo labore culpa consectetur nostrud labore. Reprehenderit minim magna qui ullamco aute incididunt. Ipsum eu ad ex consequat et amet.",
-        genres: [{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},],
-        artists: [{name: "Fresh Pliers"},{name: "Example Band"},{name: "Teal Cup"},],
-        lyrics: "Hurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk",
-        links: [{name: "https://bandcamp.com/arof",url: "internal://release/1234"}],
-    };
-
     VerticalBox {
         alignment: start;
         // Header: Image, Title, Artists, Genres, Summary
         HorizontalBox {
             alignment: start;
             VerticalLayout {
-                BorderImage {
+                img := BorderImage {
                     width: Palette.thumbnail-width-extra-large;
                     height: Palette.thumbnail-width-extra-large;
-                    image: model.card.image.image;
+                    image: TrackDetailsAdapter.card.image.image;
                 }
-                HorizontalLayout {
-                    padding-top: StyleMetrics.layout-spacing;
-                    spacing: StyleMetrics.layout-spacing;
+                HorizontalBox {
+                    width: img.width;
+                    alignment: space-around;
+
+                    property <length> button-width: 40px;
 
                     // So thinking here queue should be dropping tracks off the end as they get played
                     // and then:
@@ -69,32 +80,48 @@ export component TrackDetails inherits ScrollView {
                     Button {
                         icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
                         colorize-icon: true;
-                        width: 46px;
-                        height: 46px;
-                        primary: true;
+                        width: button-width;
+                        height: button-width;
                         accessible-label: @tr("Play Now");
                         accessible-role: button;
+                        clicked => { TrackDetailsAdapter.play_now(TrackDetailsAdapter.key); }
                     }
                     Button {
                         icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
-                        // icon: @image-url("../../icons/phosphor/SVGs/regular/clock-clockwise.svg");
-                        // icon: @image-url("../../icons/phosphor/SVGs/regular/skip-forward.svg");
                         colorize-icon: true;
-                        width: 46px;
-                        height: 46px;
+                        width: button-width;
+                        height: button-width;
                         accessible-label: @tr("Play Later");
+                        accessible-description: @tr("Add the track to the end of the play queue.");
                         accessible-role: button;
+                        clicked => { TrackDetailsAdapter.add_to_queue(TrackDetailsAdapter.key); }
                     }
-                    // Button {
-                    //     // icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
-                    //     icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
-                    //     // icon: @image-url("../../icons/phosphor/SVGs/regular/playlist.svg");
-                    //     colorize-icon: true;
-                    //     width: 46px;
-                    //     height: 46px;
-                    //     accessible-label: @tr("Play Next");
-                    //     accessible-role: button;
-                    // }
+
+                    // TODO I think I want this to pop the full emoji menu, maybe on hold.
+                    Button {
+                        icon: self.checked ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+                        colorize-icon: true;
+                        width: button-width;
+                        height: button-width;
+                        accessible-label: @tr("Play Later");
+                        accessible-description: @tr("Add the track to the end of the play queue.");
+                        accessible-role: button;
+                        clicked => { TrackDetailsAdapter.set_love(self.checked); }
+                        checkable: true;
+                        checked: TrackDetailsAdapter.love;
+                    }
+                    Button {
+                        icon: self.checked ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
+                        colorize-icon: true;
+                        width: button-width;
+                        height: button-width;
+                        accessible-label: @tr("Play Later");
+                        accessible-description: @tr("Add the track to the end of the play queue.");
+                        accessible-role: button;
+                        clicked => { TrackDetailsAdapter.set_download(self.checked); }
+                        checkable: true;
+                        checked: TrackDetailsAdapter.download;
+                    }
                 }
                 Rectangle {
                     vertical-stretch: 1;
@@ -104,44 +131,44 @@ export component TrackDetails inherits ScrollView {
                 alignment: start;
                 // Title
                 Text {
-                    text: model.card.title.name;
+                    text: TrackDetailsAdapter.card.title.name;
                     font-weight: Palette.font-weight-bold;
                     font-size: 5rem;
                     wrap: word-wrap;
                 }
                 // Disambiguation
-                if model.disambiguation != "": Text {
-                    text: model.disambiguation;
+                if TrackDetailsAdapter.disambiguation != "": Text {
+                    text: TrackDetailsAdapter.disambiguation;
                     font-italic: true;
                     font-size: 1.3rem;
                 }
                 // Type and artists
-                if model.artists.length > 0: HorizontalLayout {
+                if TrackDetailsAdapter.artists.length > 0: HorizontalLayout {
                     alignment: start;
                     Text {
                         text: "Track by ";
                         font-size: 1.3rem;
                     }
                     Links {
-                        links: model.artists;
+                        links: TrackDetailsAdapter.artists;
                         font-size: 1.3rem;
                     }
                 }
                 // Genres
-                if model.genres.length > 0: HorizontalLayout {
+                if TrackDetailsAdapter.genres.length > 0: HorizontalLayout {
                     alignment: start;
                     Text {
                         text: "In ";
                         font-size: 1.3rem;
                     }    
                     Links {
-                        links: model.genres;
+                        links: TrackDetailsAdapter.genres;
                         font-size: 1.3rem;
                     }
                 }
                 // Summary
-                if model.summary != "": Text {
-                    text: model.summary;
+                if TrackDetailsAdapter.summary != "": Text {
+                    text: TrackDetailsAdapter.summary;
                     wrap: word-wrap;
                     font-size: 1.2rem;
                 }
@@ -149,27 +176,27 @@ export component TrackDetails inherits ScrollView {
         }
 
         // Lyrics
-        if model.lyrics != "": VerticalBox {
+        if TrackDetailsAdapter.lyrics != "": VerticalBox {
             Text {
                 text: "Lyrics";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
             Text {
-                text: model.lyrics;
+                text: TrackDetailsAdapter.lyrics;
                 wrap: word-wrap;
                 font-size: 1.3rem;
             }
         }
 
         // Links
-        if model.links.length > 0: VerticalBox {
+        if TrackDetailsAdapter.links.length > 0: VerticalBox {
             Text {
                 text: "Links";
                 font-weight: Palette.font-weight-bold;
                 font-size: 2rem;
             }
-            for link in model.links: Link {
+            for link in TrackDetailsAdapter.links: Link {
                 url: link.url;
                 name: link.name;
                 font-size: 1.3rem;
@@ -184,7 +211,7 @@ export component TrackDetails inherits ScrollView {
                 font-size: 2rem;
             }
             Text {
-                text: model.dump;
+                text: TrackDetailsAdapter.dump;
                 wrap: word-wrap;
                 font-size: 1.3rem;
             }
