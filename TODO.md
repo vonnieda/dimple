@@ -2,7 +2,7 @@ Dump new things at the bottom, move things to the top to prioritize.
 
 - [x] List sorting.
 - Track detail musicbrainz info, first pass.
-- Lyrics.
+- [x] Lyrics.
 - Tantivy search.
 - Change player bar to use player.on_change.
 - [x] Figure out how I'm going to implement queueing controls on table rows.
@@ -22,7 +22,7 @@ Dump new things at the bottom, move things to the top to prioritize.
 - Double click in queue to start playing, inclusing starting the player. Single
   click is just for select.
 - [x] comment: not enough space between search and home.
-- OTCH: Text is too small.
+- [x] OTCH: Text is too small.
   I did a short pass on this sort of. I had previously disabled the font
   settings somehow so I got those back and that made the text larger and
   more clear. I also increased the text side of the sidebar items, and

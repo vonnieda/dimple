@@ -34,7 +34,7 @@ pub fn queue_details_init(app: &App) {
         ui.global::<QueueDetailsAdapter>().on_remove_all(move || {
             let queue = app.player.queue();
             app.library.playlist_clear(&queue);
-            app.ui.upgrade_in_event_loop(|ui| ui.global::<Navigator>().invoke_navigate("dimple://refresh".into()));
+            app.ui.upgrade_in_event_loop(|ui| ui.global::<Navigator>().invoke_navigate("dimple://refresh".into())).unwrap();
         });
     }).unwrap();
 }

@@ -205,7 +205,6 @@ impl App {
 
 // TODO desktop integration using souvlaki. currently broken on Windows.
 fn desktop_integration(app: &App) -> MediaControls {
-    #[cfg(not(target_os = "windows"))]
     let hwnd = None;
 
     let config = PlatformConfig {
