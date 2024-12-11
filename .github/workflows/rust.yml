@@ -25,5 +25,5 @@ jobs:
         with: 
           name: ${{ matrix.os }}
           path: |
-            target/debug/dimple_ui_slint
-            target/debug/dimple_ui_slint.exe
+            target/release/dimple_ui_slint
+            target/release/dimple_ui_slint.exe
