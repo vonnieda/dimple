@@ -1,7 +1,8 @@
 use dimple_core::{library::Library, player::Player};
 use pages::{event_list, playlist_details, queue_details, track_details, track_list};
 use player_bar;
-use std::{collections::VecDeque, sync::{Arc, Mutex}};
+use raw_window_handle::HasRawWindowHandle;
+use std::{collections::VecDeque, os::raw::c_void, sync::{Arc, Mutex}};
 
 use slint::{ComponentHandle, SharedString, Weak};
 
@@ -208,16 +209,18 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
     let hwnd = None;
 
     #[cfg(target_os = "windows")]
-    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
-    #[cfg(target_os = "windows")]
-    let hwnd = {
+    let hwnd: Option<*mut c_void> = {
+        use raw_window_handle::HasWindowHandle;
+        use raw_window_handle::HasRawWindowHandle;
+        use raw_window_handle::RawWindowHandle;
         let window_handle = ui.window().window_handle();
-        let raw_window_handle = window_handle.window_handle().unwrap().as_raw();
-        let handle = match raw_window_handle {
+        let raw_window_handle = window_handle.raw_window_handle().unwrap();
+        let handle: raw_window_handle::Win32WindowHandle = match raw_window_handle {
             RawWindowHandle::Win32(h) => h,
             _ => unreachable!(),
         };
-        Some(handle.hwnd)
+        // let hwnd = handle.hwnd.get();
+        Some(handle.hwnd.get() as *mut c_void)
     };
 
     let config = PlatformConfig {
