@@ -11,7 +11,6 @@ export global QueueDetailsAdapter {
         [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
     ];
     pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
-    pure callback current_row_changed(int);
     pure callback play_now(int);
     pure callback remove_row(int);
     pure callback remove_all();
@@ -65,9 +64,6 @@ export component QueueDetails inherits VerticalLayout {
         ];
         // rows: QueueDetailsAdapter.sort_model(QueueDetailsAdapter.row_data, root.sort-index, root.sort-acending);
         rows: QueueDetailsAdapter.row_data;
-        current-row-changed(row) => { 
-            QueueDetailsAdapter.current_row_changed(row);
-        }
         sort-ascending(index) => {
             root.sort-index = index;
             root.sort-acending = true;
@@ -75,8 +71,10 @@ export component QueueDetails inherits VerticalLayout {
         sort-descending(index) => {
             root.sort-index = index;
             root.sort-acending = false;
-        }        
+        }     
+
         row-pointer-event(row, event, point) => {
+            // debug(row, event, point);
             // Context menu
             if event.button == PointerEventButton.right 
                     && event.kind == PointerEventKind.down {

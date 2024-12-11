@@ -4,7 +4,6 @@ use std::time::Duration;
 
 use crate::ui::app_window_controller::App;
 use crate::ui::Page;
-use crate::ui::Navigator;
 use dimple_core::model::Playlist;
 use dimple_core::model::Track;
 use slint::Model as _;
@@ -13,23 +12,35 @@ use slint::ModelRc;
 use slint::StandardListViewItem;
 use slint::VecModel;
 use slint::ComponentHandle as _;
-use url::Url;
 use crate::ui::QueueDetailsAdapter;
+use crate::ui::Navigator;
 
 pub fn queue_details_init(app: &App) {
     let app_ = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
-        let app = app_.clone();
-        ui.global::<QueueDetailsAdapter>().on_current_row_changed(move |row| row_selected(&app, row));
         ui.global::<QueueDetailsAdapter>().on_sort_model(sort_model);
+
         let app = app_.clone();
-        ui.global::<QueueDetailsAdapter>().on_remove_all(move || remove_all(&app));
+        ui.global::<QueueDetailsAdapter>().on_play_now(move |row| {
+            app.player.set_queue_index(row as usize);
+            app.player.play();
+        });
+
+        ui.global::<QueueDetailsAdapter>().on_remove_row(move |_row| {
+            todo!()
+        });
+
+        let app = app_.clone();
+        ui.global::<QueueDetailsAdapter>().on_remove_all(move || {
+            let queue = app.player.queue();
+            app.library.playlist_clear(&queue);
+            app.ui.upgrade_in_event_loop(|ui| ui.global::<Navigator>().invoke_navigate("dimple://refresh".into()));
+        });
     }).unwrap();
 }
 
 pub fn queue_details(url: &str, app: &App) {
     let app = app.clone();
-    let url = url.to_owned();
     thread::spawn(move || {
         let playlist: Playlist = app.player.queue();
         let tracks = playlist.tracks(&app.library);
@@ -57,21 +68,6 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
         row_data.push(row.into());
     }
     row_data.into()
-}
-
-fn remove_all(app: &App) {
-    let queue = app.player.queue();
-    app.library.playlist_clear(&queue);
-}
-
-fn row_selected(app: &App, row: i32) {
-    // let app = app.clone();
-    // app.ui.upgrade_in_event_loop(move |ui| {
-    //     let row_data = ui.global::<QueueDetailsAdapter>().get_row_data();
-    //     let cell_data = row_data.row_data(row as usize).unwrap().row_data(5).unwrap();
-    //     let key = cell_data.text.as_str();
-    //     ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
-    // }).unwrap();
 }
 
 fn sort_model(

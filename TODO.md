@@ -46,3 +46,5 @@ Dump new things at the bottom, move things to the top to prioritize.
   playing.
 - Looks like you can get and set window position now, so I can start saving
   that in config.
+- Bug: Remove all from queue while playing removes the info from the play bar
+  but music keeps playing.

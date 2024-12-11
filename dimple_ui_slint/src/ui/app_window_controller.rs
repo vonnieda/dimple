@@ -208,14 +208,6 @@ fn desktop_integration(app: &App) -> MediaControls {
     #[cfg(not(target_os = "windows"))]
     let hwnd = None;
 
-    #[cfg(target_os = "windows")]
-    let hwnd = {
-        use raw_window_handle::windows::WindowsHandle;
-
-        let handle: WindowsHandle = unimplemented!();
-        Some(handle.hwnd)
-    };
-
     let config = PlatformConfig {
         dbus_name: "dimple",
         display_name: "Dimple",
