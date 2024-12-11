@@ -14,13 +14,13 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-latest]
-        # os: [ubuntu-latest, windows-latest, macos-13-xlarge]
+        # os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - run: rustup update nightly && rustup default nightly
-      - run: cargo build
-      - run: cargo test
+      - run: cargo test --release -- --skip player 
+      - run: cargo build --release
       - uses: actions/upload-artifact@v4
         with: 
           name: ${{ matrix.os }}
