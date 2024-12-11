@@ -1,11 +1,9 @@
 use std::time::Duration;
 use crate::ui::CardAdapter;
 use crate::ui::ImageLinkAdapter;
-use crate::ui::TrackListAdapter;
 use crate::ui::LinkAdapter;
-use crate::ui::AppWindow;
 
-use dimple_core::{model::Track, player::{Player, PlayerState}};
+use dimple_core::{model::Track, player::PlayerState};
 
 use super::app_window_controller::App;
 
@@ -38,11 +36,11 @@ pub fn player_bar_init(app: &App) {
     }
 
     {
-        let app = app.clone();
+        let _app = app.clone();
         std::thread::spawn(move || {
             loop {
-                let player = app.player.clone();
-                app.ui.upgrade_in_event_loop(move |ui| update_model(&player, &ui)).unwrap();
+                let app = _app.clone();
+                _app.ui.upgrade_in_event_loop(move |ui| update_model(&app)).unwrap();
     
                 // TODO magic
                 std::thread::sleep(Duration::from_millis(100));
@@ -51,29 +49,44 @@ pub fn player_bar_init(app: &App) {
 }
 }
 
+fn update_model(app: &App) {
+    let player = app.player.clone();
+    let current_track = player.current_queue_track().unwrap_or_default();
+    let next_track = player.next_queue_track().unwrap_or_default();
+    let _app = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        let app = _app.clone();
+        let images = app.images.clone();
+
+        let mut now_playing_recording = track_card(&current_track);
+        now_playing_recording.image.image = images.lazy_get(current_track.clone(), 120, 120, |ui, image| {
+            let mut adapter = ui.get_player_bar();
+            adapter.now_playing_recording.image.image = image;
+            ui.set_player_bar(adapter);
+        });
+    
+        let adapter = crate::ui::PlayerBarAdapter {
+            duration_seconds: player.track_duration().as_secs() as i32,
+            duration_label: format_duration(&player.track_duration()).into(),
+            position_seconds: player.track_position().as_secs() as i32,
+            position_label: format_duration(&player.track_position()).into(),
+            player_state: player.state().into(),
+            now_playing_artist: artist_card(&current_track),
+            up_next_artist: artist_card(&next_track),
+            now_playing_release: release_card(&current_track),
+            up_next_release: release_card(&next_track),
+            now_playing_recording,
+            up_next_recording: track_card(&next_track),
+        };
+    
+        ui.set_player_bar(adapter);
+    }).unwrap();
+}
+
 fn format_duration(dur: &Duration) -> String {
     format!("{}:{:02}", 
         dur.as_millis() / (60 * 1000), 
         dur.as_millis() % (60 * 1000) / 1000)
-}
-
-fn update_model(player: &Player, ui: &AppWindow) {
-    let current_track = player.current_queue_track().unwrap_or_default();
-    let next_track = player.next_queue_track().unwrap_or_default();
-    let adapter = crate::ui::PlayerBarAdapter {
-        duration_seconds: player.track_duration().as_secs() as i32,
-        duration_label: format_duration(&player.track_duration()).into(),
-        position_seconds: player.track_position().as_secs() as i32,
-        position_label: format_duration(&player.track_position()).into(),
-        player_state: player.state().into(),
-        now_playing_artist: artist_card(&current_track),
-        up_next_artist: artist_card(&next_track),
-        now_playing_release: release_card(&current_track),
-        up_next_release: release_card(&next_track),
-        now_playing_recording: track_card(&current_track),
-        up_next_recording: track_card(&next_track),
-    };
-    ui.set_player_bar(adapter);
 }
 
 impl From<PlayerState> for crate::ui::PlayerState {
