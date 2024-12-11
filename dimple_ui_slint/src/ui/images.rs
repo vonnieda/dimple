@@ -38,18 +38,12 @@ impl ImageMangler {
         let images = Self {
             ui,
             librarian: librarian.clone(),
-            // TODO breaks in bundle cause images are not included. Opening the
-            // app from the Projects//dimple_ui_slint directory works and it can
-            // find the images.
-            // I can include file these, or maybe see if I can do a placeholder
-            // in the Slint component instead - that would be better for UI work.
-
-            artist_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/music-notes.png"),
-            release_group_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/vinyl-record.png"),
-            release_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/vinyl-record.png"),
-            track_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/music-notes.png"),
-            genre_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/globe-simple.png"),
-            other_placeholder: Self::load_default_image("icons/phosphor/PNGs/regular/question.png"),
+            artist_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/music-notes.png")),
+            release_group_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/vinyl-record.png")),
+            release_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/vinyl-record.png")),
+            track_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/music-notes.png")),
+            genre_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/globe-simple.png")),
+            other_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/question.png")),
             threadpool: ThreadPool::new(1),
             cache_path: cache_path.to_string(),
         };
@@ -126,8 +120,8 @@ impl ImageMangler {
         len
     }
 
-    fn load_default_image(path: &str) -> Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>> {
-        let image = image::open(path).ok().unwrap();
+    fn load_default_image(buffer: &[u8]) -> Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>> {
+        let image = image::load_from_memory(buffer).unwrap();
         Arc::new(Mutex::new(dynamic_to_buffer(&image)))
     }
 }
