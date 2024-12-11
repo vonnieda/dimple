@@ -1,5 +1,5 @@
 use dimple_core::{library::Library, player::Player};
-use pages::{event_list, playlist_details, track_details, track_list};
+use pages::{event_list, playlist_details, queue_details, track_details, track_list};
 use player_bar;
 use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
@@ -72,8 +72,9 @@ impl AppWindowController {
         track_details::track_details_init(&self.app);
         event_list::event_list_init(&self.app);
         playlist_details::playlist_details_init(&self.app);
+        queue_details::queue_details_init(&self.app);
 
-        self.ui.global::<Navigator>().invoke_navigate("dimple://queue".into());
+        self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
         let app = self.app.clone();
         self.ui.window().on_close_requested(move || {
@@ -106,6 +107,7 @@ impl App {
         else if url.starts_with("dimple://search") {
             crate::ui::pages::search::search(&url, self);
         }
+        // TODO change this mess to use a registry that pages call during init
         else if url.starts_with("dimple://home") {
             // TODO
             self.set_page(Page::Home);
@@ -149,9 +151,9 @@ impl App {
         else if url.starts_with("dimple://playlist/") {
             crate::ui::pages::playlist_details::playlist_details(&url, self);
         }
+        // TODO select index
         else if url.starts_with("dimple://queue") {
-            let play_queue = self.player.queue();
-            self.navigate(format!("dimple://playlist/{}", &play_queue.key.unwrap()).into());
+            crate::ui::pages::queue_details::queue_details(&url, self);
         }
         else if url.starts_with("dimple://history") {
             crate::ui::pages::event_list::event_list(self);

@@ -2,15 +2,22 @@ import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button} from "std-widgets.slint";
-import { AppState } from "../common.slint";
+import { AppState, Navigator } from "../common.slint";
 
-export global PlaylistDetailsAdapter {
-    in property <[[StandardListViewItem]]> row_data;
+export global QueueDetailsAdapter {
+    in property <[[StandardListViewItem]]> row_data: [
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+    ];
     pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
     pure callback current_row_changed(int);
+    pure callback play_now(int);
+    pure callback remove_row(int);
+    pure callback remove_all();
 }
 
-export component PlaylistDetails inherits VerticalLayout {
+export component QueueDetails inherits VerticalLayout {
     property <int> sort-index: -1;
     property <bool> sort-acending;
     in-out property <length> popup-x;
@@ -18,8 +25,8 @@ export component PlaylistDetails inherits VerticalLayout {
     in-out property <int> popup-row;
 
     popup := PopupWindow {
-        // x: popup-x; 
-        // y: popup-y; 
+        x: popup-x; 
+        y: popup-y; 
         Rectangle {
             border-width: 1px;
             border-color: StyleMetrics.default-text-color;
@@ -27,13 +34,17 @@ export component PlaylistDetails inherits VerticalLayout {
             background: StyleMetrics.window-background;
             VerticalBox {
                 Button {
-                    text: "Add to Queue";
-                    // clicked => { PlaylistDetailsAdapter.add_to_queue(popup-row); }
+                    text: "Play Now";
+                    clicked => { QueueDetailsAdapter.play_now(popup-row); }
                 }
-                // Button {
-                //     text: "Play Now";
-                //     clicked => { TrackListAdapter.play_now(popup-row); }
-                // }
+                Button {
+                    text: "Remove This";
+                    clicked => { QueueDetailsAdapter.remove_row(popup-row); }
+                }
+                Button {
+                    text: "Remove All";
+                    clicked => { QueueDetailsAdapter.remove_all(); }
+                }
                 // Button {
                 //     text: "Play Next";
                 //     clicked => { TrackListAdapter.play_next(popup-row); }
@@ -52,9 +63,10 @@ export component PlaylistDetails inherits VerticalLayout {
             { title: "Artist" },
             { title: "Length" },
         ];
-        rows: PlaylistDetailsAdapter.sort_model(PlaylistDetailsAdapter.row_data, root.sort-index, root.sort-acending);
+        // rows: QueueDetailsAdapter.sort_model(QueueDetailsAdapter.row_data, root.sort-index, root.sort-acending);
+        rows: QueueDetailsAdapter.row_data;
         current-row-changed(row) => { 
-            PlaylistDetailsAdapter.current_row_changed(row);
+            QueueDetailsAdapter.current_row_changed(row);
         }
         sort-ascending(index) => {
             root.sort-index = index;
@@ -65,8 +77,7 @@ export component PlaylistDetails inherits VerticalLayout {
             root.sort-acending = false;
         }        
         row-pointer-event(row, event, point) => {
-            // if event.button == PointerEventButton.left
-            //         && event.kind == PointerEventKind.
+            // Context menu
             if event.button == PointerEventButton.right 
                     && event.kind == PointerEventKind.down {
                 popup-x = point.x;
@@ -74,10 +85,17 @@ export component PlaylistDetails inherits VerticalLayout {
                 popup-row = row;
                 popup.show();
             }
+            // Click to go
+            // if event.button == PointerEventButton.left
+            //         && event.kind == PointerEventKind.down
+            //         && row == root.row {
+                
+            //     Navigator.navigate("dimple://track/key");
+            // }
         }
     }
     Text {
         horizontal-alignment: right;
-        text: PlaylistDetailsAdapter.row_data.length + " items";
+        text: QueueDetailsAdapter.row_data.length + " items";
     }
 }

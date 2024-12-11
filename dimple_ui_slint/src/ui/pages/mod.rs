@@ -14,3 +14,4 @@ pub mod search;
 // pub mod genre_details;
 // pub mod playlist_list;
 pub mod playlist_details;
+pub mod queue_details;

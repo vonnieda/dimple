@@ -119,8 +119,6 @@ pub fn track_details(url: &str, app: &App) {
             ui.global::<TrackDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
             ui.global::<TrackDetailsAdapter>().set_dump(format!("{:?}", track).into());
 
-
-            // ui.set_track_details(adapter);
             ui.set_page(Page::TrackDetails);
         }).unwrap();
     });

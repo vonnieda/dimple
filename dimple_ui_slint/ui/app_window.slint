@@ -34,6 +34,7 @@ import { GenreDetailsAdapter, GenreDetails } from "pages/genre_details.slint";
 import { PlaylistList } from "pages/playlist_list.slint";
 import { PlaylistDetailsAdapter, PlaylistDetails } from "pages/playlist_details.slint";
 import { EventListAdapter, EventList } from "pages/event_list.slint";
+import { QueueDetailsAdapter, QueueDetails } from "pages/queue_details.slint";
 
 import "../fonts/Roboto/Roboto-Black.ttf";
 import "../fonts/Roboto/Roboto-BlackItalic.ttf";
@@ -70,7 +71,7 @@ import "../icons/phosphor/Fonts/regular/Phosphor.ttf";
 
 export { Navigator, Palette, AppState, TrackListAdapter, 
     EventListAdapter, PlaylistDetailsAdapter,
-    SettingsAdapter, TrackDetailsAdapter }
+    SettingsAdapter, TrackDetailsAdapter, QueueDetailsAdapter }
 
 export enum Page { Home, Search,
     ArtistList, ArtistDetails,
@@ -190,6 +191,7 @@ export component AppWindow inherits Window {
                         if page == Page.PlaylistDetails: PlaylistDetails {}
                         if page == Page.EventList: EventList {}
                         if page == Page.Settings: Settings {}
+                        if page == Page.QueueDetails: QueueDetails {}
                     }
                 }    
             }
