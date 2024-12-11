@@ -1,8 +1,8 @@
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView, Button} from "std-widgets.slint";
-import { AppState, Navigator } from "../common.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, Palette} from "std-widgets.slint";
+import { Palette, AppState, Navigator } from "../common.slint";
 
 export global QueueDetailsAdapter {
     in property <[[StandardListViewItem]]> row_data: [
@@ -16,7 +16,7 @@ export global QueueDetailsAdapter {
     pure callback remove_all();
 }
 
-export component QueueDetails inherits VerticalLayout {
+export component QueueDetails inherits VerticalBox {
     property <int> sort-index: -1;
     property <bool> sort-acending;
     in-out property <length> popup-x;
@@ -51,6 +51,12 @@ export component QueueDetails inherits VerticalLayout {
             }
         }
     }    
+
+    Text {
+        text: "Play Queue";
+        font-size: 3rem;
+        font-weight: Palette.font-weight-bold;
+    }
         
     StandardTableView {
         vertical-stretch: 1;
@@ -62,8 +68,7 @@ export component QueueDetails inherits VerticalLayout {
             { title: "Artist" },
             { title: "Length" },
         ];
-        // rows: QueueDetailsAdapter.sort_model(QueueDetailsAdapter.row_data, root.sort-index, root.sort-acending);
-        rows: QueueDetailsAdapter.row_data;
+        rows: QueueDetailsAdapter.sort_model(QueueDetailsAdapter.row_data, root.sort-index, root.sort-acending);
         sort-ascending(index) => {
             root.sort-index = index;
             root.sort-acending = true;
@@ -74,7 +79,6 @@ export component QueueDetails inherits VerticalLayout {
         }     
 
         row-pointer-event(row, event, point) => {
-            // debug(row, event, point);
             // Context menu
             if event.button == PointerEventButton.right 
                     && event.kind == PointerEventKind.down {
@@ -92,6 +96,7 @@ export component QueueDetails inherits VerticalLayout {
             // }
         }
     }
+
     Text {
         horizontal-alignment: right;
         text: QueueDetailsAdapter.row_data.length + " items";

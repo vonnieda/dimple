@@ -48,3 +48,6 @@ Dump new things at the bottom, move things to the top to prioritize.
   that in config.
 - Bug: Remove all from queue while playing removes the info from the play bar
   but music keeps playing.
+- Bug: When going "Back" scroll position should be remembered. For example, as
+  of 12/10/2024 if you go to tracks, then scroll down, then click a track, then
+  click back, when you get back to track the scroll position is lost.

@@ -53,75 +53,78 @@ export component BorderImage inherits Rectangle {
         source: image;
     }
 }
+
+component ActionButtons inherits HorizontalBox {
+    alignment: space-around;
+
+    property <length> button-width: 40px;
+
+    // So thinking here queue should be dropping tracks off the end as they get played
+    // and then:
+    // Play Now: adds to front of queue and switches to it
+    // Play Next: add to next in queue and switches to it
+    // Play Later: add to end of queue and start playing
+    
+    Button {
+        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+        colorize-icon: true;
+        width: button-width;
+        height: button-width;
+        accessible-label: @tr("Play Now");
+        accessible-role: button;
+        clicked => { TrackDetailsAdapter.play_now(TrackDetailsAdapter.key); }
+    }
+    Button {
+        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+        colorize-icon: true;
+        width: button-width;
+        height: button-width;
+        accessible-label: @tr("Play Later");
+        accessible-description: @tr("Add the track to the end of the play queue.");
+        accessible-role: button;
+        clicked => { TrackDetailsAdapter.add_to_queue(TrackDetailsAdapter.key); }
+    }
+
+    // TODO I think I want this to pop the full emoji menu, maybe on hold.
+    Button {
+        icon: self.checked ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+        colorize-icon: true;
+        width: button-width;
+        height: button-width;
+        accessible-label: @tr("Play Later");
+        accessible-description: @tr("Add the track to the end of the play queue.");
+        accessible-role: button;
+        clicked => { TrackDetailsAdapter.set_love(self.checked); }
+        checkable: true;
+        checked: TrackDetailsAdapter.love;
+    }
+    Button {
+        icon: self.checked ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
+        colorize-icon: true;
+        width: button-width;
+        height: button-width;
+        accessible-label: @tr("Play Later");
+        accessible-description: @tr("Add the track to the end of the play queue.");
+        accessible-role: button;
+        clicked => { TrackDetailsAdapter.set_download(self.checked); }
+        checkable: true;
+        checked: TrackDetailsAdapter.download;
+    }
+}
+
 export component TrackDetails inherits ScrollView {
-    VerticalBox {
+    VerticalLayout {
         alignment: start;
         // Header: Image, Title, Artists, Genres, Summary
-        HorizontalBox {
+        HorizontalLayout {
             alignment: start;
             VerticalLayout {
-                img := BorderImage {
+                BorderImage {
                     width: Palette.thumbnail-width-extra-large;
                     height: Palette.thumbnail-width-extra-large;
                     image: TrackDetailsAdapter.card.image.image;
                 }
-                HorizontalBox {
-                    width: img.width;
-                    alignment: space-around;
-
-                    property <length> button-width: 40px;
-
-                    // So thinking here queue should be dropping tracks off the end as they get played
-                    // and then:
-                    // Play Now: adds to front of queue and switches to it
-                    // Play Next: add to next in queue and switches to it
-                    // Play Later: add to end of queue and start playing
-                    
-                    Button {
-                        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-                        colorize-icon: true;
-                        width: button-width;
-                        height: button-width;
-                        accessible-label: @tr("Play Now");
-                        accessible-role: button;
-                        clicked => { TrackDetailsAdapter.play_now(TrackDetailsAdapter.key); }
-                    }
-                    Button {
-                        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
-                        colorize-icon: true;
-                        width: button-width;
-                        height: button-width;
-                        accessible-label: @tr("Play Later");
-                        accessible-description: @tr("Add the track to the end of the play queue.");
-                        accessible-role: button;
-                        clicked => { TrackDetailsAdapter.add_to_queue(TrackDetailsAdapter.key); }
-                    }
-
-                    // TODO I think I want this to pop the full emoji menu, maybe on hold.
-                    Button {
-                        icon: self.checked ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
-                        colorize-icon: true;
-                        width: button-width;
-                        height: button-width;
-                        accessible-label: @tr("Play Later");
-                        accessible-description: @tr("Add the track to the end of the play queue.");
-                        accessible-role: button;
-                        clicked => { TrackDetailsAdapter.set_love(self.checked); }
-                        checkable: true;
-                        checked: TrackDetailsAdapter.love;
-                    }
-                    Button {
-                        icon: self.checked ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
-                        colorize-icon: true;
-                        width: button-width;
-                        height: button-width;
-                        accessible-label: @tr("Play Later");
-                        accessible-description: @tr("Add the track to the end of the play queue.");
-                        accessible-role: button;
-                        clicked => { TrackDetailsAdapter.set_download(self.checked); }
-                        checkable: true;
-                        checked: TrackDetailsAdapter.download;
-                    }
+                ActionButtons {
                 }
                 Rectangle {
                     vertical-stretch: 1;
@@ -133,14 +136,8 @@ export component TrackDetails inherits ScrollView {
                 Text {
                     text: TrackDetailsAdapter.card.title.name;
                     font-weight: Palette.font-weight-bold;
-                    font-size: 5rem;
+                    font-size: 3rem;
                     wrap: word-wrap;
-                }
-                // Disambiguation
-                if TrackDetailsAdapter.disambiguation != "": Text {
-                    text: TrackDetailsAdapter.disambiguation;
-                    font-italic: true;
-                    font-size: 1.3rem;
                 }
                 // Type and artists
                 if TrackDetailsAdapter.artists.length > 0: HorizontalLayout {
@@ -153,6 +150,12 @@ export component TrackDetails inherits ScrollView {
                         links: TrackDetailsAdapter.artists;
                         font-size: 1.3rem;
                     }
+                }
+                // Disambiguation
+                if TrackDetailsAdapter.disambiguation != "": Text {
+                    text: TrackDetailsAdapter.disambiguation;
+                    font-italic: true;
+                    font-size: 1.3rem;
                 }
                 // Genres
                 if TrackDetailsAdapter.genres.length > 0: HorizontalLayout {

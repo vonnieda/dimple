@@ -3,7 +3,7 @@ use pages::{event_list, playlist_details, queue_details, track_details, track_li
 use player_bar;
 use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
-use slint::{SharedString, Weak};
+use slint::{ComponentHandle, SharedString, Weak};
 
 use directories::ProjectDirs;
 
@@ -31,7 +31,7 @@ pub struct AppWindowController {
 impl AppWindowController {
     pub fn new() -> Self {
         let ui = AppWindow::new().unwrap();
-        // TODO This and librarian should happen once the UI is up so that we
+        // TODO This and library should happen once the UI is up so that we
         // can show errors if needed. 
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
         let data_dir = dirs.data_dir();
@@ -84,7 +84,7 @@ impl AppWindowController {
 
         let app = self.app.clone();
         self.app.ui.upgrade_in_event_loop(move |ui| {
-            let controls = desktop_integration(&app);
+            let controls = desktop_integration(&app, &ui);
             *app.media_controls.lock().unwrap() = Some(controls);
         }).unwrap();
 
@@ -203,9 +203,22 @@ impl App {
     }
 }
 
-// TODO desktop integration using souvlaki. currently broken on Windows.
-fn desktop_integration(app: &App) -> MediaControls {
+fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
+    #[cfg(not(target_os = "windows"))]
     let hwnd = None;
+
+    #[cfg(target_os = "windows")]
+    use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+    #[cfg(target_os = "windows")]
+    let hwnd = {
+        let window_handle = ui.window().window_handle();
+        let raw_window_handle = window_handle.window_handle().unwrap().as_raw();
+        let handle = match raw_window_handle {
+            RawWindowHandle::Win32(h) => h,
+            _ => unreachable!(),
+        };
+        Some(handle.hwnd)
+    };
 
     let config = PlatformConfig {
         dbus_name: "dimple",
