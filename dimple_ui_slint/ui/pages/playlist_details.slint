@@ -2,15 +2,79 @@ import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button} from "std-widgets.slint";
-import { AppState } from "../common.slint";
+import { AppState, Palette } from "../common.slint";
 
 export global PlaylistDetailsAdapter {
     in property <[[StandardListViewItem]]> row_data;
+    in property <string> key;
+    in property <string> name: "Best Air Guitar Songs";
+    in property <bool> love;
+    in property <bool> download;
     pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
     pure callback current_row_changed(int);
+
+    pure callback play_now(string);
+    pure callback add_to_queue(string);
+    pure callback set_save(bool);
+    pure callback set_download(bool);
+    pure callback set_love(bool);
+    pure callback delete();
 }
 
-export component PlaylistDetails inherits VerticalLayout {
+component ActionButton inherits Button {
+    in property <length> button-width: 40px;
+    in property <string> label;
+
+    colorize-icon: true;
+    width: button-width;
+    height: button-width;
+    accessible-label: label;
+    accessible-role: button;
+}
+
+component ActionButtons inherits HorizontalBox {
+    vertical-stretch: 0;
+    horizontal-stretch: 0;
+    alignment: start;
+
+    ActionButton {
+        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+        label: @tr("Play Now");
+        clicked => { PlaylistDetailsAdapter.play_now(PlaylistDetailsAdapter.key); }
+    }
+    ActionButton {
+        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+        label: @tr("Play Later");
+        clicked => { PlaylistDetailsAdapter.add_to_queue(PlaylistDetailsAdapter.key); }
+    }
+    ActionButton {
+        icon: self.checked 
+            ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
+            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+        label: @tr("Love");
+        checkable: true;
+        checked: PlaylistDetailsAdapter.love;
+        clicked => { PlaylistDetailsAdapter.set_love(self.checked); }
+    }
+    ActionButton {
+        icon: self.checked 
+            ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
+            : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
+        label: @tr("Play Later");
+        checkable: true;
+        checked: PlaylistDetailsAdapter.download;
+        clicked => { PlaylistDetailsAdapter.set_download(self.checked); }
+    }
+    ActionButton {
+        label: @tr("Delete Playlist");
+        icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
+        // clicked => { PlaylistListAdapter.new_playlist(); }
+    }
+
+
+}
+
+export component PlaylistDetails inherits VerticalBox {
     property <int> sort-index: -1;
     property <bool> sort-acending;
     in-out property <length> popup-x;
@@ -42,6 +106,16 @@ export component PlaylistDetails inherits VerticalLayout {
         }
     }    
         
+    VerticalLayout {
+        Text {
+            text: PlaylistDetailsAdapter.name;
+            font-size: 3rem;
+        }
+        ActionButtons {
+
+        }
+    }
+
     StandardTableView {
         vertical-stretch: 1;
         horizontal-stretch: 1;

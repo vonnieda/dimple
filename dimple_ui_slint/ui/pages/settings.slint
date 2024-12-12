@@ -22,81 +22,108 @@ export global SettingsAdapter {
     pure callback set_font_size(float);
 }
 
-export component Settings inherits ScrollView {
+component General inherits VerticalBox {
+    Text {
+        text: "General";
+        font-size: 2rem;
+    }
+
+    HorizontalBox {
+        alignment: LayoutAlignment.start;
+        Text {
+            text: "Font Size";
+            vertical-alignment: center;
+        }
+
+        Slider {
+            width: 200px;
+            minimum: 1;
+            maximum: 24;
+            changed => {
+                SettingsAdapter.set_font_size(self.value);
+            }
+        }
+    }
+
+    HorizontalBox {
+        Text {
+            text: "Online?";
+            vertical-alignment: center;
+        }
+
+        CheckBox {
+            checked: AppState.online;
+            toggled => {
+                SettingsAdapter.set_online(self.checked);
+            }
+        }
+    }
+}
+
+component Database inherits VerticalBox {
+    Text {
+        text: "Database";
+        font-size: 2rem;
+    }
+
+    VerticalBox {
+        for stat in SettingsAdapter.database-stats: Text {
+            text: stat;
+            vertical-alignment: center;
+        }
+    }
+}
+
+component Cache inherits VerticalBox {
+    Text {
+        text: "Cache";
+        font-size: 2rem;
+    }
+
+    for stat in SettingsAdapter.cache-stats: Text {
+        text: stat;
+        vertical-alignment: center;
+    }
+}
+
+component Development inherits VerticalBox {
+    Text {
+        text: "Development";
+        font-size: 2rem;
+    }
+
+    HorizontalBox {
+        Text {
+            text: "Show model JSON?";
+            vertical-alignment: center;
+        }
+
+        CheckBox {
+            checked: AppState.debug;
+            toggled => {
+                SettingsAdapter.set_debug(self.checked);
+            }
+        }
+    }
+}
+
+export component Settings inherits VerticalBox {
     in property <length> header-font-size: 1.5rem;
 
-    VerticalLayout {
-        alignment: start;
+    Text {
+        text: "Settings";
+        font-size: 3rem;
+    }
+
+    ScrollView {
         VerticalBox {
-            Text {
-                text: "General";
-                font-weight: Palette.font-weight-bold;
-                font-size: header-font-size;
-            }
-            HorizontalBox {
-                alignment: LayoutAlignment.start;
-                Text {
-                    text: "Font Size";
-                    vertical-alignment: center;
-                }
-                Slider {
-                    width: 200px;
-                    minimum: 1;
-                    maximum: 24;
-                    changed => { SettingsAdapter.set_font_size(self.value); }
-                }
-            }
-            HorizontalBox {
-                Text {
-                    text: "Online?";
-                    vertical-alignment: center;
-                }
-                CheckBox {
-                    checked: AppState.online;
-                    toggled => { SettingsAdapter.set_online(self.checked); }
-                }
-            }
-        }
-        VerticalBox {
-            Text {
-                text: "Database";
-                font-size: header-font-size;
-                font-weight: Palette.font-weight-bold;
-            }
-            for stat in SettingsAdapter.database-stats: 
-                Text {
-                    text: stat;
-                    vertical-alignment: center;
-                }
-        }
-        VerticalBox {
-            Text {
-                text: "Cache";
-                font-size: header-font-size;
-                font-weight: Palette.font-weight-bold;
-            }
-            for stat in SettingsAdapter.cache-stats: 
-                Text {
-                    text: stat;
-                    vertical-alignment: center;
-                }
-        }
-        VerticalBox {
-            Text {
-                text: "Development";
-                font-size: header-font-size;
-                font-weight: Palette.font-weight-bold;
-            }
-            HorizontalBox {
-                Text {
-                    text: "Show model JSON?";
-                    vertical-alignment: center;
-                }
-                CheckBox {
-                    checked: AppState.debug;
-                    toggled => { SettingsAdapter.set_debug(self.checked); }
-                }
-            }
+            General { }
+
+            Database { }
+
+            Cache { }
+
+            Development { }
         }
     }
 }

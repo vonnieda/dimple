@@ -28,10 +28,10 @@ import { ArtistList } from "pages/artist_list.slint";
 import { ReleaseGroupList } from "pages/release_group_list.slint";
 import { ReleaseList } from "pages/release_list.slint";
 import { TrackList } from "pages/track_list.slint";
-import { Search } from "pages/search.slint";
+import { SearchResults } from "pages/search_results.slint";
 import { GenreList } from "pages/genre_list.slint";
 import { GenreDetailsAdapter, GenreDetails } from "pages/genre_details.slint";
-import { PlaylistList } from "pages/playlist_list.slint";
+import { PlaylistList, PlaylistListAdapter } from "pages/playlist_list.slint";
 import { PlaylistDetailsAdapter, PlaylistDetails } from "pages/playlist_details.slint";
 import { EventListAdapter, EventList } from "pages/event_list.slint";
 import { QueueDetailsAdapter, QueueDetails } from "pages/queue_details.slint";
@@ -71,9 +71,10 @@ import "../icons/phosphor/Fonts/regular/Phosphor.ttf";
 
 export { Navigator, Palette, AppState, TrackListAdapter, 
     EventListAdapter, PlaylistDetailsAdapter,
-    SettingsAdapter, TrackDetailsAdapter, QueueDetailsAdapter }
+    SettingsAdapter, TrackDetailsAdapter, QueueDetailsAdapter,
+    PlaylistListAdapter }
 
-export enum Page { Home, Search,
+export enum Page { Home, SearchResults,
     ArtistList, ArtistDetails,
     ReleaseList, ReleaseDetails,
     ReleaseGroupList, ReleaseGroupDetails,
@@ -153,7 +154,7 @@ export component AppWindow inherits Window {
                         if page == Page.Home: Home {
                             model: root.home;
                         }
-                        if page == Page.Search: Search {
+                        if page == Page.SearchResults: SearchResults {
                             model: root.search;
                         }
                         if page == Page.ArtistList: ArtistList {

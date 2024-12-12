@@ -51,3 +51,7 @@ Dump new things at the bottom, move things to the top to prioritize.
 - Bug: When going "Back" scroll position should be remembered. For example, as
   of 12/10/2024 if you go to tracks, then scroll down, then click a track, then
   click back, when you get back to track the scroll position is lost.
+- When I pause the music to watch a video, and I have to turn the volume all
+  the way up to hear the video, and then I unpause the music the music is of
+  course far too loud. Might be nice to fade it back in or something if the
+  volume has been adjusted by more than like 50% since it was paused.

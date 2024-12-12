@@ -35,6 +35,8 @@ pub fn playlist_details(url: &str, app: &App) {
         let tracks = playlist.tracks(&app.library);
         app.ui.upgrade_in_event_loop(move |ui| {
             ui.global::<PlaylistDetailsAdapter>().set_row_data(row_data(&tracks));
+            ui.global::<PlaylistDetailsAdapter>().set_name(playlist.name.clone()
+                .unwrap_or("(Nameless Playlist)".to_string()).into());
             ui.set_page(Page::PlaylistDetails);
         })
         .unwrap();

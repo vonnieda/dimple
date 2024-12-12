@@ -28,6 +28,7 @@ pub struct ImageMangler {
     release_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     genre_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     track_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
+    playlist_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     other_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     threadpool: ThreadPool,
     cache_path: String,
@@ -43,6 +44,7 @@ impl ImageMangler {
             release_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/vinyl-record.png")),
             track_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/music-notes.png")),
             genre_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/globe-simple.png")),
+            playlist_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/playlist.png")),
             other_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/question.png")),
             threadpool: ThreadPool::new(1),
             cache_path: cache_path.to_string(),
@@ -85,6 +87,7 @@ impl ImageMangler {
             "Release" => return self.release_placeholder.lock().unwrap().clone(),
             "Genre" => return self.genre_placeholder.lock().unwrap().clone(),
             "Track" => return self.track_placeholder.lock().unwrap().clone(),
+            "Playlist" => return self.playlist_placeholder.lock().unwrap().clone(),
             _ => return self.other_placeholder.lock().unwrap().clone(),
         }
     }

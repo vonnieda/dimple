@@ -10,10 +10,15 @@ export global EventListAdapter {
     pure callback current_row_changed(int);
 }
  
-export component EventList inherits VerticalLayout {
+export component EventList inherits VerticalBox {
     property <int> sort-index: -1;
     property <bool> sort-acending;
         
+    Text {
+        text: "Listening History";
+        font-size: 3rem;
+    }
+
     StandardTableView {
         vertical-stretch: 1;
         horizontal-stretch: 1;
@@ -37,6 +42,7 @@ export component EventList inherits VerticalLayout {
             root.sort-acending = false;
         }        
     }
+    
     Text {
         horizontal-alignment: right;
         text: EventListAdapter.row_data.length + " items";
