@@ -2,7 +2,7 @@ import { Slider , GroupBox, HorizontalBox} from "std-widgets.slint";
 import { StyleMetrics, Button, VerticalBox } from "std-widgets.slint";
 import { CardAdapter } from "components/card.slint";
 import {Link, LinkAdapter} from "./components/link.slint";
-import { Palette, Navigator, AppState } from "common.slint";
+import { Styles, Navigator, AppState } from "common.slint";
 
 export enum PlayerState {
     Playing,
@@ -59,7 +59,7 @@ component PlayerButtons inherits HorizontalLayout {
             width: 46px;
             height: 46px;
             colorize: parent.has-hover 
-                ? Palette.link-color-hover
+                ? Styles.link-color-hover
                 : StyleMetrics.default-text-color;
         }                
     }
@@ -71,7 +71,7 @@ component PlayerButtons inherits HorizontalLayout {
             source: @image-url("../icons/phosphor/SVGs/fill/pause-circle-fill.svg");
             width: 46px;
             height: 46px;
-            colorize: parent.has-hover ? Palette.link-color-hover
+            colorize: parent.has-hover ? Styles.link-color-hover
                 : StyleMetrics.default-text-color;
         }                
         if !playing: Image {
@@ -79,7 +79,7 @@ component PlayerButtons inherits HorizontalLayout {
             width: 46px;
             height: 46px;
             colorize: parent.has-hover 
-                ? Palette.link-color-hover
+                ? Styles.link-color-hover
                 : StyleMetrics.default-text-color;
         }                
     }
@@ -92,7 +92,7 @@ component PlayerButtons inherits HorizontalLayout {
             width: 46px;
             height: 46px;
             colorize: parent.has-hover 
-                ? Palette.link-color-hover
+                ? Styles.link-color-hover
                 : StyleMetrics.default-text-color;
         }                
     }                        
@@ -157,15 +157,15 @@ export component PlayerBar {
         Rectangle {
             width: img.width;
             height: img.height;
-            border-radius: Palette.thumbnail-border-radius;
-            border-width: Palette.thumbnail-border-width;
-            border-color: Palette.thumbnail-border-color;
+            border-radius: Styles.thumbnail-border-radius;
+            border-width: Styles.thumbnail-border-width;
+            border-color: Styles.thumbnail-border-color;
             clip: true;
             // TODO needs imagelink
             img := Image {
                 source: model.now-playing-recording.image.image;
-                width: Palette.thumbnail-width-medium;
-                height: Palette.thumbnail-width-medium;
+                width: Styles.thumbnail-width-medium;
+                height: Styles.thumbnail-width-medium;
             }    
         }
         VerticalLayout {

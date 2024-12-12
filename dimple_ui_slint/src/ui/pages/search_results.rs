@@ -14,7 +14,10 @@ use crate::ui::LinkAdapter;
 use crate::ui::Page;
 use slint::ComponentHandle as _;
 
-pub fn search(url: &str, app: &App) {
+pub fn search_results_init(app: &App) {
+}
+
+pub fn search_results(url: &str, app: &App) {
     let app = app.clone();
     let url = url.to_owned();
     std::thread::spawn(move || {
@@ -26,6 +29,7 @@ pub fn search(url: &str, app: &App) {
         let tracks: Vec<Track> = app.library.query("SELECT * FROM Track
             WHERE artist LIKE ?1 OR album LIKE ?1 OR title LIKE ?1", (query,));
         app.ui.upgrade_in_event_loop(move |ui| {
+            // TODO switch to actual search page
             ui.global::<TrackListAdapter>().set_row_data(row_data(&tracks));
             ui.set_page(Page::TrackList);
 

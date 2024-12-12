@@ -2,7 +2,7 @@ import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox, StandardListView, Palette} from "std-widgets.slint";
-import { AppState, Palette } from "../common.slint";
+import { AppState, Styles } from "../common.slint";
 
 export global TrackListAdapter {
     in property <[[StandardListViewItem]]> row_data: [
@@ -18,7 +18,7 @@ export global TrackListAdapter {
     pure callback play_next(int);
 }
  
-export component TrackList inherits VerticalLayout {
+export component TrackList inherits VerticalBox {
     property <int> sort-index: -1;
     property <bool> sort-acending;
     in-out property <length> popup-x;
@@ -49,6 +49,11 @@ export component TrackList inherits VerticalLayout {
             }
         }
     }    
+
+    Text {
+        text: "Tracks";
+        font-size: 3rem;
+    }
 
     StandardTableView {
         vertical-stretch: 1;
@@ -84,6 +89,7 @@ export component TrackList inherits VerticalLayout {
             }
         }
     }
+    
     Text {
         horizontal-alignment: right;
         text: TrackListAdapter.row_data.length + " items";

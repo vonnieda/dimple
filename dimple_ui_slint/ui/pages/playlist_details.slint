@@ -1,47 +1,107 @@
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView, Button} from "std-widgets.slint";
-import { AppState } from "../common.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, TextEdit, LineEdit} from "std-widgets.slint";
+import { AppState, Styles } from "../common.slint";
 
 export global PlaylistDetailsAdapter {
+    in property <string> key;
+    in-out property <string> name: "Best Air Guitar Songs";
+    in property <bool> love;
+    in property <bool> download;
     in property <[[StandardListViewItem]]> row_data;
+
     pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
-    pure callback current_row_changed(int);
+    pure callback play_now(string);
+    pure callback add_to_queue(string);
+    pure callback set_download(string, bool);
+    pure callback set_love(string, bool);
+    pure callback delete(string);
+    pure callback set_name(string, string);
 }
 
-export component PlaylistDetails inherits VerticalLayout {
+component ActionButton inherits Button {
+    in property <length> button-width: 40px;
+    in property <string> label;
+
+    colorize-icon: true;
+    width: button-width;
+    height: button-width;
+    accessible-label: label;
+    accessible-role: button;
+}
+
+component ActionButtons inherits HorizontalBox {
+    vertical-stretch: 0;
+    horizontal-stretch: 0;
+    alignment: start;
+
+    ActionButton {
+        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+        label: @tr("Play Now");
+        clicked => { PlaylistDetailsAdapter.play_now(PlaylistDetailsAdapter.key); }
+    }
+    ActionButton {
+        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+        label: @tr("Play Later");
+        clicked => { PlaylistDetailsAdapter.add_to_queue(PlaylistDetailsAdapter.key); }
+    }
+    ActionButton {
+        icon: self.checked 
+            ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
+            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+        label: @tr("Love");
+        checkable: true;
+        checked: PlaylistDetailsAdapter.love;
+        clicked => { PlaylistDetailsAdapter.set_love(PlaylistDetailsAdapter.key, self.checked); }
+    }
+    ActionButton {
+        icon: self.checked 
+            ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
+            : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
+        label: @tr("Play Later");
+        checkable: true;
+        checked: PlaylistDetailsAdapter.download;
+        clicked => { PlaylistDetailsAdapter.set_download(PlaylistDetailsAdapter.key, self.checked); }
+    }
+    ActionButton {
+        label: @tr("Delete Playlist");
+        icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
+        clicked => { PlaylistDetailsAdapter.delete(PlaylistDetailsAdapter.key); }
+    }
+}
+
+export component PlaylistDetails inherits VerticalBox {
     property <int> sort-index: -1;
     property <bool> sort-acending;
     in-out property <length> popup-x;
     in-out property <length> popup-y;
     in-out property <int> popup-row;
 
-    popup := PopupWindow {
-        // x: popup-x; 
-        // y: popup-y; 
-        Rectangle {
-            border-width: 1px;
-            border-color: StyleMetrics.default-text-color;
-            border-radius: 8px;
-            background: StyleMetrics.window-background;
-            VerticalBox {
-                Button {
-                    text: "Add to Queue";
-                    // clicked => { PlaylistDetailsAdapter.add_to_queue(popup-row); }
-                }
-                // Button {
-                //     text: "Play Now";
-                //     clicked => { TrackListAdapter.play_now(popup-row); }
-                // }
-                // Button {
-                //     text: "Play Next";
-                //     clicked => { TrackListAdapter.play_next(popup-row); }
-                // }
+    in-out property <bool> name_editing: false;
+    VerticalLayout {        
+        if !name_editing: TouchArea {
+            text := Text {
+                text: PlaylistDetailsAdapter.name;
+                font-size: 3rem;
+            }
+            width: text.width;
+            height: text.height;
+            clicked => { name_editing = true; }
+        }
+        if name_editing: LineEdit {
+            text: PlaylistDetailsAdapter.name;
+            font-size: 3rem;
+            accepted(text) => { 
+                name_editing = false;                
+                PlaylistDetailsAdapter.set_name(PlaylistDetailsAdapter.key, text);
             }
         }
-    }    
-        
+        ActionButtons {
+
+        }
+    }
+
     StandardTableView {
         vertical-stretch: 1;
         horizontal-stretch: 1;
@@ -53,9 +113,6 @@ export component PlaylistDetails inherits VerticalLayout {
             { title: "Length" },
         ];
         rows: PlaylistDetailsAdapter.sort_model(PlaylistDetailsAdapter.row_data, root.sort-index, root.sort-acending);
-        current-row-changed(row) => { 
-            PlaylistDetailsAdapter.current_row_changed(row);
-        }
         sort-ascending(index) => {
             root.sort-index = index;
             root.sort-acending = true;
@@ -65,15 +122,6 @@ export component PlaylistDetails inherits VerticalLayout {
             root.sort-acending = false;
         }        
         row-pointer-event(row, event, point) => {
-            // if event.button == PointerEventButton.left
-            //         && event.kind == PointerEventKind.
-            if event.button == PointerEventButton.right 
-                    && event.kind == PointerEventKind.down {
-                popup-x = point.x;
-                popup-y = point.y;
-                popup-row = row;
-                popup.show();
-            }
         }
     }
     Text {

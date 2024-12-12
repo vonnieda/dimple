@@ -1,5 +1,4 @@
 use dimple_core::{library::Library, player::Player};
-use pages::{event_list, playlist_details, queue_details, track_details, track_list};
 use player_bar;
 use raw_window_handle::HasRawWindowHandle;
 use std::{collections::VecDeque, os::raw::c_void, sync::{Arc, Mutex}};
@@ -67,13 +66,20 @@ impl AppWindowController {
         let app = self.app.clone();
         self.ui.global::<Navigator>().on_navigate(move |url| app.navigate(url));
 
-        settings::settings_init(&self.app);        
         player_bar::player_bar_init(&self.app);
-        track_list::track_list_init(&self.app);
-        track_details::track_details_init(&self.app);
-        event_list::event_list_init(&self.app);
-        playlist_details::playlist_details_init(&self.app);
-        queue_details::queue_details_init(&self.app);
+
+        pages::artist_list::artist_list_init(&self.app);
+        pages::event_list::event_list_init(&self.app);
+        pages::genre_list::genre_list_init(&self.app);
+        pages::home::home_init(&self.app);
+        pages::playlist_list::playlist_list_init(&self.app);
+        pages::playlist_details::playlist_details_init(&self.app);
+        pages::queue_details::queue_details_init(&self.app);
+        pages::release_list::release_list_init(&self.app);
+        pages::search_results::search_results_init(&self.app);        
+        pages::settings::settings_init(&self.app);        
+        pages::track_list::track_list_init(&self.app);
+        pages::track_details::track_details_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
 
@@ -106,16 +112,17 @@ impl App {
             self.refresh();
         }
         else if url.starts_with("dimple://search") {
-            crate::ui::pages::search::search(&url, self);
+            pages::search_results::search_results(&url, self);
         }
         // TODO change this mess to use a registry that pages call during init
+        // Or maybe get rid of the navigator altogether? Now that we have proper
+        // callbacks it might be superfluous.
         else if url.starts_with("dimple://home") {
-            // TODO
-            self.set_page(Page::Home);
+            pages::home::home(self);
         } 
-        // else if url.starts_with("dimple://artists") {
-        //     crate::ui::pages::artist_list::artist_list(self);
-        // }
+        else if url.starts_with("dimple://artists") {
+            pages::artist_list::artist_list(self);
+        }
         // else if url.starts_with("dimple://artist/") {
         //     crate::ui::pages::artist_details::artist_details(&url, self);
         // }
@@ -125,9 +132,9 @@ impl App {
         // else if url.starts_with("dimple://release-group/") {
         //     crate::ui::pages::release_group_details::release_group_details(&url, self);
         // }
-        // else if url.starts_with("dimple://releases") {
-        //     crate::ui::pages::release_list::release_list(self);
-        // }
+        else if url.starts_with("dimple://releases") {
+            pages::release_list::release_list(self);
+        }
         // else if url.starts_with("dimple://release/") {
         //     crate::ui::pages::release_details::release_details(&url, self);
         // }
@@ -135,32 +142,31 @@ impl App {
         //     crate::ui::pages::recording_details::recording_details(&url, self);
         // }
         else if url.starts_with("dimple://tracks") {
-            crate::ui::pages::track_list::track_list(self);
+            pages::track_list::track_list(self);
         }
         else if url.starts_with("dimple://track/") {
-            crate::ui::pages::track_details::track_details(&url, self);
+            pages::track_details::track_details(&url, self);
         }
-        // else if url.starts_with("dimple://genres") {
-        //     crate::ui::pages::genre_list::genre_list(self);
-        // }
+        else if url.starts_with("dimple://genres") {
+            pages::genre_list::genre_list(self);
+        }
         // else if url.starts_with("dimple://genre/") {
         //     crate::ui::pages::genre_details::genre_details(&url, self);
         // }
-        // else if url.starts_with("dimple://playlists") {
-        //     crate::ui::pages::playlist_list::playlist_list(self);
-        // }
-        else if url.starts_with("dimple://playlist/") {
-            crate::ui::pages::playlist_details::playlist_details(&url, self);
+        else if url.starts_with("dimple://playlists") {
+            pages::playlist_list::playlist_list(self);
         }
-        // TODO select index
+        else if url.starts_with("dimple://playlist/") {
+            pages::playlist_details::playlist_details(&url, self);
+        }
         else if url.starts_with("dimple://queue") {
-            crate::ui::pages::queue_details::queue_details(&url, self);
+            pages::queue_details::queue_details(&url, self);
         }
         else if url.starts_with("dimple://history") {
-            crate::ui::pages::event_list::event_list(self);
+            pages::event_list::event_list(self);
         }
         else if url == "dimple://settings" {
-            crate::ui::pages::settings::settings(self);
+            pages::settings::settings(self);
         }
 
         // Store history.

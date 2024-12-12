@@ -5,7 +5,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView, ComboBox} from 
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { Palette, Navigator, AppState } from "../common.slint";
+import { Styles, Navigator, AppState } from "../common.slint";
 import {MediumAdapter} from "../components/medium.slint";
 import { TrackList } from "../components/track_list.slint";
 
@@ -38,15 +38,15 @@ export component ReleaseGroupDetails inherits ScrollView {
             spacing: StyleMetrics.layout-spacing;
             // Image
             Rectangle {
-                width: Palette.thumbnail-width-extra-large;
-                height: Palette.thumbnail-width-extra-large;
-                border-radius: Palette.thumbnail-border-radius;
-                border-color: Palette.thumbnail-border-color;
-                border-width: Palette.thumbnail-border-width;
+                width: Styles.thumbnail-width-extra-large;
+                height: Styles.thumbnail-width-extra-large;
+                border-radius: Styles.thumbnail-border-radius;
+                border-color: Styles.thumbnail-border-color;
+                border-width: Styles.thumbnail-border-width;
                 clip: true;
                 Image {
-                    width: Palette.thumbnail-width-extra-large;
-                    height: Palette.thumbnail-width-extra-large;
+                    width: Styles.thumbnail-width-extra-large;
+                    height: Styles.thumbnail-width-extra-large;
                     source: model.card.image.image;
                 }
             }
@@ -61,7 +61,7 @@ export component ReleaseGroupDetails inherits ScrollView {
                 VerticalLayout {
                     Text {
                         text: model.card.title.name;
-                        font-weight: Palette.font-weight-bold;
+                        font-weight: Styles.font-weight-bold;
                         font-size: 4rem;
                         wrap: word-wrap;
                     }
@@ -77,7 +77,7 @@ export component ReleaseGroupDetails inherits ScrollView {
                         Text {
                             vertical-alignment: bottom;
                             text: model.disambiguation;
-                            // font-weight: Palette.font-weight-bold;
+                            // font-weight: Styles.font-weight-bold;
                             font-size: 1.3rem;
                             color: StyleMetrics.default-text-color.darker(0.5);
                         }
@@ -122,7 +122,7 @@ export component ReleaseGroupDetails inherits ScrollView {
             spacing: StyleMetrics.layout-spacing * 0.50;
             // Text {
             //     text: "Release Versions";
-            //     font-weight: Palette.font-weight-bold;
+            //     font-weight: Styles.font-weight-bold;
             //     font-size: 2rem;
             // }
             ComboBox {
@@ -140,7 +140,7 @@ export component ReleaseGroupDetails inherits ScrollView {
             for medium in model.media: VerticalLayout {
                 Text {
                     text: medium.title;
-                    font-weight: Palette.font-weight-bold;
+                    font-weight: Styles.font-weight-bold;
                     font-size: 2rem;
                 }
                 // https://github.com/slint-ui/slint/blob/master/internal/compiler/widgets/cupertino-base/tableview.slint
@@ -155,7 +155,7 @@ export component ReleaseGroupDetails inherits ScrollView {
         //     spacing: StyleMetrics.layout-spacing * 0.50;
         //     Text {
         //         text: "All Versions";
-        //         font-weight: Palette.font-weight-bold;
+        //         font-weight: Styles.font-weight-bold;
         //         font-size: 2rem;
         //     }
         //     CardGrid {
@@ -168,7 +168,7 @@ export component ReleaseGroupDetails inherits ScrollView {
         if model.links.length > 0: VerticalLayout {
             Text {
                 text: "Links";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             for link in model.links: Link {
@@ -181,7 +181,7 @@ export component ReleaseGroupDetails inherits ScrollView {
         if AppState.debug: VerticalLayout {
             Text {
                 text: "Debug";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             Text {

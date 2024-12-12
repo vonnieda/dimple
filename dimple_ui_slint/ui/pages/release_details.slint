@@ -10,7 +10,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widge
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { Palette, Navigator, AppState } from "../common.slint";
+import { Styles, Navigator, AppState } from "../common.slint";
 
 export struct ReleaseDetailsAdapter {
     card: CardAdapter,
@@ -35,15 +35,15 @@ export component ReleaseDetails inherits ScrollView {
             spacing: StyleMetrics.layout-spacing;
             // Image
             Rectangle {
-                width: Palette.thumbnail-width-extra-large;
-                height: Palette.thumbnail-width-extra-large;
-                border-radius: Palette.thumbnail-border-radius;
-                border-color: Palette.thumbnail-border-color;
-                border-width: Palette.thumbnail-border-width;
+                width: Styles.thumbnail-width-extra-large;
+                height: Styles.thumbnail-width-extra-large;
+                border-radius: Styles.thumbnail-border-radius;
+                border-color: Styles.thumbnail-border-color;
+                border-width: Styles.thumbnail-border-width;
                 clip: true;
                 Image {
-                    width: Palette.thumbnail-width-extra-large;
-                    height: Palette.thumbnail-width-extra-large;
+                    width: Styles.thumbnail-width-extra-large;
+                    height: Styles.thumbnail-width-extra-large;
                     source: model.card.image.image;
                 }
             }
@@ -52,14 +52,14 @@ export component ReleaseDetails inherits ScrollView {
                 // Title
                 Text {
                     text: model.card.title.name;
-                    font-weight: Palette.font-weight-bold;
+                    font-weight: Styles.font-weight-bold;
                     font-size: 5rem;
                     wrap: word-wrap;
                 }
                 // Disambiguation
                 if model.disambiguation > 0: Text {
                     text: model.disambiguation;
-                    // font-weight: Palette.font-weight-bold;
+                    // font-weight: Styles.font-weight-bold;
                     font-size: 1.3rem;
                 }
                 // Type and artists
@@ -100,7 +100,7 @@ export component ReleaseDetails inherits ScrollView {
             for medium in model.media: VerticalBox {
                 // Text {
                 //     text: medium.title;
-                //     font-weight: Palette.font-weight-bold;
+                //     font-weight: Styles.font-weight-bold;
                 //     font-size: 2rem;
                 // }
                 // https://github.com/slint-ui/slint/blob/master/internal/compiler/widgets/cupertino-base/tableview.slint
@@ -114,7 +114,7 @@ export component ReleaseDetails inherits ScrollView {
         if model.links.length > 0: VerticalLayout {
             Text {
                 text: "Links";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             for link in model.links: Link {
@@ -127,7 +127,7 @@ export component ReleaseDetails inherits ScrollView {
         if AppState.debug: VerticalLayout {
             Text {
                 text: "Debug";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             Text {
