@@ -16,12 +16,31 @@ use slint::ComponentHandle as _;
 use url::Url;
 use crate::ui::PlaylistDetailsAdapter;
 
-pub fn playlist_details_init(app: &App) {
-    let app_ = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        let app = app_;
-        ui.global::<PlaylistDetailsAdapter>().on_current_row_changed(move |row| row_selected(&app, row));
+/// - [x] list
+/// - [x] detail
+/// - [x] new
+///     - [x] rename
+/// - [/] delete
+/// - [/] play
+pub fn playlist_details_init(_app: &App) {
+    let app = _app.clone();
+    _app.ui.upgrade_in_event_loop(move |ui| {
         ui.global::<PlaylistDetailsAdapter>().on_sort_model(sort_model);
+        {
+            let app = app.clone();
+            ui.global::<PlaylistDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
+        }
+        // ui.global::<PlaylistDetailsAdapter>().on_add_to_queue(move |key| add_to_queue(&app, &key));
+        // ui.global::<PlaylistDetailsAdapter>().on_set_download(move |key, checked| set_download(&app, &key, checked));
+        // ui.global::<PlaylistDetailsAdapter>().on_set_love(move |key, checked| set_love(&app, &key, checked));
+        {
+            let app = app.clone();
+            ui.global::<PlaylistDetailsAdapter>().on_delete(move |key| delete(&app, &key));
+        }
+        {
+            let app = app.clone();
+            ui.global::<PlaylistDetailsAdapter>().on_set_name(move |key, name| set_name(&app, &key, &name));
+        }
     }).unwrap();
 }
 
@@ -30,10 +49,11 @@ pub fn playlist_details(url: &str, app: &App) {
     let url = url.to_owned();
     thread::spawn(move || {
         let url = Url::parse(&url).unwrap();
-        let key = url.path_segments().unwrap().nth(0).unwrap();
-        let playlist: Playlist = app.library.get(key).unwrap();
+        let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
+        let playlist: Playlist = app.library.get(&key).unwrap();
         let tracks = playlist.tracks(&app.library);
         app.ui.upgrade_in_event_loop(move |ui| {
+            ui.global::<PlaylistDetailsAdapter>().set_key(key.into());
             ui.global::<PlaylistDetailsAdapter>().set_row_data(row_data(&tracks));
             ui.global::<PlaylistDetailsAdapter>().set_name(playlist.name.clone()
                 .unwrap_or("(Nameless Playlist)".to_string()).into());
@@ -61,14 +81,35 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
     row_data.into()
 }
 
-fn row_selected(app: &App, row: i32) {
-    let app = app.clone();
+fn set_name(app: &App, key: &str, name: &str) {
+    let mut playlist = app.library.get::<Playlist>(key).unwrap();
+    playlist.name = Some(name.to_string());
+    app.library.save(&playlist);
     app.ui.upgrade_in_event_loop(move |ui| {
-        let row_data = ui.global::<PlaylistDetailsAdapter>().get_row_data();
-        let cell_data = row_data.row_data(row as usize).unwrap().row_data(5).unwrap();
-        let key = cell_data.text.as_str();
-        ui.global::<Navigator>().invoke_navigate(format!("dimple://track/{}", &key).into());
+        // TODO should not be needed with library.on_change
+        ui.global::<PlaylistDetailsAdapter>().set_name(playlist.name.clone()
+            .unwrap_or("(Nameless Playlist)".to_string()).into());
     }).unwrap();
+}
+
+fn play_now(app: &App, key: &str) {
+    let playlist = app.library.get::<Playlist>(key).unwrap();
+    let play_queue = app.player.queue();
+    for track in playlist.tracks(&app.library) {
+        app.library.playlist_add(&play_queue, &track.key.unwrap());
+    }
+    app.navigate("dimple://queue".into());
+}
+
+fn delete(app: &App, key: &str) {
+    // let mut playlist = app.library.get::<Playlist>(key).unwrap();
+    // playlist.name = Some(name.to_string());
+    // app.library.save(&playlist);
+    // app.ui.upgrade_in_event_loop(move |ui| {
+    //     // TODO should not be needed with library.on_change
+    //     ui.global::<PlaylistDetailsAdapter>().set_name(playlist.name.clone()
+    //         .unwrap_or("(Nameless Playlist)".to_string()).into());
+    // }).unwrap();
 }
 
 fn sort_model(

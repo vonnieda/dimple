@@ -1,24 +1,23 @@
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView, Button} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, TextEdit, LineEdit} from "std-widgets.slint";
 import { AppState, Palette } from "../common.slint";
 
 export global PlaylistDetailsAdapter {
-    in property <[[StandardListViewItem]]> row_data;
     in property <string> key;
-    in property <string> name: "Best Air Guitar Songs";
+    in-out property <string> name: "Best Air Guitar Songs";
     in property <bool> love;
     in property <bool> download;
-    pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
-    pure callback current_row_changed(int);
+    in property <[[StandardListViewItem]]> row_data;
 
+    pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
     pure callback play_now(string);
     pure callback add_to_queue(string);
-    pure callback set_save(bool);
-    pure callback set_download(bool);
-    pure callback set_love(bool);
-    pure callback delete();
+    pure callback set_download(string, bool);
+    pure callback set_love(string, bool);
+    pure callback delete(string);
+    pure callback set_name(string, string);
 }
 
 component ActionButton inherits Button {
@@ -54,7 +53,7 @@ component ActionButtons inherits HorizontalBox {
         label: @tr("Love");
         checkable: true;
         checked: PlaylistDetailsAdapter.love;
-        clicked => { PlaylistDetailsAdapter.set_love(self.checked); }
+        clicked => { PlaylistDetailsAdapter.set_love(PlaylistDetailsAdapter.key, self.checked); }
     }
     ActionButton {
         icon: self.checked 
@@ -63,15 +62,13 @@ component ActionButtons inherits HorizontalBox {
         label: @tr("Play Later");
         checkable: true;
         checked: PlaylistDetailsAdapter.download;
-        clicked => { PlaylistDetailsAdapter.set_download(self.checked); }
+        clicked => { PlaylistDetailsAdapter.set_download(PlaylistDetailsAdapter.key, self.checked); }
     }
     ActionButton {
         label: @tr("Delete Playlist");
         icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
-        // clicked => { PlaylistListAdapter.new_playlist(); }
+        clicked => { PlaylistDetailsAdapter.delete(PlaylistDetailsAdapter.key); }
     }
-
-
 }
 
 export component PlaylistDetails inherits VerticalBox {
@@ -81,35 +78,24 @@ export component PlaylistDetails inherits VerticalBox {
     in-out property <length> popup-y;
     in-out property <int> popup-row;
 
-    popup := PopupWindow {
-        // x: popup-x; 
-        // y: popup-y; 
-        Rectangle {
-            border-width: 1px;
-            border-color: StyleMetrics.default-text-color;
-            border-radius: 8px;
-            background: StyleMetrics.window-background;
-            VerticalBox {
-                Button {
-                    text: "Add to Queue";
-                    // clicked => { PlaylistDetailsAdapter.add_to_queue(popup-row); }
-                }
-                // Button {
-                //     text: "Play Now";
-                //     clicked => { TrackListAdapter.play_now(popup-row); }
-                // }
-                // Button {
-                //     text: "Play Next";
-                //     clicked => { TrackListAdapter.play_next(popup-row); }
-                // }
+    in-out property <bool> name_editing: false;
+    VerticalLayout {        
+        if !name_editing: TouchArea {
+            text := Text {
+                text: PlaylistDetailsAdapter.name;
+                font-size: 3rem;
             }
+            width: text.width;
+            height: text.height;
+            clicked => { name_editing = true; }
         }
-    }    
-        
-    VerticalLayout {
-        Text {
+        if name_editing: LineEdit {
             text: PlaylistDetailsAdapter.name;
             font-size: 3rem;
+            accepted(text) => { 
+                name_editing = false;                
+                PlaylistDetailsAdapter.set_name(PlaylistDetailsAdapter.key, text);
+            }
         }
         ActionButtons {
 
@@ -127,9 +113,6 @@ export component PlaylistDetails inherits VerticalBox {
             { title: "Length" },
         ];
         rows: PlaylistDetailsAdapter.sort_model(PlaylistDetailsAdapter.row_data, root.sort-index, root.sort-acending);
-        current-row-changed(row) => { 
-            PlaylistDetailsAdapter.current_row_changed(row);
-        }
         sort-ascending(index) => {
             root.sort-index = index;
             root.sort-acending = true;
@@ -139,15 +122,6 @@ export component PlaylistDetails inherits VerticalBox {
             root.sort-acending = false;
         }        
         row-pointer-event(row, event, point) => {
-            // if event.button == PointerEventButton.left
-            //         && event.kind == PointerEventKind.
-            if event.button == PointerEventButton.right 
-                    && event.kind == PointerEventKind.down {
-                popup-x = point.x;
-                popup-y = point.y;
-                popup-row = row;
-                popup.show();
-            }
         }
     }
     Text {
