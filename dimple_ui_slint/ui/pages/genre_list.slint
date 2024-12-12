@@ -1,12 +1,13 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
+import {Styles} from "../common.slint";
 
 export component GenreList inherits VerticalBox {
     in-out property <CardGridAdapter> model;
 
     Text {
         text: "Genres";
-        font-size: 3rem;
+        font-size: 1rem * Styles.page_title_font_rem;
     }
     ScrollView {                        
         card-grid := CardGrid {

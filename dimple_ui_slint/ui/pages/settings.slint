@@ -25,7 +25,7 @@ export global SettingsAdapter {
 component General inherits VerticalBox {
     Text {
         text: "General";
-        font-size: 2rem;
+        font-size: 1rem * Styles.section_font_rem;
     }
 
     HorizontalBox {
@@ -63,7 +63,7 @@ component General inherits VerticalBox {
 component Database inherits VerticalBox {
     Text {
         text: "Database";
-        font-size: 2rem;
+        font-size: 1rem * Styles.section_font_rem;
     }
 
     VerticalBox {
@@ -77,7 +77,7 @@ component Database inherits VerticalBox {
 component Cache inherits VerticalBox {
     Text {
         text: "Cache";
-        font-size: 2rem;
+        font-size: 1rem * Styles.section_font_rem;
     }
 
     for stat in SettingsAdapter.cache-stats: Text {
@@ -89,7 +89,7 @@ component Cache inherits VerticalBox {
 component Development inherits VerticalBox {
     Text {
         text: "Development";
-        font-size: 2rem;
+        font-size: 1rem * Styles.section_font_rem;
     }
 
     HorizontalBox {
@@ -112,7 +112,7 @@ export component Settings inherits VerticalBox {
 
     Text {
         text: "Settings";
-        font-size: 3rem;
+        font-size: 1rem * Styles.section_font_rem;
     }
 
     ScrollView {

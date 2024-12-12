@@ -1,6 +1,7 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
+import {Styles} from "../common.slint";
 
 export struct HomeAdapter {
     cards: [CardAdapter],
@@ -11,7 +12,7 @@ export component Home inherits VerticalBox {
 
     Text {
         text: "Home";
-        font-size: 3rem;
+        font-size: 1rem * Styles.page_title_font_rem;
     }
     ScrollView {                        
         card-grid := CardGrid {

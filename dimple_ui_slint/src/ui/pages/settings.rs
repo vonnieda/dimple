@@ -16,6 +16,7 @@ use crate::ui::common;
 use crate::ui::SettingsAdapter;
 use crate::ui::Page;
 use crate::ui::AppState;
+use crate::ui::Styles;
 
 use slint::{ComponentHandle, Weak};
 
@@ -86,7 +87,7 @@ fn set_debug(app: &App, debug: bool) {
 fn set_font_size(app: &App, font_size: f32) {
     let app = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
-        ui.global::<AppState>().set_default_font_size(font_size);
+        ui.global::<Styles>().set_default_font_size(font_size);
     }).unwrap();
 }
 

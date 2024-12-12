@@ -32,7 +32,7 @@ export component TrackList inherits VerticalBox {
             border-width: 1px;
             border-color: StyleMetrics.default-text-color;
             border-radius: 8px;
-            background: StyleMetrics.window-background;
+            background: Palette.background;
             VerticalBox {
                 Button {
                     text: "Add to Queue";
@@ -52,7 +52,7 @@ export component TrackList inherits VerticalBox {
 
     Text {
         text: "Tracks";
-        font-size: 3rem;
+        font-size: 1rem * Styles.page_title_font_rem;
     }
 
     StandardTableView {

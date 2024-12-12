@@ -3,6 +3,7 @@ import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { AppState } from "../common.slint";
+import {Styles} from "../common.slint";
 
 export global EventListAdapter {
     in property <[[StandardListViewItem]]> row_data;
@@ -16,7 +17,7 @@ export component EventList inherits VerticalBox {
         
     Text {
         text: "Listening History";
-        font-size: 3rem;
+        font-size: 1rem * Styles.page_title_font_rem;
     }
 
     StandardTableView {

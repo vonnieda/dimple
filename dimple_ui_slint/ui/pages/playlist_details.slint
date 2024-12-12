@@ -83,7 +83,7 @@ export component PlaylistDetails inherits VerticalBox {
         if !name_editing: TouchArea {
             text := Text {
                 text: PlaylistDetailsAdapter.name;
-                font-size: 3rem;
+                font-size: 1rem * Styles.page_title_font_rem;
             }
             width: text.width;
             height: text.height;
@@ -91,7 +91,7 @@ export component PlaylistDetails inherits VerticalBox {
         }
         if name_editing: LineEdit {
             text: PlaylistDetailsAdapter.name;
-            font-size: 3rem;
+            font-size: 1rem * Styles.page_title_font_rem;
             accepted(text) => { 
                 name_editing = false;                
                 PlaylistDetailsAdapter.set_name(PlaylistDetailsAdapter.key, text);
