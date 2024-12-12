@@ -1,6 +1,6 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Card, CardAdapter } from "card.slint";
-import { Palette, Navigator } from "../common.slint";
+import { Styles, Navigator } from "../common.slint";
 import {StyleMetrics} from "std-widgets.slint";
 
 export struct CardGridAdapter {
@@ -17,12 +17,12 @@ export component CardGrid inherits VerticalLayout {
     in property <length> parent_width: 1000px;
 
     property <int> cols: Math.max(1, Math.floor((self.parent_width - StyleMetrics.layout-padding) 
-        / (Palette.thumbnail-width-large + StyleMetrics.layout-spacing)));
+        / (Styles.thumbnail-width-large + StyleMetrics.layout-spacing)));
 
     // TODO this still isn't quite right, keep ending up with hscroll. I think
     // just give up on calculating the spacing, use space-between and then
     // insert empties to fill the gap at the end.
-    // property <length> col_spacing: (self.parent_width - StyleMetrics.layout-padding - StyleMetrics.layout-spacing - (cols * Palette.thumbnail-width-large)) / (cols);
+    // property <length> col_spacing: (self.parent_width - StyleMetrics.layout-padding - StyleMetrics.layout-spacing - (cols * Styles.thumbnail-width-large)) / (cols);
     // Shit, just realized it's the genre links adding the hscroll sometimes. The above might have been working.
 
     spacing: StyleMetrics.layout-spacing;

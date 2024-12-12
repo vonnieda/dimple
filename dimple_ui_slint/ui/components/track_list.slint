@@ -1,6 +1,6 @@
 import {LinkAdapter} from "link.slint";
 import { Links, Link } from "link.slint";
-import { Palette, Navigator } from "../common.slint";
+import { Styles, Navigator } from "../common.slint";
 import {StyleMetrics} from "std-widgets.slint";
 
 export struct TrackAdapter {
@@ -22,7 +22,7 @@ export component TrackList inherits VerticalLayout {
         Text {
             text: "#";
             font-size: root.font-size;
-            font-weight: Palette.font-weight-bold;
+            font-weight: Styles.font-weight-bold;
             width: 10%;
         }
         HorizontalLayout {
@@ -31,25 +31,25 @@ export component TrackList inherits VerticalLayout {
         Text {
             text: "Title";
             font-size: root.font-size;
-            font-weight: Palette.font-weight-bold;
+            font-weight: Styles.font-weight-bold;
             width: 60%;
         }
         Text {
             text: "Plays";
             font-size: root.font-size;
-            font-weight: Palette.font-weight-bold;
+            font-weight: Styles.font-weight-bold;
             width: 10%;
         }
         Text {
             text: "Sources";
             font-size: root.font-size;
-            font-weight: Palette.font-weight-bold;
+            font-weight: Styles.font-weight-bold;
             width: 10%;
         }
         Text {
             text: "Length";
             font-size: root.font-size;
-            font-weight: Palette.font-weight-bold;
+            font-weight: Styles.font-weight-bold;
             width: 10%;
         }
     }

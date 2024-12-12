@@ -1,6 +1,6 @@
 import { Button , LineEdit, HorizontalBox, GroupBox} from "std-widgets.slint";
 import { Navigator } from "common.slint";
-import { Palette, Navigator, AppState } from "common.slint";
+import { Styles, Navigator, AppState } from "common.slint";
 import {StyleMetrics, VerticalBox, TextEdit, Spinner, Slider, CheckBox} from "std-widgets.slint";
 import {Link, LinkAdapter, ImageLinkAdapter} from "./components/link.slint";
 import {CardAdapter} from "./components/card.slint";
@@ -14,7 +14,7 @@ component SideBarImageItem inherits Rectangle {
     
     in property <color> image-colorize;
 
-    in property <length> image-width: Palette.thumbnail-width-sidebar;
+    in property <length> image-width: Styles.thumbnail-width-sidebar;
 
     HorizontalLayout {
         spacing: 8px;
@@ -27,7 +27,7 @@ component SideBarImageItem inherits Rectangle {
             Rectangle {
                 width: 100%;
                 height: 100%;
-                border-radius: Palette.thumbnail-border-radius;
+                border-radius: Styles.thumbnail-border-radius;
                 clip: true;
                 drop-shadow-color: black;
                 drop-shadow-blur: 3px;
@@ -49,7 +49,7 @@ component SideBarImageItem inherits Rectangle {
                 url: card.title.url;
                 name: card.title.name;
                 font-size: 1.3rem;
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
             }
             sub-title-area := Link {
                 url: card.sub-title.url;
@@ -67,15 +67,15 @@ component SideBarMenuItem inherits HorizontalLayout {
     spacing: 8px;
 
     TouchArea {
-        width: Palette.icon-width-sidebar;
-        height: Palette.icon-width-sidebar;
+        width: Styles.icon-width-sidebar;
+        height: Styles.icon-width-sidebar;
         clicked => { Navigator.navigate(url); }
         Image {
             source: image;
-            width: Palette.icon-width-sidebar;
-            height: Palette.icon-width-sidebar;
+            width: Styles.icon-width-sidebar;
+            height: Styles.icon-width-sidebar;
             colorize: parent.has-hover 
-                ? Palette.link-color-hover
+                ? Styles.link-color-hover
                 : StyleMetrics.default-text-color;
 
         }

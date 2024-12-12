@@ -3,7 +3,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBo
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { Palette, Navigator, AppState } from "../common.slint";
+import { Styles, Navigator, AppState } from "../common.slint";
 
     // in property <TrackDetailsAdapter> model: {
     //     card,
@@ -43,9 +43,9 @@ export global TrackDetailsAdapter {
 export component BorderImage inherits Rectangle {
     in-out property <image> image;
 
-    border-radius: Palette.thumbnail-border-radius;
-    border-color: Palette.thumbnail-border-color;
-    border-width: Palette.thumbnail-border-width;
+    border-radius: Styles.thumbnail-border-radius;
+    border-color: Styles.thumbnail-border-color;
+    border-width: Styles.thumbnail-border-width;
     clip: true;
     Image {
         width: parent.width;
@@ -112,8 +112,8 @@ export component TrackDetails inherits ScrollView {
             alignment: start;
             VerticalLayout {
                 BorderImage {
-                    width: Palette.thumbnail-width-extra-large;
-                    height: Palette.thumbnail-width-extra-large;
+                    width: Styles.thumbnail-width-extra-large;
+                    height: Styles.thumbnail-width-extra-large;
                     image: TrackDetailsAdapter.card.image.image;
                 }
                 ActionButtons {
@@ -127,7 +127,7 @@ export component TrackDetails inherits ScrollView {
                 // Title
                 Text {
                     text: TrackDetailsAdapter.card.title.name;
-                    font-weight: Palette.font-weight-bold;
+                    font-weight: Styles.font-weight-bold;
                     font-size: 3rem;
                     wrap: word-wrap;
                 }
@@ -174,7 +174,7 @@ export component TrackDetails inherits ScrollView {
         if TrackDetailsAdapter.lyrics != "": VerticalBox {
             Text {
                 text: "Lyrics";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             Text {
@@ -188,7 +188,7 @@ export component TrackDetails inherits ScrollView {
         if TrackDetailsAdapter.links.length > 0: VerticalBox {
             Text {
                 text: "Links";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             for link in TrackDetailsAdapter.links: Link {
@@ -202,7 +202,7 @@ export component TrackDetails inherits ScrollView {
         if AppState.debug: VerticalBox {
             Text {
                 text: "Debug";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             Text {

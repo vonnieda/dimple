@@ -3,7 +3,7 @@ import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView} from "std-widgets.slint";
 import { CardGrid } from "../components/card_grid.slint";
-import { Palette, Navigator, AppState } from "../common.slint";
+import { Styles, Navigator, AppState } from "../common.slint";
 
 export struct GenreDetailsAdapter {
     card: CardAdapter,
@@ -28,15 +28,15 @@ export component GenreDetails inherits ScrollView {
             alignment: start;
             spacing: StyleMetrics.layout-spacing;
             Rectangle {
-                width: Palette.thumbnail-width-extra-large;
-                height: Palette.thumbnail-width-extra-large;
-                border-radius: Palette.thumbnail-border-radius;
-                border-color: Palette.thumbnail-border-color;
-                border-width: Palette.thumbnail-border-width;
+                width: Styles.thumbnail-width-extra-large;
+                height: Styles.thumbnail-width-extra-large;
+                border-radius: Styles.thumbnail-border-radius;
+                border-color: Styles.thumbnail-border-color;
+                border-width: Styles.thumbnail-border-width;
                 clip: true;
                 Image {
-                    width: Palette.thumbnail-width-extra-large;
-                    height: Palette.thumbnail-width-extra-large;
+                    width: Styles.thumbnail-width-extra-large;
+                    height: Styles.thumbnail-width-extra-large;
                     source: model.card.image.image;
                 }
             }
@@ -55,7 +55,7 @@ export component GenreDetails inherits ScrollView {
                     // }
                     Text {
                         text: model.card.title.name;
-                        font-weight: Palette.font-weight-bold;
+                        font-weight: Styles.font-weight-bold;
                         font-size: 4rem;
                     }
                 }
@@ -82,7 +82,7 @@ export component GenreDetails inherits ScrollView {
         if model.artists.length > 0: VerticalLayout {
             Text {
                 text: "Artists";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
@@ -95,7 +95,7 @@ export component GenreDetails inherits ScrollView {
         if model.release-groups.length > 0: VerticalLayout {
             Text {
                 text: "Albums";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
@@ -108,7 +108,7 @@ export component GenreDetails inherits ScrollView {
         if model.tracks.length > 0: VerticalLayout {
             Text {
                 text: "Tracks";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
@@ -121,7 +121,7 @@ export component GenreDetails inherits ScrollView {
         if model.playlists.length > 0: VerticalLayout {
             Text {
                 text: "Playlists";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
@@ -134,7 +134,7 @@ export component GenreDetails inherits ScrollView {
         if model.related-genres.length > 0: VerticalLayout {
             Text {
                 text: "Related Genres";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
@@ -147,7 +147,7 @@ export component GenreDetails inherits ScrollView {
         if model.links.length > 0: VerticalLayout {
             Text {
                 text: "Links";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             for link in model.links: Link {
@@ -160,7 +160,7 @@ export component GenreDetails inherits ScrollView {
         if AppState.debug: VerticalLayout {
             Text {
                 text: "Debug";
-                font-weight: Palette.font-weight-bold;
+                font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             Text {

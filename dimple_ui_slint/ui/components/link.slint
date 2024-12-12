@@ -1,4 +1,4 @@
-import { Palette, Navigator } from "../common.slint";
+import { Styles, Navigator } from "../common.slint";
 import {StyleMetrics} from "std-widgets.slint";
 
 export struct LinkAdapter {
@@ -29,7 +29,7 @@ export component Link inherits TouchArea {
         font-weight: font-weight;
         font-size: font-size;
         color: parent.has-hover 
-            ? Palette.link-color-hover
+            ? Styles.link-color-hover
             : StyleMetrics.default-text-color;
     }
 }
