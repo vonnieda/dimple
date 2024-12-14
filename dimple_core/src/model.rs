@@ -50,7 +50,7 @@ pub trait Model: Sized + FromRow + Diff + Default + Clone + Send {
     fn log_changes(&self) -> bool;
 }
 
-struct ChangeLogValue {
+pub struct ChangeLogValue {
     pub val: Option<String>,
 }
 

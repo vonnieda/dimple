@@ -43,8 +43,6 @@ impl Library {
         // };
         // librarian
 
-        // TODO https://github.com/cljoly/rusqlite_migration/blob/master/examples/from-directory/src/main.rs
-        // let schema = include_str!("migrations/202411070001_initial.sql");
         static MIGRATION_DIR: Dir = include_dir!("./dimple_core/src/migrations");
         let migrations = Migrations::from_directory(&MIGRATION_DIR).unwrap();
 

@@ -69,7 +69,7 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                     };
 
                     quote! {
-                        use super::{ChangeLogValue, ChangeLog, Diff, FromRow, Model};
+                        use crate::model::{ChangeLogValue, ChangeLog, Diff, FromRow, Model};
                         use rusqlite::Row;
                         
                         impl FromRow for #name {

@@ -5,6 +5,7 @@ pub mod player;
 pub mod sync;
 pub mod services;
 pub mod notifier;
+pub mod model_store;
 
 #[cfg(test)]
 mod tests {
