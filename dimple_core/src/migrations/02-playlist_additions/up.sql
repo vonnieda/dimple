@@ -1,0 +1,4 @@
+ALTER TABLE Playlist ADD COLUMN save BOOL;
+ALTER TABLE Playlist ADD COLUMN download BOOL;
+ALTER TABLE Playlist ADD COLUMN summary TEXT;
+

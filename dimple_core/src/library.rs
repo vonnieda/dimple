@@ -1,8 +1,10 @@
 use std::{collections::HashMap, sync::{Arc, Mutex, RwLock}, time::Duration};
 
 use image::DynamicImage;
+use include_dir::{include_dir, Dir};
 use log::info;
 use rusqlite::{backup::Backup, Connection, OptionalExtension, Params};
+use rusqlite_migration::Migrations;
 use threadpool::ThreadPool;
 use ulid::Generator;
 use uuid::Uuid;
@@ -41,12 +43,17 @@ impl Library {
         // };
         // librarian
 
-        let conn = Connection::open(database_path).unwrap();
-
         // TODO https://github.com/cljoly/rusqlite_migration/blob/master/examples/from-directory/src/main.rs
-        let schema = include_str!("migrations/202411070001_initial.sql");
+        // let schema = include_str!("migrations/202411070001_initial.sql");
+        static MIGRATION_DIR: Dir = include_dir!("./dimple_core/src/migrations");
+        let migrations = Migrations::from_directory(&MIGRATION_DIR).unwrap();
 
-        conn.execute_batch(schema).unwrap();
+        let mut conn = Connection::open(database_path).unwrap();
+
+        migrations.to_latest(&mut conn).unwrap();
+
+        conn.pragma_update(None, "journal_mode", "WAL").unwrap();
+        conn.pragma_update(None, "foreign_keys", "ON").unwrap();        
 
         conn.execute("
             INSERT INTO Metadata (key, value) VALUES ('library.uuid', ?1)
@@ -396,11 +403,6 @@ impl Library {
             }
         }
         None
-    }
-
-    /// Test that the database matches the combined state of the changelog.
-    pub fn verify() {
-        todo!()
     }
 }
 
