@@ -13,3 +13,11 @@ impl PluginHost {
     } 
 }
 
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        let plugins = PluginHost::default();
+        plugins.add_plugin
+    }
+}

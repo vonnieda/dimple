@@ -24,7 +24,7 @@ impl ModelStore {
         Self {
             _database_path: database_path.to_string(),
             conn: Arc::new(RwLock::new(conn)),
-            notifier: Notifier::default(),
+            notifier: Notifier::new(),
             threadpool: ThreadPool::new(1),
         }
     }

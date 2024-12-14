@@ -11,7 +11,12 @@ use uuid::Uuid;
 
 use crate::{model::{Blob, ChangeLog, FromRow, MediaFile, Model, Playlist, Track, TrackSource}, notifier::Notifier, sync::Sync};
 
-type ChangeListener = Arc<Box<dyn Fn(&Library, &str, &str) + Send + std::marker::Sync + 'static>>;
+#[derive(Clone)]
+pub struct LibraryEvent {
+    pub library: Library,
+    pub type_name: String,
+    pub key: String,
+}
 
 #[derive(Clone)]
 pub struct Library {
@@ -19,9 +24,10 @@ pub struct Library {
     database_path: String,
     ulids: Arc<Mutex<Generator>>,
     // TODO I really think I want to get rid of this and put it somewhere
-    // higher level.
+    // higher level. Note: Yea, it's going into Plugins and we're deleting
+    // sync from Library entirely.
     synchronizers: Arc<RwLock<Vec<Sync>>>,
-    notifier: Notifier<String>,
+    notifier: Notifier<LibraryEvent>,
     threadpool: ThreadPool,
 }
 
@@ -65,7 +71,7 @@ impl Library {
             database_path: database_path.to_string(),
             ulids: Arc::new(Mutex::new(Generator::new())),
             synchronizers: Arc::new(RwLock::new(vec![])),
-            notifier: Notifier::default(),
+            notifier: Notifier::new(),
             threadpool: ThreadPool::new(1),
         };
 
@@ -111,15 +117,19 @@ impl Library {
         }
     }
 
-    pub fn on_change(&self, l: Box<dyn Fn(&String) + Send>) {
+    pub fn on_change(&self, l: Box<dyn Fn(&LibraryEvent) + Send>) {
         self.notifier.on_notify(l);
     }
 
     fn emit_change(&self, type_name: &str, key: &str) {
         let notifier = self.notifier.clone();
-        let key = key.to_string();
+        let event = LibraryEvent {
+            library: self.clone(),
+            type_name: type_name.to_string(),
+            key: key.to_string(),
+        };
         self.threadpool.execute(move || {
-            notifier.notify(&key);
+            notifier.notify(&event);
         });
     }
 
@@ -477,8 +487,8 @@ mod tests {
         // library.on_change(move |_library, type_name, _key| if type_name == "Track" {
         //     tx.send(()).unwrap();
         // });
-        library.on_change(Box::new(move |key| {
-            println!("{}", key);
+        library.on_change(Box::new(move |event| {
+            println!("{} {}", event.type_name, event.key);
         }));
         library.save(&Track::default());
         // assert!(rx.recv_timeout(Duration::from_secs(1)).is_ok());

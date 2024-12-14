@@ -27,7 +27,7 @@ impl Player {
             sender,
             shared_state: Arc::new(RwLock::new(SharedState::default())),
             downloader: TrackDownloader::default(),
-            notifier: Notifier::default(),
+            notifier: Notifier::new(),
             threadpool: ThreadPool::new(1),
         };
         // TODO library.on_change() and watch for changes to the playlist, which

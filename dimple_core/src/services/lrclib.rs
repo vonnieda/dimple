@@ -64,19 +64,19 @@ struct GetResponse {
 mod tests {
     use std::time::Duration;
 
-    use crate::{library::Library, model::Track};
+    use crate::{library::{Library, LibraryEvent}, model::Track};
 
     use super::LrclibService;
 
     #[test]
     fn it_works() {
         let library = Library::open("file:d804a172-71cf-4522-a3be-3ce0de93481a?mode=memory&cache=shared");
-        // library.on_change(|library, model_type, key| {
-        //     if model_type == "Track" {
-        //         let track = library.get::<Track>(key);
-        //         println!("{:?}", track);
-        //     }
-        // });
+        library.on_change(Box::new(move |event| {
+            if event.type_name == "Track" {
+                let track = event.library.get::<Track>(&event.key);
+                println!("{:?}", track);
+            }
+        }));
         let track = library.save(&Track {
             artist: Some("Metallica".to_string()),
             album: Some("Master of Puppets".to_string()),
