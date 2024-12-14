@@ -22,7 +22,6 @@ use super::image_gen::gen_fuzzy_rects;
 #[derive(Clone)]
 pub struct ImageMangler {
     librarian: Library,
-    ui: Weak<AppWindow>,
     artist_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     release_group_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     release_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
@@ -37,7 +36,6 @@ pub struct ImageMangler {
 impl ImageMangler {
     pub fn new(librarian: Library, ui: Weak<AppWindow>, cache_path: &str) -> Self {
         let images = Self {
-            ui,
             librarian: librarian.clone(),
             artist_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/music-notes.png")),
             release_group_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/vinyl-record.png")),

@@ -1,4 +1,5 @@
 pub mod ui;
+pub mod config;
 
 use ui::app_window_controller::AppWindowController;
 

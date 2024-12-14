@@ -55,3 +55,13 @@ Dump new things at the bottom, move things to the top to prioritize.
   the way up to hear the video, and then I unpause the music the music is of
   course far too loud. Might be nice to fade it back in or something if the
   volume has been adjusted by more than like 50% since it was paused.
+- Needs to be easier to clear the editing of a click in text field like
+  playlist name. Right now you have to hit enter - want at least escape or
+  clicking outside of the field too.
+- register the dimple:// handler with the OS so that those open Dimple and then
+  I'll handle it in navigate. I'd like to be able to demo to people with:
+  1. Download and run Dimple
+  2. Click this link (dimple://share/???)
+  This will open Dimple and go to a page showing metadata about the share, which
+  in this case is a library of free music hosted on my B2 account. The user can
+- Clicking playlist name to edit should focus and select all

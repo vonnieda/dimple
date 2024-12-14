@@ -11,15 +11,31 @@
 
 
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox, Slider} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox, Slider, Switch, LineEdit, GridBox} from "std-widgets.slint";
 import { AppState, Styles, Navigator } from "../common.slint";
 
+export struct PluginAdapter {
+    title: string,
+    sub_title: string,
+    status: string,
+    enabled: bool,
+}
+
 export global SettingsAdapter {
+    in property <[PluginAdapter]> plugins;
     in property <[string]> cache_stats;
     in property <[string]> database_stats;
     pure callback set_online(bool);
     pure callback set_debug(bool);
     pure callback set_font_size(float);
+    pure callback import_files();
+    pure callback import_directories();
+}
+
+component ActionButton inherits Button {
+    colorize-icon: true;
+    accessible-label: self.text;
+    accessible-role: button;
 }
 
 component General inherits VerticalBox {
@@ -28,33 +44,33 @@ component General inherits VerticalBox {
         font-size: 1rem * Styles.section_font_rem;
     }
 
-    HorizontalBox {
-        alignment: LayoutAlignment.start;
-        Text {
-            text: "Font Size";
-            vertical-alignment: center;
-        }
+    // HorizontalBox {
+    //     alignment: LayoutAlignment.start;
+    //     Text {
+    //         text: "Font Size";
+    //         vertical-alignment: center;
+    //     }
 
-        Slider {
-            width: 200px;
-            minimum: 1;
-            maximum: 24;
-            changed => {
-                SettingsAdapter.set_font_size(self.value);
-            }
-        }
-    }
+    //     Slider {
+    //         width: 200px;
+    //         minimum: 1;
+    //         maximum: 24;
+    //         changed => {
+    //             SettingsAdapter.set_font_size(self.value);
+    //         }
+    //     }
+    // }
 
     HorizontalBox {
         Text {
-            text: "Online?";
+            text: "Offline Mode";
             vertical-alignment: center;
         }
 
         CheckBox {
-            checked: AppState.online;
+            checked: AppState.offline-mode;
             toggled => {
-                SettingsAdapter.set_online(self.checked);
+                SettingsAdapter.set_online(!self.checked);
             }
         }
     }
@@ -64,6 +80,15 @@ component Database inherits VerticalBox {
     Text {
         text: "Database";
         font-size: 1rem * Styles.section_font_rem;
+    }
+
+    HorizontalBox {
+        alignment: start;
+        ActionButton {
+            icon: @image-url("../../icons/phosphor/SVGs/regular/file-arrow-down.svg");
+            text: "Backup Database";
+            colorize-icon: true;
+        }
     }
 
     VerticalBox {
@@ -80,9 +105,107 @@ component Cache inherits VerticalBox {
         font-size: 1rem * Styles.section_font_rem;
     }
 
-    for stat in SettingsAdapter.cache-stats: Text {
-        text: stat;
-        vertical-alignment: center;
+    HorizontalBox {
+        alignment: start;
+        ActionButton {
+            icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
+            text: "Clear Cache";
+            colorize-icon: true;
+        }
+    }
+
+    VerticalBox {
+        for stat in SettingsAdapter.cache-stats: Text {
+            text: stat;
+            vertical-alignment: center;
+        }
+    }
+}
+
+component Sync inherits VerticalBox {
+    Text {
+        text: "Sync";
+        font-size: 1rem * Styles.section_font_rem;
+    }
+
+    HorizontalBox {
+        alignment: start;
+        ActionButton {
+            icon: @image-url("../../icons/phosphor/SVGs/regular/arrow-clockwise.svg");
+            text: "Sync Now";
+        }
+    }
+
+    HorizontalBox {
+        alignment: start;
+        Text {
+            text: "S3 Endpoint";
+            vertical-alignment: center;
+            font-size: 1.3rem;
+        }
+        LineEdit {
+            min-width: 200px;
+        }
+    }
+
+    HorizontalBox {
+        alignment: start;
+        Text {
+            text: "S3 Region";
+            vertical-alignment: center;
+            font-size: 1.3rem;
+        }
+        LineEdit {
+            min-width: 200px;
+        }
+    }
+
+    HorizontalBox {
+        alignment: start;
+        Text {
+            text: "S3 Bucket";
+            vertical-alignment: center;
+            font-size: 1.3rem;
+        }
+        LineEdit {
+            min-width: 200px;
+        }
+    }
+
+    HorizontalBox {
+        alignment: start;
+        Text {
+            text: "S3 Access Key";
+            vertical-alignment: center;
+            font-size: 1.3rem;
+        }
+        LineEdit {
+            min-width: 200px;
+        }
+    }
+
+    HorizontalBox {
+        alignment: start;
+        Text {
+            text: "S3 Secret Key";
+            vertical-alignment: center;
+            font-size: 1.3rem;
+        }
+        LineEdit {
+            min-width: 200px;
+        }
+    }
+
+    HorizontalBox {
+        alignment: start;
+        Text {
+            text: "S3 Prefix";
+            vertical-alignment: center;
+            font-size: 1.3rem;
+        }
+        LineEdit {
+            min-width: 200px;
+        }
     }
 }
 
@@ -107,17 +230,122 @@ component Development inherits VerticalBox {
     }
 }
 
+component PluginRow inherits HorizontalBox {
+    in property <string> title: "Cloud Storage Sync";
+    in property <string> sub-title: "s3://b2.backblaze.com/vonnieda/music";
+    in property <string> status: "Syncing 96/240 at 3MB/s, 1h20m remaining.";
+    in property <bool> enabled: true;
+
+    VerticalBox {
+        Text {
+            text: title;
+            font-size: 1.3rem;
+        }
+        Text {
+            text: sub-title;
+            font-italic: true;
+        }
+        Text {
+            text: status;
+        }
+    }
+    Rectangle {
+        horizontal-stretch: 1;
+    }
+    VerticalLayout {
+        HorizontalBox {
+            ActionButton {
+                icon: @image-url("../../icons/phosphor/SVGs/regular/gear.svg");
+                text: @tr("Plugin Settings");
+            }
+            button := ActionButton {
+                icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
+                text: @tr("Remove Plugin");
+            }
+            Switch {
+                checked: enabled;
+            }
+        }
+        Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+}
+
+component Plugins inherits VerticalBox {
+    alignment: start;
+    
+    Text {
+        text: "Plugins";
+        font-size: 1rem * Styles.section_font_rem;
+    }
+
+    HorizontalBox {
+        alignment: start;
+        ActionButton {
+            icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+            text: "Add Plugin";
+            colorize-icon: true;
+        }
+    }
+
+    for plugin in SettingsAdapter.plugins: PluginRow {
+        title: plugin.title;
+        sub-title: plugin.sub-title;
+        status: plugin.status;
+    }
+}
+
+component Import inherits VerticalBox {
+    alignment: start;
+
+    Text {
+        text: "Import";
+        font-size: 1rem * Styles.section_font_rem;
+        vertical-alignment: center;
+    }
+
+    HorizontalBox {
+        alignment: start;
+        Text {
+            text: @tr("Import music files, listening history, playlists, databases, and more. See [TODO LINK] for a list of supported types. Or just pick a file and try. Dimple never changes any of your files.");
+            vertical-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+
+    HorizontalBox {
+        alignment: start;
+        ActionButton {
+            text: "Import Files";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/file.svg");
+            clicked => { SettingsAdapter.import_files(); }
+        }
+        ActionButton {
+            text: "Import Folders";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/folder.svg");
+            clicked => { SettingsAdapter.import_directories(); }
+        }
+    }
+}
+
 export component Settings inherits VerticalBox {
     in property <length> header-font-size: 1.5rem;
 
     Text {
         text: "Settings";
-        font-size: 1rem * Styles.section_font_rem;
+        font-size: 1rem * Styles.page_title_font_rem;
     }
 
     ScrollView {
         VerticalBox {
             General { }
+
+            Import { }
+
+            Sync { }
+
+            Plugins { }
 
             Database { }
 

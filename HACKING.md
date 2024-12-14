@@ -1,3 +1,8 @@
+
+
+
+# Profiling
+
 I have not had much luck with cargo flamegraph on Mac due to SIP and other
 system permissions problems.
 

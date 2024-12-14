@@ -1,22 +1,45 @@
 // Lyrics via https://lrclib.net/docs
 
 use reqwest::blocking::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{library::Library, model::Track};
 
-use super::USER_AGENT;
+use super::{Plugin, USER_AGENT};
 
-pub struct LrclibService {
-
+#[derive(Default)]
+pub struct LrclibPlugin {
+    config: LrclibPluginConfig,
 }
 
-impl LrclibService {
-    // TODO rapidly hating this interface
-    pub fn track_lyrics(&self, library: &Library, track: &Track) {
-        if track.lyrics.is_some() {
-            return
-        }
+#[derive(Clone, Serialize, Deserialize, Default)]
+pub struct LrclibPluginConfig {
+    
+}
+
+impl Plugin for LrclibPlugin {
+    fn type_name(&self) -> String {
+        "LrclibPlugin".to_string()
+    }
+
+    fn display_name(&self) -> String {
+        "LRCLIB".to_string()
+    }
+
+    fn set_configuration(&mut self, config: &str) {
+        self.config = serde_json::from_str(config).unwrap();
+    }
+
+    fn configuration(&self) -> String {
+        serde_json::to_string(&self.config).unwrap()
+    }
+
+    fn status(&self) -> String {
+        "Ready".to_string()
+    }
+
+    fn get_track_lyrics(&self, _library: &Library, track: &Track) 
+            -> Option<String> {
         let client = Client::builder()
             .user_agent(USER_AGENT)
             .build()
@@ -30,15 +53,10 @@ impl LrclibService {
         let response = client.get(&url).send().unwrap();
         log::info!("GET {} {}", response.status().as_u16(),& url);
         if response.status() != 200 {
-            return
+            return None
         }
         let get_response = response.json::<GetResponse>().unwrap();
-        if get_response.plain_lyrics.is_some() {
-        // TODO this is where we merge, but for now
-        let mut track = track.clone();
-            track.lyrics = get_response.plain_lyrics;
-            library.save(&track);
-        }
+        get_response.plain_lyrics
     }
 }
 
@@ -62,31 +80,23 @@ struct GetResponse {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use crate::{library::Library, model::Track, plugins::Plugin};
 
-    use crate::{library::Library, model::Track};
-
-    use super::LrclibService;
+    use super::LrclibPlugin;
 
     #[test]
     fn it_works() {
         let library = Library::open("file:d804a172-71cf-4522-a3be-3ce0de93481a?mode=memory&cache=shared");
-        // library.on_change(|library, model_type, key| {
-        //     if model_type == "Track" {
-        //         let track = library.get::<Track>(key);
-        //         println!("{:?}", track);
-        //     }
-        // });
         let track = library.save(&Track {
             artist: Some("Metallica".to_string()),
             album: Some("Master of Puppets".to_string()),
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
         });
-        let lrclib = LrclibService {
-        };
-        lrclib.track_lyrics(&library, &track);
-        std::thread::sleep(Duration::from_secs(3));
+        let lrclib = LrclibPlugin::default();
+        let lyrics = lrclib.get_track_lyrics(&library, &track);
+        assert!(lyrics.is_some());
+        assert!(lyrics.unwrap().contains("strings"));
     }
 }
 

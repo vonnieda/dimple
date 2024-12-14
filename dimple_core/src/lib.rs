@@ -4,6 +4,7 @@ pub mod import;
 pub mod player;
 pub mod sync;
 pub mod services;
+pub mod notifier;
 
 #[cfg(test)]
 mod tests {

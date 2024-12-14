@@ -7,7 +7,7 @@ use slint::{ComponentHandle, SharedString, Weak};
 
 use directories::ProjectDirs;
 
-use crate::ui::{*};
+use crate::{config::Config, ui::*};
 
 use self::{images::ImageMangler, pages::settings};
 
@@ -15,6 +15,7 @@ use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, M
 
 #[derive(Clone)]
 pub struct App {
+    pub config: Config,
     pub library: Library,
     pub history: Arc<Mutex<VecDeque<String>>>,
     pub player: Player,
@@ -52,6 +53,7 @@ impl AppWindowController {
         Self {
             ui,
             app: App {
+                config: Config::default(),
                 library: librarian.clone(),
                 history: Arc::new(Mutex::new(VecDeque::new())),
                 player,
@@ -239,7 +241,6 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
     {
         let app = app.clone();
         controls.attach(move |event: MediaControlEvent| {
-            println!("Event received: {:?}", event);
             match event {
                 MediaControlEvent::Play => app.player.play(),
                 MediaControlEvent::Pause => app.player.pause(),
@@ -270,7 +271,8 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
 
     {
         let app = app.clone();
-        app.player.on_change(move |player, event| {
+        let player = app.player.clone();
+        app.player.on_change(Box::new(move |event| {
             let track_position = player.track_position();
             let track_duration = player.track_duration();
             let current_track = player.current_queue_track();
@@ -292,11 +294,16 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
             };
             if let Ok(mut controls) = app.media_controls.lock() {
                 if let Some(controls) = controls.as_mut() {
-                    controls.set_playback(playback).unwrap();
-                    controls.set_metadata(metadata).unwrap();
+                    if event == "position" {
+                        controls.set_playback(playback).unwrap();
+                    }
+                    else {
+                        controls.set_metadata(metadata).unwrap();
+                        controls.set_playback(playback).unwrap();
+                    }
                 }
             }
-        });
+        }));
     }
 
     controls

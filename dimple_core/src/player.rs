@@ -1,11 +1,11 @@
 pub mod track_downloader;
 
-use std::{sync::{mpsc::{Receiver, Sender}, Arc, Mutex, RwLock}, time::Duration};
+use std::{sync::{mpsc::{Receiver, Sender}, Arc, Mutex, RwLock}, time::{Duration, Instant}};
 
 use threadpool::ThreadPool;
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
-use crate::{library::Library, model::{Event, Playlist, Track}};
+use crate::{library::Library, model::{Event, Playlist, Track}, notifier::{self, Notifier}};
 
 type ChangeListener = Arc<Box<dyn Fn(&Player, &str) + Send + std::marker::Sync + 'static>>;
 
@@ -15,7 +15,7 @@ pub struct Player {
     sender: Sender<PlayerCommand>,
     shared_state: Arc<RwLock<SharedState>>,
     downloader: TrackDownloader,
-    change_listeners: Arc<Mutex<Vec<ChangeListener>>>,
+    notifier: Notifier<String>,
     threadpool: ThreadPool,
 }
 
@@ -27,7 +27,7 @@ impl Player {
             sender,
             shared_state: Arc::new(RwLock::new(SharedState::default())),
             downloader: TrackDownloader::default(),
-            change_listeners: Arc::new(Mutex::new(vec![])),
+            notifier: Notifier::default(),
             threadpool: ThreadPool::new(1),
         };
         // TODO library.on_change() and watch for changes to the playlist, which
@@ -138,20 +138,15 @@ impl Player {
         self.queue().tracks(&self.library).get(self.current_queue_index() + 1).cloned()
     }
 
-    pub fn on_change(&self, callback: impl Fn(&Player, &str) + Send + Sync + 'static) {
-        let mut listeners = self.change_listeners.lock().unwrap();
-        listeners.push(Arc::new(Box::new(callback)));
+    pub fn on_change(&self, l: Box<dyn Fn(&String) + Send>) {
+        self.notifier.on_notify(l);
     }
 
     fn emit_change(&self, event: &str) {
-        let listeners = self.change_listeners.lock().unwrap().clone();
-        let player = self.clone();
+        let notifier = self.notifier.clone();
         let event = event.to_string();
-
         self.threadpool.execute(move || {
-            for callback in listeners {
-                callback(&player, &event);
-            }
+            notifier.notify(&event);
         });
     }
 
@@ -186,8 +181,14 @@ impl Player {
 
             let (position, duration) = inner.get_playback_position().unwrap_or_default();
             if let Ok(mut shared_state) = self.shared_state.write() {
-                shared_state.track_position = position;
-                shared_state.track_duration = duration;
+                if shared_state.track_position != position {
+                    shared_state.track_position = position;
+                    self.emit_change("position");
+                }
+                if shared_state.track_duration != duration {
+                    shared_state.track_duration = duration;
+                    self.emit_change("duration");
+                }
                 let new_state = match (inner.is_playing(), inner.has_current_song()) {
                     (true, true) => PlayerState::Playing,                    
                     (false, true) => PlayerState::Paused,
