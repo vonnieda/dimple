@@ -94,13 +94,9 @@ impl Library {
     /// Import MediaFiles into the Library, creating or updating Tracks,
     /// TrackSources, Blobs, etc. path can be either a file or directory. If
     /// it is a directory it will be recursively scanned.
+    /// TODO this goes away and into plugins too, I think.
     pub fn import(&self, path: &str) {
-        let path = path.to_string();
-        let library = self.clone();
-        // TODO fire and forget?
-        std::thread::spawn(move || {
-            crate::import::import(&library, &path);
-        });
+        crate::import::import(self, path);
     }
 
     pub fn add_sync(&self, sync: Sync) {
