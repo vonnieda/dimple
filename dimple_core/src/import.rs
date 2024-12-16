@@ -4,7 +4,6 @@ pub mod media_file;
 pub mod spotify;
 
 use media_file::ScannedFile;
-use rayon::iter::{ParallelBridge, ParallelIterator};
 use symphonia::core::meta::StandardTagKey;
 use walkdir::WalkDir;
 

@@ -6,6 +6,7 @@ pub mod sync;
 pub mod services;
 pub mod notifier;
 pub mod model_store;
+pub mod plugins;
 
 #[cfg(test)]
 mod tests {

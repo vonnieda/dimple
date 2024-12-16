@@ -1,8 +1,15 @@
+use serde::{Deserialize, Serialize};
+
+use crate::{library::Library, model::Track};
+
+use super::Plugin;
+
+#[derive(Default)]
 pub struct ExamplePlugin {
     config: ExamplePluginConfig,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Default, Serialize, Deserialize, Clone)]
 struct ExamplePluginConfig {    
     pub url: String,
     pub username: String,
@@ -31,7 +38,7 @@ impl Plugin for ExamplePlugin {
         "Ready".to_string()
     }
 
-    fn get_track_lyrics(&self, _library: &Library, _track: &Track) 
+    fn lyrics(&self, _library: &Library, _track: &Track) 
             -> Option<String> {
         Some(format!("(unrecognizable shrieking)"))
     }

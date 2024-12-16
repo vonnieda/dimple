@@ -38,7 +38,7 @@ impl Plugin for LrclibPlugin {
         "Ready".to_string()
     }
 
-    fn get_track_lyrics(&self, _library: &Library, track: &Track) 
+    fn lyrics(&self, _library: &Library, track: &Track) 
             -> Option<String> {
         let client = Client::builder()
             .user_agent(USER_AGENT)
@@ -94,7 +94,7 @@ mod tests {
             ..Default::default()
         });
         let lrclib = LrclibPlugin::default();
-        let lyrics = lrclib.get_track_lyrics(&library, &track);
+        let lyrics = lrclib.lyrics(&library, &track);
         assert!(lyrics.is_some());
         assert!(lyrics.unwrap().contains("strings"));
     }

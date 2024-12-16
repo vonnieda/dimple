@@ -3,11 +3,9 @@ pub mod lrclib;
 pub mod musicbrainz;
 pub mod wikidata;
 pub mod s3_api_sync;
+pub mod example;
 
-use image::DynamicImage;
-use serde::{Deserialize, Serialize};
-
-use crate::{library::Library, model::Track};
+use crate::{library::Library, model::{Artist, Release, Track}};
 
 pub const USER_AGENT: &str = "Dimple/0.0.1 +https://github.com/vonnieda/dimple +jason@vonnieda.org";
 
@@ -18,18 +16,16 @@ pub trait Plugin: Send + Sync {
     fn set_configuration(&mut self, config: &str);
     fn status(&self) -> String;
 
-    fn get_track_lyrics(&self, _library: &Library, _track: &Track) 
-            -> Option<String> {
+    // TODO These Options should be Results but I steadfastly refuse to learn
+    // all the Error boilerplate.
+
+    fn lyrics(&self, _library: &Library, _track: &Track) -> Option<String> {
         None
     }
 
-    fn get_track_coverart(&self, _library: &Library, _track: &Track) 
-            -> Option<DynamicImage> {
+    fn metadata(&self, _library: &Library, _track: &Track) 
+            -> Option<(Option<Artist>, Option<Release>, Track)> {
         None
-    }
-
-    fn sync(&self, _library: &Library) -> Result<(), ()> {
-        Ok(())
     }
 }
 

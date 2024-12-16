@@ -282,16 +282,6 @@ impl Library {
         None
     }
 
-    fn conn(&self) -> Connection {
-        // TODO wait, wait, why did I change this from a single connection?
-        // Cause that is probably slowing things down a lot. So if I need
-        // it this way (why?) then I need to pool.
-        // > library conn() is now a function that returns a new connection - 
-        // > needed to make Library sharable, and this paves the way for
-        // > transactions. Previously would have needed mut Library.
-        Connection::open(self.database_path.clone()).unwrap()
-    }
-
     // TODO now that library.query takes params most of these can be moved into
     // their caller's code
     pub fn changelogs(&self) -> Vec<ChangeLog> {
@@ -407,6 +397,16 @@ impl Library {
             }
         }
         None
+    }
+
+    fn conn(&self) -> Connection {
+        // TODO wait, wait, why did I change this from a single connection?
+        // Cause that is probably slowing things down a lot. So if I need
+        // it this way (why?) then I need to pool.
+        // > library conn() is now a function that returns a new connection - 
+        // > needed to make Library sharable, and this paves the way for
+        // > transactions. Previously would have needed mut Library.
+        Connection::open(self.database_path.clone()).unwrap()
     }
 }
 
