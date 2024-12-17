@@ -7,6 +7,7 @@ pub struct ScannedFile {
     pub path: String,
     pub tags: Vec<Tag>,
     pub visuals: Vec<Visual>,
+    pub length_ms: Option<u64>,
 }
 
 impl ScannedFile {
@@ -58,10 +59,21 @@ impl ScannedFile {
             visuals.extend(metadata.visuals().to_owned());
         }
 
+        let mut length_ms = None;
+        if let Some(track) = format.tracks().get(0) {
+            if let Some(time_base) = track.codec_params.time_base {
+                if let Some(n_frames) = track.codec_params.n_frames {
+                    let length = time_base.calc_time(n_frames);
+                    length_ms = Some((length.seconds * 1000) + ((length.frac * 1000.) as u64));
+                }
+            }
+        }
+
         let media_file = ScannedFile {
             path: path.to_str().unwrap().to_string(),
             tags,
             visuals,
+            length_ms,
         };
 
         Ok(media_file)
@@ -77,118 +89,5 @@ impl ScannedFile {
             None
         })
     }
-
-    // // TODO This and a few others may need to be a list, since some of the tags
-    // // have multiple values.
-    // pub fn artist(&self) -> Artist {
-    //     Artist {
-    //         name: self.tag(StandardTagKey::Artist),
-    //         known_ids: KnownIds { 
-    //             musicbrainz_id: self.tag(StandardTagKey::MusicBrainzArtistId),
-    //             ..Default::default()
-    //         },
-    //         links: self.tag(StandardTagKey::UrlArtist).iter()
-    //             .cloned()
-    //             .collect(),
-    //         ..Default::default()
-    //     }
-    // }
-
-    // pub fn release_group(&self) -> ReleaseGroup {
-    //     ReleaseGroup {
-    //         title: self.tag(StandardTagKey::Album),
-    //         primary_type: self.tag(StandardTagKey::MusicBrainzReleaseType),
-    //         first_release_date: self.tag(StandardTagKey::ReleaseDate),
-    //         // known_ids: self.tag(StandardTagKey::MusicBrainzReleaseGroupId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
-    //         //     .collect(),
-    //         ..Default::default()
-    //     }
-    // }
-
-    // pub fn release(&self) -> Release {
-    //     Release {
-    //         title: self.tag(StandardTagKey::Album),
-    //         status: self.tag(StandardTagKey::MusicBrainzReleaseStatus),
-    //         // primary_type: self.tag(StandardTagKey::MusicBrainzReleaseType),
-    //         country: self.tag(StandardTagKey::ReleaseCountry),
-    //         date: self.tag(StandardTagKey::Date),
-    //         barcode: self.tag(StandardTagKey::IdentBarcode),
-    //         // known_ids: self.tag(StandardTagKey::MusicBrainzAlbumId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
-    //         //     .chain(self.tag(StandardTagKey::IdentBarcode).iter().map(|id| KnownId::Barcode(id.to_string())))
-    //         //     .collect(),
-    //         ..Default::default()
-    //     }
-    // }
-
-    // pub fn medium(&self) -> Medium {
-    //     Medium {
-    //         title: self.tag(StandardTagKey::DiscSubtitle),
-    //         disc_count: self.tag(StandardTagKey::DiscTotal).and_then(|s| u32::from_str_radix(&s, 10).ok()),
-    //         position: self.tag(StandardTagKey::DiscNumber).and_then(|s| u32::from_str_radix(&s, 10).ok()),
-    //         track_count: self.tag(StandardTagKey::TrackTotal).and_then(|s| u32::from_str_radix(&s, 10).ok()),
-    //         format: self.tag(StandardTagKey::MediaFormat),
-    //         ..Default::default()
-    //     }
-    // }
-
-    // pub fn track(&self) -> Track {
-    //     Track {
-    //         title: self.tag(StandardTagKey::TrackTitle),
-    //         // TODO length
-    //         length: Default::default(),
-    //         number: self.tag(StandardTagKey::TrackNumber).and_then(|s| u32::from_str_radix(&s, 10).ok()),
-    //         position: self.tag(StandardTagKey::DiscNumber).and_then(|s| u32::from_str_radix(&s, 10).ok()),
-    //         // known_ids: self.tag(StandardTagKey::MusicBrainzReleaseTrackId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
-    //         //     .collect(),
-    //         ..Default::default()
-    //     }
-    // }
-
-    // pub fn recording(&self) -> Recording {
-    //     Recording {
-    //         title: self.tag(StandardTagKey::TrackTitle),
-    //         disambiguation: self.tag(StandardTagKey::TrackSubtitle),
-    //         // TODO length
-    //         length: Default::default(),
-    //         annotation: self.tag(StandardTagKey::Comment),
-    //         isrc: self.tag(StandardTagKey::IdentIsrc),
-    //         // known_ids: self.tag(StandardTagKey::MusicBrainzTrackId).iter().map(|id| KnownId::MusicBrainzId(id.to_string()))
-    //         //     .chain(self.tag(StandardTagKey::MusicBrainzRecordingId).iter().map(|id| KnownId::MusicBrainzId(id.to_string())))
-    //         //     .chain(self.tag(StandardTagKey::IdentIsrc).iter().map(|id| KnownId::ISRC(id.to_string())))
-    //         //     .chain(self.tag(StandardTagKey::IdentAsin).iter().map(|id| KnownId::ASIN(id.to_string())))
-    //         //     .collect(),
-    //         links: self.tag(StandardTagKey::Url).iter()
-    //             .chain(self.tag(StandardTagKey::UrlOfficial).iter())
-    //             .chain(self.tag(StandardTagKey::UrlPurchase).iter())
-    //             .cloned()
-    //             .collect(),
-    //         ..Default::default()
-    //     }
-    // }
-
-    // pub fn recording_source(&self) -> RecordingSource {
-    //     RecordingSource {
-    //         extension: self.path.extension().map(|e| e.to_string_lossy().to_lowercase()),
-    //         source_id: format!("dmfp://{}", self.path.to_str().unwrap_or_default()),
-    //         ..Default::default()
-    //     }
-    // }
-    
-    // pub fn genres(&self) -> Vec<Genre> {
-    //     if let Some(genre_name) = self.tag(StandardTagKey::Genre) {
-    //         let genres: Vec<_> = genre_name.split(";")
-    //             .map(|genre_name| Genre {
-    //                 name: Some(genre_name.to_string()),
-    //                 // TODO how to map musicbrainz id when multiple genres?
-    //                 // known_ids: 
-    //                 ..Default::default()
-    //             })
-    //             .collect();
-    //         genres
-    //     }
-    //     else {
-    //         vec![]
-    //     }
-    // }
 }
 

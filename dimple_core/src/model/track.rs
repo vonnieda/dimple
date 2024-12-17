@@ -13,6 +13,7 @@ pub struct Track {
     pub album: Option<String>,
     pub title: Option<String>,
     pub liked: bool,
+    // TODO make materialized
     pub plays: u32,
     // TODO Duration, I think, and probably ns vs ms.
     pub length_ms: Option<u64>,

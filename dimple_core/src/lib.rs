@@ -7,6 +7,7 @@ pub mod services;
 pub mod notifier;
 pub mod model_store;
 pub mod plugins;
+pub mod merge;
 
 #[cfg(test)]
 mod tests {

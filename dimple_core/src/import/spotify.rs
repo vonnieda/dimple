@@ -2,6 +2,7 @@ use std::fs::{self, File};
 
 use crate::{library::Library, model::Event};
 
+use chrono::DateTime;
 use walkdir::{DirEntry, WalkDir};
 
 use serde::{Deserialize, Serialize};
@@ -37,7 +38,7 @@ fn import_streaming_history_audio(library: &Library, json_file: &DirEntry) {
         // There is a unique index on (source_type, source) so if we're
         // re-importing the same data we'll just update the existing row.
         library.save_unlogged(&Event {
-            timestamp: entry.ts.clone().unwrap(),
+            timestamp: DateTime::parse_from_rfc3339(&entry.ts.clone().unwrap()).unwrap().into(),
             event_type: match entry.skipped {
                 Some(true) => "track_skipped",
                 _ => "track_played",

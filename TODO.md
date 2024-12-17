@@ -9,9 +9,12 @@ Dump new things at the bottom, move things to the top to prioritize.
 - Show currently playing track as playing in queue.
 - Clicking on a playbar item should take you to the item in the queue, from
   there you can click the item to go to details if you want.
-- Bug: Music skips when switching from the Dimple window to another app, maybe
+- [x] Bug: Music skips when switching from the Dimple window to another app, maybe
   other times too. https://docs.rs/thread-priority/latest/thread_priority/
   I think it's due to thread priority.
+  Okay, looks like this is fixed by cloning playback-rs, adding the thread
+  priority crate and setting the playback thread to max. Haven't heard a skip
+  since.
 - After starting the app, if there is music in the queue, pressing play on the
   keyboard should start playing. Right now it seems macos doesn't forward the
   play event until we've actually played at least once.
@@ -65,3 +68,7 @@ Dump new things at the bottom, move things to the top to prioritize.
   This will open Dimple and go to a page showing metadata about the share, which
   in this case is a library of free music hosted on my B2 account. The user can
 - Clicking playlist name to edit should focus and select all
+- Bug: Empty queue shows placeholder text. Probably should just be empty.
+- Need like, download, etc. buttons ont he player bar. Probably over near the
+  play buttons.
+- Per song EQ. ReplayGain is cool, but give the user *everything*.

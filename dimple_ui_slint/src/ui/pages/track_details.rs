@@ -55,7 +55,7 @@ pub fn track_details(url: &str, app: &App) {
             });
         }
 
-        let artists: Vec<Artist> = vec![ Artist {
+        let artists: Vec<Artist> = vec![Artist {
             // TODO wrong key, just for testing.
             key: track.key.clone(),
             name: track.artist.clone(),

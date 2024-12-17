@@ -1,7 +1,6 @@
 use dimple_core::{library::Library, player::Player};
 use player_bar;
-use raw_window_handle::HasRawWindowHandle;
-use std::{collections::VecDeque, os::raw::c_void, sync::{Arc, Mutex}};
+use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
 use slint::{ComponentHandle, SharedString, Weak};
 
@@ -9,7 +8,7 @@ use directories::ProjectDirs;
 
 use crate::{config::Config, ui::*};
 
-use self::{images::ImageMangler, pages::settings};
+use self::images::ImageMangler;
 
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 
@@ -213,21 +212,25 @@ impl App {
 }
 
 fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
+
     #[cfg(not(target_os = "windows"))]
     let hwnd = None;
 
     #[cfg(target_os = "windows")]
+    use {
+        std::os::raw::c_void,
+        raw_window_handle::HasWindowHandle,
+        raw_window_handle::HasRawWindowHandle,
+        raw_window_handle::RawWindowHandle,
+    };
+    #[cfg(target_os = "windows")]
     let hwnd: Option<*mut c_void> = {
-        use raw_window_handle::HasWindowHandle;
-        use raw_window_handle::HasRawWindowHandle;
-        use raw_window_handle::RawWindowHandle;
         let window_handle = ui.window().window_handle();
         let raw_window_handle = window_handle.raw_window_handle().unwrap();
         let handle: raw_window_handle::Win32WindowHandle = match raw_window_handle {
             RawWindowHandle::Win32(h) => h,
             _ => unreachable!(),
         };
-        // let hwnd = handle.hwnd.get();
         Some(handle.hwnd.get() as *mut c_void)
     };
 

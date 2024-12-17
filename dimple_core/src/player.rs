@@ -209,10 +209,10 @@ impl Player {
         if let Some(current_track) = self.current_queue_track() {
             // TODO quick hack, getting a feel for this, but also want to be
             // storing the history I'm listening to.
-            let timestamp = chrono::Utc::now().to_rfc3339();
+            let timestamp = chrono::Utc::now();
             self.library.save_unlogged(&Event {
                 key: None,
-                timestamp: timestamp.clone(),
+                timestamp: timestamp,
                 event_type: event_type.to_string(),
                 artist: current_track.artist.clone(),
                 album: current_track.album.clone(),

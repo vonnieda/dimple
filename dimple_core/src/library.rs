@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::{Arc, Mutex, RwLock}, time::Duration};
+use std::{sync::{Arc, Mutex, RwLock}, time::Duration};
 
 use image::DynamicImage;
 use include_dir::{include_dir, Dir};
@@ -32,6 +32,11 @@ pub struct Library {
 }
 
 impl Library {
+    pub fn open_temporary() -> Self {
+        let path = format!("file:{}?mode=memory&cache=shared", Uuid::new_v4());
+        Library::open(&path)
+    }
+
     /// Open the library located at the specified path. The path is to an
     /// optionally existing Sqlite database. Blobs will be stored in the
     /// same directory as the specified file. If the directory does not exist
@@ -492,5 +497,14 @@ mod tests {
         }));
         library.save(&Track::default());
         // assert!(rx.recv_timeout(Duration::from_secs(1)).is_ok());
+    }
+
+
+    #[test]
+    fn import2() {
+        let library = Library::open("file:47a5236f-520d-4ee3-b832-93c5c91c6db1?mode=memory&cache=shared");
+        library.import("/Users/jason/Music/My Music/Deafheaven");
+        let media_files = library.list::<MediaFile>();
+        dbg!(media_files);
     }
 }
