@@ -72,3 +72,4 @@ Dump new things at the bottom, move things to the top to prioritize.
 - Need like, download, etc. buttons ont he player bar. Probably over near the
   play buttons.
 - Per song EQ. ReplayGain is cool, but give the user *everything*.
+- Bug: Clicking on a track in tracks with no title (or artist album) crashes.

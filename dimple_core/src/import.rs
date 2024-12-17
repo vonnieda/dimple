@@ -1,37 +1,16 @@
-use std::{collections::HashMap, time::{Instant, SystemTime}};
+use std::{collections::HashMap, path::Path};
 
-use crate::{library::{self, Library}, merge::Crdt, model::{Blob, MediaFile, Track, TrackSource}};
+use crate::{library::Library, merge::Crdt, model::{Blob, MediaFile, Track, TrackSource}};
 
-pub mod media_file;
+use std::fs::File;
+
+use symphonia::core::{errors::Error, formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Visual}, probe::Hint};
+
 pub mod spotify;
 
 use chrono::{DateTime, Utc};
-use include_dir::Dir;
-use media_file::ScannedFile;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use symphonia::core::meta::StandardTagKey;
-use walkdir::{DirEntry, WalkDir};
-
-#[derive(Debug)]
-struct ScurnedFale {
-    dir_entry: DirEntry,
-    last_modified: SystemTime,
-    length: u64,
-}
-
-fn scan(path: &str) -> Vec<ScurnedFale> {
-    let files = WalkDir::new(path).into_iter()
-        .filter_map(|dir_entry| dir_entry.ok())
-        .filter(|dir_entry| dir_entry.file_type().is_file())
-        .filter(|dir_entry| dir_entry.file_name() != ".DS_Store")
-        .map(|dir_entry| ScurnedFale {
-            dir_entry: dir_entry.clone(),
-            last_modified: dir_entry.metadata().unwrap().modified().unwrap(),
-            length: dir_entry.metadata().unwrap().len(),
-        })
-        .collect::<Vec<_>>();
-    files
-}
+use walkdir::WalkDir;
 
 pub fn import(library: &Library, path: &str) {
     log::info!("Importing {}.", path);
@@ -45,7 +24,7 @@ pub fn import(library: &Library, path: &str) {
     log::info!("Loaded {} media files from database.", media_files.len());
 
     let to_import = files.par_iter().filter(|file| {
-        if let Some(media_file) = media_files.get(file.dir_entry.path().to_str().unwrap()) {
+        if let Some(media_file) = media_files.get(&file.path) {
             let l = media_file.last_modified;
             let r = DateTime::<Utc>::from(file.last_modified);
             r > l
@@ -58,7 +37,7 @@ pub fn import(library: &Library, path: &str) {
 
     let imports = to_import.par_iter()
         .filter_map(|file| {
-            ScannedFile::new(file.dir_entry.path().to_str().unwrap())
+            TaggedMediaFile::new(&file.path)
                 .ok()
                 .map(|s| (file, s))
         })
@@ -111,29 +90,113 @@ pub fn import(library: &Library, path: &str) {
     log::info!("Imported {} media files.", imports.len());
 }
 
-#[test]
-fn import_thing() {
-    let mut builder = env_logger::Builder::new();
-    builder.filter_level(log::LevelFilter::Info);
-    builder.format_timestamp_millis();
-    builder.parse_default_env();
-    builder.filter(Some("symphonia_core"), log::LevelFilter::Off);
-    builder.filter(Some("symphonia_bundle_mp3"), log::LevelFilter::Off);
-    builder.filter(Some("symphonia_metadata"), log::LevelFilter::Off);
-    builder.filter(Some("symphonia_format_isomp4"), log::LevelFilter::Off);
-    builder.filter(Some("dimple_core::import::media_file"), log::LevelFilter::Off);    
-    builder.filter(Some("symphonia_format_riff::common"), log::LevelFilter::Off);    
-    
-    builder.init();
-
-    // let library = Library::open_temporary();
-    let library = Library::open("asdjaasdasdhsdkahsd.db");
-    import(&library, "/Users/jason/Music/My Music/Opeth");
-    import(&library, "/Users/jason/Music/My Music/Opeth");
+fn scan(path: &str) -> Vec<ScannedFile> {
+    let files = WalkDir::new(path).into_iter()
+        .filter_map(|dir_entry| dir_entry.ok())
+        .filter(|dir_entry| dir_entry.file_type().is_file())
+        .filter(|dir_entry| dir_entry.file_name() != ".DS_Store")
+        .map(|dir_entry| ScannedFile {
+            path: dir_entry.path().to_str().unwrap().to_string(),
+            last_modified: dir_entry.metadata().unwrap().modified().unwrap().into(),
+            file_length: dir_entry.metadata().unwrap().len(),
+        })
+        .collect::<Vec<_>>();
+    files
 }
 
-impl From<ScannedFile> for MediaFile {
-    fn from(input: ScannedFile) -> Self {
+#[derive(Debug)]
+struct ScannedFile {
+    path: String,
+    last_modified: DateTime<Utc>,
+    file_length: u64,
+}
+
+#[derive(Clone, Debug)]
+pub struct TaggedMediaFile {
+    pub path: String,
+    pub tags: Vec<Tag>,
+    pub visuals: Vec<Visual>,
+    pub length_ms: Option<u64>,
+}
+
+impl TaggedMediaFile {
+    pub fn new(path: &str) -> Result<TaggedMediaFile, Error> {
+        let path = Path::new(path);
+        let media_source = File::open(&path).unwrap();
+        let media_source_stream =
+            MediaSourceStream::new(Box::new(media_source), Default::default());
+
+        let meta_opts: MetadataOptions = Default::default();
+        let fmt_opts: FormatOptions = Default::default();
+
+        let mut hint = Hint::new();
+        if let Some(extension) = path.extension() {
+            hint.with_extension(extension.to_str().unwrap());
+        }
+        
+        let probed = symphonia::default::get_probe()
+            .format(&hint, media_source_stream, &fmt_opts, &meta_opts);
+
+        if let Err(e) = probed {
+            log::error!("{:?} {:?}", &path, e.to_string());
+            return Err(e)
+        }
+
+        let mut probed = probed.unwrap();
+
+        let mut format = probed.format;
+
+        let mut tags: Vec<Tag> = vec![];
+        let mut visuals: Vec<Visual> = vec![];
+
+        if let Some(metadata) = probed.metadata.get() {
+            if let Some(metadata) = metadata.current() {
+                tags.extend(metadata.tags().to_owned());
+                visuals.extend(metadata.visuals().to_owned());
+            }
+        }
+
+        let metadata = format.metadata();
+
+        if let Some(metadata) = metadata.current() {
+            tags.extend(metadata.tags().to_owned());
+            visuals.extend(metadata.visuals().to_owned());
+        }
+
+        let mut length_ms = None;
+        if let Some(track) = format.tracks().get(0) {
+            if let Some(time_base) = track.codec_params.time_base {
+                if let Some(n_frames) = track.codec_params.n_frames {
+                    let length = time_base.calc_time(n_frames);
+                    length_ms = Some((length.seconds * 1000) + ((length.frac * 1000.) as u64));
+                }
+            }
+        }
+
+        let media_file = TaggedMediaFile {
+            path: path.to_str().unwrap().to_string(),
+            tags,
+            visuals,
+            length_ms,
+        };
+
+        Ok(media_file)
+    }
+
+    pub fn tag(&self, key: StandardTagKey) -> Option<String> {
+        self.tags.iter().find_map(|t| {
+            if let Some(std_key) = t.std_key {
+                if std_key == key {
+                    return Some(t.value.to_string())
+                }
+            }
+            None
+        })
+    }
+}
+
+impl From<TaggedMediaFile> for MediaFile {
+    fn from(input: TaggedMediaFile) -> Self {
         MediaFile {
             key: None,
             // TODO hate this
@@ -189,3 +252,4 @@ impl From<MediaFile> for Track {
         }
     }
 }
+

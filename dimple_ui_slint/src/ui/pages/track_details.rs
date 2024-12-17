@@ -67,7 +67,7 @@ pub fn track_details(url: &str, app: &App) {
         ui.upgrade_in_event_loop(move |ui| {
             let artists: Vec<LinkAdapter> = artists.iter().cloned().map(|artist| {
                 LinkAdapter {
-                    name: artist.name.unwrap().into(),
+                    name: artist.name.unwrap_or_default().into(),
                     url: format!("dimple://artist/{}", artist.key.unwrap()).into(),
                 }
             }).collect();

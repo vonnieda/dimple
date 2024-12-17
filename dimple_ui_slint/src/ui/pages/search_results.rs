@@ -26,8 +26,16 @@ pub fn search_results(url: &str, app: &App) {
         let query = percent_encoding::percent_decode_str(query).decode_utf8_lossy().to_string();
         let query = format!("%{}%", query);
 
-        let tracks: Vec<Track> = app.library.query("SELECT * FROM Track
-            WHERE artist LIKE ?1 OR album LIKE ?1 OR title LIKE ?1", (query,));
+        let tracks: Vec<Track> = app.library.query("
+            SELECT * 
+            FROM Track
+            WHERE 
+                artist LIKE ?1 
+                OR album LIKE ?1 
+                OR title LIKE ?1
+                OR lyrics LIKE ?1
+                OR key LIKE ?1
+            ", (query,));
         app.ui.upgrade_in_event_loop(move |ui| {
             // TODO switch to actual search page
             ui.global::<TrackListAdapter>().set_row_data(row_data(&tracks));
