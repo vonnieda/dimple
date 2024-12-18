@@ -12,25 +12,27 @@ use slint::ComponentHandle as _;
 use crate::ui::CardAdapter;
 
 pub fn track_details_init(app: &App) {
-    // _app.library.on_change(|library, type_name, key| println!("{} {}", type_name, key));
-    // let app = _app.clone();
-    // _app.library.on_change(move |library, model_type, key| {       
-    //     let app = app.clone();
-    //     let model_type = model_type.to_string();
-    //     let ui = app.ui.clone();
-    //     ui.upgrade_in_event_loop(move |ui| {
-    //         if ui.get_page() == Page::TrackDetails && model_type == "Track" {
-    //             app.refresh();
-    //         }
-    //     });
-    // });
     let _app = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
-        let app = _app.clone();
-        ui.global::<TrackDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
-        let app = _app.clone();
-        ui.global::<TrackDetailsAdapter>().on_add_to_queue(move |key| add_to_queue(&app, &key));
+        let __app = _app.clone();
+        ui.global::<TrackDetailsAdapter>().on_play_now(move |key| play_now(&__app, &key));
+        let __app = _app.clone();
+        ui.global::<TrackDetailsAdapter>().on_add_to_queue(move |key| add_to_queue(&__app, &key));
     }).unwrap();
+
+    let _app = app.clone();
+    app.library.on_change(Box::new(move |key| {
+        let __app = _app.clone();
+        _app.ui.upgrade_in_event_loop(move |ui| {
+            // TODO should check key
+            // TODO don't want to add to the event loop on every library change
+            // and then check the key, so it's probably time to keep some state
+            // on this side, too, like the key.
+            if ui.get_page() == Page::TrackDetails {
+                __app.refresh();
+            }
+        }).unwrap();
+    }));
 }
 
 pub fn track_details(url: &str, app: &App) {
@@ -53,24 +55,7 @@ pub fn track_details(url: &str, app: &App) {
             });
         }
 
-        // track.recording = librarian.list(&Recording::default().model(), &Some(track.model()))
-        //     .unwrap().map(Into::<Recording>::into).next().unwrap();
-
-        // track.recording.genres = librarian
-        //     .list(&Genre::default().into(), &Some(track.recording.model()))
-        //     .unwrap().map(Into::into).collect();
-
-        // let mut artists: Vec<Artist> = librarian
-        //     .list(&Artist::default().into(), &Some(track.recording.model()))
-        //     .unwrap().map(Into::into).collect();
-        // artists.sort_by_key(|f| f.name.to_owned());
-
-        // track.genres = librarian
-        //     .list(&Genre::default().into(), &Some(track.model()))
-        //     .unwrap().map(Into::into).collect();
-        // track.genres.sort_by_key(|genre| genre.name.clone().unwrap_or_default().to_lowercase());
-
-        let artists: Vec<Artist> = vec![ Artist {
+        let artists: Vec<Artist> = vec![Artist {
             // TODO wrong key, just for testing.
             key: track.key.clone(),
             name: track.artist.clone(),
@@ -82,7 +67,7 @@ pub fn track_details(url: &str, app: &App) {
         ui.upgrade_in_event_loop(move |ui| {
             let artists: Vec<LinkAdapter> = artists.iter().cloned().map(|artist| {
                 LinkAdapter {
-                    name: artist.name.unwrap().into(),
+                    name: artist.name.unwrap_or_default().into(),
                     url: format!("dimple://artist/{}", artist.key.unwrap()).into(),
                 }
             }).collect();
@@ -122,6 +107,12 @@ pub fn track_details(url: &str, app: &App) {
             ui.set_page(Page::TrackDetails);
         }).unwrap();
     });
+}
+
+fn update_model(app: &App) {
+    let _app = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+    }).unwrap();
 }
 
 fn play_now(app: &App, key: &str) {

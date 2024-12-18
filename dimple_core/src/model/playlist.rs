@@ -1,13 +1,16 @@
-use rusqlite::Row;
-
+use dimple_core_macro::ModelSupport;
 use crate::library::Library;
 
-use super::{ChangeLog, Diff, FromRow, Model, Track};
+use super::Track;
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
 pub struct Playlist {
     pub key: Option<String>,
     pub name: Option<String>,
+
+    pub save: bool,
+    pub download: bool,
+    pub summary: Option<String>,
 }
 
 impl Playlist {
@@ -27,73 +30,6 @@ impl Playlist {
     }
 }
 
-impl FromRow for Playlist {
-    fn from_row(row: &Row) -> Self {
-        Self {
-            key: row.get("key").unwrap(),
-            name: row.get("name").unwrap(),
-            ..Default::default()
-        }
-    }
-}
-
-impl Diff for Playlist {
-    fn diff(&self, other: &Self) -> Vec<ChangeLog> {
-        let mut diff = vec![];
-        if self.key != other.key {
-            diff.push(ChangeLog { model: "Playlist".to_string(), 
-                op: "set".to_string(), field: Some("key".to_string()), 
-                value: other.key.clone(), ..Default::default() });
-        }
-        if self.name != other.name {
-            diff.push(ChangeLog { model: "Playlist".to_string(), 
-                op: "set".to_string(), field: Some("name".to_string()), 
-                value: other.name.clone(), ..Default::default() });
-        }
-        diff
-    }
-    
-    fn apply_diff(&mut self, diff: &[ChangeLog]) {
-        for change in diff {
-            if change.op == "set" {
-                if let Some(field) = change.field.clone() {
-                    if &field == "key" {
-                        self.key = change.value.clone();
-                    }
-                    if &field == "name" {
-                        self.name = change.value.clone();
-                    }
-                }
-            }
-        }
-    }    
-}
-
-impl Model for Playlist {
-    fn type_name(&self) -> String {
-        "Playlist".to_string()
-    }
-
-    fn key(&self) -> Option<String> {
-        self.key.clone()
-    }
-    
-    fn upsert(&self, conn: &rusqlite::Connection) {
-        conn.execute("INSERT OR REPLACE INTO Playlist 
-            (key, name) 
-            VALUES (?1, ?2)",
-            (&self.key, &self.name)).unwrap();
-    }
-    
-    fn set_key(&mut self, key: Option<String>) {
-        self.key = key.clone()
-    }
-        
-    fn log_changes(&self) -> bool {
-        true
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{library::Library, model::{Diff, Model, Playlist, Track}};
@@ -108,6 +44,16 @@ mod tests {
         let model = library.save(&model);
         let model: Playlist = library.get(&model.key.unwrap()).unwrap();
         assert!(model.name == Some("name".to_string()));
+    }
+
+    #[test]
+    fn migration_02() {
+        let library = Library::open("file:f165f2a4-3b21-4053-86ea-259aad53825a?mode=memory&cache=shared");
+        let model = library.save(&Playlist {
+            save: true,
+            ..Default::default()   
+        });
+        assert!(model.save == true);
     }
 
     #[test]

@@ -65,12 +65,13 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                         });
                     let upsert = quote! {
                         let sql = format!("INSERT OR REPLACE INTO {} ({}) VALUES ({})", #name_str, #columns, #column_positions);
-                        conn.execute(&sql, (#(#params,)*)).unwrap();
+                        conn.execute(&sql, params!(#(#params,)*)).unwrap();
                     };
 
                     quote! {
-                        use super::{ChangeLogValue, ChangeLog, Diff, FromRow, Model};
+                        use crate::model::{ChangeLogValue, ChangeLog, Diff, FromRow, Model};
                         use rusqlite::Row;
+                        use rusqlite::params;
                         
                         impl FromRow for #name {
                             fn from_row(row: &Row) -> Self {

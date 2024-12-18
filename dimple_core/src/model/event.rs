@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use dimple_core_macro::ModelSupport;
 
 // TODO rethinking calling this Event because I'll eventually want to track
@@ -6,7 +7,7 @@ use dimple_core_macro::ModelSupport;
 #[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
 pub struct Event {
     pub key: Option<String>,
-    pub timestamp: String,
+    pub timestamp: DateTime<Utc>,
     pub event_type: String,
     pub artist: Option<String>,
     pub album: Option<String>,

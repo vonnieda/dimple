@@ -1,9 +1,16 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
-import {Styles} from "../common.slint";
+import { Styles } from "../common.slint";
+import { LinkAdapter } from "../components/link.slint";
+
+export struct HomeSectionAdapter {
+    title: string,
+    cards: [CardAdapter],    
+}
 
 export struct HomeAdapter {
+    sections: [HomeSectionAdapter],
     cards: [CardAdapter],
 }
 
@@ -14,14 +21,17 @@ export component Home inherits VerticalBox {
         text: "Home";
         font-size: 1rem * Styles.page_title_font_rem;
     }
-    ScrollView {                        
-        card-grid := CardGrid {
-            cards: model.cards;
-            parent-width: parent.width;
+
+    for section in model.sections: VerticalLayout {
+        Text {
+            text: section.title;
+            font-size: 1rem * Styles.section_font_rem;
         }
-    }
-    Text {
-        horizontal-alignment: right;
-        text: model.cards.length + " items";
+        ScrollView {                        
+            CardGrid {
+                cards: section.cards;
+                parent-width: parent.width;
+            }
+        }
     }
 }

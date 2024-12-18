@@ -38,7 +38,7 @@ fn row_data(events: &[Event]) -> ModelRc<ModelRc<StandardListViewItem>> {
     for event in events {
         let event = event.clone();
         let row = Rc::new(VecModel::default());
-        row.push(StandardListViewItem::from(event.timestamp.as_str())); // Date
+        row.push(StandardListViewItem::from(event.timestamp.to_string().as_str())); // Date
         row.push(StandardListViewItem::from(event.event_type.as_str())); // Type
         row.push(StandardListViewItem::from(event.artist.unwrap_or_default().as_str())); // Artist
         row.push(StandardListViewItem::from(event.album.unwrap_or_default().as_str())); // Album

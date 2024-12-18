@@ -95,6 +95,7 @@ export component SideBar inherits VerticalLayout {
     LineEdit {
         placeholder-text: "Search...";
         edited(query) => { Navigator.navigate("dimple://search/" + query); }
+        accepted(query) => { Navigator.navigate("dimple://search/" + query); }
         font-size: 1.3rem;
         height: self.font-size * 2.5;
     }

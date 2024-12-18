@@ -36,17 +36,11 @@ pub fn player_bar_init(app: &App) {
     }
 
     {
-        let _app = app.clone();
-        std::thread::spawn(move || {
-            loop {
-                let app = _app.clone();
-                _app.ui.upgrade_in_event_loop(move |ui| update_model(&app)).unwrap();
-    
-                // TODO magic
-                std::thread::sleep(Duration::from_millis(100));
-            }
-    });
-}
+        let app1 = app.clone();
+        app.player.on_change(Box::new(move |event| {
+            update_model(&app1);
+        }));
+    }
 }
 
 fn update_model(app: &App) {

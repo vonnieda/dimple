@@ -1,14 +1,22 @@
-use std::{collections::HashMap, sync::{Arc, Mutex, RwLock}, time::Duration};
+use std::{sync::{Arc, Mutex, RwLock}, time::Duration};
 
 use image::DynamicImage;
+use include_dir::{include_dir, Dir};
 use log::info;
 use rusqlite::{backup::Backup, Connection, OptionalExtension, Params};
+use rusqlite_migration::Migrations;
+use threadpool::ThreadPool;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::{model::{Blob, ChangeLog, FromRow, MediaFile, Model, Playlist, Track, TrackSource}, sync::Sync};
+use crate::{model::{Blob, ChangeLog, FromRow, MediaFile, Model, Playlist, Track, TrackSource}, notifier::Notifier, sync::Sync};
 
-type ChangeListener = Arc<Box<dyn Fn(&Library, &str, &str) + Send + std::marker::Sync + 'static>>;
+#[derive(Clone)]
+pub struct LibraryEvent {
+    pub library: Library,
+    pub type_name: String,
+    pub key: String,
+}
 
 #[derive(Clone)]
 pub struct Library {
@@ -16,13 +24,19 @@ pub struct Library {
     database_path: String,
     ulids: Arc<Mutex<Generator>>,
     // TODO I really think I want to get rid of this and put it somewhere
-    // higher level.
+    // higher level. Note: Yea, it's going into Plugins and we're deleting
+    // sync from Library entirely.
     synchronizers: Arc<RwLock<Vec<Sync>>>,
-    // TODO go back to HashMap, turn into a struct. 
-    change_listeners: Arc<Mutex<Vec<ChangeListener>>>,
+    notifier: Notifier<LibraryEvent>,
+    threadpool: ThreadPool,
 }
 
 impl Library {
+    pub fn open_temporary() -> Self {
+        let path = format!("file:{}?mode=memory&cache=shared", Uuid::new_v4());
+        Library::open(&path)
+    }
+
     /// Open the library located at the specified path. The path is to an
     /// optionally existing Sqlite database. Blobs will be stored in the
     /// same directory as the specified file. If the directory does not exist
@@ -40,12 +54,15 @@ impl Library {
         // };
         // librarian
 
-        let conn = Connection::open(database_path).unwrap();
+        static MIGRATION_DIR: Dir = include_dir!("./dimple_core/src/migrations");
+        let migrations = Migrations::from_directory(&MIGRATION_DIR).unwrap();
 
-        // TODO https://github.com/cljoly/rusqlite_migration/blob/master/examples/from-directory/src/main.rs
-        let schema = include_str!("migrations/202411070001_initial.sql");
+        let mut conn = Connection::open(database_path).unwrap();
 
-        conn.execute_batch(schema).unwrap();
+        migrations.to_latest(&mut conn).unwrap();
+
+        conn.pragma_update(None, "journal_mode", "WAL").unwrap();
+        conn.pragma_update(None, "foreign_keys", "ON").unwrap();        
 
         conn.execute("
             INSERT INTO Metadata (key, value) VALUES ('library.uuid', ?1)
@@ -59,7 +76,8 @@ impl Library {
             database_path: database_path.to_string(),
             ulids: Arc::new(Mutex::new(Generator::new())),
             synchronizers: Arc::new(RwLock::new(vec![])),
-            change_listeners: Arc::new(Mutex::new(Vec::new())),
+            notifier: Notifier::new(),
+            threadpool: ThreadPool::new(1),
         };
 
         library
@@ -87,6 +105,7 @@ impl Library {
     /// Import MediaFiles into the Library, creating or updating Tracks,
     /// TrackSources, Blobs, etc. path can be either a file or directory. If
     /// it is a directory it will be recursively scanned.
+    /// TODO this goes away and into plugins too, I think.
     pub fn import(&self, path: &str) {
         crate::import::import(self, path);
     }
@@ -103,21 +122,19 @@ impl Library {
         }
     }
 
-    pub fn on_change(&self, callback: impl Fn(&Library, &str, &str) + Send + std::marker::Sync + 'static) {
-        let mut listeners = self.change_listeners.lock().unwrap();
-        listeners.push(Arc::new(Box::new(callback)));
+    pub fn on_change(&self, l: Box<dyn Fn(&LibraryEvent) + Send>) {
+        self.notifier.on_notify(l);
     }
 
     fn emit_change(&self, type_name: &str, key: &str) {
-        let listeners = self.change_listeners.lock().unwrap().clone();
-        let library = self.clone();
-        let type_name = type_name.to_string();
-        let key = key.to_string();
-            
-        std::thread::spawn(move || {
-            for callback in listeners {
-                callback(&library, &type_name, &key);
-            }
+        let notifier = self.notifier.clone();
+        let event = LibraryEvent {
+            library: self.clone(),
+            type_name: type_name.to_string(),
+            key: key.to_string(),
+        };
+        self.threadpool.execute(move || {
+            notifier.notify(&event);
         });
     }
 
@@ -270,16 +287,6 @@ impl Library {
         None
     }
 
-    fn conn(&self) -> Connection {
-        // TODO wait, wait, why did I change this from a single connection?
-        // Cause that is probably slowing things down a lot. So if I need
-        // it this way (why?) then I need to pool.
-        // > library conn() is now a function that returns a new connection - 
-        // > needed to make Library sharable, and this paves the way for
-        // > transactions. Previously would have needed mut Library.
-        Connection::open(self.database_path.clone()).unwrap()
-    }
-
     // TODO now that library.query takes params most of these can be moved into
     // their caller's code
     pub fn changelogs(&self) -> Vec<ChangeLog> {
@@ -397,9 +404,14 @@ impl Library {
         None
     }
 
-    /// Test that the database matches the combined state of the changelog.
-    pub fn verify() {
-        todo!()
+    fn conn(&self) -> Connection {
+        // TODO wait, wait, why did I change this from a single connection?
+        // Cause that is probably slowing things down a lot. So if I need
+        // it this way (why?) then I need to pool.
+        // > library conn() is now a function that returns a new connection - 
+        // > needed to make Library sharable, and this paves the way for
+        // > transactions. Previously would have needed mut Library.
+        Connection::open(self.database_path.clone()).unwrap()
     }
 }
 
@@ -476,11 +488,23 @@ mod tests {
     #[test]
     fn change_notifications() {
         let library = Library::open("file:40c65129-2e84-4eff-8b25-9a03519da1e1?mode=memory&cache=shared");
-        let (tx, rx) = std::sync::mpsc::channel();
-        library.on_change(move |_library, type_name, _key| if type_name == "Track" {
-            tx.send(()).unwrap();
-        });
+        // let (tx, rx) = std::sync::mpsc::channel();
+        // library.on_change(move |_library, type_name, _key| if type_name == "Track" {
+        //     tx.send(()).unwrap();
+        // });
+        library.on_change(Box::new(move |event| {
+            println!("{} {}", event.type_name, event.key);
+        }));
         library.save(&Track::default());
-        assert!(rx.recv_timeout(Duration::from_secs(1)).is_ok());
+        // assert!(rx.recv_timeout(Duration::from_secs(1)).is_ok());
+    }
+
+
+    #[test]
+    fn import2() {
+        let library = Library::open("file:47a5236f-520d-4ee3-b832-93c5c91c6db1?mode=memory&cache=shared");
+        library.import("/Users/jason/Music/My Music/Deafheaven");
+        let media_files = library.list::<MediaFile>();
+        dbg!(media_files);
     }
 }

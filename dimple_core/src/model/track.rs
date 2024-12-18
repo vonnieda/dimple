@@ -13,10 +13,11 @@ pub struct Track {
     pub album: Option<String>,
     pub title: Option<String>,
     pub liked: bool,
+    // TODO make materialized
     pub plays: u32,
     // TODO Duration, I think, and probably ns vs ms.
     pub length_ms: Option<u64>,
-    // pub media_position: Option<u32>,
+    pub media_position: Option<u32>,
 
     pub save: bool,
     pub download: bool,
@@ -26,10 +27,8 @@ pub struct Track {
     pub musicbrainz_id: Option<String>,
     pub wikidata_id: Option<String>,
     pub spotify_id: Option<String>,
-    // TODO I can't add these till I change how the code generator works to
-    // to handle longer tuples of params. (Uncomment to see)
-    // pub discogs_id: Option<String>,
-    // pub lastfm_id: Option<String>,
+    pub discogs_id: Option<String>,
+    pub lastfm_id: Option<String>,
 
     pub lyrics: Option<String>,
     // TODO LRC format (https://en.wikipedia.org/wiki/LRC_(file_format)) for

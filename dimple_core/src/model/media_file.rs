@@ -1,5 +1,8 @@
+use chrono::{DateTime, Utc};
 use dimple_core_macro::ModelSupport;
 
+// https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
+// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
 #[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
 pub struct MediaFile {
     pub key: Option<String>,
@@ -9,7 +12,43 @@ pub struct MediaFile {
 
     pub artist: Option<String>,
     pub album: Option<String>,
-    pub title: Option<String>,
+    pub title: Option<String>,    
+    pub genre: Option<String>,
+
+    // // TODO Duration, I think, and probably ns vs ms.
+    pub length_ms: Option<u64>,
+
+    pub lyrics: Option<String>,
+    // // TODO LRC format (https://en.wikipedia.org/wiki/LRC_(file_format)) for
+    // // now, convert to a model later.
+    pub synced_lyrics: Option<String>,
+
+    /// A multi-value tag containing the MBIDs for the track artists.
+    pub musicbrainz_artist_id: Option<String>,
+    pub musicbrainz_release_group_id: Option<String>,
+    pub musicbrainz_album_id: Option<String>,
+    /// A multi-value tag containing the MBIDs for the release artists.
+    pub musicbrainz_album_artist_id: Option<String>,
+    pub musicbrainz_track_id: Option<String>,
+    pub musicbrainz_recording_id: Option<String>,
+    pub musicbrainz_release_track_id: Option<String>,
+    pub musicbrainz_genre_id: Option<String>,
+
+    pub last_modified: DateTime<Utc>,
+    pub last_imported: DateTime<Utc>,
+
+    pub release_date: Option<String>,
+    pub isrc: Option<String>,
+    pub label: Option<String>,
+    pub original_date: Option<String>,
+    pub original_year: Option<String>,
+    pub website: Option<String>,
+
+    pub total_discs: Option<u32>,
+    pub disc_number: Option<u32>,
+    pub disc_subtitle: Option<String>,
+    pub total_tracks: Option<u32>,
+    pub track_number: Option<u32>,
 }
 
 #[cfg(test)]
@@ -40,6 +79,7 @@ mod tests {
             artist: Some("artist".to_string()),
             album: Some("album".to_string()),
             title: Some("title".to_string()),
+            ..Default::default()
         };
         let diff = a.diff(&b);
         assert!(diff.len() == 6);
@@ -62,6 +102,7 @@ mod tests {
             artist: Some("artist".to_string()),
             album: Some("album".to_string()),
             title: Some("title".to_string()),
+            ..Default::default()
         };
         let diff = a.diff(&b);
         let mut c = MediaFile::default();

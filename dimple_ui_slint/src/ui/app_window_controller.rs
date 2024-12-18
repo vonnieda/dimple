@@ -1,20 +1,20 @@
 use dimple_core::{library::Library, player::Player};
 use player_bar;
-use raw_window_handle::HasRawWindowHandle;
-use std::{collections::VecDeque, os::raw::c_void, sync::{Arc, Mutex}};
+use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
 use slint::{ComponentHandle, SharedString, Weak};
 
 use directories::ProjectDirs;
 
-use crate::ui::{*};
+use crate::{config::Config, ui::*};
 
-use self::{images::ImageMangler, pages::settings};
+use self::images::ImageMangler;
 
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 
 #[derive(Clone)]
 pub struct App {
+    pub config: Config,
     pub library: Library,
     pub history: Arc<Mutex<VecDeque<String>>>,
     pub player: Player,
@@ -52,6 +52,7 @@ impl AppWindowController {
         Self {
             ui,
             app: App {
+                config: Config::default(),
                 library: librarian.clone(),
                 history: Arc::new(Mutex::new(VecDeque::new())),
                 player,
@@ -211,21 +212,25 @@ impl App {
 }
 
 fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
+
     #[cfg(not(target_os = "windows"))]
     let hwnd = None;
 
     #[cfg(target_os = "windows")]
+    use {
+        std::os::raw::c_void,
+        raw_window_handle::HasWindowHandle,
+        raw_window_handle::HasRawWindowHandle,
+        raw_window_handle::RawWindowHandle,
+    };
+    #[cfg(target_os = "windows")]
     let hwnd: Option<*mut c_void> = {
-        use raw_window_handle::HasWindowHandle;
-        use raw_window_handle::HasRawWindowHandle;
-        use raw_window_handle::RawWindowHandle;
         let window_handle = ui.window().window_handle();
         let raw_window_handle = window_handle.raw_window_handle().unwrap();
         let handle: raw_window_handle::Win32WindowHandle = match raw_window_handle {
             RawWindowHandle::Win32(h) => h,
             _ => unreachable!(),
         };
-        // let hwnd = handle.hwnd.get();
         Some(handle.hwnd.get() as *mut c_void)
     };
 
@@ -239,7 +244,6 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
     {
         let app = app.clone();
         controls.attach(move |event: MediaControlEvent| {
-            println!("Event received: {:?}", event);
             match event {
                 MediaControlEvent::Play => app.player.play(),
                 MediaControlEvent::Pause => app.player.pause(),
@@ -270,7 +274,8 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
 
     {
         let app = app.clone();
-        app.player.on_change(move |player, event| {
+        let player = app.player.clone();
+        app.player.on_change(Box::new(move |event| {
             let track_position = player.track_position();
             let track_duration = player.track_duration();
             let current_track = player.current_queue_track();
@@ -292,11 +297,16 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
             };
             if let Ok(mut controls) = app.media_controls.lock() {
                 if let Some(controls) = controls.as_mut() {
-                    controls.set_playback(playback).unwrap();
-                    controls.set_metadata(metadata).unwrap();
+                    if event == "position" {
+                        controls.set_playback(playback).unwrap();
+                    }
+                    else {
+                        controls.set_metadata(metadata).unwrap();
+                        controls.set_playback(playback).unwrap();
+                    }
                 }
             }
-        });
+        }));
     }
 
     controls

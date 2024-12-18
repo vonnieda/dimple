@@ -1,6 +1,7 @@
 
 use std::time::SystemTime;
 
+use chrono::{DateTime, Utc};
 use rusqlite::{types::FromSql, Connection, Row, ToSql};
 
 mod artist;
@@ -50,7 +51,7 @@ pub trait Model: Sized + FromRow + Diff + Default + Clone + Send {
     fn log_changes(&self) -> bool;
 }
 
-struct ChangeLogValue {
+pub struct ChangeLogValue {
     pub val: Option<String>,
 }
 
@@ -158,6 +159,19 @@ impl From<Option<u32>> for ChangeLogValue {
     }
 }
 
+impl From<DateTime<Utc>> for ChangeLogValue {
+    fn from(value: DateTime<Utc>) -> Self {
+        ChangeLogValue {
+            val: Some(value.to_rfc3339())
+        }
+    }
+}
+
+impl From<ChangeLogValue> for DateTime<Utc> {
+    fn from(value: ChangeLogValue) -> Self {
+        DateTime::parse_from_rfc3339(&value.val.unwrap()).unwrap().into()
+    }
+}
 // TODO I think I can replace all of the above with a generic over impl FromSql
 // and ToSql
 
