@@ -2,7 +2,7 @@ import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox, StandardListView, Palette} from "std-widgets.slint";
-import { AppState, Styles } from "../common.slint";
+import { AppState, Styles, Navigator } from "../common.slint";
 
 export global TrackListAdapter {
     in property <[[StandardListViewItem]]> row_data: [
@@ -11,20 +11,20 @@ export global TrackListAdapter {
         [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
     ];
     in property <[string]> row_keys;
-    pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
-    pure callback current_row_changed(int);
-    pure callback add_to_queue(int);
-    pure callback play_now(int);
-    pure callback play_next(int);
+    pure callback sort_ascending(int /* column */);
+    pure callback sort_descending(int /* column */);
+    pure callback add_to_queue(string /* key */);
+    pure callback play_now(string /* key */);
+    pure callback play_next(string /* key */);
 }
  
 export component TrackList inherits VerticalBox {
-    property <int> sort-index: -1;
-    property <bool> sort-acending;
     in-out property <length> popup-x;
     in-out property <length> popup-y;
     in-out property <int> popup-row;
 
+    // Looks like maybe auto positioning in 1.9.0 https://github.com/slint-ui/slint/blob/master/CHANGELOG.md
+    // Improved PopupWindow positioning: positioned it to avoid clipping by the window
     popup := PopupWindow {
         x: popup-x; 
         y: popup-y; 
@@ -36,16 +36,16 @@ export component TrackList inherits VerticalBox {
             VerticalBox {
                 Button {
                     text: "Add to Queue";
-                    clicked => { TrackListAdapter.add_to_queue(popup-row); }
+                    clicked => { TrackListAdapter.add_to_queue(TrackListAdapter.row_keys[popup-row]); }
                 }
-                // Button {
-                //     text: "Play Now";
-                //     clicked => { TrackListAdapter.play_now(popup-row); }
-                // }
-                // Button {
-                //     text: "Play Next";
-                //     clicked => { TrackListAdapter.play_next(popup-row); }
-                // }
+                Button {
+                    text: "Play Now";
+                    clicked => { TrackListAdapter.play_now(TrackListAdapter.row_keys[popup-row]); }
+                }
+                Button {
+                    text: "Play Next";
+                    clicked => { TrackListAdapter.play_next(TrackListAdapter.row_keys[popup-row]); }
+                }
             }
         }
     }    
@@ -55,9 +55,10 @@ export component TrackList inherits VerticalBox {
         font-size: 1rem * Styles.page_title_font_rem;
     }
 
-    StandardTableView {
+    table := StandardTableView {
         vertical-stretch: 1;
         horizontal-stretch: 1;
+        // https://docs.slint.dev/latest/docs/slint/src/language/builtins/structs#tablecolumn
         columns: [
             { title: "Title" },
             { title: "Album" },
@@ -66,19 +67,9 @@ export component TrackList inherits VerticalBox {
             { title: "Plays" },
             { title: "Length" },
         ];
-        rows: TrackListAdapter.sort_model(TrackListAdapter.row_data, root.sort-index, root.sort-acending);
-        // rows: TrackListAdapter.row_data;
-        current-row-changed(row) => { 
-            TrackListAdapter.current_row_changed(row);
-        }
-        sort-ascending(index) => {
-            root.sort-index = index;
-            root.sort-acending = true;
-        }
-        sort-descending(index) => {
-            root.sort-index = index;
-            root.sort-acending = false;
-        }        
+        rows: TrackListAdapter.row_data;
+        sort-ascending(index) => { TrackListAdapter.sort_ascending(index); }
+        sort-descending(index) => { TrackListAdapter.sort_descending(index); }
         row-pointer-event(row, event, point) => {
             if event.button == PointerEventButton.right 
                     && event.kind == PointerEventKind.down {
@@ -86,6 +77,11 @@ export component TrackList inherits VerticalBox {
                 popup-y = point.y;
                 popup-row = row;
                 popup.show();
+            }
+            else if event.button == PointerEventButton.left 
+                    && row == table.current-row
+                    && event.kind == PointerEventKind.down {
+                Navigator.navigate("dimple://track/" + TrackListAdapter.row_keys[row]);
             }
         }
     }
@@ -95,5 +91,4 @@ export component TrackList inherits VerticalBox {
         text: TrackListAdapter.row_data.length + " items";
     }
 }
-
 

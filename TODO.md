@@ -32,6 +32,7 @@ Dump new things at the bottom, move things to the top to prioritize.
   spaced them out further.
 - Bug: Dragging the seek slider breaks the binding, so it stops updating
   after the first drag. 
+  https://github.com/slint-ui/slint/discussions/7120
 - Bug: Sorting by ordinal is lex not numeric. 
 - TODO an indicator in a playlist (or queue) that is dynamic and shows the
   delta between two songs based on a sum of stats. So like, you could tell
@@ -73,3 +74,8 @@ Dump new things at the bottom, move things to the top to prioritize.
   play buttons.
 - Per song EQ. ReplayGain is cool, but give the user *everything*.
 - Bug: Clicking on a track in tracks with no title (or artist album) crashes.
+- Bug: Margot and the Nuclear So and So's Vampires and Blue Dresses doesn't play
+  and player just sits there.
+- Bug: Moving a file on the filesystem leaves an orphaned and incorrect
+  MediaFile behind.
+  

@@ -199,8 +199,6 @@ impl From<TaggedMediaFile> for MediaFile {
     fn from(input: TaggedMediaFile) -> Self {
         MediaFile {
             key: None,
-            // TODO hate this
-            sha256: Default::default(),
             file_path: input.path.to_string(),
             artist: input.tag(StandardTagKey::Artist),
             album: input.tag(StandardTagKey::Album),
@@ -221,8 +219,28 @@ impl From<TaggedMediaFile> for MediaFile {
             lyrics: input.tag(StandardTagKey::Lyrics),
             synced_lyrics: None,
 
+            // TODO hate this
             last_imported: Default::default(),
             last_modified: Default::default(),
+            sha256: Default::default(),
+
+            disc_number: input.tag(StandardTagKey::DiscNumber)
+                .map(|s| u32::from_str_radix(&s, 10).ok()).flatten(),
+            disc_subtitle: input.tag(StandardTagKey::DiscSubtitle),
+            isrc: input.tag(StandardTagKey::IdentIsrc),
+            label: input.tag(StandardTagKey::Label),
+            original_date: input.tag(StandardTagKey::OriginalDate),
+            release_date: input.tag(StandardTagKey::Date),
+            total_discs: input.tag(StandardTagKey::DiscTotal)
+                .map(|s| u32::from_str_radix(&s, 10).ok()).flatten(),
+            total_tracks: input.tag(StandardTagKey::TrackTotal)
+                .map(|s| u32::from_str_radix(&s, 10).ok()).flatten(),
+            track_number: input.tag(StandardTagKey::TrackNumber)
+                .map(|s| u32::from_str_radix(&s, 10).ok()).flatten(),
+            // TODO lots more URLs available.
+            website: input.tag(StandardTagKey::Url),
+
+            original_year: None,
         }
     }
 }
@@ -249,6 +267,11 @@ impl From<MediaFile> for Track {
             wikidata_id: None,
             spotify_id: None,
             synced_lyrics: media_file.synced_lyrics,
+
+            discogs_id: None,
+            lastfm_id: None,
+
+            media_position: media_file.track_number,
         }
     }
 }

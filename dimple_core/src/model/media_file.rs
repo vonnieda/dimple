@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use dimple_core_macro::ModelSupport;
 
+// https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
+// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
 #[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
 pub struct MediaFile {
     pub key: Option<String>,
@@ -15,7 +17,6 @@ pub struct MediaFile {
 
     // // TODO Duration, I think, and probably ns vs ms.
     pub length_ms: Option<u64>,
-    // // pub media_position: Option<u32>,
 
     pub lyrics: Option<String>,
     // // TODO LRC format (https://en.wikipedia.org/wiki/LRC_(file_format)) for
@@ -35,13 +36,20 @@ pub struct MediaFile {
 
     pub last_modified: DateTime<Utc>,
     pub last_imported: DateTime<Utc>,
-}
 
-// fn asdasd() {
-//     let mf = MediaFile::default();
-//     let library = Library::open_temporary();
-//     let params = params!
-// }
+    pub release_date: Option<String>,
+    pub isrc: Option<String>,
+    pub label: Option<String>,
+    pub original_date: Option<String>,
+    pub original_year: Option<String>,
+    pub website: Option<String>,
+
+    pub total_discs: Option<u32>,
+    pub disc_number: Option<u32>,
+    pub disc_subtitle: Option<String>,
+    pub total_tracks: Option<u32>,
+    pub track_number: Option<u32>,
+}
 
 #[cfg(test)]
 mod tests {

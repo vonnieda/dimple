@@ -22,10 +22,15 @@ impl LrclibService {
             .build()
             .unwrap();
 
-        let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}&album_name={}",
+        // TODO fallback to no album
+        // let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}&album_name={}",
+        //     track.artist.clone().unwrap_or_default(),
+        //     track.title.clone().unwrap_or_default(),
+        //     track.album.clone().unwrap_or_default(),
+        // );
+        let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}",
             track.artist.clone().unwrap_or_default(),
             track.title.clone().unwrap_or_default(),
-            track.album.clone().unwrap_or_default(),
         );
         let response = client.get(&url).send().unwrap();
         log::info!("GET {} {}", response.status().as_u16(),& url);

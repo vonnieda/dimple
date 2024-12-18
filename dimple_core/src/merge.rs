@@ -105,28 +105,28 @@ pub trait Merge {
 //     }
 // }
 
-impl Merge for Track {
-    fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
-        Some(Self {
-            album: l.album.or(r.album),
-            artist: l.artist.or(r.artist),
-            disambiguation: l.disambiguation.or(r.disambiguation),
-            download: l.download || r.download,
-            key: l.key.or(r.key),
-            length_ms: l.length_ms.or(r.length_ms),
-            liked: l.liked || r.liked,
-            lyrics: l.lyrics.or(r.lyrics),
-            musicbrainz_id: l.musicbrainz_id.or(r.musicbrainz_id),
-            plays: l.plays.max(r.plays),
-            save: l.save || r.save,
-            spotify_id: l.spotify_id.or(r.spotify_id),
-            summary: l.summary.or(r.summary),
-            synced_lyrics: l.synced_lyrics.or(r.synced_lyrics),
-            title: l.title.or(r.title),
-            wikidata_id: l.wikidata_id.or(r.wikidata_id),
-        })
-    }
-}
+// impl Merge for Track {
+//     fn merge(l: Self, r: Self) -> Option<Self> where Self: Sized {
+//         Some(Self {
+//             album: l.album.or(r.album),
+//             artist: l.artist.or(r.artist),
+//             disambiguation: l.disambiguation.or(r.disambiguation),
+//             download: l.download || r.download,
+//             key: l.key.or(r.key),
+//             length_ms: l.length_ms.or(r.length_ms),
+//             liked: l.liked || r.liked,
+//             lyrics: l.lyrics.or(r.lyrics),
+//             musicbrainz_id: l.musicbrainz_id.or(r.musicbrainz_id),
+//             plays: l.plays.max(r.plays),
+//             save: l.save || r.save,
+//             spotify_id: l.spotify_id.or(r.spotify_id),
+//             summary: l.summary.or(r.summary),
+//             synced_lyrics: l.synced_lyrics.or(r.synced_lyrics),
+//             title: l.title.or(r.title),
+//             wikidata_id: l.wikidata_id.or(r.wikidata_id),
+//         })
+//     }
+// }
 
 pub trait Crdt {
     fn crdt(l: Self, r: Self) -> Self;
@@ -191,6 +191,9 @@ impl Crdt for Track {
             synced_lyrics: Crdt::crdt(l.synced_lyrics, r.synced_lyrics),
             title: Crdt::crdt(l.title, r.title),
             wikidata_id: Crdt::crdt(l.wikidata_id, r.wikidata_id),
+            discogs_id: Crdt::crdt(l.discogs_id, r.discogs_id),
+            lastfm_id: Crdt::crdt(l.lastfm_id, r.lastfm_id),
+            media_position: Crdt::crdt(l.media_position, r.media_position),
         }
     }
 }
@@ -218,6 +221,17 @@ impl Crdt for MediaFile {
             title: Crdt::crdt(l.title, r.title),
             sha256: Crdt::crdt(l.sha256, r.sha256),
             synced_lyrics: Crdt::crdt(l.synced_lyrics, r.synced_lyrics),
+            disc_number: Crdt::crdt(l.disc_number, r.disc_number),
+            disc_subtitle: Crdt::crdt(l.disc_subtitle, r.disc_subtitle),
+            isrc: Crdt::crdt(l.isrc, r.isrc),
+            label: Crdt::crdt(l.label, r.label),
+            original_date: Crdt::crdt(l.original_date, r.original_date),
+            original_year: Crdt::crdt(l.original_year, r.original_year),
+            release_date: Crdt::crdt(l.release_date, r.release_date),
+            total_discs: Crdt::crdt(l.total_discs, r.total_discs),
+            total_tracks: Crdt::crdt(l.total_tracks, r.total_tracks),
+            track_number: Crdt::crdt(l.track_number, r.track_number),
+            website: Crdt::crdt(l.website, r.website),
         }
     }
 }
@@ -424,6 +438,7 @@ mod test {
             synced_lyrics: None,
             title: Some("Ride the Lightning".to_string()),
             wikidata_id: Some("Q0123129".to_string()),
+            ..Default::default()
         };
         let b = Track {
             album: Some("Ride the Lightning".to_string()),
@@ -442,6 +457,7 @@ mod test {
             synced_lyrics: None,
             title: Some("Ride the Lightning".to_string()),
             wikidata_id: Some("Q0123129".to_string()),
+            ..Default::default()
         };
         let c = Track {
             album: Some("Ride the Hip-hop".to_string()),
@@ -460,6 +476,7 @@ mod test {
             synced_lyrics: None,
             title: Some("Ride the Lightning".to_string()),
             wikidata_id: Some("Q0123129".to_string()),
+            ..Default::default()
         };
         /// Commutative: A v B = B v A
         /// Associative: (A v B) v C = A v (B v C)
