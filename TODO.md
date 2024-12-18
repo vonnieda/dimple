@@ -78,4 +78,4 @@ Dump new things at the bottom, move things to the top to prioritize.
   and player just sits there.
 - Bug: Moving a file on the filesystem leaves an orphaned and incorrect
   MediaFile behind.
-  
+- Make playlsit item ordinal real.

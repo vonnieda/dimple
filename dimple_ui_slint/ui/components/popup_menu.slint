@@ -1,0 +1,38 @@
+import { HorizontalBox, Palette } from "std-widgets.slint";
+export component PopupMenuButton inherits TouchArea {
+    in property <string> text;
+    in property <image> icon;
+
+    Rectangle {
+        background: root.has-hover ? Palette.selection-background : Palette.background;
+        border-radius: 4px;
+        HorizontalBox {
+            Image {
+                source: root.icon;
+                colorize: root.has-hover ? Palette.selection-foreground : Palette.foreground;
+                width: 20px;
+                height: 20px;
+            }
+            Text {
+                horizontal-alignment: left;
+                vertical-alignment: center;
+                text: root.text;
+                color: root.has-hover ? Palette.selection-foreground : Palette.foreground;
+            }
+        }
+    }
+}
+
+export component PopupMenu inherits PopupWindow {
+    Rectangle {
+        border-width: 1px;
+        border-color: Palette.border;
+        border-radius: 4px;
+        background: Palette.background;
+        VerticalLayout {
+            padding: parent.border-radius;
+            @children
+        }
+    }
+}    
+

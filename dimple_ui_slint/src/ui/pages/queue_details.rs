@@ -6,9 +6,8 @@ use crate::ui::app_window_controller::App;
 use crate::ui::Page;
 use dimple_core::model::Playlist;
 use dimple_core::model::Track;
-use slint::Model as _;
-use slint::ModelExt as _;
 use slint::ModelRc;
+use slint::SharedString;
 use slint::StandardListViewItem;
 use slint::VecModel;
 use slint::ComponentHandle as _;
@@ -18,18 +17,17 @@ use crate::ui::Navigator;
 pub fn queue_details_init(app: &App) {
     let app_ = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
-        ui.global::<QueueDetailsAdapter>().on_sort_model(sort_model);
-
+        let app = app_.clone();
+        ui.global::<QueueDetailsAdapter>().on_sort_table(move |col, ascending| sort_table(&app, col, ascending));
         let app = app_.clone();
         ui.global::<QueueDetailsAdapter>().on_play_now(move |row| {
             app.player.set_queue_index(row as usize);
             app.player.play();
         });
-
+        let app = app_.clone();
         ui.global::<QueueDetailsAdapter>().on_remove_row(move |_row| {
             todo!()
         });
-
         let app = app_.clone();
         ui.global::<QueueDetailsAdapter>().on_remove_all(move || {
             let queue = app.player.queue();
@@ -46,6 +44,7 @@ pub fn queue_details(url: &str, app: &App) {
         let tracks = playlist.tracks(&app.library);
         app.ui.upgrade_in_event_loop(move |ui| {
             ui.global::<QueueDetailsAdapter>().set_row_data(row_data(&tracks));
+            ui.global::<QueueDetailsAdapter>().set_row_keys(row_keys(&tracks));
             ui.set_page(Page::QueueDetails);
         })
         .unwrap();
@@ -57,41 +56,40 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
     for (i, track) in tracks.iter().enumerate() {
         let track = track.clone();
         let row = Rc::new(VecModel::default());
-        let length = Duration::from_millis(track.length_ms.unwrap_or_default() as u64);
-        let length = format_length(length);
+        let length = track.length_ms
+            .map(|ms| Duration::from_millis(ms as u64))
+            .map(|dur| format_length(dur));
         row.push(i.to_string().as_str().into()); // # (Ordinal)
-        row.push(StandardListViewItem::from(track.title.unwrap_or_default().as_str())); // Title
-        row.push(StandardListViewItem::from(track.album.unwrap_or_default().as_str())); // Album
-        row.push(StandardListViewItem::from(track.artist.unwrap_or_default().as_str())); // Artist
-        row.push(StandardListViewItem::from(length.as_str())); // Length
-        row.push(StandardListViewItem::from(track.key.unwrap().as_str())); // Key (Hidden)
+        row.push(track.title.unwrap_or_default().as_str().into()); // Title
+        row.push(track.album.unwrap_or_default().as_str().into()); // Album
+        row.push(track.artist.unwrap_or_default().as_str().into()); // Artist
+        row.push(length.unwrap_or_default().as_str().into()); // Length
         row_data.push(row.into());
     }
     row_data.into()
 }
 
-fn sort_model(
-    source_model: ModelRc<ModelRc<StandardListViewItem>>,
-    sort_index: i32,
-    sort_ascending: bool,
-) -> ModelRc<ModelRc<StandardListViewItem>> {
-    let mut model = source_model.clone();
+fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
+    let keys: Vec<_> = tracks.iter()
+        .map(|track| track.key.clone().unwrap())
+        .map(|key| SharedString::from(key))
+        .collect();
+    keys.as_slice().into()
+}
 
-    if sort_index >= 0 {
-        model = Rc::new(model.clone().sort_by(move |r_a, r_b| {
-            let c_a = r_a.row_data(sort_index as usize).unwrap();
-            let c_b = r_b.row_data(sort_index as usize).unwrap();
-
-            if sort_ascending {
-                c_a.text.cmp(&c_b.text)
-            } else {
-                c_b.text.cmp(&c_a.text)
-            }
-        }))
-        .into();
-    }
-
-    model
+fn sort_table(app: &App, col: i32, ascending: bool) {
+    // let columns = vec!["title", "album", "artist", "media_position", "plays", "length_ms"];
+    // let query = format!("SELECT * FROM Track ORDER BY {} {}", 
+    //     columns[col as usize], 
+    //     if ascending { "asc" } else { "desc" });
+    // let tracks: Vec<Track> = app.library.query(&query, ());
+    let playlist: Playlist = app.player.queue();
+    let tracks = playlist.tracks(&app.library);
+    app.ui.upgrade_in_event_loop(move |ui| {
+        ui.global::<QueueDetailsAdapter>().set_row_data(row_data(&tracks));
+        ui.global::<QueueDetailsAdapter>().set_row_keys(row_keys(&tracks));
+    })
+    .unwrap();
 }
 
 fn format_length(length: Duration) -> String {

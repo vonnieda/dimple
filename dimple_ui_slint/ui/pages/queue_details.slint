@@ -3,61 +3,58 @@ import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, Palette} from "std-widgets.slint";
 import { Styles, AppState, Navigator } from "../common.slint";
+import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
 export global QueueDetailsAdapter {
     in property <[[StandardListViewItem]]> row_data: [
-        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
-        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
-        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
     ];
-    pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
+    in property <[string]> row_keys;
+    pure callback sort_table(int /* column */, bool /* ascending */);
     pure callback play_now(int);
     pure callback remove_row(int);
     pure callback remove_all();
 }
 
 export component QueueDetails inherits VerticalBox {
-    property <int> sort-index: -1;
-    property <bool> sort-acending;
     in-out property <length> popup-x;
     in-out property <length> popup-y;
     in-out property <int> popup-row;
 
-    popup := PopupWindow {
+    popup := PopupMenu {
         x: popup-x; 
         y: popup-y; 
-        Rectangle {
-            border-width: 1px;
-            border-color: StyleMetrics.default-text-color;
-            border-radius: 8px;
-            background: StyleMetrics.window-background;
-            VerticalBox {
-                Button {
-                    text: "Play Now";
-                    clicked => { QueueDetailsAdapter.play_now(popup-row); }
-                }
-                Button {
-                    text: "Remove This";
-                    clicked => { QueueDetailsAdapter.remove_row(popup-row); }
-                }
-                Button {
-                    text: "Remove All";
-                    clicked => { QueueDetailsAdapter.remove_all(); }
-                }
-                // Button {
-                //     text: "Play Next";
-                //     clicked => { TrackListAdapter.play_next(popup-row); }
-                // }
-            }
+
+        PopupMenuButton {
+            text: "Play Now";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+            clicked => { QueueDetailsAdapter.play_now(popup-row); }
         }
-    }    
+        PopupMenuButton {
+            text: "Remove This";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+            clicked => { QueueDetailsAdapter.remove_row(popup-row); }
+        }
+        PopupMenuButton {
+            text: "Remove All";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
+            clicked => { QueueDetailsAdapter.remove_all(); }
+        }
+        PopupMenuButton {
+            text: "Details";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
+            clicked => { Navigator.navigate("dimple://track/" + QueueDetailsAdapter.row_keys[root.popup-row]); }
+        }
+    }
 
     Text {
         text: "Play Queue";
         font-size: 1rem * Styles.page_title_font_rem;
     }
         
-    StandardTableView {
+    table := StandardTableView {
         vertical-stretch: 1;
         horizontal-stretch: 1;
         columns: [
@@ -67,18 +64,10 @@ export component QueueDetails inherits VerticalBox {
             { title: "Artist" },
             { title: "Length" },
         ];
-        rows: QueueDetailsAdapter.sort_model(QueueDetailsAdapter.row_data, root.sort-index, root.sort-acending);
-        sort-ascending(index) => {
-            root.sort-index = index;
-            root.sort-acending = true;
-        }
-        sort-descending(index) => {
-            root.sort-index = index;
-            root.sort-acending = false;
-        }     
-
+        rows: QueueDetailsAdapter.row_data;
+        sort-ascending(index) => { QueueDetailsAdapter.sort_table(index, true); }
+        sort-descending(index) => { QueueDetailsAdapter.sort_table(index, false); }
         row-pointer-event(row, event, point) => {
-            // Context menu
             if event.button == PointerEventButton.right 
                     && event.kind == PointerEventKind.down {
                 popup-x = point.x;
@@ -86,13 +75,11 @@ export component QueueDetails inherits VerticalBox {
                 popup-row = row;
                 popup.show();
             }
-            // Click to go
-            // if event.button == PointerEventButton.left
-            //         && event.kind == PointerEventKind.down
-            //         && row == root.row {
-                
-            //     Navigator.navigate("dimple://track/key");
-            // }
+            else if event.button == PointerEventButton.left 
+                    && row == table.current-row
+                    && event.kind == PointerEventKind.down {
+                Navigator.navigate("dimple://track/" + QueueDetailsAdapter.row_keys[row]);
+            }
         }
     }
 

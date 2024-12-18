@@ -16,11 +16,9 @@ pub fn track_list_init(app: &App) {
     let app_ = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
         let app = app_.clone();
-        ui.global::<TrackListAdapter>().on_sort_ascending(move |col| sort_ascending(&app, col));
+        ui.global::<TrackListAdapter>().on_sort_table(move |col, ascending| sort_table(&app, col, ascending));
         let app = app_.clone();
-        ui.global::<TrackListAdapter>().on_sort_descending(move |col| sort_descending(&app, col));
-        let app = app_.clone();
-        ui.global::<TrackListAdapter>().on_add_to_queue(move |key| add_to_queue(&app, &key));
+        ui.global::<TrackListAdapter>().on_play_later(move |key| play_later(&app, &key));
         let app = app_.clone();
         ui.global::<TrackListAdapter>().on_play_now(move |key| play_now(&app, &key));
         let app = app_.clone();
@@ -71,58 +69,17 @@ fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
     keys.as_slice().into()
 }
 
-fn sort_ascending(app: &App, col: i32) {
-    let app = app.clone();
-    thread::spawn(move || {
-        let query = match col {
-            0 => "SELECT * FROM Track ORDER BY title asc",
-            1 => "SELECT * FROM Track ORDER BY album asc",
-            2 => "SELECT * FROM Track ORDER BY artist asc",
-            3 => "SELECT * FROM Track ORDER BY media_position asc",
-            4 => "SELECT * FROM Track ORDER BY plays asc",
-            5 => "SELECT * FROM Track ORDER BY length_ms asc",
-            _ => "SELECT * FROM Track ORDER BY title asc",
-        };
-        let tracks: Vec<Track> = app.library.query(query, ());
-        app.ui.upgrade_in_event_loop(move |ui| {
-            ui.global::<TrackListAdapter>().set_row_data(row_data(&tracks));
-            ui.global::<TrackListAdapter>().set_row_keys(row_keys(&tracks));
-        })
-        .unwrap();
-    });
-}
-
-fn sort_descending(app: &App, col: i32) {
-    let app = app.clone();
-    thread::spawn(move || {
-        let query = match col {
-            0 => "SELECT * FROM Track ORDER BY title desc",
-            1 => "SELECT * FROM Track ORDER BY album desc",
-            2 => "SELECT * FROM Track ORDER BY artist desc",
-            3 => "SELECT * FROM Track ORDER BY media_position desc",
-            4 => "SELECT * FROM Track ORDER BY plays desc",
-            5 => "SELECT * FROM Track ORDER BY length_ms desc",
-            _ => "SELECT * FROM Track ORDER BY title desc",
-        };
-        let tracks: Vec<Track> = app.library.query(query, ());
-        app.ui.upgrade_in_event_loop(move |ui| {
-            ui.global::<TrackListAdapter>().set_row_data(row_data(&tracks));
-            ui.global::<TrackListAdapter>().set_row_keys(row_keys(&tracks));
-        })
-        .unwrap();
-    });
-}
-
-fn add_to_queue(app: &App, key: &str) {
-    let app = app.clone();
-    let key = key.to_string();
+fn sort_table(app: &App, col: i32, ascending: bool) {
+    let columns = vec!["title", "album", "artist", "media_position", "plays", "length_ms"];
+    let query = format!("SELECT * FROM Track ORDER BY {} {}", 
+        columns[col as usize], 
+        if ascending { "asc" } else { "desc" });
+    let tracks: Vec<Track> = app.library.query(&query, ());
     app.ui.upgrade_in_event_loop(move |ui| {
-        // let row_data = ui.global::<TrackListAdapter>().get_row_data();
-        // let cell_data = row_data.row_data(row as usize).unwrap().row_data(6).unwrap();
-        // let key = cell_data.text.as_str();
-        let play_queue = app.player.queue();
-        app.library.playlist_add(&play_queue, &key);
-    }).unwrap();
+        ui.global::<TrackListAdapter>().set_row_data(row_data(&tracks));
+        ui.global::<TrackListAdapter>().set_row_keys(row_keys(&tracks));
+    })
+    .unwrap();
 }
 
 fn play_now(app: &App, key: &str) {
@@ -148,6 +105,18 @@ fn play_next(app: &App, key: &str) {
         // let key = cell_data.text.as_str();
         // let play_queue = app.player.queue();
         // app.library.playlist_insert(&play_queue, &key);
+    }).unwrap();
+}
+
+fn play_later(app: &App, key: &str) {
+    let app = app.clone();
+    let key = key.to_string();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        // let row_data = ui.global::<TrackListAdapter>().get_row_data();
+        // let cell_data = row_data.row_data(row as usize).unwrap().row_data(6).unwrap();
+        // let key = cell_data.text.as_str();
+        let play_queue = app.player.queue();
+        app.library.playlist_add(&play_queue, &key);
     }).unwrap();
 }
 

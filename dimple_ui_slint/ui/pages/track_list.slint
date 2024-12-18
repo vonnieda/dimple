@@ -3,6 +3,7 @@ import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox, StandardListView, Palette} from "std-widgets.slint";
 import { AppState, Styles, Navigator } from "../common.slint";
+import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
 export global TrackListAdapter {
     in property <[[StandardListViewItem]]> row_data: [
@@ -11,11 +12,10 @@ export global TrackListAdapter {
         [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
     ];
     in property <[string]> row_keys;
-    pure callback sort_ascending(int /* column */);
-    pure callback sort_descending(int /* column */);
-    pure callback add_to_queue(string /* key */);
+    pure callback sort_table(int /* column */, bool /* ascending */);
     pure callback play_now(string /* key */);
     pure callback play_next(string /* key */);
+    pure callback play_later(string /* key */);
 }
  
 export component TrackList inherits VerticalBox {
@@ -25,28 +25,29 @@ export component TrackList inherits VerticalBox {
 
     // Looks like maybe auto positioning in 1.9.0 https://github.com/slint-ui/slint/blob/master/CHANGELOG.md
     // Improved PopupWindow positioning: positioned it to avoid clipping by the window
-    popup := PopupWindow {
+    popup := PopupMenu {
         x: popup-x; 
         y: popup-y; 
-        Rectangle {
-            border-width: 1px;
-            border-color: StyleMetrics.default-text-color;
-            border-radius: 8px;
-            background: Palette.background;
-            VerticalBox {
-                Button {
-                    text: "Add to Queue";
-                    clicked => { TrackListAdapter.add_to_queue(TrackListAdapter.row_keys[popup-row]); }
-                }
-                Button {
-                    text: "Play Now";
-                    clicked => { TrackListAdapter.play_now(TrackListAdapter.row_keys[popup-row]); }
-                }
-                Button {
-                    text: "Play Next";
-                    clicked => { TrackListAdapter.play_next(TrackListAdapter.row_keys[popup-row]); }
-                }
-            }
+
+        PopupMenuButton {
+            text: "Play Now";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+            clicked => { TrackListAdapter.play_now(TrackListAdapter.row_keys[popup-row]); }
+        }
+        PopupMenuButton {
+            text: "Play Next";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+            clicked => { TrackListAdapter.play_next(TrackListAdapter.row_keys[popup-row]); }
+        }
+        PopupMenuButton {
+            text: "Play Later";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+            clicked => { TrackListAdapter.play_later(TrackListAdapter.row_keys[popup-row]); }
+        }
+        PopupMenuButton {
+            text: "Details";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
+            clicked => { Navigator.navigate("dimple://track/" + TrackListAdapter.row_keys[root.popup-row]); }
         }
     }    
 
@@ -68,8 +69,8 @@ export component TrackList inherits VerticalBox {
             { title: "Length" },
         ];
         rows: TrackListAdapter.row_data;
-        sort-ascending(index) => { TrackListAdapter.sort_ascending(index); }
-        sort-descending(index) => { TrackListAdapter.sort_descending(index); }
+        sort-ascending(index) => { TrackListAdapter.sort_table(index, true); }
+        sort-descending(index) => { TrackListAdapter.sort_table(index, false); }
         row-pointer-event(row, event, point) => {
             if event.button == PointerEventButton.right 
                     && event.kind == PointerEventKind.down {
