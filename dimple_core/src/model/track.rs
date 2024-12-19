@@ -33,6 +33,8 @@ pub struct Track {
     pub lyrics: Option<String>,
     // TODO LRC format (https://en.wikipedia.org/wiki/LRC_(file_format)) for
     // now, convert to a model later.
+    // Actually, maybe just keep it at LRC and just a single field. Makes it
+    // simple to edit and adding more UI would probably just complicate it.
     pub synced_lyrics: Option<String>,
 }
 

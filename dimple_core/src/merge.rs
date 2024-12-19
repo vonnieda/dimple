@@ -128,12 +128,15 @@ pub trait Merge {
 //     }
 // }
 
-pub trait Crdt {
-    fn crdt(l: Self, r: Self) -> Self;
+pub trait CrdtRules {
+    /// Commutative: A v B = B v A
+    /// Associative: (A v B) v C = A v (B v C)
+    /// Idempotent : A v A = A
+    fn merge(l: Self, r: Self) -> Self;
 }
 
-impl Crdt for String {
-    fn crdt(l: Self, r: Self) -> Self {
+impl CrdtRules for String {
+    fn merge(l: Self, r: Self) -> Self {
         if l.len() >= r.len() {
             l
         }
@@ -143,28 +146,28 @@ impl Crdt for String {
     }
 }
 
-impl Crdt for bool {
-    fn crdt(l: Self, r: Self) -> Self {
+impl CrdtRules for bool {
+    fn merge(l: Self, r: Self) -> Self {
         l || r
     }
 }
 
-impl Crdt for u32 {
-    fn crdt(l: Self, r: Self) -> Self {
+impl CrdtRules for u32 {
+    fn merge(l: Self, r: Self) -> Self {
         l.max(r)
     }
 }
 
-impl Crdt for u64 {
-    fn crdt(l: Self, r: Self) -> Self {
+impl CrdtRules for u64 {
+    fn merge(l: Self, r: Self) -> Self {
         l.max(r)
     }
 }
 
-impl <T> Crdt for Option<T> where T: Crdt {
-    fn crdt(l: Self, r: Self) -> Self {
+impl <T> CrdtRules for Option<T> where T: CrdtRules {
+    fn merge(l: Self, r: Self) -> Self {
         if l.is_some() && r.is_some() {
-            Some(Crdt::crdt(l.unwrap(), r.unwrap()))
+            Some(CrdtRules::merge(l.unwrap(), r.unwrap()))
         }
         else {
             l.or(r)
@@ -172,72 +175,72 @@ impl <T> Crdt for Option<T> where T: Crdt {
     }
 }
 
-impl Crdt for Track {
-    fn crdt(l: Self, r: Self) -> Self {
+impl CrdtRules for Track {
+    fn merge(l: Self, r: Self) -> Self {
         Self {
-            album: Crdt::crdt(l.album, r.album),
-            artist: Crdt::crdt(l.artist, r.artist),
-            disambiguation: Crdt::crdt(l.disambiguation, r.disambiguation),
-            download: Crdt::crdt(l.download, r.download),
-            key: Crdt::crdt(l.key, r.key),
-            length_ms: Crdt::crdt(l.length_ms, r.length_ms),
-            liked: Crdt::crdt(l.liked, r.liked),
-            lyrics: Crdt::crdt(l.lyrics, r.lyrics),
-            musicbrainz_id: Crdt::crdt(l.musicbrainz_id, r.musicbrainz_id),
-            plays: Crdt::crdt(l.plays, r.plays),
-            save: Crdt::crdt(l.save, r.save),
-            spotify_id: Crdt::crdt(l.spotify_id, r.spotify_id),
-            summary: Crdt::crdt(l.summary, r.summary),
-            synced_lyrics: Crdt::crdt(l.synced_lyrics, r.synced_lyrics),
-            title: Crdt::crdt(l.title, r.title),
-            wikidata_id: Crdt::crdt(l.wikidata_id, r.wikidata_id),
-            discogs_id: Crdt::crdt(l.discogs_id, r.discogs_id),
-            lastfm_id: Crdt::crdt(l.lastfm_id, r.lastfm_id),
-            media_position: Crdt::crdt(l.media_position, r.media_position),
+            album: CrdtRules::merge(l.album, r.album),
+            artist: CrdtRules::merge(l.artist, r.artist),
+            disambiguation: CrdtRules::merge(l.disambiguation, r.disambiguation),
+            download: CrdtRules::merge(l.download, r.download),
+            key: CrdtRules::merge(l.key, r.key),
+            length_ms: CrdtRules::merge(l.length_ms, r.length_ms),
+            liked: CrdtRules::merge(l.liked, r.liked),
+            lyrics: CrdtRules::merge(l.lyrics, r.lyrics),
+            musicbrainz_id: CrdtRules::merge(l.musicbrainz_id, r.musicbrainz_id),
+            plays: CrdtRules::merge(l.plays, r.plays),
+            save: CrdtRules::merge(l.save, r.save),
+            spotify_id: CrdtRules::merge(l.spotify_id, r.spotify_id),
+            summary: CrdtRules::merge(l.summary, r.summary),
+            synced_lyrics: CrdtRules::merge(l.synced_lyrics, r.synced_lyrics),
+            title: CrdtRules::merge(l.title, r.title),
+            wikidata_id: CrdtRules::merge(l.wikidata_id, r.wikidata_id),
+            discogs_id: CrdtRules::merge(l.discogs_id, r.discogs_id),
+            lastfm_id: CrdtRules::merge(l.lastfm_id, r.lastfm_id),
+            media_position: CrdtRules::merge(l.media_position, r.media_position),
         }
     }
 }
 
-impl Crdt for MediaFile {
-    fn crdt(l: Self, r: Self) -> Self {
+impl CrdtRules for MediaFile {
+    fn merge(l: Self, r: Self) -> Self {
         Self {
-            album: Crdt::crdt(l.album, r.album),
-            artist: Crdt::crdt(l.artist, r.artist),
-            file_path: Crdt::crdt(l.file_path, r.file_path),
-            genre: Crdt::crdt(l.genre, r.genre),
-            key: Crdt::crdt(l.key, r.key),
-            last_imported: Crdt::crdt(l.last_imported, r.last_imported),
-            last_modified: Crdt::crdt(l.last_modified, r.last_modified),
-            length_ms: Crdt::crdt(l.length_ms, r.length_ms),
-            lyrics: Crdt::crdt(l.lyrics, r.lyrics),
-            musicbrainz_album_artist_id: Crdt::crdt(l.musicbrainz_album_artist_id, r.musicbrainz_album_artist_id),
-            musicbrainz_album_id: Crdt::crdt(l.musicbrainz_album_id, r.musicbrainz_album_id),
-            musicbrainz_artist_id: Crdt::crdt(l.musicbrainz_artist_id, r.musicbrainz_artist_id),
-            musicbrainz_genre_id: Crdt::crdt(l.musicbrainz_genre_id, r.musicbrainz_genre_id),
-            musicbrainz_recording_id: Crdt::crdt(l.musicbrainz_recording_id, r.musicbrainz_recording_id),
-            musicbrainz_release_group_id: Crdt::crdt(l.musicbrainz_release_group_id, r.musicbrainz_release_group_id),
-            musicbrainz_release_track_id: Crdt::crdt(l.musicbrainz_release_track_id, r.musicbrainz_release_track_id),
-            musicbrainz_track_id: Crdt::crdt(l.musicbrainz_track_id, r.musicbrainz_track_id),
-            title: Crdt::crdt(l.title, r.title),
-            sha256: Crdt::crdt(l.sha256, r.sha256),
-            synced_lyrics: Crdt::crdt(l.synced_lyrics, r.synced_lyrics),
-            disc_number: Crdt::crdt(l.disc_number, r.disc_number),
-            disc_subtitle: Crdt::crdt(l.disc_subtitle, r.disc_subtitle),
-            isrc: Crdt::crdt(l.isrc, r.isrc),
-            label: Crdt::crdt(l.label, r.label),
-            original_date: Crdt::crdt(l.original_date, r.original_date),
-            original_year: Crdt::crdt(l.original_year, r.original_year),
-            release_date: Crdt::crdt(l.release_date, r.release_date),
-            total_discs: Crdt::crdt(l.total_discs, r.total_discs),
-            total_tracks: Crdt::crdt(l.total_tracks, r.total_tracks),
-            track_number: Crdt::crdt(l.track_number, r.track_number),
-            website: Crdt::crdt(l.website, r.website),
+            album: CrdtRules::merge(l.album, r.album),
+            artist: CrdtRules::merge(l.artist, r.artist),
+            file_path: CrdtRules::merge(l.file_path, r.file_path),
+            genre: CrdtRules::merge(l.genre, r.genre),
+            key: CrdtRules::merge(l.key, r.key),
+            last_imported: CrdtRules::merge(l.last_imported, r.last_imported),
+            last_modified: CrdtRules::merge(l.last_modified, r.last_modified),
+            length_ms: CrdtRules::merge(l.length_ms, r.length_ms),
+            lyrics: CrdtRules::merge(l.lyrics, r.lyrics),
+            musicbrainz_album_artist_id: CrdtRules::merge(l.musicbrainz_album_artist_id, r.musicbrainz_album_artist_id),
+            musicbrainz_album_id: CrdtRules::merge(l.musicbrainz_album_id, r.musicbrainz_album_id),
+            musicbrainz_artist_id: CrdtRules::merge(l.musicbrainz_artist_id, r.musicbrainz_artist_id),
+            musicbrainz_genre_id: CrdtRules::merge(l.musicbrainz_genre_id, r.musicbrainz_genre_id),
+            musicbrainz_recording_id: CrdtRules::merge(l.musicbrainz_recording_id, r.musicbrainz_recording_id),
+            musicbrainz_release_group_id: CrdtRules::merge(l.musicbrainz_release_group_id, r.musicbrainz_release_group_id),
+            musicbrainz_release_track_id: CrdtRules::merge(l.musicbrainz_release_track_id, r.musicbrainz_release_track_id),
+            musicbrainz_track_id: CrdtRules::merge(l.musicbrainz_track_id, r.musicbrainz_track_id),
+            title: CrdtRules::merge(l.title, r.title),
+            sha256: CrdtRules::merge(l.sha256, r.sha256),
+            synced_lyrics: CrdtRules::merge(l.synced_lyrics, r.synced_lyrics),
+            disc_number: CrdtRules::merge(l.disc_number, r.disc_number),
+            disc_subtitle: CrdtRules::merge(l.disc_subtitle, r.disc_subtitle),
+            isrc: CrdtRules::merge(l.isrc, r.isrc),
+            label: CrdtRules::merge(l.label, r.label),
+            original_date: CrdtRules::merge(l.original_date, r.original_date),
+            original_year: CrdtRules::merge(l.original_year, r.original_year),
+            release_date: CrdtRules::merge(l.release_date, r.release_date),
+            total_discs: CrdtRules::merge(l.total_discs, r.total_discs),
+            total_tracks: CrdtRules::merge(l.total_tracks, r.total_tracks),
+            track_number: CrdtRules::merge(l.track_number, r.track_number),
+            website: CrdtRules::merge(l.website, r.website),
         }
     }
 }
 
-impl Crdt for DateTime<Utc> {
-    fn crdt(l: Self, r: Self) -> Self {
+impl CrdtRules for DateTime<Utc> {
+    fn merge(l: Self, r: Self) -> Self {
         l.max(r)
     }
 }
@@ -416,7 +419,7 @@ impl Crdt for DateTime<Utc> {
 
 #[cfg(test)]
 mod test {
-    use crate::{merge::Crdt, model::Track};
+    use crate::{merge::CrdtRules, model::Track};
     use super::Merge;
 
     #[test]
@@ -481,9 +484,9 @@ mod test {
         /// Commutative: A v B = B v A
         /// Associative: (A v B) v C = A v (B v C)
         /// Idempotent : A v A = A
-        assert!(Crdt::crdt(a.clone(), b.clone()) == Crdt::crdt(b.clone(), a.clone()));
-        assert!(Crdt::crdt(Crdt::crdt(a.clone(), b.clone()), c.clone()) 
-            == Crdt::crdt(a.clone(), Crdt::crdt(b.clone(), c.clone())));
-        assert!(Crdt::crdt(a.clone(), a.clone()) == a.clone());
+        assert!(CrdtRules::merge(a.clone(), b.clone()) == CrdtRules::merge(b.clone(), a.clone()));
+        assert!(CrdtRules::merge(CrdtRules::merge(a.clone(), b.clone()), c.clone()) 
+            == CrdtRules::merge(a.clone(), CrdtRules::merge(b.clone(), c.clone())));
+        assert!(CrdtRules::merge(a.clone(), a.clone()) == a.clone());
     }
 }

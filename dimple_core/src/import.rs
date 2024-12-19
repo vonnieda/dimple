@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::Path};
 
-use crate::{library::Library, merge::Crdt, model::{Blob, MediaFile, Track, TrackSource}};
+use crate::{library::Library, merge::CrdtRules, model::{Blob, MediaFile, Track, TrackSource}};
 
 use std::fs::File;
 
@@ -13,6 +13,8 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use walkdir::WalkDir;
 
 pub fn import(library: &Library, path: &str) {
+    let force = false;
+    
     log::info!("Importing {}.", path);
 
     let files = scan(path);
@@ -23,71 +25,58 @@ pub fn import(library: &Library, path: &str) {
         .collect::<HashMap<String, MediaFile>>();
     log::info!("Loaded {} media files from database.", media_files.len());
 
-    let to_import = files.par_iter().filter(|file| {
-        if let Some(media_file) = media_files.get(&file.path) {
-            let l = media_file.last_modified;
-            let r = DateTime::<Utc>::from(file.last_modified);
-            r > l
-        }
-        else {
-            true
-        }
-    }).collect::<Vec<_>>();
-    log::info!("{} new or modified files to import.", to_import.len());
-
-    let imports = to_import.par_iter()
-        .filter_map(|file| {
-            TaggedMediaFile::new(&file.path)
-                .ok()
-                .map(|s| (file, s))
+    files.par_iter()
+        .filter(|scanned_file| {
+            if force {
+                return true
+            }
+            if let Some(media_file) = media_files.get(&scanned_file.path) {
+                let l = media_file.last_modified;
+                let r = DateTime::<Utc>::from(scanned_file.last_modified);
+                r > l
+            }
+            else {
+                true
+            }
+        })        
+        .filter_map(|scanned_file| {
+            TaggedMediaFile::new(&scanned_file.path).ok().map(|s| (scanned_file, s))
         })
-        .collect::<Vec<_>>();
-    log::info!("Parsed {} files.", imports.len());
+        .map(|(scanned_file, tagged_media_file)| {
+            let file_path = scanned_file.path.clone();
 
-    // TODO this doesn't clean up old blobs that have changed?
-
-    let file_blobs = imports.par_iter().map(|file| {
-        let file_path = file.1.path.clone();
-
-        let blob = Blob::read(&file_path);
-        let blob = library.find_blob_by_sha256(&blob.sha256)
-            .or_else(|| Some(library.save(&blob)))
-            .unwrap();
-
-        log::info!("Hashed {} -> {}.", file_path, blob.sha256);
-
-        (file, blob)
-    }).collect::<Vec<_>>();
-
+            let blob = Blob::read(&file_path);
+            let blob = library.find_blob_by_sha256(&blob.sha256)
+                .or_else(|| Some(library.save(&blob)))
+                .unwrap();
     
-    file_blobs.iter().enumerate().for_each(|(i, file_blob)| {
-        let file = file_blob.0;
-        let blob = file_blob.1.clone();
-        let file_path = file.1.path.clone();
-        log::info!("Importing {} of {}: {}.", i, imports.len(), file_path);
+            (scanned_file, tagged_media_file, blob)
+        })
+        .for_each(|(scanned_file, tagged_media_file, blob)| {
+            let file_path = scanned_file.path.clone();
+            log::info!("Importing {}.", file_path);
 
-        let old_media_file = media_files.get(&file_blob.0.1.path).cloned().unwrap_or_default();
-        // TODO refactor this to merge ScurnedFale and ScannedFile
-        let mut new_media_file: MediaFile = file_blob.0.1.clone().into();
-        new_media_file.last_modified = file_blob.0.0.last_modified.into();
-        new_media_file.last_imported = Utc::now();
-        new_media_file.sha256 = blob.sha256;
-        let media_file = Crdt::crdt(old_media_file, new_media_file);
-        let media_file = library.save(&media_file);
+            let old_media_file = media_files.get(&file_path).cloned().unwrap_or_default();
+            let mut new_media_file: MediaFile = tagged_media_file.clone().into();
+            new_media_file.last_modified = scanned_file.last_modified.into();
+            new_media_file.last_imported = Utc::now();
+            new_media_file.sha256 = blob.sha256;
+            let media_file = CrdtRules::merge(old_media_file, new_media_file);
+            let media_file = library.save(&media_file);
 
-        let old_track = library.find_track_for_media_file(&media_file).unwrap_or_default();
-        let new_track = media_file.into();
-        let track = Crdt::crdt(old_track, new_track);
-        let track = library.save(&track);
+            let old_track = library.find_track_for_media_file(&media_file).unwrap_or_default();
+            let new_track = media_file.into();
+            let track = CrdtRules::merge(old_track, new_track);
+            let track = library.save(&track);
 
-        let _track_source = library.save(&TrackSource {
-            key: None,
-            blob_key: blob.key.unwrap(),
-            track_key: track.key.unwrap(),
+            let _track_source = library.save(&TrackSource {
+                key: None,
+                blob_key: blob.key.unwrap(),
+                track_key: track.key.unwrap(),
+            });
         });
-    });
 
-    log::info!("Imported {} media files.", imports.len());
+    // log::info!("Imported {} media files.", file_blobs.len());
 }
 
 fn scan(path: &str) -> Vec<ScannedFile> {
@@ -138,7 +127,7 @@ impl TaggedMediaFile {
             .format(&hint, media_source_stream, &fmt_opts, &meta_opts);
 
         if let Err(e) = probed {
-            log::error!("{:?} {:?}", &path, e.to_string());
+            log::debug!("{:?} {:?}", &path, e.to_string());
             return Err(e)
         }
 
@@ -219,24 +208,27 @@ impl From<TaggedMediaFile> for MediaFile {
             lyrics: input.tag(StandardTagKey::Lyrics),
             synced_lyrics: None,
 
-            // TODO hate this
+            // TODO hate this, this gets returned mut and then modified to fill
+            // these in. Should just be combined.
             last_imported: Default::default(),
             last_modified: Default::default(),
             sha256: Default::default(),
 
-            disc_number: input.tag(StandardTagKey::DiscNumber)
-                .map(|s| u32::from_str_radix(&s, 10).ok()).flatten(),
             disc_subtitle: input.tag(StandardTagKey::DiscSubtitle),
             isrc: input.tag(StandardTagKey::IdentIsrc),
             label: input.tag(StandardTagKey::Label),
             original_date: input.tag(StandardTagKey::OriginalDate),
             release_date: input.tag(StandardTagKey::Date),
+            disc_number: input.tag(StandardTagKey::DiscNumber)
+                .and_then(|s| parse_n_of_m_tag(&s).0),
             total_discs: input.tag(StandardTagKey::DiscTotal)
-                .map(|s| u32::from_str_radix(&s, 10).ok()).flatten(),
-            total_tracks: input.tag(StandardTagKey::TrackTotal)
-                .map(|s| u32::from_str_radix(&s, 10).ok()).flatten(),
+                .and_then(|s| parse_n_of_m_tag(&s).0)
+                .or_else(|| input.tag(StandardTagKey::DiscNumber).and_then(|s| parse_n_of_m_tag(&s).1)),
             track_number: input.tag(StandardTagKey::TrackNumber)
-                .map(|s| u32::from_str_radix(&s, 10).ok()).flatten(),
+                .and_then(|s| parse_n_of_m_tag(&s).0),
+            total_tracks: input.tag(StandardTagKey::TrackTotal)
+                .and_then(|s| parse_n_of_m_tag(&s).0)
+                .or_else(|| input.tag(StandardTagKey::TrackNumber).and_then(|s| parse_n_of_m_tag(&s).1)),
             // TODO lots more URLs available.
             website: input.tag(StandardTagKey::Url),
 
@@ -273,6 +265,25 @@ impl From<MediaFile> for Track {
 
             media_position: media_file.track_number,
         }
+    }
+}
+
+pub fn parse_n_of_m_tag(value: &str) -> (Option<u32>, Option<u32>) {
+    let mut parts = value.splitn(2, "/").map(|val| val.trim().parse::<u32>().ok());
+    (parts.next().flatten(), parts.next().flatten())
+}
+
+mod test {
+    #[test]
+    fn parse_n_of_m_tag() {
+        assert!(crate::import::parse_n_of_m_tag("") == (None, None));
+        assert!(crate::import::parse_n_of_m_tag("3/12") == (Some(3), Some(12)));
+        assert!(crate::import::parse_n_of_m_tag("1") == (Some(1), None));
+        assert!(crate::import::parse_n_of_m_tag("1/") == (Some(1), None));
+        assert!(crate::import::parse_n_of_m_tag("/13") == (None, Some(13)));
+        assert!(crate::import::parse_n_of_m_tag("/") == (None, None));
+        assert!(crate::import::parse_n_of_m_tag(" 3 /   12 ") == (Some(3), Some(12)));
+        assert!(crate::import::parse_n_of_m_tag("03 /12 ") == (Some(3), Some(12)));
     }
 }
 
