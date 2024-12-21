@@ -9,12 +9,6 @@ use super::{Plugin, USER_AGENT};
 
 #[derive(Default)]
 pub struct LrclibPlugin {
-    config: LrclibPluginConfig,
-}
-
-#[derive(Clone, Serialize, Deserialize, Default)]
-pub struct LrclibPluginConfig {
-    
 }
 
 impl Plugin for LrclibPlugin {
@@ -24,14 +18,6 @@ impl Plugin for LrclibPlugin {
 
     fn display_name(&self) -> String {
         "LRCLIB".to_string()
-    }
-
-    fn set_configuration(&mut self, config: &str) {
-        self.config = serde_json::from_str(config).unwrap();
-    }
-
-    fn configuration(&self) -> String {
-        serde_json::to_string(&self.config).unwrap()
     }
 
     fn status(&self) -> String {
@@ -44,11 +30,15 @@ impl Plugin for LrclibPlugin {
             .user_agent(USER_AGENT)
             .build()
             .unwrap();
-
-        let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}&album_name={}",
+        // TODO fallback to no album
+        // let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}&album_name={}",
+        //     track.artist.clone().unwrap_or_default(),
+        //     track.title.clone().unwrap_or_default(),
+        //     track.album.clone().unwrap_or_default(),
+        // );
+        let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}",
             track.artist.clone().unwrap_or_default(),
             track.title.clone().unwrap_or_default(),
-            track.album.clone().unwrap_or_default(),
         );
         let response = client.get(&url).send().unwrap();
         log::info!("GET {} {}", response.status().as_u16(),& url);

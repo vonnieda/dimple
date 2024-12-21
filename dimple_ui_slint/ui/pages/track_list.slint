@@ -30,9 +30,9 @@ export component TrackList inherits VerticalBox {
         y: popup-y; 
 
         PopupMenuButton {
-            text: "Play Now";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-            clicked => { TrackListAdapter.play_now(TrackListAdapter.row_keys[popup-row]); }
+            text: "Play Later";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+            clicked => { TrackListAdapter.play_later(TrackListAdapter.row_keys[popup-row]); }
         }
         PopupMenuButton {
             text: "Play Next";
@@ -40,12 +40,12 @@ export component TrackList inherits VerticalBox {
             clicked => { TrackListAdapter.play_next(TrackListAdapter.row_keys[popup-row]); }
         }
         PopupMenuButton {
-            text: "Play Later";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
-            clicked => { TrackListAdapter.play_later(TrackListAdapter.row_keys[popup-row]); }
+            text: "Play Now";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+            clicked => { TrackListAdapter.play_now(TrackListAdapter.row_keys[popup-row]); }
         }
         PopupMenuButton {
-            text: "Details";
+            text: "Track Info";
             icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
             clicked => { Navigator.navigate("dimple://track/" + TrackListAdapter.row_keys[root.popup-row]); }
         }

@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex, RwLock}, time::Duration};
+use std::{fmt::Debug, sync::{Arc, Mutex, RwLock}, time::Duration};
 
 use image::DynamicImage;
 use include_dir::{include_dir, Dir};
@@ -16,6 +16,12 @@ pub struct LibraryEvent {
     pub library: Library,
     pub type_name: String,
     pub key: String,
+}
+
+impl Debug for LibraryEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LibraryEvent").field("type_name", &self.type_name).field("key", &self.key).finish()
+    }
 }
 
 #[derive(Clone)]

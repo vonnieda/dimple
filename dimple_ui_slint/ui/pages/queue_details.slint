@@ -43,7 +43,7 @@ export component QueueDetails inherits VerticalBox {
             clicked => { QueueDetailsAdapter.remove_all(); }
         }
         PopupMenuButton {
-            text: "Details";
+            text: "Track Info";
             icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
             clicked => { Navigator.navigate("dimple://track/" + QueueDetailsAdapter.row_keys[root.popup-row]); }
         }

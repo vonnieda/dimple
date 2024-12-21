@@ -10,10 +10,10 @@ use crate::{library::Library, model::{Artist, Release, Track}};
 pub const USER_AGENT: &str = "Dimple/0.0.1 +https://github.com/vonnieda/dimple +jason@vonnieda.org";
 
 pub trait Plugin: Send + Sync {
-    fn display_name(&self) -> String;
+    fn display_name(&self) -> String { self.type_name() }
     fn type_name(&self) -> String;
-    fn configuration(&self) -> String;
-    fn set_configuration(&mut self, config: &str);
+    fn configuration(&self) -> String { "".to_string() }
+    fn set_configuration(&mut self, config: &str) { }
     fn status(&self) -> String;
 
     // TODO These Options should be Results but I steadfastly refuse to learn

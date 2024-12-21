@@ -79,3 +79,5 @@ Dump new things at the bottom, move things to the top to prioritize.
 - Bug: Moving a file on the filesystem leaves an orphaned and incorrect
   MediaFile behind.
 - Make playlsit item ordinal real.
+- Bug: Seeing a lot of lyrics with double newlines. 
+  Ex: Blue Oyster Cult - Heavy Metal: The Black and Silver.

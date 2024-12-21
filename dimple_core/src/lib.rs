@@ -3,7 +3,6 @@ pub mod library;
 pub mod import;
 pub mod player;
 pub mod sync;
-pub mod services;
 pub mod notifier;
 pub mod model_store;
 pub mod plugins;

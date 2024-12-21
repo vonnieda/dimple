@@ -1,4 +1,4 @@
-use dimple_core::{library::Library, player::Player};
+use dimple_core::{library::Library, player::Player, plugins::{lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugin_host::PluginHost, wikidata::WikidataPlugin}};
 use player_bar;
 use std::{collections::VecDeque, sync::{Arc, Mutex}};
 
@@ -21,6 +21,7 @@ pub struct App {
     pub images: ImageMangler,
     pub ui: Weak<AppWindow>,
     pub media_controls: Arc<Mutex<Option<MediaControls>>>,
+    pub plugins: PluginHost,
 }
 
 pub struct AppWindowController {
@@ -45,20 +46,25 @@ impl AppWindowController {
         std::fs::create_dir_all(&config_dir).unwrap();
         std::fs::create_dir_all(&image_cache_dir).unwrap();
 
-        let librarian = Library::open(library_path.to_str().unwrap());
-        let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
-        let player = Player::new(Arc::new(librarian.clone()));
+        let library = Library::open(library_path.to_str().unwrap());
+        let images = ImageMangler::new(library.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
+        let player = Player::new(Arc::new(library.clone()));
+        let plugins = PluginHost::default();
+        plugins.add_plugin(Box::new(LrclibPlugin::default()));
+        plugins.add_plugin(Box::new(MusicBrainzPlugin::default()));
+        plugins.add_plugin(Box::new(WikidataPlugin::default()));
         let ui_weak = ui.as_weak();
         Self {
             ui,
             app: App {
                 config: Config::default(),
-                library: librarian.clone(),
+                library,
                 history: Arc::new(Mutex::new(VecDeque::new())),
                 player,
                 images,
                 ui: ui_weak,
                 media_controls: Arc::new(Mutex::new(None)),
+                plugins,
             },
         }
     }

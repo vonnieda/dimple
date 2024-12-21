@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use dimple_core::model::Track;
 use slint::ModelRc;
+use slint::SharedString;
 use slint::StandardListViewItem;
 use slint::VecModel;
 use url::Url;
@@ -39,6 +40,7 @@ pub fn search_results(url: &str, app: &App) {
         app.ui.upgrade_in_event_loop(move |ui| {
             // TODO switch to actual search page
             ui.global::<TrackListAdapter>().set_row_data(row_data(&tracks));
+            ui.global::<TrackListAdapter>().set_row_keys(row_keys(&tracks));
             ui.set_page(Page::TrackList);
 
             // let mut adapter = ui.get_search();
@@ -58,19 +60,28 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
     for track in tracks {
         let track = track.clone();
         let row = Rc::new(VecModel::default());
-        let length = Duration::from_millis(track.length_ms.unwrap_or_default() as u64);
-        let length = format_length(length);
-        row.push(StandardListViewItem::from(track.title.unwrap_or_default().as_str())); // Title
-        row.push(StandardListViewItem::from(track.album.unwrap_or_default().as_str())); // Album
-        row.push(StandardListViewItem::from(track.artist.unwrap_or_default().as_str())); // Artist
-        row.push(StandardListViewItem::from("1")); // Track #
+        let length = track.length_ms
+            .map(|ms| Duration::from_millis(ms as u64))
+            .map(|dur| format_length(dur));
+        row.push(track.title.unwrap_or_default().as_str().into()); // Title
+        row.push(track.album.unwrap_or_default().as_str().into()); // Album
+        row.push(track.artist.unwrap_or_default().as_str().into()); // Artist
+        row.push(track.media_position.unwrap_or_default().to_string().as_str().into()); // Track #
         row.push(track.plays.to_string().as_str().into()); // Plays
-        row.push(StandardListViewItem::from(length.as_str())); // Length
-        row.push(StandardListViewItem::from(track.key.unwrap().as_str())); // Key (Hidden)
+        row.push(length.unwrap_or_default().as_str().into()); // Length
         row_data.push(row.into());
     }
     row_data.into()
 }
+
+fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
+    let keys: Vec<_> = tracks.iter()
+        .map(|track| track.key.clone().unwrap())
+        .map(|key| SharedString::from(key))
+        .collect();
+    keys.as_slice().into()
+}
+
 
 fn track_card(track: &Track) -> CardAdapter {
     let track = track.clone();
