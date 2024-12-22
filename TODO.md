@@ -81,3 +81,5 @@ Dump new things at the bottom, move things to the top to prioritize.
 - Make playlsit item ordinal real.
 - Bug: Seeing a lot of lyrics with double newlines. 
   Ex: Blue Oyster Cult - Heavy Metal: The Black and Silver.
+- Re-combine all the grid pages into one relatively smart "results list", 
+  that also has tags, sorting, filtering, etc.

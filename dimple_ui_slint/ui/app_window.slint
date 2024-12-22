@@ -72,7 +72,7 @@ import "../icons/phosphor/Fonts/regular/Phosphor.ttf";
 export { Navigator, Styles, AppState, TrackListAdapter, 
     EventListAdapter, PlaylistDetailsAdapter,
     SettingsAdapter, TrackDetailsAdapter, QueueDetailsAdapter,
-    PlaylistListAdapter, PluginAdapter }
+    PlaylistListAdapter, PluginAdapter, PlayerBarAdapter }
 
 export enum Page { Home, SearchResults,
     ArtistList, ArtistDetails,
@@ -109,28 +109,6 @@ export component AppWindow inherits Window {
     in-out property <GenreDetailsAdapter> genre-details;
     in-out property <RecordingDetailsAdapter> recording-details;
     in-out property <CardGridAdapter> playlist-list;
-    in-out property <PlayerBarAdapter> player-bar: {
-        position_seconds: 30,
-        position_label: "00:30",
-        duration_seconds: 120,
-        duration_label: "02:00",
-        now-playing-artist: {
-            image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-            title: {name: "A Reign of Fish",url: "internal://release/1234"},
-            sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        },
-        now-playing-release: {
-            image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-            title: {name: "Fresh Pliers",url: "internal://release/1234"},
-            sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        },
-        now-playing-recording: {
-            image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-            title: {name: "Lemon on Fire",url: "internal://release/1234"},
-            sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        },
-        player-state: PlayerState.Playing,
-    };
     in-out property <SideBarAdapter> sidebar;
 
     VerticalLayout {
@@ -200,7 +178,6 @@ export component AppWindow inherits Window {
         GroupBox {
             vertical-stretch: 0;
             PlayerBar {
-                model: player-bar;
             }
         }
     }

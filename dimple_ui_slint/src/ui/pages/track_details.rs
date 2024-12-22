@@ -148,17 +148,6 @@ fn add_to_queue(app: &App, key: &str) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
 // struct TrackDetailsController {
 //     app: App,
 //     key: Option<String>,

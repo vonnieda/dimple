@@ -2,6 +2,7 @@ use std::time::Duration;
 use crate::ui::CardAdapter;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
+use crate::ui::PlayerBarAdapter;
 
 use dimple_core::{model::Track, player::PlayerState};
 
@@ -47,33 +48,29 @@ fn update_model(app: &App) {
     let player = app.player.clone();
     let current_track = player.current_queue_track().unwrap_or_default();
     let next_track = player.next_queue_track().unwrap_or_default();
-    let _app = app.clone();
+    let app1 = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
-        let app = _app.clone();
+        let app = app1.clone();
         let images = app.images.clone();
 
         let mut now_playing_recording = track_card(&current_track);
         now_playing_recording.image.image = images.lazy_get(current_track.clone(), 120, 120, |ui, image| {
-            let mut adapter = ui.get_player_bar();
-            adapter.now_playing_recording.image.image = image;
-            ui.set_player_bar(adapter);
+            let mut card = ui.global::<PlayerBarAdapter>().get_now_playing_recording();
+            card.image.image = image;
+            ui.global::<PlayerBarAdapter>().set_now_playing_recording(card);
         });
     
-        let adapter = crate::ui::PlayerBarAdapter {
-            duration_seconds: player.track_duration().as_secs() as i32,
-            duration_label: format_duration(&player.track_duration()).into(),
-            position_seconds: player.track_position().as_secs() as i32,
-            position_label: format_duration(&player.track_position()).into(),
-            player_state: player.state().into(),
-            now_playing_artist: artist_card(&current_track),
-            up_next_artist: artist_card(&next_track),
-            now_playing_release: release_card(&current_track),
-            up_next_release: release_card(&next_track),
-            now_playing_recording,
-            up_next_recording: track_card(&next_track),
-        };
-    
-        ui.set_player_bar(adapter);
+        ui.global::<PlayerBarAdapter>().set_duration_seconds(player.track_duration().as_secs() as i32);
+        ui.global::<PlayerBarAdapter>().set_duration_label(format_duration(&player.track_duration()).into());
+        ui.global::<PlayerBarAdapter>().set_position_seconds(player.track_position().as_secs() as f32);
+        ui.global::<PlayerBarAdapter>().set_position_label(format_duration(&player.track_position()).into());
+        ui.global::<PlayerBarAdapter>().set_player_state(player.state().into());
+        ui.global::<PlayerBarAdapter>().set_now_playing_artist(artist_card(&current_track));
+        ui.global::<PlayerBarAdapter>().set_now_playing_release(release_card(&current_track));
+        ui.global::<PlayerBarAdapter>().set_now_playing_recording(track_card(&current_track));
+        ui.global::<PlayerBarAdapter>().set_up_next_artist(artist_card(&next_track));
+        ui.global::<PlayerBarAdapter>().set_up_next_release(release_card(&next_track));
+        ui.global::<PlayerBarAdapter>().set_up_next_recording(track_card(&next_track));
     }).unwrap();
 }
 
