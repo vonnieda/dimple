@@ -83,6 +83,7 @@ fn sort_table(app: &App, col: i32, ascending: bool) {
     //     columns[col as usize], 
     //     if ascending { "asc" } else { "desc" });
     // let tracks: Vec<Track> = app.library.query(&query, ());
+    // TODO this seems like it needs a TODO cause it looks broken?
     let playlist: Playlist = app.player.queue();
     let tracks = playlist.tracks(&app.library);
     app.ui.upgrade_in_event_loop(move |ui| {

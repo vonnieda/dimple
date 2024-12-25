@@ -36,6 +36,7 @@ pub fn search_results(url: &str, app: &App) {
                 OR title LIKE ?1
                 OR lyrics LIKE ?1
                 OR key LIKE ?1
+            ORDER BY artist asc, album asc, media_position asc, title asc
             ", (query,));
         app.ui.upgrade_in_event_loop(move |ui| {
             // TODO switch to actual search page

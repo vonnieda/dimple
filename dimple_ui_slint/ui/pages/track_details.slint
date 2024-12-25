@@ -1,5 +1,5 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox, LineEdit, TextEdit} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
@@ -38,6 +38,7 @@ export global TrackDetailsAdapter {
     pure callback set_save(bool);
     pure callback set_download(bool);
     pure callback set_love(bool);
+    pure callback set_lyrics(string, string);
 }
 
 export component BorderImage inherits Rectangle {
@@ -171,16 +172,49 @@ export component TrackDetails inherits ScrollView {
         }
 
         // Lyrics
-        if TrackDetailsAdapter.lyrics != "": VerticalBox {
+        in-out property <bool> lyrics_editing: false;
+        VerticalBox {
             Text {
                 text: "Lyrics";
                 font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
-            Text {
-                text: TrackDetailsAdapter.lyrics;
-                wrap: word-wrap;
-                font-size: 1.3rem;
+            if !lyrics_editing: TouchArea {
+                text := Text {
+                    text: TrackDetailsAdapter.lyrics;
+                    wrap: word-wrap;
+                    font-size: 1.3rem;
+                }
+                width: text.width;
+                height: text.height;
+                clicked => { lyrics_editing = true; }
+            }
+            if lyrics_editing: VerticalBox {
+                text_edit := TextEdit {
+                    text: TrackDetailsAdapter.lyrics;
+                    font-size: 1.3rem;
+                    min-height: 200px;
+                    // accepted(text) => { 
+                    //     lyrics_editing = false;                
+                    //     TrackDetailsAdapter.set_lyrics(TrackDetailsAdapter.key, text);
+                    // }
+                }
+                HorizontalBox {
+                    Button {
+                        text: "Save";
+                        clicked => {
+                            lyrics_editing = false;                
+                            TrackDetailsAdapter.set_lyrics(TrackDetailsAdapter.key, text_edit.text);
+                        }
+                    }
+                    Button {
+                        text: "Cancel";
+                        clicked => {
+                            // TODO reset if changed
+                            lyrics_editing = false;                
+                        }
+                    }
+                }
             }
         }
 

@@ -15,6 +15,7 @@ use crate::ui::LinkAdapter;
 use slint::ComponentHandle as _;
 use crate::ui::CardAdapter;
 
+// how do I make the poop emoji?
 static CURRENT_TRACK_KEY: Mutex<Option<String>> = Mutex::new(None);
 
 pub fn track_details_init(app: &App) {
@@ -24,6 +25,8 @@ pub fn track_details_init(app: &App) {
         ui.global::<TrackDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
         let app = app1.clone();
         ui.global::<TrackDetailsAdapter>().on_add_to_queue(move |key| add_to_queue(&app, &key));
+        let app = app1.clone();
+        ui.global::<TrackDetailsAdapter>().on_set_lyrics(move |key, lyrics| set_lyrics(&app, &key, &lyrics));
     }).unwrap();
 
     let app1 = app.clone();
@@ -31,8 +34,10 @@ pub fn track_details_init(app: &App) {
         if let Some(current_track_key) = CURRENT_TRACK_KEY.lock().unwrap().clone() {
             if current_track_key == event.key {
                 let track = app1.library.get::<Track>(&event.key).unwrap();
-                app1.ui.upgrade_in_event_loop(|ui| {
-                    let lyrics = track.lyrics.unwrap_or_default();
+                app1.ui.upgrade_in_event_loop(move |ui| {
+                    let lyrics = track.lyrics.clone()
+                        .filter(|s| !s.trim().is_empty())
+                        .unwrap_or("(No lyrics, click to edit.)".to_string());
                     ui.global::<TrackDetailsAdapter>().set_lyrics(lyrics.into());
                 }).unwrap();
             }
@@ -103,7 +108,12 @@ pub fn track_details(url: &str, app: &App) {
             ui.global::<TrackDetailsAdapter>().set_summary(track.summary.clone().unwrap_or_default().into());
             ui.global::<TrackDetailsAdapter>().set_disambiguation(track.disambiguation.clone().unwrap_or_default().into());
             ui.global::<TrackDetailsAdapter>().set_genres(ModelRc::from(genres.as_slice()));
-            ui.global::<TrackDetailsAdapter>().set_lyrics(track.lyrics.clone().unwrap_or_default().into());
+            let lyrics = track.lyrics.clone()
+                .filter(|s| !s.trim().is_empty())
+                .unwrap_or("(No lyrics, click to edit.)".to_string());
+            ui.global::<TrackDetailsAdapter>().set_lyrics(lyrics.into());
+
+
             ui.global::<TrackDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
             ui.global::<TrackDetailsAdapter>().set_dump(format!("{:?}", track).into());
 
@@ -146,6 +156,13 @@ fn add_to_queue(app: &App, key: &str) {
         app.player.play();
     }).unwrap();
 }
+
+fn set_lyrics(app: &App, key: &str, lyrics: &str) {
+    let mut track = app.library.get::<Track>(key).unwrap();
+    track.lyrics = Some(lyrics.to_string());
+    app.library.save(&track);
+}
+
 
 
 // struct TrackDetailsController {
