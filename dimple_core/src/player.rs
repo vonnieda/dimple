@@ -41,6 +41,36 @@ impl Player {
         player
     }
 
+    /// Insert into queue before the current song, and skip backwards to the
+    /// newly inserted song. The currently playing song, if any, will then
+    /// be played after.
+    pub fn play_now(&self, track_key: &str) {
+
+    }
+
+    /// Insert into the queue after the current index, so that the song will
+    /// be played next.
+    pub fn play_next(&self, track_key: &str) {
+
+    }
+
+    /// Append to the end of the queue.
+    pub fn play_later(&self, track_key: &str) {
+
+    }
+
+    // pub fn playlist_add(&self, playlist: &Playlist, track_key: &str) {
+    //     self.conn().execute("INSERT INTO PlaylistItem 
+    //         (key, playlist_key, track_key) 
+    //         VALUES (?1, ?2, ?3)",
+    //         (&Uuid::new_v4().to_string(), playlist.key.clone().unwrap(), track_key)).unwrap();
+    // }
+
+    // pub fn playlist_clear(&self, playlist: &Playlist) {
+    //     self.conn().execute("DELETE FROM PlaylistItem
+    //         WHERE playlist_key = ?1", (playlist.key.clone().unwrap(),)).unwrap();
+    // }    
+
     pub fn play(&self) {
         self.sender.send(PlayerCommand::Play).unwrap();
     }

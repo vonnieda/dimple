@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 dimple_core_macro = { path = "../dimple_core_macro" }
 rust-s3 = { version = "0.33.0", features = ["sync-native-tls"], default-features = false }
-playback-rs = { path = "./playback-rs" }
+playback-rs = { path = "./vendor/playback-rs" }
 rusqlite = { version = "0.32.1", features = ["bundled", "backup", "chrono"] }
 symphonia = { version = "0.5.4", features = ["all"] }
 uuid = { version = "1.10.0", features = ["v4"] }

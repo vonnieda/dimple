@@ -494,23 +494,11 @@ mod tests {
     #[test]
     fn change_notifications() {
         let library = Library::open("file:40c65129-2e84-4eff-8b25-9a03519da1e1?mode=memory&cache=shared");
-        // let (tx, rx) = std::sync::mpsc::channel();
-        // library.on_change(move |_library, type_name, _key| if type_name == "Track" {
-        //     tx.send(()).unwrap();
-        // });
+        let (tx, rx) = std::sync::mpsc::channel();
         library.on_change(Box::new(move |event| {
-            println!("{} {}", event.type_name, event.key);
+            tx.send(()).unwrap();
         }));
         library.save(&Track::default());
-        // assert!(rx.recv_timeout(Duration::from_secs(1)).is_ok());
-    }
-
-
-    #[test]
-    fn import2() {
-        let library = Library::open("file:47a5236f-520d-4ee3-b832-93c5c91c6db1?mode=memory&cache=shared");
-        library.import("/Users/jason/Music/My Music/Deafheaven");
-        let media_files = library.list::<MediaFile>();
-        dbg!(media_files);
+        assert!(rx.recv_timeout(Duration::from_secs(1)).is_ok());
     }
 }
