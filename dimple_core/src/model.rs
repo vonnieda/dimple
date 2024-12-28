@@ -34,6 +34,9 @@ pub use release::Release;
 mod event;
 pub use event::Event;
 
+mod artist_credit;
+pub use artist_credit::ArtistCredit;
+
 pub trait FromRow {
     fn from_row(row: &Row) -> Self;
 }
