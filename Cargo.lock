@@ -1541,6 +1541,7 @@ dependencies = [
  "image 0.25.5",
  "include_dir",
  "log",
+ "lru",
  "playback-rs",
  "rayon",
  "reqwest",
@@ -2531,6 +2532,8 @@ version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
 dependencies = [
+ "allocator-api2",
+ "equivalent",
  "foldhash",
 ]
 
@@ -3581,6 +3584,9 @@ name = "lru"
 version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "234cf4f4a04dc1f57e24b96cc0cd600cf2af460d4161ac5ecdd0af8e1f3b2a38"
+dependencies = [
+ "hashbrown 0.15.2",
+]
 
 [[package]]
 name = "lyon_algorithms"
