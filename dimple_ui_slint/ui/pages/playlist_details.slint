@@ -1,8 +1,9 @@
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, TextEdit, LineEdit} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, TextEdit, LineEdit, Palette} from "std-widgets.slint";
 import { AppState, Styles } from "../common.slint";
+import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
 
 export global PlaylistDetailsAdapter {
     in property <string> key;
@@ -18,57 +19,6 @@ export global PlaylistDetailsAdapter {
     pure callback set_love(string, bool);
     pure callback delete(string);
     pure callback set_name(string, string);
-}
-
-component ActionButton inherits Button {
-    in property <length> button-width: 40px;
-    in property <string> label;
-
-    colorize-icon: true;
-    width: button-width;
-    height: button-width;
-    accessible-label: label;
-    accessible-role: button;
-}
-
-component ActionButtons inherits HorizontalBox {
-    vertical-stretch: 0;
-    horizontal-stretch: 0;
-    alignment: start;
-
-    ActionButton {
-        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-        label: @tr("Play Now");
-        clicked => { PlaylistDetailsAdapter.play_now(PlaylistDetailsAdapter.key); }
-    }
-    ActionButton {
-        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
-        label: @tr("Play Later");
-        clicked => { PlaylistDetailsAdapter.add_to_queue(PlaylistDetailsAdapter.key); }
-    }
-    ActionButton {
-        icon: self.checked 
-            ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
-            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
-        label: @tr("Love");
-        checkable: true;
-        checked: PlaylistDetailsAdapter.love;
-        clicked => { PlaylistDetailsAdapter.set_love(PlaylistDetailsAdapter.key, self.checked); }
-    }
-    ActionButton {
-        icon: self.checked 
-            ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
-            : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
-        label: @tr("Play Later");
-        checkable: true;
-        checked: PlaylistDetailsAdapter.download;
-        clicked => { PlaylistDetailsAdapter.set_download(PlaylistDetailsAdapter.key, self.checked); }
-    }
-    ActionButton {
-        label: @tr("Delete Playlist");
-        icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
-        clicked => { PlaylistDetailsAdapter.delete(PlaylistDetailsAdapter.key); }
-    }
 }
 
 export component PlaylistDetails inherits VerticalBox {
@@ -98,7 +48,39 @@ export component PlaylistDetails inherits VerticalBox {
             }
         }
         ActionButtons {
-
+            ActionButton {
+                icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+                label: @tr("Play Now");
+                clicked => { PlaylistDetailsAdapter.play_now(PlaylistDetailsAdapter.key); }
+            }
+            ActionButton {
+                icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+                label: @tr("Play Later");
+                clicked => { PlaylistDetailsAdapter.add_to_queue(PlaylistDetailsAdapter.key); }
+            }
+            ActionButton {
+                icon: self.checked 
+                    ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
+                    : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+                label: @tr("Love");
+                checkable: true;
+                checked: PlaylistDetailsAdapter.love;
+                clicked => { PlaylistDetailsAdapter.set_love(PlaylistDetailsAdapter.key, self.checked); }
+            }
+            ActionButton {
+                icon: self.checked 
+                    ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
+                    : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
+                label: @tr("Play Later");
+                checkable: true;
+                checked: PlaylistDetailsAdapter.download;
+                clicked => { PlaylistDetailsAdapter.set_download(PlaylistDetailsAdapter.key, self.checked); }
+            }
+            ActionButton {
+                label: @tr("Delete Playlist");
+                icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
+                clicked => { PlaylistDetailsAdapter.delete(PlaylistDetailsAdapter.key); }
+            }
         }
     }
 

@@ -1,9 +1,10 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox, LineEdit, TextEdit} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox, LineEdit, TextEdit, Palette} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Styles, Navigator, AppState } from "../common.slint";
+import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
 
     // in property <TrackDetailsAdapter> model: {
     //     card,
@@ -55,56 +56,6 @@ export component BorderImage inherits Rectangle {
     }
 }
 
-component ActionButton inherits Button {
-    in property <length> button-width: 40px;
-    in property <string> label;
-
-    colorize-icon: true;
-    width: button-width;
-    height: button-width;
-    accessible-label: label;
-    accessible-role: button;
-}
-
-component ActionButtons inherits HorizontalBox {
-    alignment: space-around;
-
-    // So thinking here queue should be dropping tracks off the end as they get played
-    // and then:
-    // Play Now: adds to front of queue and switches to it
-    // Play Next: add to next in queue and switches to it
-    // Play Later: add to end of queue and start playing
-    
-    ActionButton {
-        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-        label: @tr("Play Now");
-        clicked => { TrackDetailsAdapter.play_now(TrackDetailsAdapter.key); }
-    }
-    ActionButton {
-        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
-        label: @tr("Play Later");
-        clicked => { TrackDetailsAdapter.add_to_queue(TrackDetailsAdapter.key); }
-    }
-    ActionButton {
-        icon: self.checked 
-            ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
-            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
-        label: @tr("Love");
-        checkable: true;
-        checked: TrackDetailsAdapter.love;
-        clicked => { TrackDetailsAdapter.set_love(self.checked); }
-    }
-    ActionButton {
-        icon: self.checked 
-            ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
-            : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
-        label: @tr("Play Later");
-        checkable: true;
-        checked: TrackDetailsAdapter.download;
-        clicked => { TrackDetailsAdapter.set_download(self.checked); }
-    }
-}
-
 export component TrackDetails inherits ScrollView {
     VerticalLayout {
         alignment: start;
@@ -118,6 +69,34 @@ export component TrackDetails inherits ScrollView {
                     image: TrackDetailsAdapter.card.image.image;
                 }
                 ActionButtons {
+                    ActionButton {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+                        label: @tr("Play Now");
+                        clicked => { TrackDetailsAdapter.play_now(TrackDetailsAdapter.key); }
+                    }
+                    ActionButton {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+                        label: @tr("Play Later");
+                        clicked => { TrackDetailsAdapter.add_to_queue(TrackDetailsAdapter.key); }
+                    }
+                    ActionButton {
+                        icon: self.checked 
+                            ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
+                            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+                        label: @tr("Love");
+                        checkable: true;
+                        checked: TrackDetailsAdapter.love;
+                        clicked => { TrackDetailsAdapter.set_love(self.checked); }
+                    }
+                    ActionButton {
+                        icon: self.checked 
+                            ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
+                            : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
+                        label: @tr("Play Later");
+                        checkable: true;
+                        checked: TrackDetailsAdapter.download;
+                        clicked => { TrackDetailsAdapter.set_download(self.checked); }
+                    }
                 }
                 Rectangle {
                     vertical-stretch: 1;

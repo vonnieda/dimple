@@ -13,6 +13,7 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox, Slider, Switch, LineEdit, GridBox} from "std-widgets.slint";
 import { AppState, Styles, Navigator } from "../common.slint";
+import { ActionButton } from "../components/action_buttons.slint";
 
 export struct PluginAdapter {
     title: string,
@@ -30,12 +31,6 @@ export global SettingsAdapter {
     pure callback set_font_size(float);
     pure callback import_files();
     pure callback import_directories();
-}
-
-component ActionButton inherits Button {
-    colorize-icon: true;
-    accessible-label: self.text;
-    accessible-role: button;
 }
 
 component General inherits VerticalBox {

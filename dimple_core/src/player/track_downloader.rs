@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, io::Cursor, num::NonZeroUsize, sync::{Arc, RwLock}};
+use std::{io::Cursor, num::NonZeroUsize, sync::{Arc, RwLock}};
 
 use lru::LruCache;
 use playback_rs::{Hint, Song};

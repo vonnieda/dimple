@@ -1,0 +1,48 @@
+import { HorizontalBox, Palette, Button } from "std-widgets.slint";
+
+export component ActionButton1 inherits Button {
+    in property <string> label;
+
+    colorize-icon: true;
+    accessible-label: label;
+    accessible-role: button;
+}
+
+export component ActionButton2 inherits TouchArea {
+    in property <string> label;
+    in property <image> icon;
+    in property <bool> checkable;
+    in-out property <bool> checked;
+
+    accessible-label: label;
+    accessible-role: button;
+
+    Rectangle {
+        background: root.has-hover ? Palette.selection-background : Palette.control-background;
+        border-radius: self.width / 2;
+        border-width: 1px;
+        border-color: Palette.border;
+        clip: true;
+        HorizontalBox {
+            padding: 8px;
+            Image {
+                source: root.icon;
+                colorize: root.has-hover ? Palette.selection-foreground : Palette.foreground;
+                width: 24px;
+                height: 24px;
+            }
+        }
+    }
+}
+
+export component ActionButton inherits ActionButton1 {
+
+}
+
+export component ActionButtons inherits HorizontalBox {
+    alignment: start;
+    padding-left: 0;
+    padding-right: 0;
+
+    @children
+}
