@@ -24,8 +24,7 @@ impl Plugin for LrclibPlugin {
         "Ready".to_string()
     }
 
-    fn lyrics(&self, _library: &Library, track: &Track) 
-            -> Option<String> {
+    fn lyrics(&self, library: &Library, track: &Track) -> Option<String> {
         let client = Client::builder()
             .user_agent(USER_AGENT)
             .build()
@@ -36,8 +35,14 @@ impl Plugin for LrclibPlugin {
         //     track.title.clone().unwrap_or_default(),
         //     track.album.clone().unwrap_or_default(),
         // );
+        let artist = track.artist(library);
+        if artist.is_none() {
+            log::error!("Can't lookup lyrics for track ({:?}) with no artist.", track.key);
+            return None
+        }
+        let artist = artist.unwrap();
         let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}",
-            track.artist.clone().unwrap_or_default(),
+            artist.name.clone().unwrap_or_default(),
             track.title.clone().unwrap_or_default(),
         );
         let response = client.get(&url).send().unwrap();
@@ -70,23 +75,34 @@ struct GetResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::Track, plugins::Plugin};
+    use crate::{library::Library, model::{Artist, ArtistRef, Track}, plugins::Plugin};
 
     use super::LrclibPlugin;
 
     #[test]
     fn it_works() {
-        let library = Library::open("file:d804a172-71cf-4522-a3be-3ce0de93481a?mode=memory&cache=shared");
+        let _ = env_logger::try_init();
+
+        let library = Library::open_temporary();
+
+        let artist = library.save(&Artist {
+            name: Some("Metallica".to_string()),
+            ..Default::default()
+        });
         let track = library.save(&Track {
-            artist: Some("Metallica".to_string()),
-            album: Some("Master of Puppets".to_string()),
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
         });
+        let _ = library.save(&ArtistRef {
+            model_key: track.key.clone().unwrap(),
+            artist_key: artist.key.clone().unwrap(),
+            ..Default::default()
+        });
+
         let lrclib = LrclibPlugin::default();
         let lyrics = lrclib.lyrics(&library, &track);
         assert!(lyrics.is_some());
-        assert!(lyrics.unwrap().contains("strings"));
+        assert!(lyrics.unwrap().to_lowercase().contains("pulling your strings"));
     }
 }
 

@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use crate::ui::app_window_controller::App;
 use crate::ui::Page;
+use dimple_core::model::ModelBasics;
 use dimple_core::model::Track;
 use slint::ModelRc;
 use slint::SharedString;
@@ -29,10 +30,7 @@ pub fn track_list_init(app: &App) {
 pub fn track_list(app: &App) {
     let app = app.clone();
     thread::spawn(move || {
-        let tracks: Vec<Track> = app.library.query("
-            SELECT * FROM Track
-            ORDER BY artist asc, album asc, media_position asc, title asc
-        ", ());
+        let tracks = Track::list(&app.library);
         app.ui.upgrade_in_event_loop(move |ui| {
             ui.global::<TrackListAdapter>().set_row_data(row_data(&tracks));
             ui.global::<TrackListAdapter>().set_row_keys(row_keys(&tracks));
@@ -51,10 +49,13 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
             .map(|ms| Duration::from_millis(ms as u64))
             .map(|dur| format_length(dur));
         row.push(track.title.unwrap_or_default().as_str().into()); // Title
-        row.push(track.album.unwrap_or_default().as_str().into()); // Album
-        row.push(track.artist.unwrap_or_default().as_str().into()); // Artist
+        // row.push(track.album.unwrap_or_default().as_str().into()); // Album
+        // row.push(track.artist.unwrap_or_default().as_str().into()); // Artist
+        row.push("".into()); // Album
+        row.push("".into()); // Artist
         row.push(track.media_position.unwrap_or_default().to_string().as_str().into()); // Track #
-        row.push(track.plays.to_string().as_str().into()); // Plays
+        // TODO
+        row.push(0.to_string().as_str().into()); // Plays
         row.push(length.unwrap_or_default().as_str().into()); // Length
         row_data.push(row.into());
     }

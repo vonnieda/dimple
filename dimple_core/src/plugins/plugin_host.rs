@@ -39,7 +39,7 @@ impl PluginHost {
 mod tests {
     use crate::{
         library::Library,
-        model::Track,
+        model::{Artist, ArtistRef, Track},
         plugins::{
             example::ExamplePlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin,
             s3_api_sync::S3ApiSyncPlugin, wikidata::WikidataPlugin,
@@ -59,11 +59,19 @@ mod tests {
 
         let library =
             Library::open("file:2fe945e2-8191-43fd-80a8-5a99efea641d?mode=memory&cache=shared");
-        let track = Track {
-            artist: Some("Metallica".to_string()),
+        let artist = library.save(&Artist {
+            name: Some("Metallica".to_string()),
+            ..Default::default()
+        });
+        let track = library.save(&Track {
             title: Some("Ride The Lightning".to_string()),
             ..Default::default()
-        };
+        });
+        let ac = library.save(&ArtistRef {
+            model_key: track.key.clone().unwrap(),
+            artist_key: artist.key.clone().unwrap(),
+            ..Default::default()
+        });
 
         println!("{:?}", plugins.lyrics(&library, &track));
         println!("{:?}", plugins.metadata(&library, &track));

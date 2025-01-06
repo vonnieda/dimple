@@ -1,6 +1,6 @@
 use std::{env, sync::Arc, time::Duration};
 
-use dimple_core::{import::spotify, library::Library, model::{Blob, ChangeLog, Track}, player::Player, sync::{s3_storage::S3Storage, Sync}};
+use dimple_core::{import::spotify, library::Library, model::{Blob, ChangeLog, ModelBasics as _, Track}, player::Player, sync::{s3_storage::S3Storage, Sync}};
 use directories::ProjectDirs;
 
 fn main() {
@@ -77,21 +77,13 @@ fn main() {
     else if command == "tracks" {
         let tracks = library.tracks();
         for track in tracks {
-            print_track(&track);
+            print_track(&library, &track);
         }
-    }
-    else if command == "like" {
-        let track_key = &args[2];
-        let mut track: Track = library.get(track_key).unwrap();
-        track.liked = !track.liked;
-        library.save(&track);
-        let track = library.get(track_key).unwrap();
-        print_track(&track);
     }
     else if command == "queue" {
         let play_queue = player.queue();
         for track in play_queue.tracks(&library) {
-            print_track(&track);
+            print_track(&library, &track);
         }
     }
     else if command == "add" {
@@ -99,14 +91,14 @@ fn main() {
         library.playlist_add(&player.queue(), track_key);
         let play_queue = player.queue();
         for track in play_queue.tracks(&library) {
-            print_track(&track);
+            print_track(&library, &track);
         }
     }
     else if command == "clear" {
         library.playlist_clear(&player.queue());
         let play_queue = player.queue();
         for track in play_queue.tracks(&library) {
-            print_track(&track);
+            print_track(&library, &track);
         }
     }
     else if command == "play" {
@@ -140,13 +132,12 @@ fn main() {
     }
 }
 
-fn print_track(track: &Track) {
-    println!("{:30} | {:20} | {:40} | {:30} | {}", 
+fn print_track(library: &Library, track: &Track) {
+    println!("{:30} | {:20} | {:40} | {:30}", 
         track.key.clone().unwrap_or_default(),
-        track.artist.clone().unwrap_or_default(),
-        track.album.clone().unwrap_or_default(), 
-        track.title.clone().unwrap_or_default(),
-        track.liked);
+        track.artist_name(library).unwrap_or_default(),
+        track.album_name(library).unwrap_or_default(), 
+        track.title.clone().unwrap_or_default());
 }
 
 fn print_changelog(changelog: &ChangeLog) {

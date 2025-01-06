@@ -1,5 +1,5 @@
 
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 use chrono::{DateTime, Utc};
 use rusqlite::{types::FromSql, Connection, Row, ToSql};
@@ -34,8 +34,19 @@ pub use release::Release;
 mod event;
 pub use event::Event;
 
-mod artist_credit;
-pub use artist_credit::ArtistCredit;
+mod artist_ref;
+pub use artist_ref::ArtistRef;
+
+mod genre_ref;
+pub use genre_ref::GenreRef;
+
+mod link;
+pub use link::Link;
+
+mod link_ref;
+pub use link_ref::LinkRef;
+
+use crate::library::Library;
 
 pub trait FromRow {
     fn from_row(row: &Row) -> Self;
@@ -58,6 +69,8 @@ pub struct ChangeLogValue {
     pub val: Option<String>,
 }
 
+// TODO I think I can replace all of this with a generic over impl FromSql
+// and ToSql
 impl From<bool> for ChangeLogValue {
     fn from(value: bool) -> Self {
         ChangeLogValue {
@@ -175,6 +188,23 @@ impl From<ChangeLogValue> for DateTime<Utc> {
         DateTime::parse_from_rfc3339(&value.val.unwrap()).unwrap().into()
     }
 }
-// TODO I think I can replace all of the above with a generic over impl FromSql
-// and ToSql
 
+pub trait ModelBasics<T> {
+    fn get(library: &Library, key: &str) -> Option<T>;
+    fn list(library: &Library) -> Vec<T>;
+    fn save(&self, library: &Library) -> T;
+}
+
+impl <T: Model> ModelBasics<T> for T  {
+    fn get(library: &Library, key: &str) -> Option<T> {
+        library.get::<T>(key)
+    }
+
+    fn save(&self, library: &Library) -> T {
+        library.save(self)
+    }
+    
+    fn list(library: &Library) -> Vec<T> {
+        library.list()
+    }
+}

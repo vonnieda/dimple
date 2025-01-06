@@ -1,4 +1,0 @@
-ALTER TABLE MediaFile ADD COLUMN synced_lyrics TEXT DEFAULT NULL;
-ALTER TABLE MediaFile ADD COLUMN musicbrainz_release_track_id TEXT DEFAULT NULL;
-ALTER TABLE MediaFile ADD COLUMN last_modified TEXT DEFAULT NULL;
-ALTER TABLE MediaFile ADD COLUMN last_imported TEXT DEFAULT NULL;

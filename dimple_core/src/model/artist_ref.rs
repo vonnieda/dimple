@@ -1,7 +1,7 @@
 use dimple_core_macro::ModelSupport;
 
 #[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
-pub struct ArtistCredit {
+pub struct ArtistRef {
     pub key: Option<String>,
     pub model_key: String,
     pub artist_key: String,
@@ -23,26 +23,20 @@ pub struct ArtistCredit {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Artist, ArtistCredit, Track}};
+    use crate::{library::Library, model::{Artist, ArtistRef, Track}};
 
     #[test]
     fn library_crud() {
         let library = Library::open("file:29832924-08a3-4000-b6d9-73f10920d387?mode=memory&cache=shared");
         let artist = library.save(&Artist::default());
         let track = library.save(&Track::default());
-        let model = ArtistCredit {
+        let model = ArtistRef {
             key: None,
             artist_key: artist.key.unwrap(),
             model_key: track.key.unwrap(),
         };
-        let mut model = library.save(&model);
-        dbg!(model);
-        // assert!(model.key.is_some());
-        // assert!(model.model_key.is_none());
-        // model.model_key = Some("Name".to_string());
-        // let model = library.save(&model);
-        // let model: Artist = library.get(&model.key.unwrap()).unwrap();
-        // assert!(model.model_key == Some("Name".to_string()));
+        let model = library.save(&model);
+        assert!(model.key.is_some());
     }
 }
 

@@ -7,22 +7,24 @@ pub struct Genre {
     pub name: Option<String>,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
-    pub liked: bool,
-    // pub known_ids: KnownIds,
-    // pub links: HashSet<String>,
+    pub save: bool,
+    pub download: bool,
+
+    pub discogs_id: Option<String>,
+    pub lastfm_id: Option<String>,
+    pub musicbrainz_id: Option<String>,
+    pub spotify_id: Option<String>,
+    pub wikidata_id: Option<String>,
 }
 
-// impl Hash for Genre {
-//     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//         self.key.hash(state);
-//         self.name.hash(state);
-//         self.known_ids.hash(state);
-//         self.disambiguation.hash(state);
-//         self.summary.hash(state);
-//         // self.links.hash(state);
-//     }
-// }
-
+impl Genre {
+    pub fn new(name: &str) -> Self {
+        Self { 
+            name: Some(name.to_string()),
+            ..Default::default()
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -30,49 +32,12 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open("file:d83dc0e1-c60a-4267-a9b2-31fcc7ae44bc?mode=memory&cache=shared");
-        let mut model = library.save(&Genre::default());
+        let library = Library::open_temporary();
+        let model = library.save(&Genre {
+            name: Some("The Meat Puppets".to_string()),
+            ..Default::default()
+        });
         assert!(model.key.is_some());
-        assert!(model.name.is_none());
-        model.name = Some("Name".to_string());
-        let model = library.save(&model);
-        let model: Genre = library.get(&model.key.unwrap()).unwrap();
-        assert!(model.name == Some("Name".to_string()));
-    }
-
-    #[test]
-    fn diff() {
-        let a = Genre::default();
-        let b = Genre {
-            key: Some("key".to_string()),
-            name: Some("name".to_string()),
-            disambiguation: Some("disambiguation".to_string()),
-            summary: Some("summary".to_string()),
-            liked: true,
-        };
-        let diff = a.diff(&b);
-        assert!(diff.len() == 5);
-        dbg!(&diff);
-        assert!(diff[0].field == Some("key".to_string()));
-        assert!(diff[1].field == Some("name".to_string()));
-        assert!(diff[2].field == Some("disambiguation".to_string()));
-        assert!(diff[3].field == Some("summary".to_string()));
-        assert!(diff[4].field == Some("liked".to_string()));
-    }
-
-    #[test]
-    fn apply_diff() {
-        let a = Genre::default();
-        let b = Genre {
-            key: Some("key".to_string()),
-            name: Some("name".to_string()),
-            disambiguation: Some("disambiguation".to_string()),
-            summary: Some("summary".to_string()),
-            liked: true,
-        };
-        let diff = a.diff(&b);
-        let mut c = Genre::default();
-        c.apply_diff(&diff);
-        assert!(c == b);
+        assert!(model.name == Some("The Meat Puppets".to_string()));
     }
 }

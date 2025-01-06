@@ -1,5 +1,9 @@
 use dimple_core_macro::ModelSupport;
 
+use crate::library::Library;
+
+use super::Genre;
+
 // https://musicbrainz.org/doc/Artist
 #[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
 pub struct Artist {
@@ -7,18 +11,31 @@ pub struct Artist {
     pub name: Option<String>,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
-    pub liked: bool,
+    pub save: bool,
+    pub download: bool,
 
     pub country: Option<String>,
 
-    // pub known_ids: KnownIds,
-    // pub links: HashSet<String>,
-    // pub genres: Vec<Genre>,
+    pub discogs_id: Option<String>,
+    pub lastfm_id: Option<String>,
+    pub musicbrainz_id: Option<String>,
+    pub spotify_id: Option<String>,
+    pub wikidata_id: Option<String>,
+}
+
+impl Artist {
+    pub fn genres(&self, library: &Library) -> Vec<Genre> {
+        library.query("
+            SELECT g.* FROM GenreRef gr 
+            JOIN Genre g ON (g.key = gr.genre_key) 
+            WHERE gr.model_key = ?1
+        ", (self.key.clone().unwrap(),))
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Artist, Diff}};
+    use crate::{library::Library, model::{Artist, ArtistRef, Diff, Track}};
 
     #[test]
     fn library_crud() {
@@ -30,44 +47,5 @@ mod tests {
         let model = library.save(&model);
         let model: Artist = library.get(&model.key.unwrap()).unwrap();
         assert!(model.name == Some("Name".to_string()));
-    }
-
-    #[test]
-    fn diff() {
-        let a = Artist::default();
-        let b = Artist {
-            key: Some("key".to_string()),
-            name: Some("name".to_string()),
-            disambiguation: Some("disambiguation".to_string()),
-            summary: Some("summary".to_string()),
-            liked: true,
-            country: Some("country".to_string()),
-        };
-        let diff = a.diff(&b);
-        assert!(diff.len() == 6);
-        dbg!(&diff);
-        assert!(diff[0].field == Some("key".to_string()));
-        assert!(diff[1].field == Some("name".to_string()));
-        assert!(diff[2].field == Some("disambiguation".to_string()));
-        assert!(diff[3].field == Some("summary".to_string()));
-        assert!(diff[4].field == Some("liked".to_string()));
-        assert!(diff[5].field == Some("country".to_string()));
-    }
-
-    #[test]
-    fn apply_diff() {
-        let a = Artist::default();
-        let b = Artist {
-            key: Some("key".to_string()),
-            name: Some("name".to_string()),
-            disambiguation: Some("disambiguation".to_string()),
-            summary: Some("summary".to_string()),
-            liked: true,
-            country: Some("country".to_string()),
-        };
-        let diff = a.diff(&b);
-        let mut c = Artist::default();
-        c.apply_diff(&diff);
-        assert!(c == b);
     }
 }

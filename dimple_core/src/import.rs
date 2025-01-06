@@ -1,10 +1,12 @@
-use std::{collections::HashMap, path::Path};
+use std::{collections::{HashMap, HashSet}, path::Path};
 
-use crate::{library::Library, merge::CrdtRules, model::{Blob, MediaFile, Track, TrackSource}};
+use crate::{library::Library, merge::CrdtRules, model::{Artist, Blob, Genre, MediaFile, ModelBasics as _, Release, Track, TrackSource}};
 
 use std::fs::File;
 
-use symphonia::core::{errors::Error, formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Visual}, probe::Hint};
+use anyhow::anyhow;
+use lofty::{file::{AudioFile, TaggedFile, TaggedFileExt}, tag::ItemKey};
+use symphonia::core::{errors::Error, formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Value, Visual}, probe::Hint};
 
 pub mod spotify;
 
@@ -12,72 +14,161 @@ use chrono::{DateTime, Utc};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use walkdir::WalkDir;
 
+// https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
+// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
+
 pub fn import(library: &Library, path: &str) {
-    let force = false;
+    let force = true;
     
     log::info!("Importing {}.", path);
 
     let files = scan(path);
     log::info!("Scanned {} files.", files.len());
 
-    let media_files = library.list::<MediaFile>().par_iter().cloned()
-        .map(|media_file| (media_file.file_path.clone(), media_file))
-        .collect::<HashMap<String, MediaFile>>();
-    log::info!("Loaded {} media files from database.", media_files.len());
-
-    files.par_iter()
-        .filter(|scanned_file| {
-            if force {
-                return true
-            }
-            if let Some(media_file) = media_files.get(&scanned_file.path) {
-                let l = media_file.last_modified;
-                let r = DateTime::<Utc>::from(scanned_file.last_modified);
-                r > l
-            }
-            else {
-                true
-            }
-        })        
-        .filter_map(|scanned_file| {
-            TaggedMediaFile::new(&scanned_file.path).ok().map(|s| (scanned_file, s))
-        })
-        .map(|(scanned_file, tagged_media_file)| {
-            let file_path = scanned_file.path.clone();
-
-            let blob = Blob::read(&file_path);
-            let blob = library.find_blob_by_sha256(&blob.sha256)
-                .or_else(|| Some(library.save(&blob)))
-                .unwrap();
-    
-            (scanned_file, tagged_media_file, blob)
-        })
-        .for_each(|(scanned_file, tagged_media_file, blob)| {
-            let file_path = scanned_file.path.clone();
-            log::info!("Importing {}.", file_path);
-
-            let old_media_file = media_files.get(&file_path).cloned().unwrap_or_default();
-            let mut new_media_file: MediaFile = tagged_media_file.clone().into();
-            new_media_file.last_modified = scanned_file.last_modified.into();
-            new_media_file.last_imported = Utc::now();
-            new_media_file.sha256 = blob.sha256;
-            let media_file = CrdtRules::merge(old_media_file, new_media_file);
-            let media_file = library.save(&media_file);
-
-            let old_track = library.find_track_for_media_file(&media_file).unwrap_or_default();
-            let new_track = media_file.into();
-            let track = CrdtRules::merge(old_track, new_track);
-            let track = library.save(&track);
-
-            let _track_source = library.save(&TrackSource {
-                key: None,
-                blob_key: blob.key.unwrap(),
-                track_key: track.key.unwrap(),
-            });
-        });
-
-    // log::info!("Imported {} media files.", file_blobs.len());
+    files.par_iter().for_each(|file| {
+        let _ = import_single_file(&library, Path::new(&file.path), force);
+    });
 }
+
+fn import_single_file(library: &Library, path: &Path, force: bool) -> Result<TrackSource, anyhow::Error> {
+    if !path.is_file() {
+        return Err(anyhow::anyhow!("Path must be a file: {:?}", path));
+    }
+    
+    let tags = TaggedMediaFile::new(path)?;
+    
+    let mut media_file = library.find_media_file_by_file_path(path.to_str().unwrap())
+        .unwrap_or_default();
+    media_file.file_path = path.to_str().unwrap().to_string();
+    media_file.last_imported = Utc::now();
+    media_file.last_modified = path.metadata()?.modified()?.into();
+    let media_file = media_file.save(library);
+    
+    let mut track_source: TrackSource = library.find("SELECT * FROM TrackSource 
+        WHERE media_file_key = ?", (&media_file.key,)).unwrap_or_default();
+    
+    let track = track_source.track_key
+        .and_then(|track_key| Track::get(library, &track_key))
+        .unwrap_or_else(|| <TaggedMediaFile as Into<Track>>::into(tags).save(library));
+
+    track_source.track_key = track.key.clone();
+    track_source.media_file_key = media_file.key.clone();
+    let track_source = track_source.save(library);
+
+    log::info!("Imported {:?} {:?}", path, track_source);
+
+    Ok(track_source)
+}
+
+impl From<TaggedMediaFile> for Track {
+    fn from(input: TaggedMediaFile) -> Self {
+        Self {
+            key: None,
+            title: input.tag(StandardTagKey::TrackTitle),
+            disambiguation: input.tag(StandardTagKey::Comment),
+            summary: None,
+            save: false,
+            download: false,
+    
+            release_key: None,
+            position: input.tag(StandardTagKey::TrackNumber)
+                .and_then(|s| parse_n_of_m_tag(&s).0),
+            length_ms: input.length_ms,        
+            lyrics: input.tag(StandardTagKey::Lyrics),
+            // TODO supported by some formats, find tags
+            synchronized_lyrics: None,
+
+            discogs_id: None,
+            lastfm_id: None,
+            musicbrainz_id: input.tag(StandardTagKey::MusicBrainzTrackId),
+            spotify_id: None,
+            wikidata_id: None,
+
+            media_format: input.tag(StandardTagKey::MediaFormat),
+            media_position: input.tag(StandardTagKey::DiscNumber)
+                .and_then(|s| parse_n_of_m_tag(&s).0),
+            media_title: input.tag(StandardTagKey::DiscSubtitle),
+            media_track_count: input.tag(StandardTagKey::TrackTotal)
+                .and_then(|s| parse_n_of_m_tag(&s).0)
+                .or_else(|| input.tag(StandardTagKey::TrackNumber)
+                    .and_then(|s| parse_n_of_m_tag(&s).1)),
+
+            ..Default::default()
+        }
+    }
+}
+
+impl From<TaggedMediaFile> for Release {
+    fn from(input: TaggedMediaFile) -> Self {
+        Self {
+            key: None,
+            title: input.tag(StandardTagKey::TrackTitle),
+            disambiguation: input.tag(StandardTagKey::Comment),
+            summary: None,
+            save: false,
+            download: false,
+    
+            discogs_id: None,
+            lastfm_id: None,
+            musicbrainz_id: input.tag(StandardTagKey::MusicBrainzTrackId),
+            spotify_id: None,
+            wikidata_id: None,
+
+            barcode: input.tag(StandardTagKey::IdentBarcode),
+            country: input.tag(StandardTagKey::ReleaseCountry),
+            date: input.tag(StandardTagKey::ReleaseDate),
+            packaging: input.tag(StandardTagKey::MediaFormat),
+            quality: None,
+            status: input.tag(StandardTagKey::MusicBrainzReleaseStatus),
+            release_group_type: input.tag(StandardTagKey::MusicBrainzReleaseType),
+        }
+    }
+}
+
+fn artists(input: &TaggedMediaFile) -> Vec<Artist> {
+    todo!()
+    // Self {
+    //     key: None,
+    //     name: input.tag(StandardTagKey::ar),
+    //     disambiguation: input.tag(StandardTagKey::Comment),
+    //     summary: None,
+    //     save: false,
+    //     download: false,
+
+    //     discogs_id: None,
+    //     lastfm_id: None,
+    //     musicbrainz_id: input.tag(StandardTagKey::MusicBrainzTrackId),
+    //     spotify_id: None,
+    //     wikidata_id: None,
+
+    //     country: input.tag(StandardTagKey::ReleaseCountry),
+    // }
+}
+
+impl From<TaggedMediaFile> for Vec<Artist> {
+    fn from(value: TaggedMediaFile) -> Self {
+        todo!()
+    }
+}
+
+impl From<TaggedMediaFile> for Genre {
+    fn from(value: TaggedMediaFile) -> Self {
+        todo!()
+    }
+}
+
+impl From<TaggedMediaFile> for Vec<Genre> {
+    fn from(value: TaggedMediaFile) -> Self {
+        todo!()
+    }
+}
+// pub fn find_track_for_media_file(&self, media_file: &MediaFile) -> Option<Track> {
+//     // TODO naive, just for testing.
+//     self.conn().query_row_and_then("SELECT * FROM Track
+//         WHERE artist = ?1 AND album = ?2 AND title = ?3", 
+//         (media_file.artist.clone(), media_file.album.clone(), media_file.title.clone()), |row| Ok(Track::from_row(row)))
+//         .optional().unwrap()
+// }
 
 fn scan(path: &str) -> Vec<ScannedFile> {
     let files = WalkDir::new(path).into_iter()
@@ -109,8 +200,7 @@ pub struct TaggedMediaFile {
 }
 
 impl TaggedMediaFile {
-    pub fn new(path: &str) -> Result<TaggedMediaFile, Error> {
-        let path = Path::new(path);
+    pub fn new(path: &Path) -> Result<TaggedMediaFile, Error> {
         let media_source = File::open(&path).unwrap();
         let media_source_stream =
             MediaSourceStream::new(Box::new(media_source), Default::default());
@@ -172,6 +262,7 @@ impl TaggedMediaFile {
         Ok(media_file)
     }
 
+    /// Returns the first tag with the specified key.
     pub fn tag(&self, key: StandardTagKey) -> Option<String> {
         self.tags.iter().find_map(|t| {
             if let Some(std_key) = t.std_key {
@@ -182,91 +273,108 @@ impl TaggedMediaFile {
             None
         })
     }
-}
 
-impl From<TaggedMediaFile> for MediaFile {
-    fn from(input: TaggedMediaFile) -> Self {
-        MediaFile {
-            key: None,
-            file_path: input.path.to_string(),
-            artist: input.tag(StandardTagKey::Artist),
-            album: input.tag(StandardTagKey::Album),
-            title: input.tag(StandardTagKey::TrackTitle),
-            genre: input.tag(StandardTagKey::Genre),
-    
-            length_ms: input.length_ms,
-    
-            musicbrainz_album_artist_id: input.tag(StandardTagKey::MusicBrainzAlbumArtistId),
-            musicbrainz_album_id: input.tag(StandardTagKey::MusicBrainzAlbumId),
-            musicbrainz_artist_id: input.tag(StandardTagKey::MusicBrainzArtistId),
-            musicbrainz_genre_id: input.tag(StandardTagKey::MusicBrainzGenreId),
-            musicbrainz_recording_id: input.tag(StandardTagKey::MusicBrainzRecordingId),
-            musicbrainz_release_group_id: input.tag(StandardTagKey::MusicBrainzReleaseGroupId),
-            musicbrainz_release_track_id: input.tag(StandardTagKey::MusicBrainzReleaseTrackId),
-            musicbrainz_track_id: input.tag(StandardTagKey::MusicBrainzTrackId),
-    
-            lyrics: input.tag(StandardTagKey::Lyrics),
-            synced_lyrics: None,
-
-            // TODO hate this, this gets returned mut and then modified to fill
-            // these in. Should just be combined.
-            last_imported: Default::default(),
-            last_modified: Default::default(),
-            sha256: Default::default(),
-
-            disc_subtitle: input.tag(StandardTagKey::DiscSubtitle),
-            isrc: input.tag(StandardTagKey::IdentIsrc),
-            label: input.tag(StandardTagKey::Label),
-            original_date: input.tag(StandardTagKey::OriginalDate),
-            release_date: input.tag(StandardTagKey::Date),
-            disc_number: input.tag(StandardTagKey::DiscNumber)
-                .and_then(|s| parse_n_of_m_tag(&s).0),
-            total_discs: input.tag(StandardTagKey::DiscTotal)
-                .and_then(|s| parse_n_of_m_tag(&s).0)
-                .or_else(|| input.tag(StandardTagKey::DiscNumber).and_then(|s| parse_n_of_m_tag(&s).1)),
-            track_number: input.tag(StandardTagKey::TrackNumber)
-                .and_then(|s| parse_n_of_m_tag(&s).0),
-            total_tracks: input.tag(StandardTagKey::TrackTotal)
-                .and_then(|s| parse_n_of_m_tag(&s).0)
-                .or_else(|| input.tag(StandardTagKey::TrackNumber).and_then(|s| parse_n_of_m_tag(&s).1)),
-            // TODO lots more URLs available.
-            website: input.tag(StandardTagKey::Url),
-
-            original_year: None,
-        }
+    /// Returns all distinct tags with the specified key.
+    pub fn tags(&self, key: StandardTagKey) -> Vec<String> {
+        self.tags.iter().filter_map(|t| {
+            if let Some(std_key) = t.std_key {
+                if std_key == key {
+                    return Some(t.value.to_string())
+                }
+            }
+            None
+        })
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect()
     }
 }
 
-impl From<MediaFile> for Track {
-    fn from(media_file: MediaFile) -> Self {
-        Self {
-            artist: media_file.artist,
-            album: media_file.album,
-            title: media_file.title,
+// impl From<TaggedMediaFile> for MediaFile {
+//     fn from(input: TaggedMediaFile) -> Self {
+//         MediaFile {
+//             key: None,
+//             file_path: input.path.to_string(),
+//             artist: input.tag(StandardTagKey::Artist),
+//             album: input.tag(StandardTagKey::Album),
+//             title: input.tag(StandardTagKey::TrackTitle),
+//             genre: input.tag(StandardTagKey::Genre),
     
-            length_ms: media_file.length_ms,
+//             length_ms: input.length_ms,
     
-            lyrics: media_file.lyrics,
-            musicbrainz_id: media_file.musicbrainz_track_id,
+//             musicbrainz_album_artist_id: input.tag(StandardTagKey::MusicBrainzAlbumArtistId),
+//             musicbrainz_album_id: input.tag(StandardTagKey::MusicBrainzAlbumId),
+//             musicbrainz_artist_id: input.tag(StandardTagKey::MusicBrainzArtistId),
+//             musicbrainz_genre_id: input.tag(StandardTagKey::MusicBrainzGenreId),
+//             musicbrainz_recording_id: input.tag(StandardTagKey::MusicBrainzRecordingId),
+//             musicbrainz_release_group_id: input.tag(StandardTagKey::MusicBrainzReleaseGroupId),
+//             musicbrainz_release_track_id: input.tag(StandardTagKey::MusicBrainzReleaseTrackId),
+//             musicbrainz_track_id: input.tag(StandardTagKey::MusicBrainzTrackId),
+    
+//             lyrics: input.tag(StandardTagKey::Lyrics),
+//             synced_lyrics: None,
 
-            disambiguation: None,
-            download: false,
-            key: None,
-            liked: false,
-            plays: 0,
-            save: false,
-            summary: None,
-            wikidata_id: None,
-            spotify_id: None,
-            synced_lyrics: media_file.synced_lyrics,
+//             // TODO hate this, this gets returned mut and then modified to fill
+//             // these in. Should just be combined.
+//             last_imported: Default::default(),
+//             last_modified: Default::default(),
+//             sha256: Default::default(),
 
-            discogs_id: None,
-            lastfm_id: None,
+//             disc_subtitle: input.tag(StandardTagKey::DiscSubtitle),
+//             isrc: input.tag(StandardTagKey::IdentIsrc),
+//             label: input.tag(StandardTagKey::Label),
+//             original_date: input.tag(StandardTagKey::OriginalDate),
+//             release_date: input.tag(StandardTagKey::Date),
+//             disc_number: input.tag(StandardTagKey::DiscNumber)
+//                 .and_then(|s| parse_n_of_m_tag(&s).0),
+//             total_discs: input.tag(StandardTagKey::DiscTotal)
+//                 .and_then(|s| parse_n_of_m_tag(&s).0)
+//                 .or_else(|| input.tag(StandardTagKey::DiscNumber).and_then(|s| parse_n_of_m_tag(&s).1)),
+//             track_number: input.tag(StandardTagKey::TrackNumber)
+//                 .and_then(|s| parse_n_of_m_tag(&s).0),
+//             total_tracks: input.tag(StandardTagKey::TrackTotal)
+//                 .and_then(|s| parse_n_of_m_tag(&s).0)
+//                 .or_else(|| input.tag(StandardTagKey::TrackNumber).and_then(|s| parse_n_of_m_tag(&s).1)),
+//             // TODO lots more URLs available.
+//             website: input.tag(StandardTagKey::Url),
 
-            media_position: media_file.track_number,
-        }
-    }
-}
+//             original_year: None,
+
+//             matched_track_key: None,
+//         }
+//     }
+// }
+
+// impl From<MediaFile> for Track {
+//     fn from(media_file: MediaFile) -> Self {
+//         Self {
+//             artist: media_file.artist,
+//             album: media_file.album,
+//             title: media_file.title,
+    
+//             length_ms: media_file.length_ms,
+    
+//             lyrics: media_file.lyrics,
+//             musicbrainz_id: media_file.musicbrainz_track_id,
+
+//             disambiguation: None,
+//             download: false,
+//             key: None,
+//             liked: false,
+//             plays: 0,
+//             save: false,
+//             summary: None,
+//             wikidata_id: None,
+//             spotify_id: None,
+//             synced_lyrics: media_file.synced_lyrics,
+
+//             discogs_id: None,
+//             lastfm_id: None,
+
+//             media_position: media_file.track_number,
+//         }
+//     }
+// }
 
 pub fn parse_n_of_m_tag(value: &str) -> (Option<u32>, Option<u32>) {
     let mut parts = value.splitn(2, "/").map(|val| val.trim().parse::<u32>().ok());
@@ -287,3 +395,24 @@ mod test {
     }
 }
 
+// I tried Lofty but it failed on about 90 files that Symphonia doesn't.
+// Trying out Lofty instead of Symphonia 
+// https://github.com/pdeljanov/Symphonia/discussions/132
+// let lofty = lofty::read_from_path(path)?;
+// for tag in lofty.tags() {
+//     let artists = tag.get_strings(&ItemKey::TrackArtist).collect::<Vec<_>>();
+//     if artists.len() >= 2 {
+//         dbg!(path, artists);
+//     }
+//     let artists = tag.get_strings(&ItemKey::AlbumArtist).collect::<Vec<_>>();
+//     if artists.len() >= 2 {
+//         dbg!(path, artists);
+//     }
+// }
+// let tags = lofty.primary_tag()
+//     .or_else(|| lofty.first_tag())
+//     .ok_or(anyhow!("no tags"))?;
+// let artists = tags.get_strings(&ItemKey::TrackArtist).collect::<Vec<_>>();
+// if artists.len() == 0 || artists.len() >= 2 {
+//     dbg!(path, artists);
+// }

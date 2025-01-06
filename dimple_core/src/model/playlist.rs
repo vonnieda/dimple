@@ -7,10 +7,16 @@ use super::Track;
 pub struct Playlist {
     pub key: Option<String>,
     pub name: Option<String>,
-
+    pub disambiguation: Option<String>,
+    pub summary: Option<String>,
     pub save: bool,
     pub download: bool,
-    pub summary: Option<String>,
+
+    pub discogs_id: Option<String>,
+    pub lastfm_id: Option<String>,
+    pub musicbrainz_id: Option<String>,
+    pub spotify_id: Option<String>,
+    pub wikidata_id: Option<String>,
 }
 
 impl Playlist {
@@ -44,44 +50,6 @@ mod tests {
         let model = library.save(&model);
         let model: Playlist = library.get(&model.key.unwrap()).unwrap();
         assert!(model.name == Some("name".to_string()));
-    }
-
-    #[test]
-    fn migration_02() {
-        let library = Library::open("file:f165f2a4-3b21-4053-86ea-259aad53825a?mode=memory&cache=shared");
-        let model = library.save(&Playlist {
-            save: true,
-            ..Default::default()   
-        });
-        assert!(model.save == true);
-    }
-
-    #[test]
-    fn diff() {
-        let a = Playlist::default();
-        let b = Playlist {
-            key: Some("key".to_string()),
-            name: Some("name".to_string()),
-            ..Default::default()
-        };
-        let diff = a.diff(&b);
-        assert!(diff.len() == 2);
-        assert!(diff[0].field == Some("key".to_string()));
-        assert!(diff[1].field == Some("name".to_string()));
-    }
-
-    #[test]
-    fn apply_diff() {
-        let a = Playlist::default();
-        let b = Playlist {
-            key: Some("key".to_string()),
-            name: Some("name".to_string()),
-            ..Default::default()
-        };
-        let diff = a.diff(&b);
-        let mut c = Playlist::default();
-        c.apply_diff(&diff);
-        assert!(c == b);
     }
 
     #[test]

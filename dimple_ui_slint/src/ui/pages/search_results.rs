@@ -31,12 +31,9 @@ pub fn search_results(url: &str, app: &App) {
             SELECT * 
             FROM Track
             WHERE 
-                artist LIKE ?1 
-                OR album LIKE ?1 
-                OR title LIKE ?1
+                title LIKE ?1
                 OR lyrics LIKE ?1
                 OR key LIKE ?1
-            ORDER BY artist asc, album asc, media_position asc, title asc
             ", (query,));
         app.ui.upgrade_in_event_loop(move |ui| {
             // TODO switch to actual search page
@@ -65,10 +62,13 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
             .map(|ms| Duration::from_millis(ms as u64))
             .map(|dur| format_length(dur));
         row.push(track.title.unwrap_or_default().as_str().into()); // Title
-        row.push(track.album.unwrap_or_default().as_str().into()); // Album
-        row.push(track.artist.unwrap_or_default().as_str().into()); // Artist
+        // row.push(track.album.unwrap_or_default().as_str().into()); // Album
+        // row.push(track.artist.unwrap_or_default().as_str().into()); // Artist
+        row.push("".into()); // Album
+        row.push("".into()); // Artist
         row.push(track.media_position.unwrap_or_default().to_string().as_str().into()); // Track #
-        row.push(track.plays.to_string().as_str().into()); // Plays
+        // TODO
+        row.push(0.to_string().as_str().into()); // Plays
         row.push(length.unwrap_or_default().as_str().into()); // Length
         row_data.push(row.into());
     }

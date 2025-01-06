@@ -1,3 +1,4 @@
+use std::hash::DefaultHasher;
 use std::time::Duration;
 use crate::ui::CardAdapter;
 use crate::ui::ImageLinkAdapter;
@@ -95,12 +96,14 @@ fn artist_card(track: &Track) -> CardAdapter {
     CardAdapter {
         image: ImageLinkAdapter {
             image: Default::default(),
-            name: track.artist.clone().unwrap_or_default().into(),
+            // name: track.artist.clone().unwrap_or_default().into(),
             url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            ..Default::default()
         },
         title: LinkAdapter {
-            name: track.artist.clone().unwrap_or_default().into(),
+            // name: track.artist.clone().unwrap_or_default().into(),
             url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            ..Default::default()
         },
         sub_title: LinkAdapter {
             name: "Artist".into(),
@@ -114,12 +117,14 @@ fn release_card(track: &Track) -> CardAdapter {
     CardAdapter {
         image: ImageLinkAdapter {
             image: Default::default(),
-            name: track.album.clone().unwrap_or_default().into(),
+            // name: track.album.clone().unwrap_or_default().into(),
             url: format!("dimple://release/{}", track.key.clone().unwrap_or_default()).into(),
+            ..Default::default()        
         },
         title: LinkAdapter {
-            name: track.album.clone().unwrap_or_default().into(),
+            // name: track.album.clone().unwrap_or_default().into(),
             url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            ..Default::default()        
         },
         sub_title: LinkAdapter {
             name: "Release".into(),

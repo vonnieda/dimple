@@ -291,8 +291,8 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
                 true => MediaPlayback::Playing { progress: Some(MediaPosition(track_position)) },
                 false => MediaPlayback::Paused { progress: Some(MediaPosition(track_position)) },
             };
-            let artist = current_track.clone().map(|t| t.artist).flatten();
-            let album = current_track.clone().map(|t| t.album).flatten();
+            let artist = current_track.clone().map(|t| t.artist_name(&app.library)).flatten();
+            let album = current_track.clone().map(|t| t.album_name(&app.library)).flatten();
             let title = current_track.clone().map(|t| t.title).flatten();
             let metadata = MediaMetadata {
                 duration: Some(track_duration),

@@ -72,8 +72,10 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
         let length = format_length(length);
         row.push(i.to_string().as_str().into()); // # (Ordinal)
         row.push(StandardListViewItem::from(track.title.unwrap_or_default().as_str())); // Title
-        row.push(StandardListViewItem::from(track.album.unwrap_or_default().as_str())); // Album
-        row.push(StandardListViewItem::from(track.artist.unwrap_or_default().as_str())); // Artist
+        // row.push(track.album.unwrap_or_default().as_str().into()); // Album
+        // row.push(track.artist.unwrap_or_default().as_str().into()); // Artist
+        row.push("".into()); // Album
+        row.push("".into()); // Artist
         row.push(StandardListViewItem::from(length.as_str())); // Length
         row.push(StandardListViewItem::from(track.key.unwrap().as_str())); // Key (Hidden)
         row_data.push(row.into());

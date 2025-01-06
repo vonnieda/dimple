@@ -4,6 +4,7 @@ use dimple_core::library::Library;
 use dimple_core::merge::CrdtRules;
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
+use dimple_core::model::Link;
 use dimple_core::model::Track;
 use dimple_core::plugins::plugin_host::PluginHost;
 use slint::ModelRc;
@@ -15,7 +16,7 @@ use crate::ui::LinkAdapter;
 use slint::ComponentHandle as _;
 use crate::ui::CardAdapter;
 
-// how do I make the poop emoji?
+// TODO how do I make the poop emoji?
 static CURRENT_TRACK_KEY: Mutex<Option<String>> = Mutex::new(None);
 
 pub fn track_details_init(app: &App) {
@@ -51,26 +52,23 @@ pub fn track_details(url: &str, app: &App) {
     std::thread::spawn(move || {        
         let url = Url::parse(&url).unwrap();
         let key = url.path_segments().unwrap().nth(0).unwrap();
+        let library = app.library.clone();
 
         let track = app.library.get::<Track>(key).unwrap();
         (*CURRENT_TRACK_KEY.lock().unwrap()) = track.key.clone();
 
-        {
+        if track.lyrics.is_none() {
             // TODO temp for testing, not sure where this is gonna live yet.
             let track = track.clone();
+            let library = library.clone();
             std::thread::spawn(move || {
-                refresh_lyrics(&app.library, &app.plugins, &track);
+                refresh_lyrics(&library, &app.plugins, &track);
             });
         }
 
-        let artists: Vec<Artist> = vec![Artist {
-            // TODO wrong key, just for testing.
-            key: track.key.clone(),
-            name: track.artist.clone(),
-            ..Default::default()
-        }];
-        let genres: Vec<Genre> = vec![];
-        let links: Vec<String> = vec![];
+        let artists = track.artists(&library);
+        let genres: Vec<Genre> = track.genres(&library);
+        let links: Vec<Link> = track.links(&library);
 
         app.ui.upgrade_in_event_loop(move |ui| {
             let artists: Vec<LinkAdapter> = artists.iter().cloned().map(|artist| {
@@ -89,8 +87,8 @@ pub fn track_details(url: &str, app: &App) {
 
             let links: Vec<LinkAdapter> = links.iter().map(|link| {
                     LinkAdapter {
-                        name: link.into(),
-                        url: link.into(),
+                        name: link.name.clone().unwrap_or_else(|| link.url.clone()).into(),
+                        url: link.url.clone().into(),
                     }
                 })
                 .collect();
@@ -109,7 +107,8 @@ pub fn track_details(url: &str, app: &App) {
             ui.global::<TrackDetailsAdapter>().set_disambiguation(track.disambiguation.clone().unwrap_or_default().into());
             ui.global::<TrackDetailsAdapter>().set_genres(ModelRc::from(genres.as_slice()));
             let lyrics = track.lyrics.clone()
-                .filter(|s| !s.trim().is_empty())
+                .map(|s| s.trim().replace("\r", ""))
+                .filter(|s| !s.is_empty())
                 .unwrap_or("(No lyrics, click to edit.)".to_string());
             ui.global::<TrackDetailsAdapter>().set_lyrics(lyrics.into());
 
@@ -126,7 +125,6 @@ fn refresh_lyrics(library: &Library, plugins: &PluginHost, track: &Track) {
     let lyrics = plugins.lyrics(library, track)
         .into_iter()
         .reduce(CrdtRules::merge);
-    // TODO txn
     if let Some(mut track) = library.get::<Track>(&track.key.clone().unwrap()) {
         track.lyrics = CrdtRules::merge(track.lyrics, lyrics);
         library.save(&track);
