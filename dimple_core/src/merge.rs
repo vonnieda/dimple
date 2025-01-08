@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::model::{MediaFile, Track};
+use crate::model::{Artist, MediaFile, Release, Track};
 
 pub trait CrdtRules {
     /// Commutative: A v B = B v A
@@ -45,6 +45,82 @@ impl <T> CrdtRules for Option<T> where T: CrdtRules {
         }
         else {
             l.or(r)
+        }
+    }
+}
+
+impl CrdtRules for Artist {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            key: CrdtRules::merge(l.key, r.key),
+            name: CrdtRules::merge(l.name, r.name),
+            disambiguation: CrdtRules::merge(l.disambiguation, r.disambiguation),
+            summary: CrdtRules::merge(l.summary, r.summary),
+            save: CrdtRules::merge(l.save, r.save),
+            download: CrdtRules::merge(l.download, r.download),
+            
+            // release_key: CrdtRules::merge(l.release_key, r.release_key),
+            // position: CrdtRules::merge(l.position, r.position),
+            // length_ms: CrdtRules::merge(l.length_ms, r.length_ms),
+            // lyrics: CrdtRules::merge(l.lyrics, r.lyrics),
+            // synchronized_lyrics: CrdtRules::merge(l.synchronized_lyrics, r.synchronized_lyrics),
+
+            // barcode: CrdtRules::merge(l.barcode, r.barcode),
+            country: CrdtRules::merge(l.country, r.country),
+            // date: CrdtRules::merge(l.date, r.date),
+            // packaging: CrdtRules::merge(l.packaging, r.packaging),
+            // status: CrdtRules::merge(l.status, r.status),
+            // quality: CrdtRules::merge(l.quality, r.quality),
+            // release_group_type: CrdtRules::merge(l.release_group_type, r.release_group_type),
+
+            discogs_id: CrdtRules::merge(l.discogs_id, r.discogs_id),
+            lastfm_id: CrdtRules::merge(l.lastfm_id, r.lastfm_id),
+            musicbrainz_id: CrdtRules::merge(l.musicbrainz_id, r.musicbrainz_id),
+            spotify_id: CrdtRules::merge(l.spotify_id, r.spotify_id),
+            wikidata_id: CrdtRules::merge(l.wikidata_id, r.wikidata_id),
+
+            // media_format: CrdtRules::merge(l.media_format, r.media_format),
+            // media_position: CrdtRules::merge(l.media_position, r.media_position),
+            // media_title: CrdtRules::merge(l.media_title, r.media_title),
+            // media_track_count: CrdtRules::merge(l.media_track_count, r.media_track_count),            
+        }
+    }
+}
+
+impl CrdtRules for Release {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            key: CrdtRules::merge(l.key, r.key),
+            title: CrdtRules::merge(l.title, r.title),
+            disambiguation: CrdtRules::merge(l.disambiguation, r.disambiguation),
+            summary: CrdtRules::merge(l.summary, r.summary),
+            save: CrdtRules::merge(l.save, r.save),
+            download: CrdtRules::merge(l.download, r.download),
+            
+            // release_key: CrdtRules::merge(l.release_key, r.release_key),
+            // position: CrdtRules::merge(l.position, r.position),
+            // length_ms: CrdtRules::merge(l.length_ms, r.length_ms),
+            // lyrics: CrdtRules::merge(l.lyrics, r.lyrics),
+            // synchronized_lyrics: CrdtRules::merge(l.synchronized_lyrics, r.synchronized_lyrics),
+
+            barcode: CrdtRules::merge(l.barcode, r.barcode),
+            country: CrdtRules::merge(l.country, r.country),
+            date: CrdtRules::merge(l.date, r.date),
+            packaging: CrdtRules::merge(l.packaging, r.packaging),
+            status: CrdtRules::merge(l.status, r.status),
+            quality: CrdtRules::merge(l.quality, r.quality),
+            release_group_type: CrdtRules::merge(l.release_group_type, r.release_group_type),
+
+            discogs_id: CrdtRules::merge(l.discogs_id, r.discogs_id),
+            lastfm_id: CrdtRules::merge(l.lastfm_id, r.lastfm_id),
+            musicbrainz_id: CrdtRules::merge(l.musicbrainz_id, r.musicbrainz_id),
+            spotify_id: CrdtRules::merge(l.spotify_id, r.spotify_id),
+            wikidata_id: CrdtRules::merge(l.wikidata_id, r.wikidata_id),
+
+            // media_format: CrdtRules::merge(l.media_format, r.media_format),
+            // media_position: CrdtRules::merge(l.media_position, r.media_position),
+            // media_title: CrdtRules::merge(l.media_title, r.media_title),
+            // media_track_count: CrdtRules::merge(l.media_track_count, r.media_track_count),            
         }
     }
 }

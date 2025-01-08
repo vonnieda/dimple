@@ -25,12 +25,13 @@ export component Link inherits TouchArea {
         vertical-alignment: vertical-alignment;
         width: root.width;
         text: name;
-        // wrap: word-wrap;
+        wrap: TextWrap.word-wrap;
         font-weight: font-weight;
         font-size: font-size;
         color: parent.has-hover 
             ? Styles.link-color-hover
             : StyleMetrics.default-text-color;
+        overflow: TextOverflow.elide;
     }
 }
 

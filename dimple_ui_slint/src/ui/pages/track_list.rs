@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use crate::ui::app_window_controller::App;
 use crate::ui::Page;
+use dimple_core::library::Library;
 use dimple_core::model::ModelBasics;
 use dimple_core::model::Track;
 use slint::ModelRc;
@@ -31,8 +32,9 @@ pub fn track_list(app: &App) {
     let app = app.clone();
     thread::spawn(move || {
         let tracks = Track::list(&app.library);
+        let library = app.library.clone();
         app.ui.upgrade_in_event_loop(move |ui| {
-            ui.global::<TrackListAdapter>().set_row_data(row_data(&tracks));
+            ui.global::<TrackListAdapter>().set_row_data(row_data(&library, &tracks));
             ui.global::<TrackListAdapter>().set_row_keys(row_keys(&tracks));
             ui.set_page(Page::TrackList);
         })
@@ -40,7 +42,7 @@ pub fn track_list(app: &App) {
     });
 }
 
-fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
+fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
     let row_data: Rc<VecModel<ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
     for track in tracks {
         let track = track.clone();
@@ -48,11 +50,9 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
         let length = track.length_ms
             .map(|ms| Duration::from_millis(ms as u64))
             .map(|dur| format_length(dur));
-        row.push(track.title.unwrap_or_default().as_str().into()); // Title
-        // row.push(track.album.unwrap_or_default().as_str().into()); // Album
-        // row.push(track.artist.unwrap_or_default().as_str().into()); // Artist
-        row.push("".into()); // Album
-        row.push("".into()); // Artist
+        row.push(track.title.clone().unwrap_or_default().as_str().into()); // Title
+        row.push(track.album_name(library).unwrap_or_default().as_str().into()); // Album
+        row.push(track.artist_name(library).unwrap_or_default().as_str().into()); // Artist
         row.push(track.media_position.unwrap_or_default().to_string().as_str().into()); // Track #
         // TODO
         row.push(0.to_string().as_str().into()); // Plays
@@ -76,8 +76,9 @@ fn sort_table(app: &App, col: i32, ascending: bool) {
         columns[col as usize], 
         if ascending { "asc" } else { "desc" });
     let tracks: Vec<Track> = app.library.query(&query, ());
+    let library = app.library.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
-        ui.global::<TrackListAdapter>().set_row_data(row_data(&tracks));
+        ui.global::<TrackListAdapter>().set_row_data(row_data(&library, &tracks));
         ui.global::<TrackListAdapter>().set_row_keys(row_keys(&tracks));
     })
     .unwrap();

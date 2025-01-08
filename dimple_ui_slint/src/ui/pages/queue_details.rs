@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use crate::ui::app_window_controller::App;
 use crate::ui::Page;
+use dimple_core::library::Library;
 use dimple_core::model::Playlist;
 use dimple_core::model::Track;
 use slint::ModelRc;
@@ -42,8 +43,9 @@ pub fn queue_details(url: &str, app: &App) {
     thread::spawn(move || {
         let playlist: Playlist = app.player.queue();
         let tracks = playlist.tracks(&app.library);
+        let library = app.library.clone();
         app.ui.upgrade_in_event_loop(move |ui| {
-            ui.global::<QueueDetailsAdapter>().set_row_data(row_data(&tracks));
+            ui.global::<QueueDetailsAdapter>().set_row_data(row_data(&library, &tracks));
             ui.global::<QueueDetailsAdapter>().set_row_keys(row_keys(&tracks));
             ui.set_page(Page::QueueDetails);
         })
@@ -51,7 +53,7 @@ pub fn queue_details(url: &str, app: &App) {
     });
 }
 
-fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
+fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
     let row_data: Rc<VecModel<ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
     for (i, track) in tracks.iter().enumerate() {
         let track = track.clone();
@@ -60,11 +62,9 @@ fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
             .map(|ms| Duration::from_millis(ms as u64))
             .map(|dur| format_length(dur));
         row.push(i.to_string().as_str().into()); // # (Ordinal)
-        row.push(track.title.unwrap_or_default().as_str().into()); // Title
-        // row.push(track.album.unwrap_or_default().as_str().into()); // Album
-        // row.push(track.artist.unwrap_or_default().as_str().into()); // Artist
-        row.push("".into()); // Album
-        row.push("".into()); // Artist
+        row.push(track.title.clone().unwrap_or_default().as_str().into()); // Title
+        row.push(track.album_name(library).unwrap_or_default().as_str().into()); // Album
+        row.push(track.artist_name(library).unwrap_or_default().as_str().into()); // Artist
         row.push(length.unwrap_or_default().as_str().into()); // Length
         row_data.push(row.into());
     }
@@ -88,8 +88,9 @@ fn sort_table(app: &App, col: i32, ascending: bool) {
     // TODO this seems like it needs a TODO cause it looks broken?
     let playlist: Playlist = app.player.queue();
     let tracks = playlist.tracks(&app.library);
+    let library = app.library.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
-        ui.global::<QueueDetailsAdapter>().set_row_data(row_data(&tracks));
+        ui.global::<QueueDetailsAdapter>().set_row_data(row_data(&library, &tracks));
         ui.global::<QueueDetailsAdapter>().set_row_keys(row_keys(&tracks));
     })
     .unwrap();

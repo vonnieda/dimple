@@ -1,11 +1,11 @@
 use std::{env, sync::Arc, time::Duration};
 
-use dimple_core::{import::spotify, library::Library, model::{Blob, ChangeLog, ModelBasics as _, Track}, player::Player, sync::{s3_storage::S3Storage, Sync}};
+use dimple_core::{import::spotify, library::Library, model::{Artist, Blob, ChangeLog, ModelBasics as _, Release, Track}, player::Player, sync::{s3_storage::S3Storage, Sync}};
 use directories::ProjectDirs;
 
 fn main() {
     let mut builder = env_logger::Builder::new();
-    builder.filter_level(log::LevelFilter::Info);
+    builder.filter_level(log::LevelFilter::Debug);
     builder.format_timestamp_millis();
     builder.parse_default_env();
 
@@ -53,6 +53,7 @@ fn main() {
     std::fs::create_dir_all(&image_cache_dir).unwrap();
 
     let library = Arc::new(Library::open(library_path.to_str().unwrap()));
+    // let library = Arc::new(Library::open("test.db"));
 
     let access_key = env::var("DIMPLE_TEST_S3_ACCESS_KEY").unwrap();
     let secret_key = env::var("DIMPLE_TEST_S3_SECRET_KEY").unwrap();
@@ -72,7 +73,20 @@ fn main() {
         println!("Library currently contains {} tracks.", library.tracks().len());
         println!("Importing {}.", path);
         library.import(&path);
-        println!("Library now contains {} tracks.", library.tracks().len());
+        println!("Library now contains {} tracks, {} releases, {} artists.", 
+            library.tracks().len(),
+            Release::list(&library).len(),
+            Artist::list(&library).len());
+    }
+    else if command == "artists" {
+        for artist in Artist::list(&library).iter() {
+            print_artist(&library, &artist);
+        }
+    }
+    else if command == "releases" {
+        for release in Release::list(&library).iter() {
+            print_release(&library, &release);
+        }
     }
     else if command == "tracks" {
         let tracks = library.tracks();
@@ -130,6 +144,17 @@ fn main() {
         let path = &args[2];
         spotify::import(&library, path);
     }
+}
+
+fn print_artist(library: &Library, artist: &Artist) {
+    println!("{:30}", artist.name.clone().unwrap_or_default());
+}
+
+fn print_release(library: &Library, release: &Release) {
+    println!("{:30} | {:20} | {:40}", 
+        release.key.clone().unwrap_or_default(),
+        release.title.clone().unwrap_or_default(),
+        release.artist_name(library).unwrap_or_default());
 }
 
 fn print_track(library: &Library, track: &Track) {

@@ -19,6 +19,10 @@ pub struct Player {
     threadpool: ThreadPool,
 }
 
+// TODO volume https://github.com/tramhao/termusic/blob/master/playback/src/rusty_backend/sink.rs
+// https://github.com/10buttons/awedio
+// https://sansan.cat/
+
 impl Player {
     pub fn new(library: Arc<Library>) -> Player {
         let (sender, receiver) = std::sync::mpsc::channel();

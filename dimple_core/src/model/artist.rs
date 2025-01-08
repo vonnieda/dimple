@@ -5,7 +5,7 @@ use crate::library::Library;
 use super::Genre;
 
 // https://musicbrainz.org/doc/Artist
-#[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, ModelSupport)]
 pub struct Artist {
     pub key: Option<String>,
     pub name: Option<String>,
