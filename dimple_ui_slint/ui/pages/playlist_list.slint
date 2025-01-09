@@ -24,10 +24,15 @@ export component PlaylistList inherits VerticalBox {
         }
     }
 
-    ScrollView {                        
-        CardGrid {
-            cards: model.cards;
-            parent-width: parent.width;
+    ScrollView {        
+        vertical-scrollbar-policy: always-on;
+        horizontal-scrollbar-policy: always-off;
+        viewport-width: parent.width;
+        VerticalBox {
+            card-grid := CardGrid {
+                cards: model.cards;
+                parent-width: root.width;
+            }
         }
     }
 

@@ -9,10 +9,15 @@ export component GenreList inherits VerticalBox {
         text: "Genres";
         font-size: 1rem * Styles.page_title_font_rem;
     }
-    ScrollView {                        
-        card-grid := CardGrid {
-            cards: model.cards;
-            parent-width: parent.width;
+    ScrollView {        
+        vertical-scrollbar-policy: always-on;
+        horizontal-scrollbar-policy: always-off;
+        viewport-width: parent.width;
+        VerticalBox {
+            card-grid := CardGrid {
+                cards: model.cards;
+                parent-width: root.width;
+            }
         }
     }
     Text {

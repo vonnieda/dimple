@@ -1,11 +1,13 @@
 use crate::ui::app_window_controller::App;
+use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
 use crate::ui::CardGridAdapter;
 use crate::ui::Page;
 use dimple_core::model::Genre;
 use dimple_core::model::ModelBasics;
-use slint::Model;
 use slint::ModelRc;
+use crate::ui::ImageLinkAdapter;
+use crate::ui::LinkAdapter;
 
 pub fn genre_list_init(app: &App) {
     let app = app.clone();
@@ -14,79 +16,62 @@ pub fn genre_list_init(app: &App) {
 }
 
 pub fn genre_list(app: &App) {
-    let ui = app.ui.clone();
-    let images = app.images.clone();
-    let library = app.library.clone();
-    std::thread::spawn(move || {
-        let genres = Genre::list(&library);
+    update_model(app);
+    app.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::GenreList)).unwrap();
+}
 
+fn update_model(app: &App) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let library = app.library.clone();
+        let genres = Genre::list(&library);
+        let ui = app.ui.clone();
+        let images = app.images.clone();
         ui.upgrade_in_event_loop(move |ui| {
-            let cards: Vec<CardAdapter> = genres.iter().cloned().enumerate()
-                .map(|(index, genre)| {
-                    let mut card: CardAdapter = genre.clone().into();
-                    card.image.image = images.lazy_get(genre.model(), 200, 200, move |ui, image| {
-                        let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
-                        card.image.image = image;
-                        ui.get_genre_list().cards.set_row_data(index, card);
-                    });
-                    card
-                })
-                .collect();
+            let cards = genre_cards(&images, &genres);
             let adapter = CardGridAdapter {
                 cards: ModelRc::from(cards.as_slice()),
             };
             ui.set_genre_list(adapter);
-            ui.set_page(Page::GenreList);
         }).unwrap();
     });
 }
 
-fn update_model(app: &App) {
-
+fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {
+    genres.iter().cloned().enumerate()
+        .map(|(index, genre)| {
+            let mut card: CardAdapter = genre_card(&genre);
+            // card.image.image = images.lazy_get(genre.model(), 200, 200, move |ui, image| {
+            //     let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
+            //     card.image.image = image;
+            //     ui.get_genre_list().cards.set_row_data(index, card);
+            // });
+            card
+        })
+        .collect()
 }
 
 fn genre_card(genre: &Genre) -> CardAdapter {
-    todo!()
+    let genre = genre.clone();
+    CardAdapter {
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: genre.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+            ..Default::default()
+        },
+        title: LinkAdapter {
+            name: genre.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+            ..Default::default()
+        },
+        // sub_title: LinkAdapter {
+        //     name: "Artist".into(),
+        //     url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+        // },
+        ..Default::default()
+    }
 }
-
-
-// fn artist_card(artist: &Artist) -> CardAdapter {
-//     let artist = artist.clone();
-//     CardAdapter {
-//         image: ImageLinkAdapter {
-//             image: Default::default(),
-//             name: artist.name.clone().unwrap_or_default().into(),
-//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-//             ..Default::default()
-//         },
-//         title: LinkAdapter {
-//             name: artist.name.clone().unwrap_or_default().into(),
-//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-//             ..Default::default()
-//         },
-//         // sub_title: LinkAdapter {
-//         //     name: "Artist".into(),
-//         //     url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
-//         // },
-//         ..Default::default()
-//     }
-// }
-
-// use std::rc::Rc;
-// use std::thread;
-// use std::time::Duration;
-
-// use crate::ui::app_window_controller::App;
-// use crate::ui::Page;
-// use dimple_core::library::Library;
-// use dimple_core::model::ModelBasics;
-// use dimple_core::model::Track;
-// use slint::ModelRc;
-// use slint::SharedString;
-// use slint::StandardListViewItem;
-// use slint::VecModel;
-// use slint::ComponentHandle as _;
-// use crate::ui::TrackListAdapter;
 
 // pub fn track_list_init(app: &App) {
 //     let app_ = app.clone();

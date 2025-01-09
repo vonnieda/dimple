@@ -61,6 +61,7 @@ impl Track {
             SELECT a.* FROM ArtistRef ar 
             JOIN Artist a ON (a.key = ar.artist_key) 
             WHERE ar.model_key = ?1
+            ORDER BY ar.rowid ASC
         ", (self.key.clone().unwrap(),))
     }
 
@@ -69,6 +70,7 @@ impl Track {
             SELECT g.* FROM GenreRef gr 
             JOIN Genre g ON (g.key = gr.genre_key) 
             WHERE gr.model_key = ?1
+            ORDER BY g.name ASC
         ", (self.key.clone().unwrap(),))
     }
 
@@ -77,6 +79,7 @@ impl Track {
             SELECT l.* FROM LinkRef lr 
             JOIN Link l ON (l.key = lr.link_key) 
             WHERE lr.model_key = ?1
+            ORDER BY l.url ASC
         ", (self.key.clone().unwrap(),))
     }
 }
