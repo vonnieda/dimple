@@ -9,7 +9,7 @@ import { Styles, Navigator, AppState } from "./common.slint";
 import { MediumAdapter } from "./components/medium.slint";
 import { ImageLinkAdapter, LinkAdapter, Links, Link} from "./components/link.slint";
 import { ArtistDetailsAdapter } from "./pages/artist_details.slint";
-import { ReleaseDetailsAdapter } from "./pages/release_details.slint";
+import { ReleaseDetailsAdapter, ReleaseDetails } from "./pages/release_details.slint";
 import { ReleaseGroupDetailsAdapter } from "./pages/release_group_details.slint";
 import { SettingsAdapter } from "./pages/settings.slint";
 import { HomeAdapter } from "./pages/home.slint";
@@ -49,30 +49,30 @@ import "../fonts/Roboto/Roboto-Regular.ttf";
 import "../fonts/Roboto/Roboto-Thin.ttf";
 import "../fonts/Roboto/Roboto-ThinItalic.ttf";
 
-// import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-ExtraLight.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-Light.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-Medium.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-Regular.ttf";
-// import "../fonts/Manrope/fonts/ttf/Manrope-SemiBold.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-ExtraLight.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-Light.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-Medium.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-Regular.ttf";
+import "../fonts/Manrope/fonts/ttf/Manrope-SemiBold.ttf";
 
-// import "../fonts/Commissioner/static/Commissioner/Commissioner-Black.ttf";
-// import "../fonts/Commissioner/static/Commissioner/Commissioner-Bold.ttf";
-// import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraBold.ttf";
-// import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraLight.ttf";
-// import "../fonts/Commissioner/static/Commissioner/Commissioner-Light.ttf";
-// import "../fonts/Commissioner/static/Commissioner/Commissioner-Medium.ttf";
-// import "../fonts/Commissioner/static/Commissioner/Commissioner-Regular.ttf";
-// import "../fonts/Commissioner/static/Commissioner/Commissioner-SemiBold.ttf";
-// import "../fonts/Commissioner/static/Commissioner/Commissioner-Thin.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Black.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Bold.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraBold.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraLight.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Light.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Medium.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Regular.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-SemiBold.ttf";
+import "../fonts/Commissioner/static/Commissioner/Commissioner-Thin.ttf";
 
 import "../icons/phosphor/Fonts/regular/Phosphor.ttf";
 
 export { Navigator, Styles, AppState, TrackListAdapter, 
     EventListAdapter, PlaylistDetailsAdapter,
     SettingsAdapter, TrackDetailsAdapter, QueueDetailsAdapter,
-    PlaylistListAdapter, PluginAdapter, PlayerBarAdapter }
+    PlaylistListAdapter, PluginAdapter, PlayerBarAdapter, ReleaseDetailsAdapter }
 
 export enum Page { Home, SearchResults,
     ArtistList, ArtistDetails,
@@ -81,7 +81,7 @@ export enum Page { Home, SearchResults,
     TrackList, TrackDetails,
     PlaylistList, PlaylistDetails,
     Settings, GenreList, GenreDetails, RecordingDetails,
-    QueueDetails, EventList,
+    QueueDetails, EventList
 }
 
 export component AppWindow inherits Window {
@@ -104,7 +104,6 @@ export component AppWindow inherits Window {
     in-out property <CardGridAdapter> release-group-list;
     in-out property <ReleaseGroupDetailsAdapter> release-group-details;
     in-out property <CardGridAdapter> release-list;
-    in-out property <ReleaseDetailsAdapter> release-details;
     in-out property <CardGridAdapter> genre-list;
     in-out property <GenreDetailsAdapter> genre-details;
     in-out property <RecordingDetailsAdapter> recording-details;
@@ -150,9 +149,7 @@ export component AppWindow inherits Window {
                         if page == Page.ReleaseList: ReleaseList {  
                             model: root.release-list;
                         }                
-                        if page == Page.ReleaseDetails: ReleaseDetails {  
-                            model: root.release-details;
-                        }                
+                        if page == Page.ReleaseDetails: ReleaseDetails {}                
                         if page == Page.TrackList: TrackList {}
                         if page == Page.TrackDetails: TrackDetails {}  
                         if page == Page.RecordingDetails: RecordingDetails {  

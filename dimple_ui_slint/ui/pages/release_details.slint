@@ -12,17 +12,29 @@ import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Styles, Navigator, AppState } from "../common.slint";
 
-export struct ReleaseDetailsAdapter {
-    card: CardAdapter,
-    disambiguation: string,
-    summary: string,
-    genres: [LinkAdapter],
-    links: [LinkAdapter],
-    primary_type: string,
-    artists: [LinkAdapter],
+export global ReleaseDetailsAdapter {
+    in property <string> key: "123";
+    in property <string> release_type: "123";
+    in property <CardAdapter> card: {
+                image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+                title: {name: "A Reign of Fish"},
+            };
+    in property <string> disambiguation: "Not to be confused with Rain of Fish by Fargo.";
+    in property <string> summary: "Fresh Pliers does it again with 'A Reign of Fish'. Magna est quis laboris veniam do laborum. Cupidatat ea ipsum aliquip fugiat eu magna labore est eu est labore. Ex nostrud culpa id veniam aliqua aliqua ipsum. Velit do id amet labore mollit id cillum commodo Lorem proident labore eu. Incididunt minim irure culpa excepteur officia sit consequat est mollit. Ipsum anim anim sunt dolore. Laborum consequat deserunt laboris ullamco cillum. Ullamco deserunt ut quis dolore aliquip esse consequat velit amet. Nulla tempor veniam dolor amet occaecat adipisicing nulla laboris.\n\nQui non irure anim irure nisi nulla ex aliquip. Sit do irure esse magna sit do eiusmod. Anim commodo velit non enim nulla.\n\nAnim incididunt dolore nulla laboris eu mollit Lorem minim reprehenderit in quis magna mollit. Labore Lorem esse anim ipsum esse irure ipsum proident deserunt officia consequat sunt sit. Ex laborum ipsum laboris nisi proident. Nulla culpa est commodo dolor. Magna sint id et ut esse mollit qui elit voluptate ea.\n\nDuis amet qui reprehenderit cupidatat qui proident pariatur non ea aute reprehenderit nisi qui. Et elit anim culpa amet eu excepteur voluptate ad adipisicing esse eiusmod. Aliqua Lorem excepteur fugiat aute ullamco ea nostrud ipsum mollit cupidatat id magna. Nisi consectetur cillum incididunt deserunt non officia non laborum non ullamco non eiusmod dolor. Eu sit aute adipisicing Lorem consectetur nisi excepteur laboris eiusmod exercitation proident eu laborum fugiat. Ad id velit minim laboris eu. Do ex aliqua nisi aliqua laborum sunt qui quis officia labore do. Deserunt culpa culpa Lorem reprehenderit consequat ad pariatur anim quis. Nulla officia id ipsum adipisicing commodo labore culpa consectetur nostrud labore. Reprehenderit minim magna qui ullamco aute incididunt. Ipsum eu ad ex consequat et amet.";
+    in property <[LinkAdapter]> genres: [{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},];
+    in property <[LinkAdapter]> links: [{name: "https://bandcamp.com/arof",url: "internal://release/1234"}];
+    in property <[LinkAdapter]> artists: [{name: "Fresh Pliers"},{name: "Example Band"},{name: "Teal Cup"},];
+    in property <string> dump;
+    in property <bool> save;
+    in property <bool> love;
+    in property <bool> download;
 
-    media: [MediumAdapter],
-    dump: string,
+    pure callback play_now(string);
+    pure callback add_to_queue(string);
+    pure callback set_save(bool);
+    pure callback set_download(bool);
+    pure callback set_love(bool);
+    pure callback set_lyrics(string, string);
 }
 
 export component ReleaseDetails inherits ScrollView {
@@ -44,167 +56,81 @@ export component ReleaseDetails inherits ScrollView {
                 Image {
                     width: Styles.thumbnail-width-extra-large;
                     height: Styles.thumbnail-width-extra-large;
-                    source: model.card.image.image;
+                    source: ReleaseDetailsAdapter.card.image.image;
                 }
             }
             VerticalBox {
                 alignment: start;
                 // Title
                 Text {
-                    text: model.card.title.name;
+                    text: ReleaseDetailsAdapter.card.title.name;
                     font-weight: Styles.font-weight-bold;
-                    font-size: 5rem;
+                    font-size: 1rem * Styles.page_title_font_rem;
                     wrap: word-wrap;
                 }
-                // Disambiguation
-                if model.disambiguation > 0: Text {
-                    text: model.disambiguation;
-                    // font-weight: Styles.font-weight-bold;
-                    font-size: 1.3rem;
-                }
                 // Type and artists
-                if model.artists.length > 0: HorizontalLayout {
+                if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
                     alignment: start;
                     Text {
-                        text: "\{model.primary-type} by ";
+                        text: "Track by ";
                         font-size: 1.3rem;
                     }
                     Links {
-                        links: model.artists;
+                        links: ReleaseDetailsAdapter.artists;
                         font-size: 1.3rem;
                     }
                 }
+                // Disambiguation
+                if ReleaseDetailsAdapter.disambiguation != "": Text {
+                    text: ReleaseDetailsAdapter.disambiguation;
+                    font-italic: true;
+                    font-size: 1.3rem;
+                }
                 // Genres
-                if model.genres.length > 0: HorizontalLayout {
+                if ReleaseDetailsAdapter.genres.length > 0: HorizontalLayout {
                     alignment: start;
                     Text {
                         text: "In ";
                         font-size: 1.3rem;
                     }    
                     Links {
-                        links: model.genres;
+                        links: ReleaseDetailsAdapter.genres;
                         font-size: 1.3rem;
                     }
                 }
                 // Summary
-                Text {
-                    text: model.summary;
+                if ReleaseDetailsAdapter.summary != "": Text {
+                    text: ReleaseDetailsAdapter.summary;
                     wrap: word-wrap;
                     font-size: 1.2rem;
                 }
             }
         }
 
-        // Media and Tracks
-        if model.media.length > 0: VerticalBox {
-            for medium in model.media: VerticalBox {
-                // Text {
-                //     text: medium.title;
-                //     font-weight: Styles.font-weight-bold;
-                //     font-size: 2rem;
-                // }
-                // https://github.com/slint-ui/slint/blob/master/internal/compiler/widgets/cupertino-base/tableview.slint
-                TrackList {
-                    tracks: medium.tracks;
-                }
-            }
-        }
-
         // Links
-        if model.links.length > 0: VerticalLayout {
+        if ReleaseDetailsAdapter.links.length > 0: VerticalBox {
             Text {
                 text: "Links";
                 font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
-            for link in model.links: Link {
+            for link in ReleaseDetailsAdapter.links: Link {
                 url: link.url;
                 name: link.name;
             }
         }
 
         // Debug Dump
-        if AppState.debug: VerticalLayout {
+        if AppState.debug: VerticalBox {
             Text {
                 text: "Debug";
                 font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             Text {
-                text: model.dump;
+                text: ReleaseDetailsAdapter.dump;
                 wrap: word-wrap;
             }
         }
     }
-
-    in property <ReleaseDetailsAdapter> model: {
-        // id: "123-123-123-123",
-        // title: "A Reign of Fish",
-        card: {
-            image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-            title: {name: "A Reign of Fish",url: "internal://release/1234"},
-            sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        },
-        disambiguation: "regular kind",
-        summary: "Cupidatat do excepteur sit quis officia nulla. Excepteur eu ad reprehenderit eiusmod minim esse ullamco eiusmod quis esse eiusmod. Pariatur minim aliquip voluptate aliquip irure Lorem incididunt adipisicing sit ullamco consectetur. Esse mollit eu sint aliqua dolor consectetur exercitation officia. Sit ad voluptate enim dolor irure. Dolore incididunt ipsum officia aliqua sit consectetur ex et sunt consequat minim.Amet tempor officia nulla est commodo officia exercitation et sint eiusmod proident velit adipisicing. Qui commodo consectetur ea in voluptate. Id laborum aute fugiat consequat fugiat dolor ullamco aliquip nostrud elit anim magna et.",
-        // genres: [ {name: "fish jazz",url: "internal://release/1234"} ],
-        // artists: [ 
-        //     { name: "Shield Fish", url: "internal://release/1234" }, 
-        //     { name: "Zim Babwe", url: "internal://release/1234" }, 
-        //     { name: "Vic Toria", url: "internal://release/1234" }, 
-        // ],
-        links: [ 
-            { name: "Shield Fish", url: "internal://release/1234" }, 
-            { name: "Zim Babwe", url: "internal://release/1234" }, 
-            { name: "Vic Toria", url: "internal://release/1234" }, 
-        ],
-        // releases: [
-        //     { 
-        //         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        //         title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        //         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        //     },
-        //     { 
-        //         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        //         title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        //         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        //     },
-        //     { 
-        //         image: {image: @image-url("../images/dark.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        //         title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        //         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-        //     },
-        // ],
-        primary-type: "Album",
-        // media: [
-        //     {
-        //         title: "Disc 1 of 2",
-        //         tracks: [
-        //             { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 17, },
-        //             { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 21, },
-        //             { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 79, },
-        //         ]
-        //     },
-        //     {
-        //         title: "Disc 2 of 2",
-        //         tracks: [
-        //             { title: { name: "Graphing Pencil" }, track_number: 1, length: "5:03", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 17, },
-        //             { title: { name: "Funky Zow" }, track_number: 2, length: "2:31", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 21, },
-        //             { title: { name: "Turn Up For What? When? I'm busy that night." }, track_number: 3, length: "1:21", 
-        //                 artists: [{ name: "Toops" }, { name: "Flanger and the Twins"}, { name: "The Leech"} ], 
-        //                 plays: 79, },
-        //         ]
-        //     },
-        // ]
-    };
 }

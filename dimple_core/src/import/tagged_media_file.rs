@@ -111,7 +111,7 @@ impl TaggedMediaFile {
         Track {
             key: None,
             title: self.tag(StandardTagKey::TrackTitle),
-            disambiguation: self.tag(StandardTagKey::Comment),
+            disambiguation: None,
             summary: None,
             save: false,
             download: false,

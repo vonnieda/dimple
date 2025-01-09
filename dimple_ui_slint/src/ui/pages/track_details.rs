@@ -111,8 +111,6 @@ pub fn track_details(url: &str, app: &App) {
                 .filter(|s| !s.is_empty())
                 .unwrap_or("(No lyrics, click to edit.)".to_string());
             ui.global::<TrackDetailsAdapter>().set_lyrics(lyrics.into());
-
-
             ui.global::<TrackDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
             ui.global::<TrackDetailsAdapter>().set_dump(format!("{:?}", track).into());
 

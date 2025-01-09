@@ -10,10 +10,10 @@ pub mod settings;
 pub mod search_results;
 pub mod track_list;
 pub mod track_details;
+pub mod release_details;
 
 // pub mod genre_details;
 // pub mod artist_details;
-// pub mod release_details;
 // pub mod recording_details;
 // pub mod release_group_list;
 // pub mod release_group_details;

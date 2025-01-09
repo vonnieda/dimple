@@ -36,7 +36,7 @@ fn scan(path: &str) -> Vec<ScannedFile> {
     files
 }
 
-fn import_single_file(library: &Library, path: &Path, force: bool) -> Result<TrackSource, anyhow::Error> {
+fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<TrackSource, anyhow::Error> {
     if !path.is_file() {
         return Err(anyhow::anyhow!("Path must be a file: {:?}", path));
     }
