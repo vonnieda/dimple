@@ -26,7 +26,11 @@ fn update_model(app: &App) {
     let app = app.clone();
     std::thread::spawn(move || {
         let library = app.library.clone();
-        let releases = Release::list(&library);
+        let releases = library.query("
+            SELECT * 
+            FROM Release
+            ORDER BY title ASC
+        ", ());
         let ui = app.ui.clone();
         let images = app.images.clone();
         ui.upgrade_in_event_loop(move |ui| {

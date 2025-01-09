@@ -24,7 +24,11 @@ fn update_model(app: &App) {
     let app = app.clone();
     std::thread::spawn(move || {
         let library = app.library.clone();
-        let artists = Artist::list(&library);
+        let artists = library.query("
+            SELECT * 
+            FROM Artist
+            ORDER BY name ASC, disambiguation ASC
+        ", ());
         let ui = app.ui.clone();
         let images = app.images.clone();
         ui.upgrade_in_event_loop(move |ui| {
