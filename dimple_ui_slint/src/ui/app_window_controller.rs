@@ -83,6 +83,7 @@ impl AppWindowController {
         pages::playlist_details::playlist_details_init(&self.app);
         pages::queue_details::queue_details_init(&self.app);
         pages::release_list::release_list_init(&self.app);
+        pages::release_details::release_details_init(&self.app);
         pages::search_results::search_results_init(&self.app);        
         pages::settings::settings_init(&self.app);        
         pages::track_list::track_list_init(&self.app);
@@ -142,9 +143,9 @@ impl App {
         else if url.starts_with("dimple://releases") {
             pages::release_list::release_list(self);
         }
-        // else if url.starts_with("dimple://release/") {
-        //     crate::ui::pages::release_details::release_details(&url, self);
-        // }
+        else if url.starts_with("dimple://release/") {
+            crate::ui::pages::release_details::release_details(&url, self);
+        }
         // else if url.starts_with("dimple://recording/") {
         //     crate::ui::pages::recording_details::recording_details(&url, self);
         // }

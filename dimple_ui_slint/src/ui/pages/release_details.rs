@@ -10,6 +10,7 @@ use slint::ModelRc;
 use url::Url;
 use crate::ui::LinkAdapter;
 use crate::ui::ReleaseDetailsAdapter;
+use crate::ui::ImageLinkAdapter;
 
 pub fn release_details_init(app: &App) {
     let app = app.clone();
@@ -62,6 +63,7 @@ fn update_model(app: &App) {
     
                 ui.global::<ReleaseDetailsAdapter>().set_card(card.into());
                 ui.global::<ReleaseDetailsAdapter>().set_key(release.key.clone().unwrap_or_default().into());
+                ui.global::<ReleaseDetailsAdapter>().set_release_type(release.release_group_type.clone().unwrap_or("Release".to_string()).into());
                 ui.global::<ReleaseDetailsAdapter>().set_artists(ModelRc::from(artists.as_slice()));
                 ui.global::<ReleaseDetailsAdapter>().set_summary(release.summary.clone().unwrap_or_default().into());
                 ui.global::<ReleaseDetailsAdapter>().set_disambiguation(release.disambiguation.clone().unwrap_or_default().into());
@@ -72,6 +74,22 @@ fn update_model(app: &App) {
             }).unwrap();
         });
     }).unwrap();
+}
+
+fn artist_card(artist: &Artist) -> CardAdapter {
+    let artist = artist.clone();
+    CardAdapter {
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+        },
+        title: LinkAdapter {
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+        },
+        ..Default::default()
+    }
 }
 
 fn artist_links(artists: &[Artist]) -> Vec<LinkAdapter> {

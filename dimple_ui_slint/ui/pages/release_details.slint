@@ -4,13 +4,13 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widge
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import {MediumAdapter} from "../components/medium.slint";
-import {TrackList} from "../components/track_list.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Styles, Navigator, AppState } from "../common.slint";
+import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 
 export global ReleaseDetailsAdapter {
     in property <string> key: "123";
@@ -37,26 +37,64 @@ export global ReleaseDetailsAdapter {
     pure callback set_lyrics(string, string);
 }
 
+export component BorderImage inherits Rectangle {
+    in-out property <image> image;
+
+    border-radius: Styles.thumbnail-border-radius;
+    border-color: Styles.thumbnail-border-color;
+    border-width: Styles.thumbnail-border-width;
+    clip: true;
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: image;
+    }
+}
+
 export component ReleaseDetails inherits ScrollView {
-    VerticalBox {
+    VerticalLayout {
         alignment: start;
-        spacing: StyleMetrics.layout-spacing * 2;
         // Header: Image, Title, Artists, Genres, Summary
         HorizontalLayout {
             alignment: start;
-            spacing: StyleMetrics.layout-spacing;
-            // Image
-            Rectangle {
-                width: Styles.thumbnail-width-extra-large;
-                height: Styles.thumbnail-width-extra-large;
-                border-radius: Styles.thumbnail-border-radius;
-                border-color: Styles.thumbnail-border-color;
-                border-width: Styles.thumbnail-border-width;
-                clip: true;
-                Image {
+            VerticalLayout {
+                BorderImage {
                     width: Styles.thumbnail-width-extra-large;
                     height: Styles.thumbnail-width-extra-large;
-                    source: ReleaseDetailsAdapter.card.image.image;
+                    image: ReleaseDetailsAdapter.card.image.image;
+                }
+                ActionButtons {
+                    ActionButton {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+                        label: @tr("Play Now");
+                        clicked => { ReleaseDetailsAdapter.play_now(ReleaseDetailsAdapter.key); }
+                    }
+                    ActionButton {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+                        label: @tr("Play Later");
+                        clicked => { ReleaseDetailsAdapter.add_to_queue(ReleaseDetailsAdapter.key); }
+                    }
+                    ActionButton {
+                        icon: self.checked 
+                            ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
+                            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+                        label: @tr("Love");
+                        checkable: true;
+                        checked: ReleaseDetailsAdapter.love;
+                        clicked => { ReleaseDetailsAdapter.set_love(self.checked); }
+                    }
+                    ActionButton {
+                        icon: self.checked 
+                            ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
+                            : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
+                        label: @tr("Play Later");
+                        checkable: true;
+                        checked: ReleaseDetailsAdapter.download;
+                        clicked => { ReleaseDetailsAdapter.set_download(self.checked); }
+                    }
+                }
+                Rectangle {
+                    vertical-stretch: 1;
                 }
             }
             VerticalBox {
@@ -72,7 +110,7 @@ export component ReleaseDetails inherits ScrollView {
                 if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
                     alignment: start;
                     Text {
-                        text: "Track by ";
+                        text: "\{ReleaseDetailsAdapter.release-type} by ";
                         font-size: 1.3rem;
                     }
                     Links {
@@ -117,6 +155,7 @@ export component ReleaseDetails inherits ScrollView {
             for link in ReleaseDetailsAdapter.links: Link {
                 url: link.url;
                 name: link.name;
+                font-size: 1.3rem;
             }
         }
 
@@ -130,6 +169,7 @@ export component ReleaseDetails inherits ScrollView {
             Text {
                 text: ReleaseDetailsAdapter.dump;
                 wrap: word-wrap;
+                font-size: 1.3rem;
             }
         }
     }

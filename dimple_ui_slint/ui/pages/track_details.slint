@@ -6,16 +6,6 @@ import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Styles, Navigator, AppState } from "../common.slint";
 import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
 
-    // in property <TrackDetailsAdapter> model: {
-    //     card,
-    //     disambiguation,
-    //     summary
-    //     genres: ,
-    //     artists: ,
-    //     lyrics: "Hurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk",
-    //     links: [{name: "https://bandcamp.com/arof",url: "internal://release/1234"}],
-    // };
-
 export global TrackDetailsAdapter {
     in property <string> key: "123";
     in property <CardAdapter> card: {
