@@ -1,10 +1,10 @@
-use std::hash::DefaultHasher;
 use std::time::Duration;
 use crate::ui::CardAdapter;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
 use crate::ui::PlayerBarAdapter;
 
+use dimple_core::model::Artist;
 use dimple_core::{model::Track, player::PlayerState};
 
 use super::app_window_controller::App;
@@ -39,9 +39,7 @@ pub fn player_bar_init(app: &App) {
 
     {
         let app1 = app.clone();
-        app.player.on_change(Box::new(move |event| {
-            update_model(&app1);
-        }));
+        app.player.on_change(Box::new(move |_event| update_model(&app1)));
     }
 }
 
@@ -50,6 +48,7 @@ fn update_model(app: &App) {
     let current_track = player.current_queue_track().unwrap_or_default();
     let next_track = player.next_queue_track().unwrap_or_default();
     let app1 = app.clone();
+    let library = app.library.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
         let app = app1.clone();
         let images = app.images.clone();
@@ -66,10 +65,10 @@ fn update_model(app: &App) {
         ui.global::<PlayerBarAdapter>().set_position_seconds(player.track_position().as_secs() as f32);
         ui.global::<PlayerBarAdapter>().set_position_label(format_duration(&player.track_position()).into());
         ui.global::<PlayerBarAdapter>().set_player_state(player.state().into());
-        ui.global::<PlayerBarAdapter>().set_now_playing_artist(artist_card(&current_track));
+        ui.global::<PlayerBarAdapter>().set_now_playing_artist(artist_card(&current_track.artist(&library).unwrap_or_default()));
         ui.global::<PlayerBarAdapter>().set_now_playing_release(release_card(&current_track));
         ui.global::<PlayerBarAdapter>().set_now_playing_recording(track_card(&current_track));
-        ui.global::<PlayerBarAdapter>().set_up_next_artist(artist_card(&next_track));
+        ui.global::<PlayerBarAdapter>().set_up_next_artist(artist_card(&next_track.artist(&library).unwrap_or_default()));
         ui.global::<PlayerBarAdapter>().set_up_next_release(release_card(&next_track));
         ui.global::<PlayerBarAdapter>().set_up_next_recording(track_card(&next_track));
     }).unwrap();
@@ -91,24 +90,25 @@ impl From<PlayerState> for crate::ui::PlayerState {
     }
 }
 
-fn artist_card(track: &Track) -> CardAdapter {
-    let track = track.clone();
+fn artist_card(artist: &Artist) -> CardAdapter {
+    let artist = artist.clone();
     CardAdapter {
         image: ImageLinkAdapter {
             image: Default::default(),
-            // name: track.artist.clone().unwrap_or_default().into(),
-            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         title: LinkAdapter {
-            // name: track.artist.clone().unwrap_or_default().into(),
-            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
-        sub_title: LinkAdapter {
-            name: "Artist".into(),
-            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
-        },
+        // sub_title: LinkAdapter {
+        //     name: "Artist".into(),
+        //     url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+        // },
+        ..Default::default()
     }
 }
 

@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::model::{Artist, MediaFile, Release, Track};
+use crate::model::{Artist, Genre, MediaFile, Release, Track};
 
 pub trait CrdtRules {
     /// Commutative: A v B = B v A
@@ -163,6 +163,25 @@ impl CrdtRules for MediaFile {
             last_imported: CrdtRules::merge(l.last_imported, r.last_imported),
             last_modified: CrdtRules::merge(l.last_modified, r.last_modified),
             sha256: CrdtRules::merge(l.sha256, r.sha256),
+        }
+    }
+}
+
+impl CrdtRules for Genre {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            key: CrdtRules::merge(l.key, r.key),
+            name: CrdtRules::merge(l.name, r.name),
+            disambiguation: CrdtRules::merge(l.disambiguation, r.disambiguation),
+            summary: CrdtRules::merge(l.summary, r.summary),
+            save: CrdtRules::merge(l.save, r.save),
+            download: CrdtRules::merge(l.download, r.download),
+            
+            discogs_id: CrdtRules::merge(l.discogs_id, r.discogs_id),
+            lastfm_id: CrdtRules::merge(l.lastfm_id, r.lastfm_id),
+            musicbrainz_id: CrdtRules::merge(l.musicbrainz_id, r.musicbrainz_id),
+            spotify_id: CrdtRules::merge(l.spotify_id, r.spotify_id),
+            wikidata_id: CrdtRules::merge(l.wikidata_id, r.wikidata_id),
         }
     }
 }

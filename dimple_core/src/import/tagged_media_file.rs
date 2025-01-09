@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use playback_rs::Hint;
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Visual}};
 
-use crate::model::{Artist, Genre, Release, Track};
+use crate::model::{Artist, Genre, Link, Release, Track};
 
 /// https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
@@ -190,6 +190,17 @@ impl TaggedMediaFile {
                 ..Default::default()
             })
             .collect()
+    }
+
+    pub fn track_links(&self) -> Vec<Link> {
+        // self.tags(StandardTagKey::Link).iter()
+        //     .flat_map(|s| parse_genre_tag(s))
+        //     .map(|s| Genre {
+        //         name: Some(s.to_string()),
+        //         ..Default::default()
+        //     })
+        //     .collect()
+        vec![]
     }
 
     pub fn release_artists(&self) -> Vec<Artist> {

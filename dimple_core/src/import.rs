@@ -1,18 +1,11 @@
-use std::{borrow::BorrowMut, collections::{HashMap, HashSet}, path::Path};
-
-use crate::{library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Blob, Genre, LinkRef, MediaFile, ModelBasics as _, Release, Track, TrackSource}};
-
-use std::fs::File;
-
-use anyhow::anyhow;
-use lofty::{file::TaggedFileExt, tag::ItemKey};
-use symphonia::core::{errors::Error, formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Value, Visual}, probe::Hint};
-
 pub mod spotify;
 pub mod tagged_media_file;
 
+use std::path::Path;
+
+use crate::{library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Genre, GenreRef, ModelBasics as _, Release, Track, TrackSource}};
+
 use chrono::{DateTime, Utc};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use tagged_media_file::TaggedMediaFile;
 use walkdir::WalkDir;
 
@@ -59,33 +52,22 @@ fn import_single_file(library: &Library, path: &Path, force: bool) -> Result<Tra
     media_file.last_modified = path.metadata()?.modified()?.into();
     let media_file = media_file.save(library);
     
-    // Create or update a TrackSource by the MediaFile key.
+    // Find or create a TrackSource by the MediaFile key.
     let mut track_source: TrackSource = library.find("
         SELECT * FROM TrackSource WHERE media_file_key = ?
         ", (&media_file.key,))
         .unwrap_or_default();
     
-    // Create or update a Track. If the TrackSource has a track_key, meaning it
-    // already existed, use that to find the Track. Otherwise try to find a
-    // Track that matches one or more of the tags, using match_track. Finally,
-    // just create a new Track.
+    // Match and update the Track, preferring the one on the TrackSource if it
+    // exists.
     let track = track_source.track_key.as_ref()
         .and_then(|track_key| Track::get(library, &track_key))
         .or_else(|| match_track(library, &tags))
         .unwrap_or_default();
-
-    // Merge the Track tags into the Track and save it.
     let track = CrdtRules::merge(track, tags.track());
     let mut track = track.save(library);
 
-    // Update the TrackSource with the saved track_key. This links the Track
-    // to the TrackSource and MediaFile.
-    track_source.track_key = track.key.clone();
-    track_source.media_file_key = media_file.key.clone();
-    let track_source = track_source.save(library);
-
-    // For each track artist in the tags, find a matching one in the database
-    // or create a new one and link it to the track.
+    // Match, update, and link Track Artists.
     for artist in tags.track_artists() {
         let matched = match_artist(library, &artist)
             .unwrap_or_default();
@@ -98,7 +80,20 @@ fn import_single_file(library: &Library, path: &Path, force: bool) -> Result<Tra
         });
     }
 
-    // Find or create a Release, merge the tags, save.
+    // Match, update, and link Track Genres.
+    for genre in tags.track_genres() {
+        let matched = match_genre(library, &genre)
+            .unwrap_or_default();
+        let genre = CrdtRules::merge(matched, genre);
+        let genre = genre.save(library);
+        library.save(&GenreRef {
+            genre_key: genre.key.clone().unwrap(),
+            model_key: track.key.clone().unwrap(),
+            ..Default::default()
+        });
+    }
+
+    // Match and update the Release.
     let release = track.release(library)
         .or_else(|| match_release(library, &tags))
         .unwrap_or_default();
@@ -106,12 +101,10 @@ fn import_single_file(library: &Library, path: &Path, force: bool) -> Result<Tra
     let release = release.save(library);
 
     // Update the track with the (maybe newly created) release_key and save it.
-    // TODO just saved above, merge the two
     track.release_key = release.key.clone();
-    let _track = track.save(library);
+    let track = track.save(library);
 
-    // For each release artist in the tags, find a matching one in the database
-    // or create a new one and link it to the release.
+    // Match and update Release Artists.
     for artist in tags.release_artists() {
         let matched = match_artist(library, &artist)
             .unwrap_or_default();
@@ -124,7 +117,16 @@ fn import_single_file(library: &Library, path: &Path, force: bool) -> Result<Tra
         });
     }
 
-    log::info!("Imported {:?} {:?}", path, &track_source);
+    // Update the TrackSource with the saved track_key.
+    track_source.track_key = track.key.clone();
+    track_source.media_file_key = media_file.key.clone();
+    let track_source = track_source.save(library);
+
+    log::info!("Imported    {:30} {:30} {:60} {}", 
+        track.artist_name(library).unwrap_or_default(), 
+        track.album_name(library).unwrap_or_default(),
+        track.title.unwrap_or_default(),
+        path.file_name().unwrap_or_default().to_str().unwrap_or_default());
 
     Ok(track_source)
 }
@@ -188,6 +190,15 @@ fn match_artist(library: &Library, artist: &Artist) -> Option<Artist> {
         WHERE (musicbrainz_id IS NOT NULL AND musicbrainz_id = ?1)
         OR (Artist.name IS NOT NULL AND Artist.name = ?2)
         ", (&artist.musicbrainz_id, &artist.name))
+}
+
+fn match_genre(library: &Library, genre: &Genre) -> Option<Genre> {
+    library.find("
+        SELECT Genre.* 
+        FROM Genre 
+        WHERE (musicbrainz_id IS NOT NULL AND musicbrainz_id = ?1)
+        OR (Genre.name IS NOT NULL AND Genre.name = ?2)
+        ", (&genre.musicbrainz_id, &genre.name))
 }
 
 #[derive(Debug)]
