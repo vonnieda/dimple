@@ -1,3 +1,6 @@
+use std::rc::Rc;
+use std::time::Duration;
+
 use crate::ui::app_window_controller::App;
 use crate::ui::CardAdapter;
 use crate::ui::Page;
@@ -5,8 +8,11 @@ use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::ModelBasics;
 use dimple_core::model::Release;
+use dimple_core::model::Track;
 use slint::ComponentHandle as _;
 use slint::ModelRc;
+use slint::StandardListViewItem;
+use slint::VecModel;
 use url::Url;
 use crate::ui::LinkAdapter;
 use crate::ui::ReleaseDetailsAdapter;
@@ -42,6 +48,7 @@ fn update_model(app: &App) {
             let artists = release.artists(&library);
             let genres = release.genres(&library);
             let links = release.links(&library);
+            let tracks = release.tracks(&app.library);
             let ui = app.ui.clone();
             ui.upgrade_in_event_loop(move |ui| {
                 let mut card: CardAdapter = release.clone().into();                
@@ -70,26 +77,29 @@ fn update_model(app: &App) {
                 ui.global::<ReleaseDetailsAdapter>().set_genres(ModelRc::from(genres.as_slice()));
                 ui.global::<ReleaseDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
                 ui.global::<ReleaseDetailsAdapter>().set_dump(format!("{:?}", release).into());
-    
+                ui.global::<ReleaseDetailsAdapter>().set_row_data(row_data(&tracks));
             }).unwrap();
         });
     }).unwrap();
 }
 
-fn artist_card(artist: &Artist) -> CardAdapter {
-    let artist = artist.clone();
-    CardAdapter {
-        image: ImageLinkAdapter {
-            image: Default::default(),
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-        },
-        title: LinkAdapter {
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-        },
-        ..Default::default()
+fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
+    let row_data: Rc<VecModel<ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
+    for (i, track) in tracks.iter().enumerate() {
+        let track = track.clone();
+        let row = Rc::new(VecModel::default());
+        let length = Duration::from_millis(track.length_ms.unwrap_or_default() as u64);
+        let length = format_length(length);
+        row.push(i.to_string().as_str().into()); // # (Ordinal)
+        row.push(StandardListViewItem::from(track.title.unwrap_or_default().as_str())); // Title
+        // row.push(track.album.unwrap_or_default().as_str().into()); // Album
+        // row.push(track.artist.unwrap_or_default().as_str().into()); // Artist
+        row.push("".into()); // Album
+        row.push("".into()); // Artist
+        row.push(StandardListViewItem::from(length.as_str())); // Length
+        row_data.push(row.into());
     }
+    row_data.into()
 }
 
 fn artist_links(artists: &[Artist]) -> Vec<LinkAdapter> {
@@ -108,4 +118,35 @@ fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
             url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
         }
     }).collect()
+}
+
+
+// fn sort_model(
+//     source_model: ModelRc<ModelRc<StandardListViewItem>>,
+//     sort_index: i32,
+//     sort_ascending: bool,
+// ) -> ModelRc<ModelRc<StandardListViewItem>> {
+//     let mut model = source_model.clone();
+
+//     if sort_index >= 0 {
+//         model = Rc::new(model.clone().sort_by(move |r_a, r_b| {
+//             let c_a = r_a.row_data(sort_index as usize).unwrap();
+//             let c_b = r_b.row_data(sort_index as usize).unwrap();
+
+//             if sort_ascending {
+//                 c_a.text.cmp(&c_b.text)
+//             } else {
+//                 c_b.text.cmp(&c_a.text)
+//             }
+//         }))
+//         .into();
+//     }
+
+//     model
+// }
+
+fn format_length(length: Duration) -> String {
+    let minutes = length.as_secs() / 60;
+    let seconds = length.as_secs() % 60;
+    format!("{}:{:02}", minutes, seconds)
 }

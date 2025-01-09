@@ -11,6 +11,7 @@ import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Styles, Navigator, AppState } from "../common.slint";
 import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
+import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
 export global ReleaseDetailsAdapter {
     in property <string> key: "123";
@@ -28,13 +29,35 @@ export global ReleaseDetailsAdapter {
     in property <bool> save;
     in property <bool> love;
     in property <bool> download;
+    in property <[[StandardListViewItem]]> row_data: [
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
+    ];
+    in property <[string]> row_keys;
 
-    pure callback play_now(string);
+    pure callback sort_table(int /* column */, bool /* ascending */);
     pure callback add_to_queue(string);
     pure callback set_save(bool);
     pure callback set_download(bool);
     pure callback set_love(bool);
     pure callback set_lyrics(string, string);
+
+    pure callback play_now(string /* key */);
+    pure callback play_next(string /* key */);
+    pure callback play_later(string /* key */);
 }
 
 export component BorderImage inherits Rectangle {
@@ -52,6 +75,36 @@ export component BorderImage inherits Rectangle {
 }
 
 export component ReleaseDetails inherits ScrollView {
+    in-out property <length> popup-x;
+    in-out property <length> popup-y;
+    in-out property <int> popup-row;
+
+    popup := PopupMenu {
+        x: popup-x; 
+        y: popup-y; 
+
+        PopupMenuButton {
+            text: "Play Later";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+            clicked => { ReleaseDetailsAdapter.play_later(ReleaseDetailsAdapter.row_keys[popup-row]); }
+        }
+        PopupMenuButton {
+            text: "Play Next";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+            clicked => { ReleaseDetailsAdapter.play_next(ReleaseDetailsAdapter.row_keys[popup-row]); }
+        }
+        PopupMenuButton {
+            text: "Play Now";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+            clicked => { ReleaseDetailsAdapter.play_now(ReleaseDetailsAdapter.row_keys[popup-row]); }
+        }
+        PopupMenuButton {
+            text: "Track Info";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
+            clicked => { Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[root.popup-row]); }
+        }
+    }    
+
     VerticalLayout {
         alignment: start;
         // Header: Image, Title, Artists, Genres, Summary
@@ -143,6 +196,36 @@ export component ReleaseDetails inherits ScrollView {
                     font-size: 1.2rem;
                 }
             }
+        }
+
+        table := StandardTableView {
+            columns: [
+                { title: "#" },
+                { title: "Title" },
+                { title: "Artists" },
+                { title: "Length" },
+            ];
+            rows: ReleaseDetailsAdapter.row_data;
+            sort-ascending(index) => { ReleaseDetailsAdapter.sort_table(index, true); }
+            sort-descending(index) => { ReleaseDetailsAdapter.sort_table(index, false); }
+            row-pointer-event(row, event, point) => {
+                if event.button == PointerEventButton.right 
+                        && event.kind == PointerEventKind.down {
+                    popup-x = point.x;
+                    popup-y = point.y;
+                    popup-row = row;
+                    popup.show();
+                }
+                else if event.button == PointerEventButton.left 
+                        && row == table.current-row
+                        && event.kind == PointerEventKind.down {
+                    Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[row]);
+                }
+            }
+        }
+        Text {
+            horizontal-alignment: right;
+            text: ReleaseDetailsAdapter.row_data.length + " items";
         }
 
         // Links

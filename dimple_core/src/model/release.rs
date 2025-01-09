@@ -2,7 +2,7 @@ use dimple_core_macro::ModelSupport;
 
 use crate::library::Library;
 
-use super::{Artist, Genre, Link};
+use super::{Artist, Genre, Link, Track};
 
 // https://musicbrainz.org/doc/Release
 // https://musicbrainz.org/release/a4864e94-6d75-4ade-bc93-0dabf3521453
@@ -48,6 +48,7 @@ impl Release {
             SELECT a.* FROM ArtistRef ar 
             JOIN Artist a ON (a.key = ar.artist_key) 
             WHERE ar.model_key = ?1
+            ORDER BY ar.rowid ASC
         ", (self.key.clone().unwrap(),))
     }
 
@@ -65,6 +66,15 @@ impl Release {
             JOIN Link l ON (l.key = lr.link_key) 
             WHERE lr.model_key = ?1
         ", (self.key.clone().unwrap(),))
+    }
+
+    pub fn tracks(&self, library: &Library) -> Vec<Track> {
+        let sql = "
+            SELECT Track.* FROM Track
+            WHERE Track.release_key = ?1
+            ORDER BY media_position ASC, position ASC
+        ";
+        library.query(sql, (self.key.clone(),))
     }
 }
 
