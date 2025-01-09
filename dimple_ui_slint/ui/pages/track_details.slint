@@ -82,7 +82,7 @@ export component TrackDetails inherits ScrollView {
                         icon: self.checked 
                             ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
                             : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
-                        label: @tr("Play Later");
+                        label: @tr("Download");
                         checkable: true;
                         checked: TrackDetailsAdapter.download;
                         clicked => { TrackDetailsAdapter.set_download(self.checked); }

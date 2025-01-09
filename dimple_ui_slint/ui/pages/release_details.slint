@@ -15,7 +15,7 @@ import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
 export global ReleaseDetailsAdapter {
     in property <string> key: "123";
-    in property <string> release_type: "123";
+    in property <string> release-type: "Album";
     in property <CardAdapter> card: {
                 image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
                 title: {name: "A Reign of Fish"},
@@ -53,7 +53,6 @@ export global ReleaseDetailsAdapter {
     pure callback set_save(bool);
     pure callback set_download(bool);
     pure callback set_love(bool);
-    pure callback set_lyrics(string, string);
 
     pure callback play_now(string /* key */);
     pure callback play_next(string /* key */);

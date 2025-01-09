@@ -19,10 +19,18 @@ use crate::ui::ReleaseDetailsAdapter;
 use crate::ui::ImageLinkAdapter;
 
 pub fn release_details_init(app: &App) {
-    let app = app.clone();
-    let library = app.library.clone();
+    let app1 = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        let app = app1.clone();
+        ui.global::<ReleaseDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
+        let app = app1.clone();
+        ui.global::<ReleaseDetailsAdapter>().on_add_to_queue(move |key| add_to_queue(&app, &key));
+    }).unwrap();
+
+    
     // TODO filter events
-    library.on_change(Box::new(move |_event| update_model(&app)));
+    let app1 = app.clone();
+    app.library.on_change(Box::new(move |_event| update_model(&app1)));
 }
 
 pub fn release_details(url: &str, app: &App) {
@@ -34,6 +42,34 @@ pub fn release_details(url: &str, app: &App) {
         ui.global::<ReleaseDetailsAdapter>().set_key(key.into());
         update_model(&app);
         ui.set_page(Page::ReleaseDetails);
+    }).unwrap();
+}
+
+fn play_now(app: &App, key: &str) {
+    // let app = app.clone();
+    // let key = key.to_string();
+    // app.ui.upgrade_in_event_loop(move |ui| {
+    //     // TODO think about ephemeral or secondary playlist, or even
+    //     // a playlist inserted inbetween the playing items
+    //     let play_queue = app.player.queue();
+    //     app.library.playlist_add(&play_queue, &key);
+    //     let len = play_queue.len(&app.library);
+    //     app.player.set_queue_index(len - 1);
+    //     app.player.play();
+    // }).unwrap();
+    todo!()
+}
+
+fn add_to_queue(app: &App, key: &str) {
+    let app = app.clone();
+    let key = key.to_string();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        let play_queue = app.player.queue();
+        let release = Release::get(&app.library, &key).unwrap();
+        for track in release.tracks(&app.library) {
+            app.library.playlist_add(&play_queue, &track.key.unwrap());
+        }
+        app.player.play();
     }).unwrap();
 }
 
@@ -150,3 +186,4 @@ fn format_length(length: Duration) -> String {
     let seconds = length.as_secs() % 60;
     format!("{}:{:02}", minutes, seconds)
 }
+
