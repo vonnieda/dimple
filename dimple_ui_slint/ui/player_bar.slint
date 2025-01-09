@@ -11,18 +11,53 @@ export enum PlayerState {
 }
 
 export global PlayerBarAdapter {
-    in property <CardAdapter> now_playing_artist;
-    in property <CardAdapter> now_playing_release;
+    in property <CardAdapter> now_playing_artist: {
+        image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+    };
+    in property <CardAdapter> now_playing_release: {
+        image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+    };
     // TODO track, not recording
-    in property <CardAdapter> now_playing_recording;
-    in property <CardAdapter> up_next_artist;
-    in property <CardAdapter> up_next_release;
-    in property <CardAdapter> up_next_recording;
+    in property <CardAdapter> now_playing_recording: {
+        image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+    };
+    in property <CardAdapter> up_next_artist: {
+        image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+    };
+    in property <CardAdapter> up_next_release: {
+        image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+    };
+    in property <CardAdapter> up_next_recording: {
+        image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+    };
     in-out property <float> position_seconds;
     in property <int> duration_seconds;
     in property <string> position_label;
     in property <string> duration_label;
     in property <PlayerState> player_state;
+}
+
+export component BorderImage inherits TouchArea {
+    in-out property <image> image;
+    Rectangle {
+        width: parent.width;
+        height: parent.width;
+        border-radius: Styles.thumbnail-border-radius;
+        border-color: Styles.thumbnail-border-color;
+        border-width: Styles.thumbnail-border-width;
+        clip: true;
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: image;
+        }
+    }
 }
 
 component InfoAreaLabel inherits HorizontalLayout {
@@ -144,21 +179,14 @@ component TrackInfo inherits VerticalLayout {
 
 export component PlayerBar {
     HorizontalLayout {
-        Rectangle {
-            width: img.width;
-            height: img.height;
-            border-radius: Styles.thumbnail-border-radius;
-            border-width: Styles.thumbnail-border-width;
-            border-color: Styles.thumbnail-border-color;
-            clip: true;
-            // TODO needs imagelink
-            img := Image {
-                source: PlayerBarAdapter.now-playing-recording.image.image;
-                width: Styles.thumbnail-width-medium;
-                height: Styles.thumbnail-width-medium;
-            }    
+        BorderImage {
+            width: Styles.thumbnail-width-medium;
+            height: Styles.thumbnail-width-medium;
+            image: PlayerBarAdapter.now-playing-recording.image.image;
+            clicked => { Navigator.navigate("dimple://queue") }
         }
         VerticalLayout {
+            horizontal-stretch: 1;
             padding-left: 8px;
             HorizontalLayout {
                 TrackInfo {
