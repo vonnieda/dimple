@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::thread;
 
 use crate::ui::app_window_controller::App;
-use crate::ui::EventListAdapter;
+use crate::ui::HistoryListAdapter;
 use crate::ui::Page;
 use dimple_core::model::Event;
 use slint::Model as _;
@@ -12,22 +12,22 @@ use slint::VecModel;
 use slint::ComponentHandle as _;
 use slint::ModelExt as _;
 
-pub fn event_list_init(app: &App) {
+pub fn history_list_init(app: &App) {
     let app_ = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
         let app = app_;
-        ui.global::<EventListAdapter>().on_current_row_changed(move |row| row_selected(&app, row));
-        ui.global::<EventListAdapter>().on_sort_model(sort_model);
+        ui.global::<HistoryListAdapter>().on_current_row_changed(move |row| row_selected(&app, row));
+        ui.global::<HistoryListAdapter>().on_sort_model(sort_model);
     }).unwrap();
 }
 
-pub fn event_list(app: &App) {
+pub fn history_list(app: &App) {
     let app = app.clone();
     thread::spawn(move || {
         let events: Vec<Event> = app.library.query("SELECT * FROM Event ORDER BY timestamp DESC", ());
         app.ui.upgrade_in_event_loop(move |ui| {
-            ui.global::<EventListAdapter>().set_row_data(row_data(&events));
-            ui.set_page(Page::EventList);
+            ui.global::<HistoryListAdapter>().set_row_data(row_data(&events));
+            ui.set_page(Page::HistoryList);
         })
         .unwrap();
     });

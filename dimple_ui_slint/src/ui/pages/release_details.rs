@@ -156,31 +156,6 @@ fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
     }).collect()
 }
 
-
-// fn sort_model(
-//     source_model: ModelRc<ModelRc<StandardListViewItem>>,
-//     sort_index: i32,
-//     sort_ascending: bool,
-// ) -> ModelRc<ModelRc<StandardListViewItem>> {
-//     let mut model = source_model.clone();
-
-//     if sort_index >= 0 {
-//         model = Rc::new(model.clone().sort_by(move |r_a, r_b| {
-//             let c_a = r_a.row_data(sort_index as usize).unwrap();
-//             let c_b = r_b.row_data(sort_index as usize).unwrap();
-
-//             if sort_ascending {
-//                 c_a.text.cmp(&c_b.text)
-//             } else {
-//                 c_b.text.cmp(&c_a.text)
-//             }
-//         }))
-//         .into();
-//     }
-
-//     model
-// }
-
 fn format_length(length: Duration) -> String {
     let minutes = length.as_secs() / 60;
     let seconds = length.as_secs() % 60;

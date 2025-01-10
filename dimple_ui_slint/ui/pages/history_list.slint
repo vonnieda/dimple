@@ -5,13 +5,13 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widge
 import { AppState } from "../common.slint";
 import {Styles} from "../common.slint";
 
-export global EventListAdapter {
+export global HistoryListAdapter {
     in property <[[StandardListViewItem]]> row_data;
     pure callback sort_model([[StandardListViewItem]], int, bool) -> [[StandardListViewItem]];
     pure callback current_row_changed(int);
 }
  
-export component EventList inherits VerticalBox {
+export component HistoryList inherits VerticalBox {
     property <int> sort-index: -1;
     property <bool> sort-acending;
         
@@ -30,9 +30,9 @@ export component EventList inherits VerticalBox {
             { title: "Album" },
             { title: "Title" },
         ];
-        rows: EventListAdapter.sort_model(EventListAdapter.row_data, root.sort-index, root.sort-acending);
+        rows: HistoryListAdapter.sort_model(HistoryListAdapter.row_data, root.sort-index, root.sort-acending);
         current-row-changed(row) => { 
-            EventListAdapter.current_row_changed(row);
+            HistoryListAdapter.current_row_changed(row);
         }
         sort-ascending(index) => {
             root.sort-index = index;
@@ -46,6 +46,6 @@ export component EventList inherits VerticalBox {
     
     Text {
         horizontal-alignment: right;
-        text: EventListAdapter.row_data.length + " items";
+        text: HistoryListAdapter.row_data.length + " items";
     }
 }

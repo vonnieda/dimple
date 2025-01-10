@@ -18,7 +18,6 @@ import { ArtistDetails } from "pages/artist_details.slint";
 import { ReleaseGroupDetails } from "pages/release_group_details.slint";
 import { ReleaseDetails } from "pages/release_details.slint";
 import { TrackDetails, TrackDetailsAdapter } from "pages/track_details.slint";
-import { RecordingDetails, RecordingDetailsAdapter } from "pages/recording_details.slint";
 import { TrackListAdapter } from "pages/track_list.slint";
 import { Home } from "pages/home.slint";
 import { Settings, PluginAdapter } from "pages/settings.slint";
@@ -33,7 +32,7 @@ import { GenreList } from "pages/genre_list.slint";
 import { GenreDetailsAdapter, GenreDetails } from "pages/genre_details.slint";
 import { PlaylistList, PlaylistListAdapter } from "pages/playlist_list.slint";
 import { PlaylistDetailsAdapter, PlaylistDetails } from "pages/playlist_details.slint";
-import { EventListAdapter, EventList } from "pages/event_list.slint";
+import { HistoryListAdapter, HistoryList } from "pages/history_list.slint";
 import { QueueDetailsAdapter, QueueDetails } from "pages/queue_details.slint";
 
 import "../fonts/Roboto/Roboto-Black.ttf";
@@ -70,9 +69,9 @@ import "../fonts/Commissioner/static/Commissioner/Commissioner-Thin.ttf";
 import "../icons/phosphor/Fonts/regular/Phosphor.ttf";
 
 export { Navigator, Styles, AppState, TrackListAdapter, 
-    EventListAdapter, PlaylistDetailsAdapter,
+    HistoryListAdapter, PlaylistDetailsAdapter,
     SettingsAdapter, TrackDetailsAdapter, QueueDetailsAdapter,
-    PlaylistListAdapter, PluginAdapter, PlayerBarAdapter, ReleaseDetailsAdapter }
+    PlaylistListAdapter, PluginAdapter, PlayerBarAdapter, ReleaseDetailsAdapter, ArtistDetailsAdapter }
 
 export enum Page { Home, SearchResults,
     ArtistList, ArtistDetails,
@@ -80,8 +79,8 @@ export enum Page { Home, SearchResults,
     ReleaseGroupList, ReleaseGroupDetails,
     TrackList, TrackDetails,
     PlaylistList, PlaylistDetails,
-    Settings, GenreList, GenreDetails, RecordingDetails,
-    QueueDetails, EventList
+    Settings, GenreList, GenreDetails,
+    QueueDetails, HistoryList
 }
 
 export component AppWindow inherits Window {
@@ -100,13 +99,11 @@ export component AppWindow inherits Window {
     in-out property <HomeAdapter> home;
     in-out property <CardGridAdapter> search;
     in-out property <CardGridAdapter> artist-list;
-    in-out property <ArtistDetailsAdapter> artist-details;
     in-out property <CardGridAdapter> release-group-list;
     in-out property <ReleaseGroupDetailsAdapter> release-group-details;
     in-out property <CardGridAdapter> release-list;
     in-out property <CardGridAdapter> genre-list;
     in-out property <GenreDetailsAdapter> genre-details;
-    in-out property <RecordingDetailsAdapter> recording-details;
     in-out property <CardGridAdapter> playlist-list;
     in-out property <SideBarAdapter> sidebar;
 
@@ -137,9 +134,7 @@ export component AppWindow inherits Window {
                         if page == Page.ArtistList: ArtistList {
                             model: root.artist-list;
                         }
-                        if page == Page.ArtistDetails: ArtistDetails {  
-                            model: root.artist-details;
-                        }
+                        if page == Page.ArtistDetails: ArtistDetails {}
                         if page == Page.ReleaseGroupList: ReleaseGroupList {  
                             model: root.release-group-list;
                         }
@@ -152,9 +147,6 @@ export component AppWindow inherits Window {
                         if page == Page.ReleaseDetails: ReleaseDetails {}                
                         if page == Page.TrackList: TrackList {}
                         if page == Page.TrackDetails: TrackDetails {}  
-                        if page == Page.RecordingDetails: RecordingDetails {  
-                            model: root.recording-details;
-                        }
                         if page == Page.GenreList: GenreList {  
                             model: root.genre-list;
                         }
@@ -165,7 +157,7 @@ export component AppWindow inherits Window {
                             model: root.playlist-list;
                         }
                         if page == Page.PlaylistDetails: PlaylistDetails {}
-                        if page == Page.EventList: EventList {}
+                        if page == Page.HistoryList: HistoryList {}
                         if page == Page.Settings: Settings {}
                         if page == Page.QueueDetails: QueueDetails {}
                     }

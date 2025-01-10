@@ -6,217 +6,184 @@ import { CardGrid } from "../components/card_grid.slint";
 import { Styles, Navigator, AppState } from "../common.slint";
 import { Tag } from "../components/tag.slint";
 import {TagModel} from "../components/tag_card_grid.slint";
+import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
+import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 
-export struct ArtistDetailsAdapter {
-    card: CardAdapter,
-    summary: string,
-    disambiguation: string,
-    genres: [LinkAdapter],
-    albums: [CardAdapter],
-    singles: [CardAdapter],
-    eps: [CardAdapter],
-    others: [CardAdapter],
-    links: [LinkAdapter],
-    dump: string,
+export global ArtistDetailsAdapter {
+    in property <string> key: "123";
+    in property <CardAdapter> card: {
+                image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+                title: {name: "A Reign of Fish"},
+            };
+    in property <string> disambiguation: "Not to be confused with Rain of Fish by Fargo.";
+    in property <string> summary: "Fresh Pliers does it again with 'A Reign of Fish'. Magna est quis laboris veniam do laborum. Cupidatat ea ipsum aliquip fugiat eu magna labore est eu est labore. Ex nostrud culpa id veniam aliqua aliqua ipsum. Velit do id amet labore mollit id cillum commodo Lorem proident labore eu. Incididunt minim irure culpa excepteur officia sit consequat est mollit. Ipsum anim anim sunt dolore. Laborum consequat deserunt laboris ullamco cillum. Ullamco deserunt ut quis dolore aliquip esse consequat velit amet. Nulla tempor veniam dolor amet occaecat adipisicing nulla laboris.\n\nQui non irure anim irure nisi nulla ex aliquip. Sit do irure esse magna sit do eiusmod. Anim commodo velit non enim nulla.\n\nAnim incididunt dolore nulla laboris eu mollit Lorem minim reprehenderit in quis magna mollit. Labore Lorem esse anim ipsum esse irure ipsum proident deserunt officia consequat sunt sit. Ex laborum ipsum laboris nisi proident. Nulla culpa est commodo dolor. Magna sint id et ut esse mollit qui elit voluptate ea.\n\nDuis amet qui reprehenderit cupidatat qui proident pariatur non ea aute reprehenderit nisi qui. Et elit anim culpa amet eu excepteur voluptate ad adipisicing esse eiusmod. Aliqua Lorem excepteur fugiat aute ullamco ea nostrud ipsum mollit cupidatat id magna. Nisi consectetur cillum incididunt deserunt non officia non laborum non ullamco non eiusmod dolor. Eu sit aute adipisicing Lorem consectetur nisi excepteur laboris eiusmod exercitation proident eu laborum fugiat. Ad id velit minim laboris eu. Do ex aliqua nisi aliqua laborum sunt qui quis officia labore do. Deserunt culpa culpa Lorem reprehenderit consequat ad pariatur anim quis. Nulla officia id ipsum adipisicing commodo labore culpa consectetur nostrud labore. Reprehenderit minim magna qui ullamco aute incididunt. Ipsum eu ad ex consequat et amet.";
+    in property <[LinkAdapter]> genres: [{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},];
+    in property <[LinkAdapter]> links: [{name: "https://bandcamp.com/arof",url: "internal://release/1234"}];
+    in property <string> dump;
+    in property <bool> save;
+    in property <bool> love;
+    in property <bool> download;
+    in property <[CardAdapter]> releases;
+
+    pure callback add_to_queue(string);
+    pure callback set_save(bool);
+    pure callback set_download(bool);
+    pure callback set_love(bool);
+
+    pure callback play_now(string /* key */);
+    pure callback play_next(string /* key */);
+    pure callback play_later(string /* key */);
+}
+
+export component BorderImage inherits Rectangle {
+    in-out property <image> image;
+
+    border-radius: Styles.thumbnail-border-radius;
+    border-color: Styles.thumbnail-border-color;
+    border-width: Styles.thumbnail-border-width;
+    clip: true;
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: image;
+    }
 }
 
 export component ArtistDetails inherits ScrollView {
-    in property <ArtistDetailsAdapter> model: model_ph;
-    in-out property <[TagModel]> tags: tags_ph;
-
-    VerticalBox {
+    VerticalLayout {
         alignment: start;
-        spacing: StyleMetrics.layout-spacing * 2;
-        // Header
+        // Header: Image, Title, Artists, Genres, Summary
         HorizontalLayout {
             alignment: start;
-            spacing: StyleMetrics.layout-spacing;
-            // Image
-            Rectangle {
-                width: Styles.thumbnail-width-extra-large;
-                height: Styles.thumbnail-width-extra-large;
-                border-radius: Styles.thumbnail-border-radius;
-                border-color: Styles.thumbnail-border-color;
-                border-width: Styles.thumbnail-border-width;
-                clip: true;
-                Image {
+            VerticalLayout {
+                BorderImage {
                     width: Styles.thumbnail-width-extra-large;
                     height: Styles.thumbnail-width-extra-large;
-                    source: model.card.image.image;
+                    image: ArtistDetailsAdapter.card.image.image;
+                }
+                ActionButtons {
+                    ActionButton {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+                        label: @tr("Play Now");
+                        clicked => { ArtistDetailsAdapter.play_now(ArtistDetailsAdapter.key); }
+                    }
+                    ActionButton {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+                        label: @tr("Play Later");
+                        clicked => { ArtistDetailsAdapter.add_to_queue(ArtistDetailsAdapter.key); }
+                    }
+                    ActionButton {
+                        icon: self.checked 
+                            ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
+                            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+                        label: @tr("Love");
+                        checkable: true;
+                        checked: ArtistDetailsAdapter.love;
+                        clicked => { ArtistDetailsAdapter.set_love(self.checked); }
+                    }
+                    ActionButton {
+                        icon: self.checked 
+                            ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
+                            : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
+                        label: @tr("Play Later");
+                        checkable: true;
+                        checked: ArtistDetailsAdapter.download;
+                        clicked => { ArtistDetailsAdapter.set_download(self.checked); }
+                    }
+                }
+                Rectangle {
+                    vertical-stretch: 1;
                 }
             }
-            VerticalLayout {
+            VerticalBox {
                 alignment: start;
-                spacing: StyleMetrics.layout-spacing;
                 // Title
                 Text {
-                    text: model.card.title.name;
+                    text: ArtistDetailsAdapter.card.title.name;
                     font-weight: Styles.font-weight-bold;
-                    font-size: 4rem;
+                    font-size: 1rem * Styles.page_title_font_rem;
+                    wrap: word-wrap;
                 }
+                // // Type and artists
+                // if ArtistDetailsAdapter.artists.length > 0: HorizontalLayout {
+                //     alignment: start;
+                //     Text {
+                //         text: "\{ReleaseDetailsAdapter.release-type} by ";
+                //         font-size: 1.3rem;
+                //     }
+                //     Links {
+                //         links: ReleaseDetailsAdapter.artists;
+                //         font-size: 1.3rem;
+                //     }
+                // }
                 // Disambiguation
-                if model.disambiguation > 0: HorizontalLayout {
-                    spacing: 4px;
-                    Image {
-                        source: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
-                        width: 1.5rem;
-                        colorize: StyleMetrics.default-text-color;
-                        padding-right: 8px;
-                    }
-                    Text {
-                        vertical-alignment: bottom;
-                        text: model.disambiguation;
-                        // font-weight: Styles.font-weight-bold;
-                        font-size: 1.3rem;
-                        color: StyleMetrics.default-text-color.darker(0.5);
-                    }
+                if ArtistDetailsAdapter.disambiguation != "": Text {
+                    text: ArtistDetailsAdapter.disambiguation;
+                    font-italic: true;
+                    font-size: 1.3rem;
                 }
                 // Genres
-                if model.genres.length > 0: HorizontalLayout {
+                if ArtistDetailsAdapter.genres.length > 0: HorizontalLayout {
                     alignment: start;
                     Text {
                         text: "In ";
                         font-size: 1.3rem;
                     }    
                     Links {
-                        links: model.genres;
+                        links: ArtistDetailsAdapter.genres;
                         font-size: 1.3rem;
                     }
                 }
                 // Summary
-                Text {
-                    text: model.summary;
+                if ArtistDetailsAdapter.summary != "": Text {
+                    text: ArtistDetailsAdapter.summary;
                     wrap: word-wrap;
                     font-size: 1.2rem;
                 }
             }
         }
 
-        // Albums
-        if model.albums.length > 0: VerticalLayout {
-            Text {
-                text: "Albums";
-                font-weight: Styles.font-weight-bold;
-                font-size: 2rem;
-            }
-            CardGrid {
-                cards: model.albums;
-                parent-width: root.width;
-            }
-        }
-
-        // Singles
-        if model.singles.length > 0: VerticalLayout {
-            Text {
-                text: "Singles";
-                font-weight: Styles.font-weight-bold;
-                font-size: 2rem;
-            }
-            CardGrid {
-                cards: model.singles;
-                parent-width: root.width;
-            }
-        }
-
-        // EPs
-        if model.eps.length > 0: VerticalLayout {
-            Text {
-                text: "EPs";
-                font-weight: Styles.font-weight-bold;
-                font-size: 2rem;
-            }
-            CardGrid {
-                cards: model.eps;
-                parent-width: root.width;
-            }
-                }
-
         // Other Releases
-        if model.others.length > 0: VerticalLayout {
+        if ArtistDetailsAdapter.releases.length > 0: VerticalLayout {
             Text {
                 text: "Other Releases";
                 font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             CardGrid {
-                cards: model.others;
+                cards: ArtistDetailsAdapter.releases;
                 parent-width: root.width;
             }
         }
 
         // Links
-        if model.links.length > 0: VerticalLayout {
+        if ArtistDetailsAdapter.links.length > 0: VerticalBox {
             Text {
                 text: "Links";
                 font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
-            for link in model.links: Link {
+            for link in ArtistDetailsAdapter.links: Link {
                 url: link.url;
                 name: link.name;
+                font-size: 1.3rem;
             }
         }
 
         // Debug Dump
-        if AppState.debug: VerticalLayout {
+        if AppState.debug: VerticalBox {
             Text {
                 text: "Debug";
                 font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             Text {
-                text: model.dump;
+                text: ArtistDetailsAdapter.dump;
                 wrap: word-wrap;
+                font-size: 1.3rem;
             }
         }
     }
-
-    property <LinkAdapter> link_ph: {
-        name: "A Reign of Fish",
-        url: "internal://release/1234"
-    };
-    
-    property <CardAdapter> card_ph: {
-        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-    };
-
-    property <ArtistDetailsAdapter> model_ph: {
-        card: card_ph,
-        summary: "Lorem ipsum lorem upsum ipsum ipsum lorem upsum ipsum ipsum lorem upsum ipsum.",
-        disambiguation: "The other one",
-        genres: 
-        [
-            {name: "metal",url: "internal://release/1234"},
-            {name: "heavy metal",url: "internal://release/1234"},
-            {name: "light metal",url: "internal://release/1234"},
-        ],
-        albums: [card_ph, card_ph, card_ph, card_ph, card_ph],
-        singles: [],
-        eps: [],
-        others: [],
-        links: [link_ph, link_ph],
-        dump: "aj asdkjha sdj haksjd jk ads",
-    };
-
-    in-out property <[TagModel]> tags_ph: [
-        { 
-            color: #75a222,
-            name: "Album",
-            selected: true,
-        },
-        { 
-            color: #5962e3,
-            name: "EP",
-        },
-        { 
-            color: #da8d29,
-            name: "Single",
-        },
-        { 
-            color: #d9455d,
-            name: "Other",
-        },
-    ];    
 }
+
+

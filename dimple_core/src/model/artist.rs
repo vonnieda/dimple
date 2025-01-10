@@ -2,7 +2,7 @@ use dimple_core_macro::ModelSupport;
 
 use crate::library::Library;
 
-use super::Genre;
+use super::{Genre, Link, Release};
 
 // https://musicbrainz.org/doc/Artist
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, ModelSupport)]
@@ -30,6 +30,24 @@ impl Artist {
             JOIN Genre g ON (g.key = gr.genre_key) 
             WHERE gr.model_key = ?1
         ", (self.key.clone().unwrap(),))
+    }
+
+    pub fn links(&self, library: &Library) -> Vec<Link> {
+        library.query("
+            SELECT l.* FROM LinkRef lr 
+            JOIN Link l ON (l.key = lr.link_key) 
+            WHERE lr.model_key = ?1
+        ", (self.key.clone().unwrap(),))
+    }
+
+    pub fn releases(&self, library: &Library) -> Vec<Release> {
+        let sql = "
+            SELECT Release.* FROM Release
+            LEFT JOIN ArtistRef ON (ArtistRef.model_key = Release.key)
+            WHERE ArtistRef.artist_key = ?1
+            ORDER BY date ASC, title ASC
+        ";
+        library.query(sql, (self.key.clone(),))
     }
 }
 

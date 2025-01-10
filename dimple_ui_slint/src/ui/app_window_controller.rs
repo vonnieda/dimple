@@ -75,9 +75,10 @@ impl AppWindowController {
 
         player_bar::player_bar_init(&self.app);
 
+        pages::artist_details::artist_details_init(&self.app);
         pages::artist_list::artist_list_init(&self.app);
-        pages::event_list::event_list_init(&self.app);
         pages::genre_list::genre_list_init(&self.app);
+        pages::history_list::history_list_init(&self.app);
         pages::home::home_init(&self.app);
         pages::playlist_list::playlist_list_init(&self.app);
         pages::playlist_details::playlist_details_init(&self.app);
@@ -131,24 +132,15 @@ impl App {
         else if url.starts_with("dimple://artists") {
             pages::artist_list::artist_list(self);
         }
-        // else if url.starts_with("dimple://artist/") {
-        //     crate::ui::pages::artist_details::artist_details(&url, self);
-        // }
-        // else if url.starts_with("dimple://release-groups") {
-        //     crate::ui::pages::release_group_list::release_group_list(self);
-        // }
-        // else if url.starts_with("dimple://release-group/") {
-        //     crate::ui::pages::release_group_details::release_group_details(&url, self);
-        // }
+        else if url.starts_with("dimple://artist/") {
+            crate::ui::pages::artist_details::artist_details(&url, self);
+        }
         else if url.starts_with("dimple://releases") {
             pages::release_list::release_list(self);
         }
         else if url.starts_with("dimple://release/") {
             crate::ui::pages::release_details::release_details(&url, self);
         }
-        // else if url.starts_with("dimple://recording/") {
-        //     crate::ui::pages::recording_details::recording_details(&url, self);
-        // }
         else if url.starts_with("dimple://tracks") {
             pages::track_list::track_list(self);
         }
@@ -171,7 +163,7 @@ impl App {
             pages::queue_details::queue_details(&url, self);
         }
         else if url.starts_with("dimple://history") {
-            pages::event_list::event_list(self);
+            pages::history_list::history_list(self);
         }
         else if url == "dimple://settings" {
             pages::settings::settings(self);
