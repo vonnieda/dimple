@@ -57,30 +57,36 @@ impl Track {
     /// TODO this should return the artists in order, with the primary being
     /// first. I'm not exactly sure how to indicate primary yet.
     pub fn artists(&self, library: &Library) -> Vec<Artist> {
-        library.query("
-            SELECT a.* FROM ArtistRef ar 
-            JOIN Artist a ON (a.key = ar.artist_key) 
-            WHERE ar.model_key = ?1
-            ORDER BY ar.rowid ASC
-        ", (self.key.clone().unwrap(),))
+        self.key.as_ref().map(|key| {
+            library.query("
+                SELECT a.* FROM ArtistRef ar 
+                JOIN Artist a ON (a.key = ar.artist_key) 
+                WHERE ar.model_key = ?1
+                ORDER BY ar.rowid ASC
+            ", (key,))
+        }).unwrap_or_default()
     }
 
     pub fn genres(&self, library: &Library) -> Vec<Genre> {
-        library.query("
-            SELECT g.* FROM GenreRef gr 
-            JOIN Genre g ON (g.key = gr.genre_key) 
-            WHERE gr.model_key = ?1
-            ORDER BY g.name ASC
-        ", (self.key.clone().unwrap(),))
+        self.key.as_ref().map(|key| {
+            library.query("
+                SELECT g.* FROM GenreRef gr 
+                JOIN Genre g ON (g.key = gr.genre_key) 
+                WHERE gr.model_key = ?1
+                ORDER BY g.name ASC
+            ", (key,))
+        }).unwrap_or_default()
     }
 
     pub fn links(&self, library: &Library) -> Vec<Link> {
-        library.query("
-            SELECT l.* FROM LinkRef lr 
-            JOIN Link l ON (l.key = lr.link_key) 
-            WHERE lr.model_key = ?1
-            ORDER BY l.url ASC
-        ", (self.key.clone().unwrap(),))
+        self.key.as_ref().map(|key| {
+            library.query("
+                SELECT l.* FROM LinkRef lr 
+                JOIN Link l ON (l.key = lr.link_key) 
+                WHERE lr.model_key = ?1
+                ORDER BY l.url ASC
+            ", (key,))
+        }).unwrap_or_default()
     }
 }
 

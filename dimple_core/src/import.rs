@@ -117,6 +117,19 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
         });
     }
 
+    // Match, update, and link Release Genres.
+    for genre in tags.release_genres() {
+        let matched = match_genre(library, &genre)
+            .unwrap_or_default();
+        let genre = CrdtRules::merge(matched, genre);
+        let genre = genre.save(library);
+        library.save(&GenreRef {
+            genre_key: genre.key.clone().unwrap(),
+            model_key: release.key.clone().unwrap(),
+            ..Default::default()
+        });
+    }
+
     // Update the TrackSource with the saved track_key.
     track_source.track_key = track.key.clone();
     track_source.media_file_key = media_file.key.clone();

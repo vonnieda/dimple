@@ -9,7 +9,6 @@ use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
 use slint::ModelRc;
 use crate::ui::CardAdapter;
-use crate::ui::TrackAdapter;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
 

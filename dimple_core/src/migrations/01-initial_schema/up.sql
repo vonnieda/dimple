@@ -14,7 +14,7 @@ CREATE TABLE Artist (
     spotify_id TEXT,
     wikidata_id TEXT
 );
-CREATE UNIQUE INDEX Artist_idx_1 ON Artist (name, COALESCE(disambiguation, ''));
+CREATE UNIQUE INDEX Artist_unique_name_disambiguation ON Artist (name, COALESCE(disambiguation, ''));
 
 CREATE TABLE Release (
     key TEXT PRIMARY KEY,
@@ -38,6 +38,8 @@ CREATE TABLE Release (
     spotify_id TEXT,
     wikidata_id TEXT
 );
+CREATE INDEX Release_title ON Release (title);
+CREATE INDEX Release_musicbrainz_id ON Release (musicbrainz_id);
 
 CREATE TABLE Track (
     key TEXT PRIMARY KEY,
@@ -64,6 +66,8 @@ CREATE TABLE Track (
     media_title TEXT,
     media_format TEXT
 );
+CREATE INDEX Track_musicbrainz_id ON Track (musicbrainz_id);
+CREATE INDEX Track_release_key ON Track (release_key);
 
 CREATE TABLE Genre (
     key TEXT PRIMARY KEY,
@@ -79,11 +83,12 @@ CREATE TABLE Genre (
     spotify_id TEXT,
     wikidata_id TEXT
 );
+CREATE INDEX Genre_musicbrainz_id ON Genre (musicbrainz_id);
 
 CREATE TABLE Link (
     key TEXT PRIMARY KEY,
     name TEXT,
-    url TEXT NOT NULL
+    url TEXT UNIQUE NOT NULL
 );
 
 CREATE TABLE Playlist (
@@ -100,6 +105,7 @@ CREATE TABLE Playlist (
     spotify_id TEXT,
     wikidata_id TEXT
 );
+CREATE INDEX Playlist_musicbrainz_id ON Playlist (musicbrainz_id);
 
 CREATE TABLE PlaylistItem (
     key TEXT PRIMARY KEY,
@@ -118,7 +124,7 @@ CREATE TABLE LinkRef (
     link_key TEXT NOT NULL,
     FOREIGN KEY (link_key) REFERENCES Link(key)
 );
-CREATE UNIQUE INDEX LinkRef_idx_2 ON LinkRef (model_key, link_key);
+CREATE UNIQUE INDEX LinkRef_unique_model_key_link_key ON LinkRef (model_key, link_key);
 
 CREATE TABLE ArtistRef (
     key TEXT PRIMARY KEY,
@@ -126,7 +132,7 @@ CREATE TABLE ArtistRef (
     artist_key TEXT NOT NULL,
     FOREIGN KEY (artist_key) REFERENCES Artist(key)
 );
-CREATE UNIQUE INDEX ArtistRef_idx_2 ON ArtistRef (model_key, artist_key);
+CREATE UNIQUE INDEX ArtistRef_unique_model_key_artist_key ON ArtistRef (model_key, artist_key);
 
 CREATE TABLE GenreRef (
     key TEXT PRIMARY KEY,
@@ -134,7 +140,7 @@ CREATE TABLE GenreRef (
     genre_key TEXT NOT NULL,
     FOREIGN KEY (genre_key) REFERENCES Genre(key)
 );
-CREATE UNIQUE INDEX GenreRef_idx_2 ON GenreRef (model_key, genre_key);
+CREATE UNIQUE INDEX GenreRef_unique_model_key_genre_key ON GenreRef (model_key, genre_key);
 
 
 
@@ -173,16 +179,10 @@ CREATE TABLE Event (
     source_type TEXT NOT NULL,
     source TEXT NOT NULL
 );
-
 CREATE INDEX Event_idx_1 ON Event (timestamp, event_type);
-
 CREATE INDEX Event_idx_2 ON Event (timestamp);
-
 CREATE INDEX Event_idx_3 ON Event (event_type);
-
 CREATE UNIQUE INDEX Event_idx_4 ON Event (source_type, source);
-
-
 
 
 CREATE TABLE Metadata (key TEXT PRIMARY KEY, value TEXT);

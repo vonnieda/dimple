@@ -78,6 +78,7 @@ impl AppWindowController {
         pages::artist_details::artist_details_init(&self.app);
         pages::artist_list::artist_list_init(&self.app);
         pages::genre_list::genre_list_init(&self.app);
+        pages::genre_details::genre_details_init(&self.app);
         pages::history_list::history_list_init(&self.app);
         pages::home::home_init(&self.app);
         pages::playlist_list::playlist_list_init(&self.app);
@@ -150,9 +151,9 @@ impl App {
         else if url.starts_with("dimple://genres") {
             pages::genre_list::genre_list(self);
         }
-        // else if url.starts_with("dimple://genre/") {
-        //     crate::ui::pages::genre_details::genre_details(&url, self);
-        // }
+        else if url.starts_with("dimple://genre/") {
+            crate::ui::pages::genre_details::genre_details(&url, self);
+        }
         else if url.starts_with("dimple://playlists") {
             pages::playlist_list::playlist_list(self);
         }

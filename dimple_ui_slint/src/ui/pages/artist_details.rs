@@ -102,15 +102,12 @@ fn update_model(app: &App) {
                 let releases = release_cards(&images, &releases, &library);
                 ui.global::<ArtistDetailsAdapter>().set_card(card.into());
                 ui.global::<ArtistDetailsAdapter>().set_key(artist.key.clone().unwrap_or_default().into());
-                // ui.global::<ArtistDetailsAdapter>().set_release_type(release.release_group_type.clone().unwrap_or("Release".to_string()).into());
-                // ui.global::<ArtistDetailsAdapter>().set_artists(ModelRc::from(artists.as_slice()));
                 ui.global::<ArtistDetailsAdapter>().set_releases(ModelRc::from(releases.as_slice()));
                 ui.global::<ArtistDetailsAdapter>().set_summary(artist.summary.clone().unwrap_or_default().into());
                 ui.global::<ArtistDetailsAdapter>().set_disambiguation(artist.disambiguation.clone().unwrap_or_default().into());
                 ui.global::<ArtistDetailsAdapter>().set_genres(ModelRc::from(genres.as_slice()));
                 ui.global::<ArtistDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
                 ui.global::<ArtistDetailsAdapter>().set_dump(format!("{:?}", artist).into());
-                // ui.global::<ArtistDetailsAdapter>().set_row_data(row_data(&tracks));
             }).unwrap();
         });
     }).unwrap();
@@ -154,8 +151,10 @@ fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
             ..Default::default()
         },
         sub_title: LinkAdapter {
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            name: format!("{} {}", 
+                release.date.unwrap_or_default(), 
+                release.release_group_type.unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
     }

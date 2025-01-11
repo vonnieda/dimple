@@ -1,163 +1,149 @@
+use crate::ui::app_window_controller::App;
+use crate::ui::images::ImageMangler;
+use crate::ui::CardAdapter;
+use crate::ui::Page;
+use dimple_core::library::Library;
 use dimple_core::model::Artist;
-use dimple_core::model::Entity;
 use dimple_core::model::Genre;
-use dimple_core::model::Playlist;
-use dimple_core::model::Model;
-use dimple_core::model::ReleaseGroup;
-use dimple_core::model::Track;
-use slint::ComponentHandle;
-use slint::Model as _;
+use dimple_core::model::ModelBasics;
+use dimple_core::model::Release;
+use slint::ComponentHandle as _;
 use slint::ModelRc;
 use url::Url;
-use crate::ui::app_window_controller::App;
-use crate::ui::Navigator;
-use crate::ui::Page;
-use dimple_core::db::Db;
 use crate::ui::LinkAdapter;
-use crate::ui::CardAdapter;
 use crate::ui::GenreDetailsAdapter;
+use crate::ui::ImageLinkAdapter;
+
+pub fn genre_details_init(app: &App) {
+    let app1 = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        let app = app1.clone();
+        ui.global::<GenreDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
+        let app = app1.clone();
+        ui.global::<GenreDetailsAdapter>().on_add_to_queue(move |key| add_to_queue(&app, &key));
+    }).unwrap();
+
+    // TODO filter events
+    let app1 = app.clone();
+    app.library.on_change(Box::new(move |_event| update_model(&app1)));
+}
 
 pub fn genre_details(url: &str, app: &App) {
-    let url = url.to_owned();
-    let librarian = app.librarian.clone();
+    let app = app.clone();
+    let url = Url::parse(&url).unwrap();
+    let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
     let ui = app.ui.clone();
-    let images = app.images.clone();
-    std::thread::spawn(move || {        
-        let url = Url::parse(&url).unwrap();
-        let key = url.path_segments().unwrap().nth(0).unwrap();
+    ui.upgrade_in_event_loop(move |ui| {
+        ui.global::<GenreDetailsAdapter>().set_key(key.into());
+        update_model(&app);
+        ui.set_page(Page::GenreDetails);
+    }).unwrap();
+}
 
-        let genre: Genre = librarian.get(&Genre {
-            key: Some(key.to_string()),
+fn play_now(app: &App, key: &str) {
+    // let app = app.clone();
+    // let key = key.to_string();
+    // app.ui.upgrade_in_event_loop(move |ui| {
+    //     // TODO think about ephemeral or secondary playlist, or even
+    //     // a playlist inserted inbetween the playing items
+    //     let play_queue = app.player.queue();
+    //     app.library.playlist_add(&play_queue, &key);
+    //     let len = play_queue.len(&app.library);
+    //     app.player.set_queue_index(len - 1);
+    //     app.player.play();
+    // }).unwrap();
+    todo!()
+}
+
+fn add_to_queue(app: &App, key: &str) {
+    // let app = app.clone();
+    // let key = key.to_string();
+    // app.ui.upgrade_in_event_loop(move |ui| {
+    //     let play_queue = app.player.queue();
+    //     let release = Artist::get(&app.library, &key).unwrap();
+    //     for track in release.tracks(&app.library) {
+    //         app.library.playlist_add(&play_queue, &track.key.unwrap());
+    //     }
+    //     app.player.play();
+    // }).unwrap();
+}
+
+fn update_model(app: &App) {
+    let app1 = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        let key = ui.global::<GenreDetailsAdapter>().get_key();
+        let library = app1.library.clone();
+        let app = app1.clone();
+        std::thread::spawn(move || {
+            let genre = Genre::get(&library, &key).unwrap();
+            let links = genre.links(&library);
+            let releases = genre.releases(&app.library);
+            let ui = app.ui.clone();
+            let images = app.images.clone();
+            ui.upgrade_in_event_loop(move |ui| {
+                let mut card: CardAdapter = genre.clone().into();                
+                // card.image.image = app.images.lazy_get(release.clone(), 275, 275, |ui, image| {
+                //     let mut card = ui.global::<ArtistDetailsAdapter>().get_card();
+                //     card.image.image = image;
+                //     ui.global::<ArtistDetailsAdapter>().set_card(card);
+                // });
+
+                let links: Vec<LinkAdapter> = links.iter().map(|link| {
+                    LinkAdapter {
+                        name: link.name.clone().unwrap_or_else(|| link.url.clone()).into(),
+                        url: link.url.clone().into(),
+                    }
+                })
+                .collect();
+
+                let releases = release_cards(&images, &releases, &library);
+                ui.global::<GenreDetailsAdapter>().set_card(card.into());
+                ui.global::<GenreDetailsAdapter>().set_key(genre.key.clone().unwrap_or_default().into());
+                ui.global::<GenreDetailsAdapter>().set_releases(ModelRc::from(releases.as_slice()));
+                ui.global::<GenreDetailsAdapter>().set_summary(genre.summary.clone().unwrap_or_default().into());
+                ui.global::<GenreDetailsAdapter>().set_disambiguation(genre.disambiguation.clone().unwrap_or_default().into());
+                ui.global::<GenreDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
+                ui.global::<GenreDetailsAdapter>().set_dump(format!("{:?}", genre).into());
+            }).unwrap();
+        });
+    }).unwrap();
+}
+
+fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library) -> Vec<CardAdapter> {
+    releases.iter().cloned().enumerate()
+        .map(|(index, release)| {
+            let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
+            // card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
+            //     let mut card = ui.get_release_list().cards.row_data(index).unwrap();
+            //     card.image.image = image;
+            //     ui.get_release_list().cards.set_row_data(index, card);
+            // });
+            card
+        })
+        .collect()
+}
+
+fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
+    let release = release.clone();
+    CardAdapter {
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: release.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
             ..Default::default()
-        }.into()).unwrap().unwrap().into();
-
-        let mut artists: Vec<Artist> = librarian
-            .list(&Artist::default().into(), &Some(genre.model()))
-            .unwrap()
-            .map(Into::into)
-            .collect();
-        artists.sort_by_key(|f| f.name.to_owned());
-        // artists.reverse();
-
-        let mut release_groups: Vec<ReleaseGroup> = librarian
-            .list(&ReleaseGroup::default().into(), &Some(genre.model()))
-            .unwrap()
-            .map(Into::into)
-            .collect();
-        release_groups.sort_by_key(|f| f.title.to_owned());
-        // release_groups.reverse();
-
-        let mut tracks: Vec<Track> = librarian
-            .list(&Track::default().into(), &Some(genre.model()))
-            .unwrap()
-            .map(Into::into)
-            .collect();
-        tracks.sort_by_key(|f| f.title.to_owned());
-        // artists.reverse();
-
-        let mut playlists: Vec<Playlist> = librarian
-            .list(&Playlist::default().model(), &Some(genre.model()))
-            .unwrap()
-            .map(Into::into)
-            .collect();
-        playlists.sort_by_key(|f| f.name.to_owned());
-        // release_groups.reverse();
-
-        // let related_genres: Vec<Genre> = librarian
-        //     .list(&Genre::default().into(), Some(&Model::Artist(artist.clone())))
-        //     .unwrap()
-        //     .map(Into::into)
-        //     .collect();
-
-        ui.upgrade_in_event_loop(move |ui| {
-            let artists: Vec<CardAdapter> = artists.iter().cloned()
-                .enumerate()
-                .map(|(index, artist)| {
-                    let mut card: CardAdapter = artist.clone().into();
-                    card.image.image = images.lazy_get(artist.model(), 200, 200, move |ui, image| {
-                        let mut card = ui.get_genre_details().artists.row_data(index).unwrap();
-                        card.image.image = image;
-                        ui.get_genre_details().artists.set_row_data(index, card);
-                    });
-                    card
-                })
-                .collect();
-
-            let release_groups: Vec<CardAdapter> = release_groups.iter().cloned()
-                .enumerate()
-                .map(|(index, release_group)| {
-                    let mut card: CardAdapter = release_group.clone().into();
-                    card.image.image = images.lazy_get(release_group.model(), 200, 200, move |ui, image| {
-                        let mut card = ui.get_genre_details().release_groups.row_data(index).unwrap();
-                        card.image.image = image;
-                        ui.get_genre_details().release_groups.set_row_data(index, card);
-                    });
-                    card
-                })
-                .collect();
-
-            let playlists: Vec<CardAdapter> = playlists.iter().cloned()
-                .enumerate()
-                .map(|(index, playlist)| {
-                    let mut card: CardAdapter = playlist.clone().into();
-                    card.image.image = images.lazy_get(playlist.model(), 200, 200, move |ui, image| {
-                        let mut card = ui.get_genre_details().playlists.row_data(index).unwrap();
-                        card.image.image = image;
-                        ui.get_genre_details().playlists.set_row_data(index, card);
-                    });
-                    card
-                })
-                .collect();
-
-            let tracks: Vec<CardAdapter> = tracks.iter().cloned()
-                .enumerate()
-                .map(|(index, track)| {
-                    let mut card: CardAdapter = track.clone().into();
-                    card.image.image = images.lazy_get(track.model(), 200, 200, move |ui, image| {
-                        let mut card = ui.get_genre_details().tracks.row_data(index).unwrap();
-                        card.image.image = image;
-                        ui.get_genre_details().tracks.set_row_data(index, card);
-                    });
-                    card
-                })
-                .collect();
-
-            // let genres: Vec<LinkAdapter> = genres.iter().cloned().map(|genre| {
-            //     LinkAdapter {
-            //         name: genre.name.unwrap().into(),
-            //         url: format!("dimple://genre/{}", genre.key.unwrap()).into(),
-            //     }
-            // }).collect();
-
-            let links: Vec<LinkAdapter> = genre.links.iter().map(|link| {
-                LinkAdapter {
-                    name: link.into(),
-                    url: link.into(),
-                }
-            }).collect();
-
-            let mut adapter = GenreDetailsAdapter {
-                card: genre.clone().into(),
-                disambiguation: genre.disambiguation.clone().unwrap_or_default().into(),
-                summary: genre.summary.clone().unwrap_or_default().into(),
-                artists: ModelRc::from(artists.as_slice()),
-                release_groups: ModelRc::from(release_groups.as_slice()),
-                playlists: ModelRc::from(playlists.as_slice()),
-                tracks: ModelRc::from(tracks.as_slice()),
-                // related_genres: ModelRc::from(related_genres.as_slice()),
-                links: ModelRc::from(links.as_slice()),
-                dump: serde_json::to_string_pretty(&genre).unwrap().into(),
-                ..Default::default()
-            };
-            adapter.card.image.image = images.lazy_get(genre.model(), 275, 275, |ui, image| {
-                let mut model = ui.get_genre_details();
-                model.card.image.image = image;
-                ui.set_genre_details(model);
-            });
-            ui.set_genre_details(adapter);
-            ui.set_page(Page::GenreDetails);
-            ui.global::<Navigator>().set_busy(false);
-        }).unwrap();
-    });
+        },
+        title: LinkAdapter {
+            name: release.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            ..Default::default()
+        },
+        sub_title: LinkAdapter {
+            name: format!("{} {}", 
+                release.date.unwrap_or_default(), 
+                release.release_group_type.unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+        },
+        ..Default::default()
+    }
 }
 

@@ -212,6 +212,16 @@ impl TaggedMediaFile {
             })
             .collect()
     }
+
+    pub fn release_genres(&self) -> Vec<Genre> {
+        self.tags(StandardTagKey::Genre).iter()
+            .flat_map(|s| parse_genre_tag(s))
+            .map(|s| Genre {
+                name: Some(s.to_string()),
+                ..Default::default()
+            })
+            .collect()
+    }
 }
 
 pub fn parse_n_of_m_tag(value: &str) -> (Option<u32>, Option<u32>) {
