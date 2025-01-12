@@ -77,6 +77,9 @@ fn update_model(app: &App) {
     let app1 = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
         let key = ui.global::<ReleaseDetailsAdapter>().get_key();
+        if key.is_empty() {
+            return
+        }
         let library = app1.library.clone();
         let app = app1.clone();
         std::thread::spawn(move || {

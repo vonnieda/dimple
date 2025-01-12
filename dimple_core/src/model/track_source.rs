@@ -14,7 +14,7 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open_temporary();
+        let library = Library::open_memory();
         let blob = library.save(&Blob::default());
         let track = library.save(&Track::default());
         let model = library.save(&TrackSource {

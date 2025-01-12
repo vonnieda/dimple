@@ -3,6 +3,8 @@ use std::{fmt::Debug, sync::{Arc, Mutex, RwLock}, time::Duration};
 use image::DynamicImage;
 use include_dir::{include_dir, Dir};
 use log::info;
+use r2d2::{Pool, PooledConnection};
+use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{backup::Backup, Connection, OptionalExtension, Params};
 use rusqlite_migration::Migrations;
 use threadpool::ThreadPool;
@@ -26,8 +28,7 @@ impl Debug for LibraryEvent {
 
 #[derive(Clone)]
 pub struct Library {
-    _conn: Arc<Mutex<Connection>>,
-    database_path: String,
+    pool: Pool<SqliteConnectionManager>,
     ulids: Arc<Mutex<Generator>>,
     // TODO I really think I want to get rid of this and put it somewhere
     // higher level. Note: Yea, it's going into Plugins and we're deleting
@@ -38,32 +39,17 @@ pub struct Library {
 }
 
 impl Library {
-    pub fn open_temporary() -> Self {
-        let path = format!("file:{}?mode=memory&cache=shared", Uuid::new_v4());
-        Library::open(&path)
-    }
+    pub fn open_memory() -> Self {
+        let manager = r2d2_sqlite::SqliteConnectionManager::memory();
+        let pool = r2d2::Pool::builder()
+            .max_size(1)
+            .build(manager)
+            .unwrap();
 
-    /// Open the library located at the specified path. The path is to an
-    /// optionally existing Sqlite database. Blobs will be stored in the
-    /// same directory as the specified file. If the directory does not exist
-    /// it (and all parents) will be created.
-    pub fn open(database_path: &str) -> Self {
-        // std::fs::create_dir_all(path).unwrap();
-        // let db_path = Path::new(path).join("library.db");
-        // let plugin_cache_path = Path::new(path).join("plugin_cache");
-        // fs::create_dir_all(plugin_cache_path.clone()).unwrap();
-        // let librarian = Self {
-        //     db: SqliteDb::new(db_path.to_str().unwrap()).unwrap(),
-        //     plugins: Default::default(),
-        //     network_mode: Arc::new(Mutex::new(NetworkMode::Online)),
-        //     plugin_context: PluginContext::new(plugin_cache_path.to_str().unwrap()),
-        // };
-        // librarian
+        let mut conn = pool.get().unwrap();
 
         static MIGRATION_DIR: Dir = include_dir!("./dimple_core/src/migrations");
         let migrations = Migrations::from_directory(&MIGRATION_DIR).unwrap();
-
-        let mut conn = Connection::open(database_path).unwrap();
 
         migrations.to_latest(&mut conn).unwrap();
 
@@ -78,8 +64,46 @@ impl Library {
         ).unwrap();
 
         let library = Library {
-            _conn: Arc::new(Mutex::new(conn)),
-            database_path: database_path.to_string(),
+            pool,
+            ulids: Arc::new(Mutex::new(Generator::new())),
+            synchronizers: Arc::new(RwLock::new(vec![])),
+            notifier: Notifier::new(),
+            threadpool: ThreadPool::new(1),
+        };
+
+        library
+    }
+
+    /// Open the library located at the specified path. The path is to an
+    /// optionally existing Sqlite database. Blobs will be stored in the
+    /// same directory as the specified file. If the directory does not exist
+    /// it (and all parents) will be created.
+    pub fn open(database_path: &str) -> Self {
+        let manager = r2d2_sqlite::SqliteConnectionManager::file(database_path);
+        let pool = r2d2::Pool::builder()
+            .max_size(8) // probably should be like num_cores * N but 24 feels nice
+            .build(manager)
+            .unwrap();
+
+        let mut conn = pool.get().unwrap();
+
+        static MIGRATION_DIR: Dir = include_dir!("./dimple_core/src/migrations");
+        let migrations = Migrations::from_directory(&MIGRATION_DIR).unwrap();
+
+        migrations.to_latest(&mut conn).unwrap();
+
+        conn.pragma_update(None, "journal_mode", "WAL").unwrap();
+        conn.pragma_update(None, "foreign_keys", "ON").unwrap();        
+
+        conn.execute("
+            INSERT INTO Metadata (key, value) VALUES ('library.uuid', ?1)
+            ON CONFLICT DO NOTHING
+            ",
+            (Uuid::new_v4().to_string(),),
+        ).unwrap();
+
+        let library = Library {
+            pool,
             ulids: Arc::new(Mutex::new(Generator::new())),
             synchronizers: Arc::new(RwLock::new(vec![])),
             notifier: Notifier::new(),
@@ -417,14 +441,8 @@ impl Library {
         None
     }
 
-    fn conn(&self) -> Connection {
-        // TODO wait, wait, why did I change this from a single connection?
-        // Cause that is probably slowing things down a lot. So if I need
-        // it this way (why?) then I need to pool.
-        // > library conn() is now a function that returns a new connection - 
-        // > needed to make Library sharable, and this paves the way for
-        // > transactions. Previously would have needed mut Library.
-        Connection::open(self.database_path.clone()).unwrap()
+    fn conn(&self) -> PooledConnection<SqliteConnectionManager> {
+        self.pool.get().unwrap()
     }
 }
 
@@ -438,60 +456,18 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let _library = Library::open("file:3cd2ed69-2945-49db-b7b9-bdf1d4f464d8?mode=memory&cache=shared");
+        let _library = Library::open_memory();
     }
 
     #[test]
     fn tracks() {
-        let library = Library::open("file:18de25eb-5ffb-4351-bce6-14969f5293e4?mode=memory&cache=shared");
+        let library = Library::open_memory();
         library.tracks();
-    }
-
-    // #[test]
-    // fn changelogs() {
-    //     let library = Library::open("file:7f59f615-f828-4db9-a5b2-8ae6ee4b4e2f?mode=memory&cache=shared");
-    //     let track = Track {
-    //         artist: Some("Which Who".to_string()),
-    //         title: Some("We All Eat Food".to_string()),
-    //         ..Default::default()
-    //     };
-    //     let mut track = library.save(&track);
-    //     track.artist = Some("The The".to_string());
-    //     track.album = Some("Some Kind of Something".to_string());
-    //     track.liked = true;
-    //     library.save(&track);
-    //     let changelogs = library.changelogs();
-    //     assert!(changelogs.len() == 6);        
-    // }
-
-    // #[test]
-    // fn diff() {
-    //     let track = Track {
-    //         artist: Some("The Newbs".to_string()),
-    //         album: Some("Brand News".to_string()),
-    //         title: Some("Fresh Stuff".to_string()),
-    //         ..Default::default()
-    //     };
-    //     let diff = Track::default().diff(&track);
-    //     let mut track2 = Track::default();
-    //     track2.apply_diff(&diff);
-    //     assert!(track == track2);
-    // }
-
-    #[test]
-    fn import() {
-        let library = Library::open("file:6384d9e0-74c1-4ecd-9ea3-b5d0118f134e?mode=memory&cache=shared");
-        assert!(library.list::<MediaFile>().len() == 0);
-        library.import("tests/data/media_files");
-        let num_mediafiles = library.list::<MediaFile>().len();
-        assert!(library.list::<MediaFile>().len() > 0);
-        library.import("tests/data/media_files");
-        assert!(library.list::<MediaFile>().len() == num_mediafiles);
     }
 
     #[test]
     fn load_track_content() {
-        let library = Library::open("file:6384d9e0-74c1-4e1d-9ea3-b5d0198f134e?mode=memory&cache=shared");
+        let library = Library::open_memory();
         library.import("tests/data/media_files");
         let track = &library.tracks()[0];
         let content = library.load_track_content(track).unwrap();
@@ -500,7 +476,7 @@ mod tests {
 
     #[test]
     fn change_notifications() {
-        let library = Library::open("file:40c65129-2e84-4eff-8b25-9a03519da1e1?mode=memory&cache=shared");
+        let library = Library::open_memory();
         let (tx, rx) = std::sync::mpsc::channel();
         library.on_change(Box::new(move |event| {
             tx.send(()).unwrap();

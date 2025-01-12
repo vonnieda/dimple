@@ -46,7 +46,7 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open("file:6384d9e0-74c1-4ecd-9ea3-b5d0198f134e?mode=memory&cache=shared");
+        let library = Library::open_memory();
         let mut model = library.save(&Blob::default());
         assert!(model.key.is_some());
         model.sha256 = "sha256".to_string();

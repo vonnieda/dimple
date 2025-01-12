@@ -162,9 +162,9 @@ CREATE TABLE TrackSource (
     FOREIGN KEY (blob_key) REFERENCES Blob(key),
     FOREIGN KEY (media_file_key) REFERENCES MediaFile(key)
 );
-
 CREATE INDEX TrackSource_idx_1 ON TrackSource (blob_key);
 CREATE UNIQUE INDEX TrackSource_idx_2 ON TrackSource (track_key, blob_key);
+CREATE INDEX TrackSource_idx_media_file_key ON TrackSource (media_file_key);
 
 
 

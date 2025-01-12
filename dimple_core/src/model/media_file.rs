@@ -24,7 +24,7 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open_temporary();
+        let library = Library::open_memory();
         let model = library.save(&MediaFile::default());
         assert!(model.key.is_some());
     }

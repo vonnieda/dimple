@@ -14,6 +14,11 @@ use crate::model::{Artist, Genre, Link, Release, Track};
 /// https://github.com/beetbox/beets/blob/master/beets/importer.py#L463
 /// https://picard-docs.musicbrainz.org/downloads/MusicBrainz_Picard_Tag_Map.html
 /// https://github.com/pdeljanov/Symphonia/blob/master/symphonia-metadata/src/id3v2/frames.rs#L23
+/// VEDMA by enjoii w. and brothel. I think those are parsed wrong.
+/// A Sphere of Influence dupes
+/// A Tulip Rose From The Bone Dry Dust dupes
+/// Everything in Genre (17) is pretty fucked
+/// 
 #[derive(Clone, Debug)]
 pub struct TaggedMediaFile {
     pub path: String,

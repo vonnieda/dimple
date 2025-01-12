@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open("file:d13d046d-fb2b-4629-8163-318bf7b47ed6?mode=memory&cache=shared");
+        let library = Library::open_memory();
         let mut model = library.save(&Release::default());
     }
 }

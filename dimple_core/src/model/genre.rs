@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open_temporary();
+        let library = Library::open_memory();
         let model = library.save(&Genre {
             name: Some("The Meat Puppets".to_string()),
             ..Default::default()

@@ -3,9 +3,10 @@ pub mod tagged_media_file;
 
 use std::path::Path;
 
-use crate::{library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Genre, GenreRef, ModelBasics as _, Release, Track, TrackSource}};
+use crate::{library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Genre, GenreRef, MediaFile, ModelBasics as _, Release, Track, TrackSource}};
 
 use chrono::{DateTime, Utc};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator as _};
 use tagged_media_file::TaggedMediaFile;
 use walkdir::WalkDir;
 
@@ -17,7 +18,7 @@ pub fn import(library: &Library, path: &str) {
     let files = scan(path);
     log::info!("Scanned {} files.", files.len());
 
-    files.iter().for_each(|file| {
+    files.par_iter().for_each(|file| {
         let _ = import_single_file(&library, Path::new(&file.path), force);
     });
 }
@@ -58,76 +59,33 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
         ", (&media_file.key,))
         .unwrap_or_default();
     
-    // Match and update the Track, preferring the one on the TrackSource if it
+    // Match and merge the Track, preferring the one on the TrackSource if it
     // exists.
     let track = track_source.track_key.as_ref()
         .and_then(|track_key| Track::get(library, &track_key))
         .or_else(|| match_track(library, &tags))
         .unwrap_or_default();
     let track = CrdtRules::merge(track, tags.track());
-    let mut track = track.save(library);
-
-    // Match, update, and link Track Artists.
-    for artist in tags.track_artists() {
-        let matched = match_artist(library, &artist)
-            .unwrap_or_default();
-        let artist = CrdtRules::merge(matched, artist);
-        let artist = artist.save(library);
-        library.save(&ArtistRef {
-            artist_key: artist.key.clone().unwrap(),
-            model_key: track.key.clone().unwrap(),
-            ..Default::default()
-        });
+    if track.title.is_none() {
+        log::warn!("No track title {}", path.to_string_lossy());
     }
+    let mut track = merge_track(library, &track, &tags);
 
-    // Match, update, and link Track Genres.
-    for genre in tags.track_genres() {
-        let matched = match_genre(library, &genre)
-            .unwrap_or_default();
-        let genre = CrdtRules::merge(matched, genre);
-        let genre = genre.save(library);
-        library.save(&GenreRef {
-            genre_key: genre.key.clone().unwrap(),
-            model_key: track.key.clone().unwrap(),
-            ..Default::default()
-        });
-    }
-
-    // Match and update the Release.
+    // Match and merge the Release, preferring the one on the Track if it
+    // exists.
     let release = track.release(library)
         .or_else(|| match_release(library, &tags))
         .unwrap_or_default();
     let release = CrdtRules::merge(release, tags.release());
-    let release = release.save(library);
+    if release.title.is_none() {
+        log::warn!("No release title {}", path.to_string_lossy());
+    }
+    let release = merge_release(library, &release, &tags);
 
     // Update the track with the (maybe newly created) release_key and save it.
-    track.release_key = release.key.clone();
-    let track = track.save(library);
-
-    // Match and update Release Artists.
-    for artist in tags.release_artists() {
-        let matched = match_artist(library, &artist)
-            .unwrap_or_default();
-        let artist = CrdtRules::merge(matched, artist);
-        let artist = artist.save(library);
-        library.save(&ArtistRef {
-            artist_key: artist.key.clone().unwrap(),
-            model_key: release.key.clone().unwrap(),
-            ..Default::default()
-        });
-    }
-
-    // Match, update, and link Release Genres.
-    for genre in tags.release_genres() {
-        let matched = match_genre(library, &genre)
-            .unwrap_or_default();
-        let genre = CrdtRules::merge(matched, genre);
-        let genre = genre.save(library);
-        library.save(&GenreRef {
-            genre_key: genre.key.clone().unwrap(),
-            model_key: release.key.clone().unwrap(),
-            ..Default::default()
-        });
+    if track.release_key != release.key {
+        track.release_key = release.key.clone();
+        track = track.save(library);
     }
 
     // Update the TrackSource with the saved track_key.
@@ -196,6 +154,70 @@ fn match_release(library: &Library, tags: &TaggedMediaFile) -> Option<Release> {
     None
 }
 
+fn merge_track(library: &Library, track: &Track, tags: &TaggedMediaFile) -> Track {
+    let track = track.save(library);
+
+    // Match, update, and link Track Artists.
+    for artist in tags.track_artists() {
+        let matched = match_artist(library, &artist)
+            .unwrap_or_default();
+        let artist = CrdtRules::merge(matched, artist);
+        let artist = artist.save(library);
+        library.save(&ArtistRef {
+            artist_key: artist.key.clone().unwrap(),
+            model_key: track.key.clone().unwrap(),
+            ..Default::default()
+        });
+    }
+
+    // Match, update, and link Track Genres.
+    for genre in tags.track_genres() {
+        let matched = match_genre(library, &genre)
+            .unwrap_or_default();
+        let genre = CrdtRules::merge(matched, genre);
+        let genre = genre.save(library);
+        library.save(&GenreRef {
+            genre_key: genre.key.clone().unwrap(),
+            model_key: track.key.clone().unwrap(),
+            ..Default::default()
+        });
+    }
+
+    track
+}
+
+fn merge_release(library: &Library, release: &Release, tags: &TaggedMediaFile) -> Release {
+    let release = release.save(library);
+
+    // Match and update Release Artists.
+    for artist in tags.release_artists() {
+        let matched = match_artist(library, &artist)
+            .unwrap_or_default();
+        let artist = CrdtRules::merge(matched, artist);
+        let artist = artist.save(library);
+        library.save(&ArtistRef {
+            artist_key: artist.key.clone().unwrap(),
+            model_key: release.key.clone().unwrap(),
+            ..Default::default()
+        });
+    }
+
+    // Match, update, and link Release Genres.
+    for genre in tags.release_genres() {
+        let matched = match_genre(library, &genre)
+            .unwrap_or_default();
+        let genre = CrdtRules::merge(matched, genre);
+        let genre = genre.save(library);
+        library.save(&GenreRef {
+            genre_key: genre.key.clone().unwrap(),
+            model_key: release.key.clone().unwrap(),
+            ..Default::default()
+        });
+    }
+
+    release
+}
+
 fn match_artist(library: &Library, artist: &Artist) -> Option<Artist> {
     library.find("
         SELECT Artist.* 
@@ -219,4 +241,19 @@ struct ScannedFile {
     path: String,
     last_modified: DateTime<Utc>,
     file_length: u64,
+}
+
+mod tests {
+    use crate::{library::Library, model::MediaFile};
+
+    #[test]
+    fn import() {
+        let library = Library::open_memory();
+        assert!(library.list::<MediaFile>().len() == 0);
+        library.import("tests/data/media_files");
+        let num_mediafiles = library.list::<MediaFile>().len();
+        assert!(library.list::<MediaFile>().len() > 0);
+        library.import("tests/data/media_files");
+        assert!(library.list::<MediaFile>().len() == num_mediafiles);
+    }    
 }

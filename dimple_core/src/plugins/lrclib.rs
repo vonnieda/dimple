@@ -83,7 +83,7 @@ mod tests {
     fn it_works() {
         let _ = env_logger::try_init();
 
-        let library = Library::open_temporary();
+        let library = Library::open_memory();
 
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),

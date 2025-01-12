@@ -372,7 +372,7 @@ mod tests {
         // Note, if this test is failing randomly make sure it's running in
         // release mode. Symphonia is too slow in debug mode to keep up.
         let _ = env_logger::try_init();
-        let library = Arc::new(Library::open("file:ee2e5b97-b997-431d-8224-d361e905d071?mode=memory&cache=shared"));
+        let library = Arc::new(Library::open_memory());
         let player = Player::new(library.clone());
         library.import("tests/data/media_files");
         let tracks = library.tracks();

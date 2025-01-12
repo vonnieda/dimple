@@ -10,7 +10,7 @@ import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 
 export global GenreDetailsAdapter {
-    in property <string> key: "123";
+    in property <string> key;
     in property <CardAdapter> card: {
                 image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
                 title: {name: "A Reign of Fish"},

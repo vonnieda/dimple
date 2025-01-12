@@ -14,7 +14,7 @@ import { ActionButtons, ActionButton } from "../components/action_buttons.slint"
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
 export global ReleaseDetailsAdapter {
-    in property <string> key: "123";
+    in property <string> key;
     in property <string> release-type: "Album";
     in property <CardAdapter> card: {
                 image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},

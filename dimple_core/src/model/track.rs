@@ -100,13 +100,13 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open_temporary();
+        let library = Library::open_memory();
         let mut model = library.save(&Track::default());
     }
 
     #[test]
     fn artists() {
-        let library = Library::open_temporary();
+        let library = Library::open_memory();
         let track = library.save(&Track {
             title: Some("Lucy".to_string()),
             ..Default::default()
@@ -136,7 +136,7 @@ mod tests {
 
     #[test]
     fn genres() {
-        let library = Library::open_temporary();
+        let library = Library::open_memory();
         let death_metal = library.save(&Genre {
             name: Some("death metal".to_string()),
             ..Default::default()

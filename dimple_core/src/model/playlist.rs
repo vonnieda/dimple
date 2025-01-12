@@ -42,7 +42,7 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open("file:e3b2df54-d10a-4530-b753-1fc82295ad32?mode=memory&cache=shared");
+        let library = Library::open_memory();
         let mut model = library.save(&Playlist::default());
         assert!(model.key.is_some());
         assert!(model.name.is_none());
@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn tracks() {
-        let library = Library::open("file:5d29e64a-5418-4773-b557-56448ae09efd?mode=memory&cache=shared");
+        let library = Library::open_memory();
         let playlist = library.save(&Playlist::default());
         for _ in 0..3 {
             let track = library.save(&Track::default());

@@ -57,8 +57,7 @@ mod tests {
         plugins.add_plugin(Box::new(S3ApiSyncPlugin::default()));
         plugins.add_plugin(Box::new(WikidataPlugin::default()));
 
-        let library =
-            Library::open("file:2fe945e2-8191-43fd-80a8-5a99efea641d?mode=memory&cache=shared");
+        let library = Library::open_memory();
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()

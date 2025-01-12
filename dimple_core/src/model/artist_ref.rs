@@ -27,7 +27,7 @@ mod tests {
 
     #[test]
     fn library_crud() {
-        let library = Library::open("file:29832924-08a3-4000-b6d9-73f10920d387?mode=memory&cache=shared");
+        let library = Library::open_memory();
         let artist = library.save(&Artist::default());
         let track = library.save(&Track::default());
         let model = ArtistRef {
