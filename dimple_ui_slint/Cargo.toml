@@ -29,7 +29,7 @@ fast_image_resize = { version = "4.0.0", features = ["image"] }
 percent-encoding = "2.3.1"
 raw-window-handle = "0.6.2"
 anyhow = "1.0.81"
-# cacache = { version = "*", default-features = false, features = ["mmap"] }
+cacache = { version = "13.1.0", default-features = true, features = ["mmap"] }
 size = "0.4.1"
 
 [build-dependencies]

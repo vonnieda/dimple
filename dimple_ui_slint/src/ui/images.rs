@@ -13,9 +13,6 @@ use slint::{Rgba8Pixel, SharedPixelBuffer};
 use threadpool::ThreadPool;
 use crate::ui::AppWindow;
 
-use super::image_gen::gen_fuzzy_circles;
-use super::image_gen::gen_fuzzy_rects;
-
 /// Handles image loading, placeholders, caching, scaling, generation, etc.
 /// Primary job is to quickly return an image for a Model, and be able to
 /// notify the view when a better one is available.
@@ -31,6 +28,7 @@ pub struct ImageMangler {
     other_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     threadpool: ThreadPool,
     cache_path: String,
+    ui: Weak<AppWindow>,
 }
 
 impl ImageMangler {
@@ -44,8 +42,9 @@ impl ImageMangler {
             genre_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/globe-simple.png")),
             playlist_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/playlist.png")),
             other_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/question.png")),
-            threadpool: ThreadPool::new(1),
+            threadpool: ThreadPool::new(8),
             cache_path: cache_path.to_string(),
+            ui,
         };
 
         images
@@ -53,29 +52,29 @@ impl ImageMangler {
 
     pub fn lazy_get<F>(&self, model: impl Model + 'static, width: u32, height: u32, set_image: F) -> slint::Image
             where F: Fn(AppWindow, Image) + Send + Copy + 'static {
-        // let cache_key = format!("{}:{}:{}:{}", 
-        //     model.type_name(), model.key().unwrap(), width, height);
-        // if let Some(dyn_image) = self.cache_get(&cache_key) {
-        //     let buffer = dynamic_to_buffer(&dyn_image);
-        //     return Image::from_rgba8_premultiplied(buffer.clone())
-        // }
-        // {
-        //     let images = self.clone();
-        //     let model = model.clone();
-        //     let ui = self.ui.clone();
-        //     self.threadpool.execute(move || {
-        //         if let Some(dyn_image) = images.librarian.image(&model) {
-        //             let dyn_image = resize(dyn_image, width, height);
-        //             images.cache_set(&cache_key, &dyn_image);
-        //             let buffer = dynamic_to_buffer(&dyn_image);
-        //             ui.upgrade_in_event_loop(move |ui| {
-        //                 let image = Image::from_rgba8_premultiplied(buffer);
-        //                 set_image(ui, image);
-        //             }).unwrap();                    
-        //         }
-        //     });
-        // }
-        Image::from_rgba8_premultiplied(self.get_model_placeholder(model))
+        let cache_key = format!("{}:{}:{}:{}", 
+            model.type_name(), model.key().unwrap(), width, height);
+        if let Some(dyn_image) = self.cache_get(&cache_key) {
+            let buffer = dynamic_to_buffer(&dyn_image);
+            return Image::from_rgba8_premultiplied(buffer.clone())
+        }
+        {
+            let images = self.clone();
+            let model1 = model.clone();
+            let ui = self.ui.clone();
+            self.threadpool.execute(move || {
+                if let Some(dyn_image) = images.librarian.image(&model1) {
+                    let dyn_image = resize(dyn_image, width, height);
+                    images.cache_set(&cache_key, &dyn_image);
+                    let buffer = dynamic_to_buffer(&dyn_image);
+                    ui.upgrade_in_event_loop(move |ui| {
+                        let image = Image::from_rgba8_premultiplied(buffer);
+                        set_image(ui, image);
+                    }).unwrap();                    
+                }
+            });
+            Image::from_rgba8_premultiplied(self.get_model_placeholder(model))
+        }
     }
 
     pub fn get_model_placeholder(&self, model: impl Model) -> SharedPixelBuffer<Rgba8Pixel> {
@@ -95,29 +94,26 @@ impl ImageMangler {
     }
 
     fn cache_get(&self, key: &str) -> Option<DynamicImage> {
-        todo!()
-        // if let Ok(bytes) = cacache::read_sync(self.cache_path.clone(), key) {
-        //     if let Ok(dyn_image) = image::load_from_memory(&bytes) {
-        //         return Some(dyn_image)
-        //     }
-        // }
-        // None
+        if let Ok(bytes) = cacache::read_sync(self.cache_path.clone(), key) {
+            if let Ok(dyn_image) = image::load_from_memory(&bytes) {
+                return Some(dyn_image)
+            }
+        }
+        None
     }
 
     fn cache_set(&self, key: &str, image: &DynamicImage) {
-        todo!()
-        // let mut bytes = vec![];
-        // let mut cursor = Cursor::new(&mut bytes);
-        // image.write_to(&mut cursor, ImageFormat::Png).unwrap();
-        // cacache::write_sync(self.cache_path.clone(), key, bytes).unwrap();
+        let mut bytes = vec![];
+        let mut cursor = Cursor::new(&mut bytes);
+        image.write_to(&mut cursor, ImageFormat::Png).unwrap();
+        cacache::write_sync(self.cache_path.clone(), key, bytes).unwrap();
     }
 
     pub fn cache_len(&self) -> usize {
         let mut len = 0;
-        // TODO explodes when directory not created yet
-        // for entry in cacache::list_sync(self.cache_path.clone()) {
-        //     len += entry.unwrap().size;
-        // }
+        for entry in cacache::list_sync(self.cache_path.clone()) {
+            len += entry.unwrap().size;
+        }
         len
     }
 

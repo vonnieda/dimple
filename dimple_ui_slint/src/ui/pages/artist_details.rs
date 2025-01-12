@@ -2,7 +2,6 @@ use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
 use crate::ui::Page;
-use dimple_core::library::Library;
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::ModelBasics;
@@ -13,6 +12,7 @@ use url::Url;
 use crate::ui::LinkAdapter;
 use crate::ui::ArtistDetailsAdapter;
 use crate::ui::ImageLinkAdapter;
+use slint::Model as _;
 
 pub fn artist_details_init(app: &App) {
     let app1 = app.clone();
@@ -87,11 +87,11 @@ fn update_model(app: &App) {
             let images = app.images.clone();
             ui.upgrade_in_event_loop(move |ui| {
                 let mut card: CardAdapter = artist.clone().into();                
-                // card.image.image = app.images.lazy_get(release.clone(), 275, 275, |ui, image| {
-                //     let mut card = ui.global::<ArtistDetailsAdapter>().get_card();
-                //     card.image.image = image;
-                //     ui.global::<ArtistDetailsAdapter>().set_card(card);
-                // });
+                card.image.image = app.images.lazy_get(artist.clone(), 275, 275, |ui, image| {
+                    let mut card = ui.global::<ArtistDetailsAdapter>().get_card();
+                    card.image.image = image;
+                    ui.global::<ArtistDetailsAdapter>().set_card(card);
+                });
 
                 let genres = genre_links(&genres);
                 let links: Vec<LinkAdapter> = links.iter().map(|link| {
@@ -102,7 +102,7 @@ fn update_model(app: &App) {
                     })
                     .collect();
 
-                let releases = release_cards(&images, &releases, &library);
+                let releases = release_cards(&images, &releases);
                 ui.global::<ArtistDetailsAdapter>().set_card(card.into());
                 ui.global::<ArtistDetailsAdapter>().set_key(artist.key.clone().unwrap_or_default().into());
                 ui.global::<ArtistDetailsAdapter>().set_releases(ModelRc::from(releases.as_slice()));
@@ -125,21 +125,21 @@ fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
     }).collect()
 }
 
-fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library) -> Vec<CardAdapter> {
+fn release_cards(images: &ImageMangler, releases: &[Release]) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
-            let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            // card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
-            //     let mut card = ui.get_release_list().cards.row_data(index).unwrap();
-            //     card.image.image = image;
-            //     ui.get_release_list().cards.set_row_data(index, card);
-            // });
+            let mut card: CardAdapter = release_card(&release);
+            card.image.image = images.lazy_get(release.clone(), 200, 200, move |ui, image| {
+                let mut card = ui.get_release_list().cards.row_data(index).unwrap();
+                card.image.image = image;
+                ui.get_release_list().cards.set_row_data(index, card);
+            });
             card
         })
         .collect()
 }
 
-fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
+fn release_card(release: &Release) -> CardAdapter {
     let release = release.clone();
     CardAdapter {
         image: ImageLinkAdapter {

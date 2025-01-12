@@ -4,10 +4,10 @@ use crate::ui::CardAdapter;
 use crate::ui::CardGridAdapter;
 use crate::ui::Page;
 use dimple_core::model::Artist;
-use dimple_core::model::ModelBasics;
 use slint::ModelRc;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
+use slint::Model as _;
 
 pub fn artist_list_init(app: &App) {
     let app = app.clone();
@@ -45,11 +45,11 @@ fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {
     artists.iter().cloned().enumerate()
         .map(|(index, artist)| {
             let mut card: CardAdapter = artist_card(&artist);
-            // card.image.image = images.lazy_get(genre.model(), 200, 200, move |ui, image| {
-            //     let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
-            //     card.image.image = image;
-            //     ui.get_genre_list().cards.set_row_data(index, card);
-            // });
+            card.image.image = images.lazy_get(artist.clone(), 200, 200, move |ui, image| {
+                let mut card = ui.get_artist_list().cards.row_data(index).unwrap();
+                card.image.image = image;
+                ui.get_artist_list().cards.set_row_data(index, card);
+            });
             card
         })
         .collect()
@@ -62,17 +62,15 @@ fn artist_card(artist: &Artist) -> CardAdapter {
             image: Default::default(),
             name: artist.name.clone().unwrap_or_default().into(),
             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-            ..Default::default()
         },
         title: LinkAdapter {
             name: artist.name.clone().unwrap_or_default().into(),
             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-            ..Default::default()
         },
-        // sub_title: LinkAdapter {
-        //     name: "Artist".into(),
-        //     url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
-        // },
+        sub_title: LinkAdapter {
+            name: artist.disambiguation.unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+        },
         ..Default::default()
     }
 }

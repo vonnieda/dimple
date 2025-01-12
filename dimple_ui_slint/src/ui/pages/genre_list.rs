@@ -8,6 +8,7 @@ use dimple_core::model::ModelBasics;
 use slint::ModelRc;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
+use slint::Model as _;
 
 pub fn genre_list_init(app: &App) {
     let app = app.clone();
@@ -44,11 +45,11 @@ fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {
     genres.iter().cloned().enumerate()
         .map(|(index, genre)| {
             let mut card: CardAdapter = genre_card(&genre);
-            // card.image.image = images.lazy_get(genre.model(), 200, 200, move |ui, image| {
-            //     let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
-            //     card.image.image = image;
-            //     ui.get_genre_list().cards.set_row_data(index, card);
-            // });
+            card.image.image = images.lazy_get(genre.clone(), 200, 200, move |ui, image| {
+                let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
+                card.image.image = image;
+                ui.get_genre_list().cards.set_row_data(index, card);
+            });
             card
         })
         .collect()

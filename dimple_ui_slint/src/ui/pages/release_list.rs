@@ -10,6 +10,7 @@ use dimple_core::model::ModelBasics;
 use slint::ModelRc;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
+use slint::Model as _;
 
 pub fn release_list_init(app: &App) {
     let app = app.clone();
@@ -47,11 +48,11 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            // card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
-            //     let mut card = ui.get_release_list().cards.row_data(index).unwrap();
-            //     card.image.image = image;
-            //     ui.get_release_list().cards.set_row_data(index, card);
-            // });
+            card.image.image = images.lazy_get(release.clone(), 200, 200, move |ui, image| {
+                let mut card = ui.get_release_list().cards.row_data(index).unwrap();
+                card.image.image = image;
+                ui.get_release_list().cards.set_row_data(index, card);
+            });
             card
         })
         .collect()

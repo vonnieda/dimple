@@ -53,9 +53,7 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
         row.push(track.title.clone().unwrap_or_default().as_str().into()); // Title
         row.push(track.album_name(library).unwrap_or_default().as_str().into()); // Album
         row.push(track.artist_name(library).unwrap_or_default().as_str().into()); // Artist
-        row.push(track.media_position.unwrap_or_default().to_string().as_str().into()); // Track #
-        // TODO
-        row.push(0.to_string().as_str().into()); // Plays
+        row.push(track.position.unwrap_or_default().to_string().as_str().into()); // Track #
         row.push(length.unwrap_or_default().as_str().into()); // Length
         row_data.push(row.into());
     }
@@ -71,7 +69,7 @@ fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
 }
 
 fn sort_table(app: &App, col: i32, ascending: bool) {
-    let columns = vec!["title", "album", "artist", "media_position", "plays", "length_ms"];
+    let columns = vec!["title", "album", "artist", "position", "plays", "length_ms"];
     let query = format!("SELECT * FROM Track ORDER BY {} {}", 
         columns[col as usize], 
         if ascending { "asc" } else { "desc" });

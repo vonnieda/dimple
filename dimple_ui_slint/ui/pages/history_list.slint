@@ -24,11 +24,11 @@ export component HistoryList inherits VerticalBox {
         vertical-stretch: 1;
         horizontal-stretch: 1;
         columns: [
-            { title: "Date" },
-            { title: "Type" },
-            { title: "Artist" },
-            { title: "Album" },
-            { title: "Title" },
+            { title: "Date", horizontal_stretch: 0.15 },
+            { title: "Type", horizontal_stretch: 0.15 },
+            { title: "Artist", horizontal_stretch: 0.20 },
+            { title: "Album", horizontal_stretch: 0.20 },
+            { title: "Title", horizontal_stretch: 0.30 },
         ];
         rows: HistoryListAdapter.sort_model(HistoryListAdapter.row_data, root.sort-index, root.sort-acending);
         current-row-changed(row) => { 

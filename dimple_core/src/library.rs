@@ -81,7 +81,7 @@ impl Library {
     pub fn open(database_path: &str) -> Self {
         let manager = r2d2_sqlite::SqliteConnectionManager::file(database_path);
         let pool = r2d2::Pool::builder()
-            .max_size(8) // probably should be like num_cores * N but 24 feels nice
+            .max_size(24) // probably should be like num_cores * N but 24 feels nice
             .build(manager)
             .unwrap();
 
@@ -187,19 +187,18 @@ impl Library {
         obj.upsert(&self.conn());
         // load the newly inserted object
         let new: T = self.get(&key.unwrap()).unwrap();
-        // TODO gotta figure out why this is causing database locks.
-        // if obj.log_changes() {
-        //     // if we're logging changes, diff the old to the new
-        //     let diff = old.diff(&new);
-        //     for mut change in diff {
-        //         // each change gets a new ulid, the library actor, a new key
-        //         // and gets saved
-        //         change.timestamp = self.ulid();
-        //         change.actor = self.id();
-        //         change.model_key = new.key().clone().unwrap();
-        //         self.save(&change);
-        //     }
-        // }
+        if obj.log_changes() {
+            // if we're logging changes, diff the old to the new
+            let diff = old.diff(&new);
+            for mut change in diff {
+                // each change gets a new ulid, the library actor, a new key
+                // and gets saved
+                change.timestamp = self.ulid();
+                change.actor = self.id();
+                change.model_key = new.key().clone().unwrap();
+                self.save(&change);
+            }
+        }
         self.emit_change(&obj.type_name(), &obj.key().unwrap());
         new
     }
@@ -217,7 +216,6 @@ impl Library {
         obj.upsert(&self.conn());
         // load the newly inserted object
         let new: T = self.get(&key.unwrap()).unwrap();
-        // TODO maybe like library.notify(diff)
         new
     }
 
@@ -249,9 +247,7 @@ impl Library {
             optional().unwrap()
     }
 
-    // TODO Need to profile the whole image path and see
-    // why it's so slow in dev mode. It's just unbearable. And maybe I really
-    // just do need to use smaller images? Mik's album images are a good test.
+    // Mik's album images are a good test for huge files
     pub fn image<T: Model>(&self, model: &T) -> Option<DynamicImage> {
         // let t = Instant::now();
         // let dimage = self.db.list(&Dimage::default().into(), &Some(model.clone()))

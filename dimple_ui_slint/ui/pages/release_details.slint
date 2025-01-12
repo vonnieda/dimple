@@ -3,7 +3,6 @@ import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import {MediumAdapter} from "../components/medium.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
@@ -198,12 +197,14 @@ export component ReleaseDetails inherits ScrollView {
         }
 
         table := StandardTableView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
             columns: [
-                { title: "#" },
-                { title: "Title" },
-                { title: "Artists" },
-                { title: "Length" },
-            ];
+                { title: "#", horizontal_stretch: 0.10 },
+                { title: "Title", horizontal_stretch: 0.50 },
+                { title: "Artist", horizontal_stretch: 0.30 },
+                { title: "Length", horizontal_stretch: 0.10 },
+                ];
             rows: ReleaseDetailsAdapter.row_data;
             sort-ascending(index) => { ReleaseDetailsAdapter.sort_table(index, true); }
             sort-descending(index) => { ReleaseDetailsAdapter.sort_table(index, false); }

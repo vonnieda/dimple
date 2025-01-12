@@ -16,9 +16,9 @@ use crate::model::{Artist, Genre, Link, Release, Track};
 /// https://github.com/pdeljanov/Symphonia/blob/master/symphonia-metadata/src/id3v2/frames.rs#L23
 /// VEDMA by enjoii w. and brothel. I think those are parsed wrong.
 /// A Sphere of Influence dupes
-/// A Tulip Rose From The Bone Dry Dust dupes
+/// A Tulip Rose From The Bone Dry Dust dupes and no artists
 /// Everything in Genre (17) is pretty fucked
-/// 
+/// "Bohren & Der Club of Gore" got split into ("Bohren", "Der Club of Gore")
 #[derive(Clone, Debug)]
 pub struct TaggedMediaFile {
     pub path: String,

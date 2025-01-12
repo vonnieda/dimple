@@ -88,11 +88,11 @@ export component PlaylistDetails inherits VerticalBox {
         vertical-stretch: 1;
         horizontal-stretch: 1;
         columns: [
-            { title: "#" },
-            { title: "Title" },
-            { title: "Album" },
-            { title: "Artist" },
-            { title: "Length" },
+            { title: "#", horizontal_stretch: 0.10 },
+            { title: "Title", horizontal_stretch: 0.40 },
+            { title: "Album", horizontal_stretch: 0.20 },
+            { title: "Artist", horizontal_stretch: 0.20 },
+            { title: "Length", horizontal_stretch: 0.10 },
         ];
         rows: PlaylistDetailsAdapter.sort_model(PlaylistDetailsAdapter.row_data, root.sort-index, root.sort-acending);
         sort-ascending(index) => {

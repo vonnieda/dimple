@@ -52,11 +52,18 @@ fn update_model(app: &App) {
         let app = app1.clone();
         let images = app.images.clone();
 
-        let mut now_playing_recording = track_card(&current_track);
-        now_playing_recording.image.image = images.lazy_get(current_track.clone(), 120, 120, |ui, image| {
-            let mut card = ui.global::<PlayerBarAdapter>().get_now_playing_recording();
+        let mut now_playing_track = track_card(&current_track);
+        now_playing_track.image.image = images.lazy_get(current_track.clone(), 120, 120, |ui, image| {
+            let mut card = ui.global::<PlayerBarAdapter>().get_now_playing_track();
             card.image.image = image;
-            ui.global::<PlayerBarAdapter>().set_now_playing_recording(card);
+            ui.global::<PlayerBarAdapter>().set_now_playing_track(card);
+        });
+
+        let mut up_next_track = track_card(&next_track);
+        up_next_track.image.image = images.lazy_get(current_track.clone(), 120, 120, |ui, image| {
+            let mut card = ui.global::<PlayerBarAdapter>().get_up_next_track();
+            card.image.image = image;
+            ui.global::<PlayerBarAdapter>().set_up_next_track(card);
         });
     
         ui.global::<PlayerBarAdapter>().set_duration_seconds(player.track_duration().as_secs() as i32);
@@ -66,10 +73,10 @@ fn update_model(app: &App) {
         ui.global::<PlayerBarAdapter>().set_player_state(player.state().into());
         ui.global::<PlayerBarAdapter>().set_now_playing_artist(artist_card(&current_track.artist(&library).unwrap_or_default()));
         ui.global::<PlayerBarAdapter>().set_now_playing_release(release_card(&current_track.release(&library).unwrap_or_default()));
-        ui.global::<PlayerBarAdapter>().set_now_playing_recording(track_card(&current_track));
+        ui.global::<PlayerBarAdapter>().set_now_playing_track(now_playing_track);
         ui.global::<PlayerBarAdapter>().set_up_next_artist(artist_card(&next_track.artist(&library).unwrap_or_default()));
         ui.global::<PlayerBarAdapter>().set_up_next_release(release_card(&next_track.release(&library).unwrap_or_default()));
-        ui.global::<PlayerBarAdapter>().set_up_next_recording(track_card(&next_track));
+        ui.global::<PlayerBarAdapter>().set_up_next_track(up_next_track);
     }).unwrap();
 }
 

@@ -61,13 +61,13 @@ export component TrackList inherits VerticalBox {
         horizontal-stretch: 1;
         // https://docs.slint.dev/latest/docs/slint/src/language/builtins/structs#tablecolumn
         columns: [
-            { title: "Title" },
-            { title: "Album" },
-            { title: "Artist" },
-            { title: "Track #" },
-            { title: "Plays" },
-            { title: "Length" },
+            { title: "Title", horizontal_stretch: 0.40 },
+            { title: "Album", horizontal_stretch: 0.20 },
+            { title: "Artist", horizontal_stretch: 0.20 },
+            { title: "Track #", horizontal_stretch: 0.10 },
+            { title: "Length", horizontal_stretch: 0.10 },
         ];
+
         rows: TrackListAdapter.row_data;
         sort-ascending(index) => { TrackListAdapter.sort_table(index, true); }
         sort-descending(index) => { TrackListAdapter.sort_table(index, false); }

@@ -13,6 +13,7 @@ use url::Url;
 use crate::ui::LinkAdapter;
 use crate::ui::GenreDetailsAdapter;
 use crate::ui::ImageLinkAdapter;
+use slint::Model as _;
 
 pub fn genre_details_init(app: &App) {
     let app1 = app.clone();
@@ -85,11 +86,11 @@ fn update_model(app: &App) {
             let images = app.images.clone();
             ui.upgrade_in_event_loop(move |ui| {
                 let mut card: CardAdapter = genre.clone().into();                
-                // card.image.image = app.images.lazy_get(release.clone(), 275, 275, |ui, image| {
-                //     let mut card = ui.global::<ArtistDetailsAdapter>().get_card();
-                //     card.image.image = image;
-                //     ui.global::<ArtistDetailsAdapter>().set_card(card);
-                // });
+                card.image.image = app.images.lazy_get(genre.clone(), 275, 275, |ui, image| {
+                    let mut card = ui.global::<GenreDetailsAdapter>().get_card();
+                    card.image.image = image;
+                    ui.global::<GenreDetailsAdapter>().set_card(card);
+                });
 
                 let links: Vec<LinkAdapter> = links.iter().map(|link| {
                     LinkAdapter {
@@ -116,11 +117,11 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            // card.image.image = images.lazy_get(release.model(), 200, 200, move |ui, image| {
-            //     let mut card = ui.get_release_list().cards.row_data(index).unwrap();
-            //     card.image.image = image;
-            //     ui.get_release_list().cards.set_row_data(index, card);
-            // });
+            card.image.image = images.lazy_get(release.clone(), 200, 200, move |ui, image| {
+                let mut card = ui.get_release_list().cards.row_data(index).unwrap();
+                card.image.image = image;
+                ui.get_release_list().cards.set_row_data(index, card);
+            });
             card
         })
         .collect()
@@ -141,12 +142,9 @@ fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
             ..Default::default()
         },
         sub_title: LinkAdapter {
-            name: format!("{} {}", 
-                release.date.unwrap_or_default(), 
-                release.release_group_type.unwrap_or_default()).into(),
-            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
     }
 }
-

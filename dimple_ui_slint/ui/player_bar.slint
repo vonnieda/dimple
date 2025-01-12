@@ -19,8 +19,7 @@ export global PlayerBarAdapter {
         image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
         title: {name: "A Reign of Fish"},
     };
-    // TODO track, not recording
-    in property <CardAdapter> now_playing_recording: {
+    in property <CardAdapter> now_playing_track: {
         image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
         title: {name: "A Reign of Fish"},
     };
@@ -32,7 +31,7 @@ export global PlayerBarAdapter {
         image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
         title: {name: "A Reign of Fish"},
     };
-    in property <CardAdapter> up_next_recording: {
+    in property <CardAdapter> up_next_track: {
         image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
         title: {name: "A Reign of Fish"},
     };
@@ -162,11 +161,11 @@ component Scrubber inherits VerticalLayout {
 component TrackInfo inherits VerticalLayout {
     in property <LinkAdapter> artist;
     in property <LinkAdapter> release;
-    in property <LinkAdapter> recording;
+    in property <LinkAdapter> track;
     spacing: 4px;
     InfoAreaLabel {
         icon: @image-url("../icons/phosphor/SVGs/regular/music-notes.svg");
-        link: recording;
+        link: track;
     }
     InfoAreaLabel {
         icon: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
@@ -183,7 +182,7 @@ export component PlayerBar {
         BorderImage {
             width: Styles.thumbnail-width-medium;
             height: Styles.thumbnail-width-medium;
-            image: PlayerBarAdapter.now-playing-recording.image.image;
+            image: PlayerBarAdapter.now-playing-track.image.image;
             clicked => { Navigator.navigate("dimple://queue") }
         }
         VerticalLayout {
@@ -194,7 +193,7 @@ export component PlayerBar {
                     horizontal-stretch: 0;
                     artist: PlayerBarAdapter.now-playing-artist.title;
                     release: PlayerBarAdapter.now-playing-release.title;
-                    recording: PlayerBarAdapter.now-playing-recording.title;
+                    track: PlayerBarAdapter.now-playing-track.title;
                 }
                 Rectangle {
                     horizontal-stretch: 1;

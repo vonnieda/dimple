@@ -5,6 +5,7 @@ use std::time::Duration;
 use crate::ui::app_window_controller::App;
 use crate::ui::Page;
 use crate::ui::Navigator;
+use dimple_core::library::Library;
 use dimple_core::model::Playlist;
 use dimple_core::model::Track;
 use slint::Model as _;
@@ -52,9 +53,10 @@ pub fn playlist_details(url: &str, app: &App) {
         let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
         let playlist: Playlist = app.library.get(&key).unwrap();
         let tracks = playlist.tracks(&app.library);
+        let library = app.library.clone();
         app.ui.upgrade_in_event_loop(move |ui| {
             ui.global::<PlaylistDetailsAdapter>().set_key(key.into());
-            ui.global::<PlaylistDetailsAdapter>().set_row_data(row_data(&tracks));
+            ui.global::<PlaylistDetailsAdapter>().set_row_data(row_data(&library, &tracks));
             ui.global::<PlaylistDetailsAdapter>().set_name(playlist.name.clone()
                 .unwrap_or("(Nameless Playlist)".to_string()).into());
             ui.set_page(Page::PlaylistDetails);
@@ -63,21 +65,19 @@ pub fn playlist_details(url: &str, app: &App) {
     });
 }
 
-fn row_data(tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
+fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
     let row_data: Rc<VecModel<ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
-    for (i, track) in tracks.iter().enumerate() {
+    for track in tracks {
         let track = track.clone();
         let row = Rc::new(VecModel::default());
-        let length = Duration::from_millis(track.length_ms.unwrap_or_default() as u64);
-        let length = format_length(length);
-        row.push(i.to_string().as_str().into()); // # (Ordinal)
-        row.push(StandardListViewItem::from(track.title.unwrap_or_default().as_str())); // Title
-        // row.push(track.album.unwrap_or_default().as_str().into()); // Album
-        // row.push(track.artist.unwrap_or_default().as_str().into()); // Artist
-        row.push("".into()); // Album
-        row.push("".into()); // Artist
-        row.push(StandardListViewItem::from(length.as_str())); // Length
-        row.push(StandardListViewItem::from(track.key.unwrap().as_str())); // Key (Hidden)
+        let length = track.length_ms
+            .map(|ms| Duration::from_millis(ms as u64))
+            .map(|dur| format_length(dur));
+        row.push(track.position.unwrap_or_default().to_string().as_str().into()); // Track #
+        row.push(track.title.clone().unwrap_or_default().as_str().into()); // Title
+        row.push(track.album_name(library).unwrap_or_default().as_str().into()); // Album
+        row.push(track.artist_name(library).unwrap_or_default().as_str().into()); // Artist
+        row.push(length.unwrap_or_default().as_str().into()); // Length
         row_data.push(row.into());
     }
     row_data.into()
