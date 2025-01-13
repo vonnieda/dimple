@@ -104,7 +104,7 @@ export component ReleaseDetails inherits ScrollView {
     }    
 
     VerticalLayout {
-        alignment: start;
+        // alignment: LayoutAlignment.stretch;
         // Header: Image, Title, Artists, Genres, Summary
         HorizontalLayout {
             alignment: start;
@@ -157,6 +157,12 @@ export component ReleaseDetails inherits ScrollView {
                     font-size: 1rem * Styles.page_title_font_rem;
                     wrap: word-wrap;
                 }
+                // Disambiguation
+                if ReleaseDetailsAdapter.disambiguation != "": Text {
+                    text: ReleaseDetailsAdapter.disambiguation;
+                    font-italic: true;
+                    font-size: 1.3rem;
+                }
                 // Type and artists
                 if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
                     alignment: start;
@@ -168,12 +174,6 @@ export component ReleaseDetails inherits ScrollView {
                         links: ReleaseDetailsAdapter.artists;
                         font-size: 1.3rem;
                     }
-                }
-                // Disambiguation
-                if ReleaseDetailsAdapter.disambiguation != "": Text {
-                    text: ReleaseDetailsAdapter.disambiguation;
-                    font-italic: true;
-                    font-size: 1.3rem;
                 }
                 // Genres
                 if ReleaseDetailsAdapter.genres.length > 0: HorizontalLayout {
@@ -196,40 +196,43 @@ export component ReleaseDetails inherits ScrollView {
             }
         }
 
-        table := StandardTableView {
-            horizontal-stretch: 1;
-            vertical-stretch: 1;
-            columns: [
-                { title: "#", horizontal_stretch: 0.10 },
-                { title: "Title", horizontal_stretch: 0.50 },
-                { title: "Artist", horizontal_stretch: 0.30 },
-                { title: "Length", horizontal_stretch: 0.10 },
-                ];
-            rows: ReleaseDetailsAdapter.row_data;
-            sort-ascending(index) => { ReleaseDetailsAdapter.sort_table(index, true); }
-            sort-descending(index) => { ReleaseDetailsAdapter.sort_table(index, false); }
-            row-pointer-event(row, event, point) => {
-                if event.button == PointerEventButton.right 
-                        && event.kind == PointerEventKind.down {
-                    popup-x = point.x;
-                    popup-y = point.y;
-                    popup-row = row;
-                    popup.show();
-                }
-                else if event.button == PointerEventButton.left 
-                        && row == table.current-row
-                        && event.kind == PointerEventKind.down {
-                    Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[row]);
+        // Tracks
+        VerticalBox {
+            Text {
+                text: "Tracks";
+                font-weight: Styles.font-weight-bold;
+                font-size: 2rem;
+            }
+            table := StandardTableView {
+                columns: [
+                    { title: "#", horizontal_stretch: 0.10 },
+                    { title: "Title", horizontal_stretch: 0.50 },
+                    { title: "Artist", horizontal_stretch: 0.30 },
+                    { title: "Length", horizontal_stretch: 0.10 },
+                    ];
+                rows: ReleaseDetailsAdapter.row_data;
+                sort-ascending(index) => { ReleaseDetailsAdapter.sort_table(index, true); }
+                sort-descending(index) => { ReleaseDetailsAdapter.sort_table(index, false); }
+                row-pointer-event(row, event, point) => {
+                    if event.button == PointerEventButton.right 
+                            && event.kind == PointerEventKind.down {
+                        popup-x = point.x;
+                        popup-y = point.y;
+                        popup-row = row;
+                        popup.show();
+                    }
+                    else if event.button == PointerEventButton.left 
+                            && row == table.current-row
+                            && event.kind == PointerEventKind.down {
+                        Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[row]);
+                    }
                 }
             }
-        }
-        Text {
-            horizontal-alignment: right;
-            text: ReleaseDetailsAdapter.row_data.length + " items";
         }
 
         // Links
         if ReleaseDetailsAdapter.links.length > 0: VerticalBox {
+            alignment: start;
             Text {
                 text: "Links";
                 font-weight: Styles.font-weight-bold;
@@ -244,6 +247,7 @@ export component ReleaseDetails inherits ScrollView {
 
         // Debug Dump
         if AppState.debug: VerticalBox {
+            alignment: start;
             Text {
                 text: "Debug";
                 font-weight: Styles.font-weight-bold;
@@ -254,6 +258,10 @@ export component ReleaseDetails inherits ScrollView {
                 wrap: word-wrap;
                 font-size: 1.3rem;
             }
+        }
+
+        Rectangle {
+            vertical-stretch: 0;
         }
     }
 }

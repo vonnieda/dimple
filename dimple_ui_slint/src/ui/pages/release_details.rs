@@ -7,6 +7,7 @@ use crate::ui::Page;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
+use dimple_core::model::Link;
 use dimple_core::model::ModelBasics;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
@@ -100,13 +101,7 @@ fn update_model(app: &App) {
 
                 let artists = artist_links(&artists);
                 let genres = genre_links(&genres);
-                let links: Vec<LinkAdapter> = links.iter().map(|link| {
-                        LinkAdapter {
-                            name: link.name.clone().unwrap_or_else(|| link.url.clone()).into(),
-                            url: link.url.clone().into(),
-                        }
-                    })
-                    .collect();
+                let links = link_links(&links);
     
                 ui.global::<ReleaseDetailsAdapter>().set_card(card.into());
                 ui.global::<ReleaseDetailsAdapter>().set_key(release.key.clone().unwrap_or_default().into());
@@ -140,6 +135,15 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
     row_data.into()
 }
 
+fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
+    genres.iter().map(|genre| {
+        LinkAdapter {
+            name: genre.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+        }
+    }).collect()
+}
+
 fn artist_links(artists: &[Artist]) -> Vec<LinkAdapter> {
     artists.iter().map(|artist| {
         LinkAdapter {
@@ -149,11 +153,11 @@ fn artist_links(artists: &[Artist]) -> Vec<LinkAdapter> {
     }).collect()
 }
 
-fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
-    genres.iter().map(|genre| {
+fn link_links(links: &[Link]) -> Vec<LinkAdapter> {
+    links.iter().map(|link| {
         LinkAdapter {
-            name: genre.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+            name: link.name.clone().unwrap_or_else(|| link.url.clone()).into(),
+            url: link.url.clone().into(),
         }
     }).collect()
 }

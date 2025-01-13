@@ -2,8 +2,10 @@ use std::sync::Mutex;
 
 use dimple_core::library::Library;
 use dimple_core::merge::CrdtRules;
+use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Link;
+use dimple_core::model::Release;
 use dimple_core::model::Track;
 use dimple_core::plugins::plugin_host::PluginHost;
 use slint::ModelRc;
@@ -56,7 +58,7 @@ pub fn track_details(url: &str, app: &App) {
         let track = app.library.get::<Track>(key).unwrap();
         (*CURRENT_TRACK_KEY.lock().unwrap()) = track.key.clone();
 
-        if track.lyrics.is_none() {
+        {
             // TODO temp for testing, not sure where this is gonna live yet.
             let track = track.clone();
             let library = library.clone();
@@ -68,29 +70,11 @@ pub fn track_details(url: &str, app: &App) {
         let artists = track.artists(&library);
         let genres: Vec<Genre> = track.genres(&library);
         let links: Vec<Link> = track.links(&library);
-
+        let release = track.release(&library).unwrap_or_default();
         app.ui.upgrade_in_event_loop(move |ui| {
-            let artists: Vec<LinkAdapter> = artists.iter().cloned().map(|artist| {
-                LinkAdapter {
-                    name: artist.name.unwrap_or_default().into(),
-                    url: format!("dimple://artist/{}", artist.key.unwrap()).into(),
-                }
-            }).collect();
-
-            let genres: Vec<LinkAdapter> = genres.iter().cloned().map(|genre| {
-                LinkAdapter {
-                    name: genre.name.unwrap().into(),
-                    url: format!("dimple://genre/{}", genre.key.unwrap()).into(),
-                }
-            }).collect();
-
-            let links: Vec<LinkAdapter> = links.iter().map(|link| {
-                    LinkAdapter {
-                        name: link.name.clone().unwrap_or_else(|| link.url.clone()).into(),
-                        url: link.url.clone().into(),
-                    }
-                })
-                .collect();
+            let artists = artist_links(&artists);
+            let genres = genre_links(&genres);
+            let links = link_links(&links);
 
             let mut card: CardAdapter = track.clone().into();
             card.image.image = app.images.lazy_get(track.clone(), 275, 275, |ui, image| {
@@ -104,6 +88,9 @@ pub fn track_details(url: &str, app: &App) {
             ui.global::<TrackDetailsAdapter>().set_artists(ModelRc::from(artists.as_slice()));
             ui.global::<TrackDetailsAdapter>().set_summary(track.summary.clone().unwrap_or_default().into());
             ui.global::<TrackDetailsAdapter>().set_disambiguation(track.disambiguation.clone().unwrap_or_default().into());
+            ui.global::<TrackDetailsAdapter>().set_release(release.clone().into());
+            ui.global::<TrackDetailsAdapter>().set_release_date(release.date.clone().unwrap_or_default().into());
+            ui.global::<TrackDetailsAdapter>().set_disambiguation(track.disambiguation.clone().unwrap_or_default().into());            
             ui.global::<TrackDetailsAdapter>().set_genres(ModelRc::from(genres.as_slice()));
             let lyrics = track.lyrics.clone()
                 .map(|s| s.trim().replace("\r", ""))
@@ -156,4 +143,40 @@ fn set_lyrics(app: &App, key: &str, lyrics: &str) {
     let mut track = app.library.get::<Track>(key).unwrap();
     track.lyrics = Some(lyrics.to_string());
     app.library.save(&track);
+}
+
+fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
+    genres.iter().map(|genre| {
+        LinkAdapter {
+            name: genre.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+        }
+    }).collect()
+}
+
+fn artist_links(artists: &[Artist]) -> Vec<LinkAdapter> {
+    artists.iter().map(|artist| {
+        LinkAdapter {
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+        }
+    }).collect()
+}
+
+fn link_links(links: &[Link]) -> Vec<LinkAdapter> {
+    links.iter().map(|link| {
+        LinkAdapter {
+            name: link.name.clone().unwrap_or_else(|| link.url.clone()).into(),
+            url: link.url.clone().into(),
+        }
+    }).collect()
+}
+
+impl From<Release> for LinkAdapter {
+    fn from(value: Release) -> Self {
+        LinkAdapter {
+            name: value.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://release/{}", value.key.clone().unwrap_or_default()).into(),
+        }
+    }
 }

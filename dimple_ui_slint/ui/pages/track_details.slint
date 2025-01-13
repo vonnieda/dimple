@@ -19,6 +19,8 @@ export global TrackDetailsAdapter {
     in property <string> lyrics: "Hurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk";
     in property <[LinkAdapter]> artists: [{name: "Fresh Pliers"},{name: "Example Band"},{name: "Teal Cup"},];
     in property <[LinkAdapter]> isrcs;
+    in property <LinkAdapter> release: {name: "Fan Speed",url: "internal://release/1234"};
+    in property <string> release-date;
     in property <string> dump;
     in property <bool> save;
     in property <bool> love;
@@ -101,6 +103,12 @@ export component TrackDetails inherits ScrollView {
                     font-size: 1rem * Styles.page_title_font_rem;
                     wrap: word-wrap;
                 }
+                // Disambiguation
+                if TrackDetailsAdapter.disambiguation != "": Text {
+                    text: TrackDetailsAdapter.disambiguation;
+                    font-italic: true;
+                    font-size: 1.3rem;
+                }
                 // Type and artists
                 if TrackDetailsAdapter.artists.length > 0: HorizontalLayout {
                     alignment: start;
@@ -113,12 +121,18 @@ export component TrackDetails inherits ScrollView {
                         font-size: 1.3rem;
                     }
                 }
-                // Disambiguation
-                if TrackDetailsAdapter.disambiguation != "": Text {
-                    text: TrackDetailsAdapter.disambiguation;
-                    font-italic: true;
-                    font-size: 1.3rem;
-                }
+                // Release
+                HorizontalLayout {
+                    alignment: start;
+                    Text {
+                        text: "Released \{TrackDetailsAdapter.release-date} on ";
+                        font-size: 1.3rem;
+                    }
+                    Links {
+                        links: [TrackDetailsAdapter.release];
+                        font-size: 1.3rem;
+                    }
+                }                
                 // Genres
                 if TrackDetailsAdapter.genres.length > 0: HorizontalLayout {
                     alignment: start;
