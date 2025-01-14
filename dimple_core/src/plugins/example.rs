@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{library::Library, model::Track};
-
-use super::Plugin;
+use super::plugin::Plugin;
 
 #[derive(Default)]
 pub struct ExamplePlugin {
@@ -33,13 +31,10 @@ impl Plugin for ExamplePlugin {
     fn configuration(&self) -> String {
         serde_json::to_string(&self.config).unwrap()
     }
-
-    fn status(&self) -> String {
-        "Ready".to_string()
-    }
-
-    fn lyrics(&self, _library: &Library, _track: &Track) 
-            -> Option<String> {
-        Some(format!("(unrecognizable shrieking)"))
+    
+    fn metadata(&self, _library: &crate::library::Library, track: &crate::model::Track) -> Result<Option<crate::model::Track>, anyhow::Error> {
+        let mut track = track.clone();
+        track.lyrics = Some(format!("(unrecognizable shrieking)"));
+        Ok(Some(track))
     }
 }

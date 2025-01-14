@@ -83,3 +83,6 @@ Dump new things at the bottom, move things to the top to prioritize.
   Ex: Blue Oyster Cult - Heavy Metal: The Black and Silver.
 - Re-combine all the grid pages into one relatively smart "results list", 
   that also has tags, sorting, filtering, etc.
+- Each image on a page should be a slideshow, and the user can drop new images,
+  and they can hide ones they don't like, and lock to a specific one.
+  

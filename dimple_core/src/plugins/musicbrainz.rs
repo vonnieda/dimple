@@ -2,7 +2,7 @@ use std::{sync::Mutex, time::{Duration, Instant}};
 
 use serde::{Deserialize, Serialize};
 
-use super::Plugin;
+use super::plugin::Plugin;
 
 #[derive(Default)]
 pub struct MusicBrainzPlugin {

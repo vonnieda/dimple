@@ -1,11 +1,12 @@
 // Lyrics via https://lrclib.net/docs
 
+use anyhow::anyhow;
 use reqwest::blocking::Client;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 
 use crate::{library::Library, model::Track};
 
-use super::{Plugin, USER_AGENT};
+use super::{plugin::Plugin, USER_AGENT};
 
 #[derive(Default)]
 pub struct LrclibPlugin {
@@ -20,27 +21,29 @@ impl Plugin for LrclibPlugin {
         "LRCLIB".to_string()
     }
 
-    fn status(&self) -> String {
-        "Ready".to_string()
+    fn configuration(&self) -> String { 
+        "".to_string() 
     }
-
-    fn lyrics(&self, library: &Library, track: &Track) -> Option<String> {
+    
+    fn set_configuration(&mut self, _config: &str) { 
+    
+    }
+    
+    fn progress(&self) -> Option<f32> { 
+        None 
+    }
+    
+    // TODO fallback to no album
+    // let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}&album_name={}",
+    //     track.artist.clone().unwrap_or_default(),
+    //     track.title.clone().unwrap_or_default(),
+    //     track.album.clone().unwrap_or_default(),
+    // );
+    fn metadata(&self, library: &Library, track: &Track) -> Result<Option<Track>, anyhow::Error> {
         let client = Client::builder()
             .user_agent(USER_AGENT)
-            .build()
-            .unwrap();
-        // TODO fallback to no album
-        // let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}&album_name={}",
-        //     track.artist.clone().unwrap_or_default(),
-        //     track.title.clone().unwrap_or_default(),
-        //     track.album.clone().unwrap_or_default(),
-        // );
-        let artist = track.artist(library);
-        if artist.is_none() {
-            log::error!("Can't lookup lyrics for track ({:?}) with no artist.", track.key);
-            return None
-        }
-        let artist = artist.unwrap();
+            .build()?;
+        let artist = track.artist(library).ok_or(anyhow!("artist is required"))?;
         let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}",
             artist.name.clone().unwrap_or_default(),
             track.title.clone().unwrap_or_default(),
@@ -48,10 +51,20 @@ impl Plugin for LrclibPlugin {
         let response = client.get(&url).send().unwrap();
         log::info!("GET {} {}", response.status().as_u16(),& url);
         if response.status() != 200 {
-            return None
+            return Err(anyhow!("status code {}", response.status().as_u16()));
         }
         let get_response = response.json::<GetResponse>().unwrap();
-        get_response.plain_lyrics
+        Ok(Some(Track {
+            lyrics: get_response.plain_lyrics,
+            synchronized_lyrics: get_response.synced_lyrics,
+            title: get_response.track_name,
+            length_ms: get_response.duration_s.map(|s| (s * 1000.) as u64),
+            ..Default::default()
+        }))
+    }
+    
+    fn image(&self, _library: &Library, _track: &Track, _kind: crate::model::Dimage) -> Result<Option<image::DynamicImage>, anyhow::Error> {
+        Ok(None)
     }
 }
 
@@ -75,7 +88,7 @@ struct GetResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Artist, ArtistRef, Track}, plugins::Plugin};
+    use crate::{library::Library, model::{Artist, ArtistRef, Track}, plugins::plugin::Plugin};
 
     use super::LrclibPlugin;
 
@@ -100,9 +113,10 @@ mod tests {
         });
 
         let lrclib = LrclibPlugin::default();
-        let lyrics = lrclib.lyrics(&library, &track);
-        assert!(lyrics.is_some());
-        assert!(lyrics.unwrap().to_lowercase().contains("pulling your strings"));
+        let track = lrclib.metadata(&library, &track);
+        assert!(track.unwrap().unwrap()
+            .lyrics.unwrap()
+            .to_lowercase().contains("pulling your strings"));
     }
 }
 

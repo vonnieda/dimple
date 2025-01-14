@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::Plugin;
+use super::plugin::Plugin;
 
 #[derive(Default)]
 pub struct S3ApiSyncPlugin {

@@ -2,9 +2,9 @@ use std::sync::{Arc, RwLock};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{library::Library, model::{Artist, Release, Track}};
+use crate::{library::Library, merge::CrdtRules, model::Track};
 
-use super::Plugin;
+use super::plugin::Plugin;
 
 #[derive(Default, Clone)]
 pub struct PluginHost {
@@ -16,22 +16,24 @@ impl PluginHost {
         self.plugins.write().unwrap().push(plugin);
     }
 
-    pub fn lyrics(&self, library: &Library, track: &Track) -> Vec<String> {
-        self.plugins
+    pub fn metadata(&self, library: &Library, track: &Track) -> Result<Option<Track>, anyhow::Error> {
+        let results = self.plugins
             .read()
             .unwrap()
             .par_iter()
-            .filter_map(|plugin| plugin.lyrics(library, track))
-            .collect()
+            .filter_map(|plugin| plugin.metadata(library, track).ok())
+            .reduce(|| None, CrdtRules::merge);
+        Ok(results)
     }
 
-    pub fn metadata(&self, library: &Library, track: &Track) -> Vec<(Option<Artist>, Option<Release>, Track)> {
-        self.plugins
-            .read()
-            .unwrap()
-            .par_iter()
-            .filter_map(|plugin| plugin.metadata(library, track))
-            .collect()    
+    pub fn image(&self, _library: &Library, _track: &Track) -> Option<Track> {
+        todo!()
+        // Some(self.plugins
+        //     .read()
+        //     .unwrap()
+        //     .par_iter()
+        //     .filter_map(|plugin| plugin.metadata(library, track))
+        //     .reduce(Track::default, Track::merge))
     }
 }
 
@@ -53,9 +55,6 @@ mod tests {
         let plugins = PluginHost::default();
         plugins.add_plugin(Box::new(ExamplePlugin::default()));
         plugins.add_plugin(Box::new(LrclibPlugin::default()));
-        plugins.add_plugin(Box::new(MusicBrainzPlugin::default()));
-        plugins.add_plugin(Box::new(S3ApiSyncPlugin::default()));
-        plugins.add_plugin(Box::new(WikidataPlugin::default()));
 
         let library = Library::open_memory();
         let artist = library.save(&Artist {
@@ -63,16 +62,19 @@ mod tests {
             ..Default::default()
         });
         let track = library.save(&Track {
-            title: Some("Ride The Lightning".to_string()),
+            title: Some("Master of Puppets".to_string()),
             ..Default::default()
         });
-        let ac = library.save(&ArtistRef {
+        let _ac = library.save(&ArtistRef {
             model_key: track.key.clone().unwrap(),
             artist_key: artist.key.clone().unwrap(),
             ..Default::default()
         });
 
-        println!("{:?}", plugins.lyrics(&library, &track));
+        // println!("{:?}", plugins.lyrics(&library, &track));
         println!("{:?}", plugins.metadata(&library, &track));
     }
 }
+
+
+
