@@ -1,16 +1,14 @@
 # Dimple Music Player
 
-Dimple is a music player app for everyone. It is local first, open source,
-private, and cross-platform. With Dimple you can listen to your music on
-all your devices without expensive streaming subscriptions.
+Dimple is a music streaming platform in an app. It is local first, open source,
+private, and cross-platform. With Dimple you can listen to your music and
+playlists on every supported device, follow favorite artists, discover new
+music and playlists every day, and a lot more! 
 
-Dimple runs on all the common desktops and mobiles*, and gives you all the
-power of an online streaming service in a self-contained app that you own
-forever.
-
-If you find Dimple useful, and would like to help fund it's development, please
-consider donating or purchasing from one of the links below. Every dollar helps
-me work on open source software full time:
+If you like Dimple, and would like to help me keep working on it, please
+consider purchasing from one of the links below. Dimple is my full time job
+and source of income, and every dollar helps me working on open source
+software full time:
 
 - Merch: https://dimple.lol/store
 - BTC: 3FMNgdEjbVcxVoAUtgFFpzsuccnU9KMuhx
@@ -22,15 +20,11 @@ me work on open source software full time:
 - Ko-Fi: https://ko-fi.com/vonnieda
 - Buy Me a Coffee: https://www.buymeacoffee.com/vonnieda
 - Patreon: (Pending)
-
-# TODO TODO TODO stop fucking around with the features and bullets and distill
-# it into a feature list.
-
+- Something missing or wrong? <a href="mailto:jason@vonnieda.org">Let me know!</a>
+- Want to sponsor me? <a href="mailto:jason@vonnieda.org">Get in touch!</a>
 
 # Features
-
-## Open Source
-- Github: https://github.com/vonnieda/Dimple
+- Open Source: https://github.com/vonnieda/Dimple
 
 ## Cross Platform
 - [x] macOS
@@ -53,7 +47,7 @@ me work on open source software full time:
 - Sync, stream, and download your music on any supported device, with any S3
   compatible storage service. 
 - Dimple offers a cheap and built in option that helps pay for development,
-  or use any S3 compatible storage you like. Youcan even self-host!
+  or use any S3 compatible storage you like. You can even self-host!
 - Keep your likes, listens, playlists, metadata and more synchronized between
   your devices
 
@@ -142,3 +136,4 @@ me work on open source software full time:
 - Slint UI
 - Phosphor Icons
 - Tantivy Search
+- [Tools Fairy](https://toolsfairy.com/image-test/sample-jpg-files)

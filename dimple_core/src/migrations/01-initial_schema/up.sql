@@ -206,3 +206,11 @@ CREATE TABLE Blob (
     length U64 NOT NULL
 );
 
+CREATE TABLE Dimage (
+    key TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    width INT NOT NULL,
+    height INT NOT NULL,
+    png_thumbnail BLOB NOT NULL,
+    png_data BLOB NOT NULL
+);

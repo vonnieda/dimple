@@ -7,8 +7,6 @@ use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
 use crate::{library::Library, model::{Event, Playlist, Track}, notifier::{self, Notifier}};
 
-type ChangeListener = Arc<Box<dyn Fn(&Player, &str) + Send + std::marker::Sync + 'static>>;
-
 #[derive(Clone)]
 pub struct Player {
     library: Arc<Library>,
@@ -239,6 +237,8 @@ impl Player {
 
     // TODO might be worth making a quick way to backup or dump the data
     // I'm storing in case I kill my database.
+    // TODO figure out how to detect a rewind / replay of a section and scrobble
+    // them shits.
     fn scrobble(&self, event_type: &str) {
         if let Some(current_track) = self.current_queue_track() {
             // TODO quick hack, getting a feel for this, but also want to be

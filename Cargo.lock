@@ -1624,6 +1624,7 @@ dependencies = [
  "dimple_core_macro",
  "directories",
  "env_logger 0.11.6",
+ "fast_image_resize 5.1.1",
  "image 0.25.5",
  "include_dir",
  "lazy_static",
@@ -1666,7 +1667,7 @@ dependencies = [
  "directories",
  "env_logger 0.10.2",
  "fakeit",
- "fast_image_resize",
+ "fast_image_resize 4.2.1",
  "image 0.25.5",
  "log",
  "opener",
@@ -2029,6 +2030,21 @@ dependencies = [
  "document-features",
  "image 0.25.5",
  "num-traits",
+ "thiserror",
+]
+
+[[package]]
+name = "fast_image_resize"
+version = "5.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d6b088992b0c2db53860aa4b43f299fd45aa85b835c744dec53c3f40231330d"
+dependencies = [
+ "bytemuck",
+ "cfg-if",
+ "document-features",
+ "image 0.25.5",
+ "num-traits",
+ "rayon",
  "thiserror",
 ]
 

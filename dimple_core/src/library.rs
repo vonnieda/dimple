@@ -187,18 +187,18 @@ impl Library {
         obj.upsert(&self.conn());
         // load the newly inserted object
         let new: T = self.get(&key.unwrap()).unwrap();
-        if obj.log_changes() {
-            // if we're logging changes, diff the old to the new
-            let diff = old.diff(&new);
-            for mut change in diff {
-                // each change gets a new ulid, the library actor, a new key
-                // and gets saved
-                change.timestamp = self.ulid();
-                change.actor = self.id();
-                change.model_key = new.key().clone().unwrap();
-                self.save(&change);
-            }
-        }
+        // if obj.log_changes() {
+        //     // if we're logging changes, diff the old to the new
+        //     let diff = old.diff(&new);
+        //     for mut change in diff {
+        //         // each change gets a new ulid, the library actor, a new key
+        //         // and gets saved
+        //         change.timestamp = self.ulid();
+        //         change.actor = self.id();
+        //         change.model_key = new.key().clone().unwrap();
+        //         self.save(&change);
+        //     }
+        // }
         self.emit_change(&obj.type_name(), &obj.key().unwrap());
         new
     }
