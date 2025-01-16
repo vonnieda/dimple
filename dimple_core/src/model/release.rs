@@ -2,7 +2,7 @@ use dimple_core_macro::ModelSupport;
 
 use crate::library::Library;
 
-use super::{Artist, Genre, Link, Track};
+use super::{Artist, Dimage, Genre, Link, Track};
 
 // https://musicbrainz.org/doc/Release
 // https://musicbrainz.org/release/a4864e94-6d75-4ade-bc93-0dabf3521453
@@ -75,6 +75,14 @@ impl Release {
             ORDER BY media_position ASC, position ASC
         ";
         library.query(sql, (self.key.clone(),))
+    }
+
+    pub fn images(&self, library: &Library) -> Vec<Dimage> {
+        library.query("
+            SELECT d.* FROM DimageRef dr 
+            JOIN Dimage d ON (d.key = dr.dimage_key) 
+            WHERE dr.model_key = ?1
+        ", (self.key.clone().unwrap(),))
     }
 }
 

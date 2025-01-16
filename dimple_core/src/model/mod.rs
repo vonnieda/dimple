@@ -50,6 +50,9 @@ pub use link_ref::LinkRef;
 mod dimage;
 pub use dimage::Dimage;
 
+mod dimage_ref;
+pub use dimage_ref::DimageRef;
+
 use crate::library::Library;
 
 pub trait FromRow {

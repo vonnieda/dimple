@@ -11,7 +11,7 @@ use threadpool::ThreadPool;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::{model::{Blob, ChangeLog, FromRow, MediaFile, Model, Playlist, Track, TrackSource}, notifier::Notifier, sync::Sync};
+use crate::{model::{Artist, Blob, ChangeLog, FromRow, MediaFile, Model, ModelBasics as _, Playlist, Release, Track, TrackSource}, notifier::Notifier, sync::Sync};
 
 #[derive(Clone)]
 pub struct LibraryEvent {
@@ -173,6 +173,8 @@ impl Library {
         self.ulids.lock().unwrap().generate().unwrap().to_string()
     }
 
+    // TODO woops, major bug, it seems like upsert is saving with a new key
+    // when a unique is hit, like in a duple sha256 on dimage. 
     pub fn save<T: Model>(&self, obj: &T) -> T {
         // TODO txn
 
@@ -249,73 +251,23 @@ impl Library {
 
     // Mik's album images are a good test for huge files
     pub fn image<T: Model>(&self, model: &T) -> Option<DynamicImage> {
-        // let t = Instant::now();
-        // let dimage = self.db.list(&Dimage::default().into(), &Some(model.clone()))
-        //     .unwrap()
-        //     .map(Into::<Dimage>::into)
-        //     .next();
-        // if let Some(dimage) = dimage {
-        //     log::debug!("image from database {:?} {}x{} in {}ms", dimage.key, dimage.width, 
-        //         dimage.height, t.elapsed().as_millis());
-        //     return Some(dimage.get_image())
-        // }
-
-        // // TODO note, this uses a specialization of list that returns on the 
-        // // first valid result to speed things up. Eventually I want Dimage to
-        // // not include the blob, and then this won't be needed, or wanted,
-        // // because we'll want to be able to offer the user all the different
-        // // images, not just one.
-        // let t = Instant::now();
-        // let dimage = self._list(&Dimage::default().into(), &Some(model.clone()), true)
-        //     .unwrap()
-        //     .map(Into::<Dimage>::into)
-        //     .next();
-        // if let Some(dimage) = dimage {
-        //     log::debug!("image from plugins {:?} {}x{} in {}ms", dimage.key, dimage.width, 
-        //         dimage.height, t.elapsed().as_millis());
-        //     return Some(dimage.get_image())
-        // }
-
-        // // If nothing found specific to the model, see if there's something related.
-        // let t = Instant::now();
-        // match model {
-        //     Model::Artist(artist) => {
-        //         let release_groups = self.list2(ReleaseGroup::default(), Some(artist.clone()));
-        //         if let Ok(release_groups) = release_groups {
-        //             for release_group in release_groups {
-        //                 if let Some(dimage) = self.image(&release_group.model()) {
-        //                     log::debug!("image from relations {}x{} in {}ms", dimage.width(), 
-        //                         dimage.height(), t.elapsed().as_millis());
-        //                     return Some(dimage)
-        //                 }
-        //             }
-        //         }
-        //     },
-        //     Model::Genre(genre) => {
-        //         let release_groups = self.list2(ReleaseGroup::default(), Some(genre.clone()));
-        //         if let Ok(release_groups) = release_groups {
-        //             for release_group in release_groups {
-        //                 if let Some(dimage) = self.image(&release_group.model()) {
-        //                     log::debug!("image from relations {}x{} in {}ms", dimage.width(), 
-        //                         dimage.height(), t.elapsed().as_millis());
-        //                     return Some(dimage)
-        //                 }
-        //             }
-        //         }
-        //         let artists = self.list2(Artist::default(), Some(genre.clone()));
-        //         if let Ok(artists) = artists {
-        //             for artist in artists {
-        //                 if let Some(dimage) = self.image(&artist.model()) {
-        //                     log::debug!("image from relations {}x{} in {}ms", dimage.width(), 
-        //                         dimage.height(), t.elapsed().as_millis());
-        //                     return Some(dimage)
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     _ => ()
-        // }
-
+        if model.type_name() == "Release" {
+            return Release::get(self, &model.key().clone().unwrap()).unwrap()
+                .images(self)
+                .get(0)
+                .and_then(|i| Some(i.get_image()))
+        }
+        else if model.type_name() == "Artist" {
+            let artist = Artist::get(self, &model.key().clone().unwrap()).unwrap();
+            if let Some(image) = artist.images(self).get(0) {
+                return Some(image.get_image())
+            }
+            for release in artist.releases(self).iter() {
+                if let Some(image) = release.images(self).get(0) {
+                    return Some(image.get_image())
+                }
+            }
+        }
         None
     }
 

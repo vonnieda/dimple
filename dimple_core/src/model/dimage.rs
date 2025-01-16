@@ -8,6 +8,7 @@ use rusqlite::ToSql;
 use image::ImageFormat;
 use fast_image_resize::Resizer;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest as _, Sha256};
 
 /// A model for storing an image in Dimple. Not Image because too overloaded.
 #[derive(Clone, Debug, Default, PartialEq, ModelSupport)]
@@ -19,6 +20,7 @@ pub struct Dimage {
     pub height: u32,
     pub png_thumbnail: Vec<u8>,
     pub png_data: Vec<u8>,
+    pub sha256: String,
 }
 
 impl Dimage {
@@ -37,6 +39,8 @@ impl Dimage {
         let thumb = resize(image, 4, 4);
         let mut cursor = Cursor::new(&mut self.png_thumbnail);
         thumb.write_to(&mut cursor, ImageFormat::Png).unwrap();
+
+        self.sha256 = calculate_sha256(&self.png_data);
     }
 
     pub fn get_image(&self) -> DynamicImage {
@@ -48,6 +52,13 @@ impl Dimage {
         image.resize(width, height, FilterType::Gaussian)
     }
 }
+
+fn calculate_sha256(data: &Vec<u8>) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    let result = hasher.finalize();
+    format!("{:x}", result)
+}            
 
 pub fn resize(image: &DynamicImage, width: u32, height: u32) -> DynamicImage {
     let src_image = image;
@@ -106,6 +117,12 @@ impl From<DimageKind> for ChangeLogValue {
 impl From<ChangeLogValue> for DimageKind {
     fn from(value: ChangeLogValue) -> Self {
         todo!()
+    }
+}
+
+impl From<&DynamicImage> for Dimage {
+    fn from(value: &DynamicImage) -> Self {
+        Dimage::new(value)
     }
 }
 

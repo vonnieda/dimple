@@ -3,10 +3,13 @@ pub mod tagged_media_file;
 
 use std::path::Path;
 
-use crate::{library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Genre, GenreRef, MediaFile, ModelBasics as _, Release, Track, TrackSource}};
+use crate::{library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Dimage, DimageRef, Genre, GenreRef, MediaFile, ModelBasics as _, Release, Track, TrackSource}};
 
 use chrono::{DateTime, Utc};
+use image::DynamicImage;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator as _};
+use sha2::Digest;
+use symphonia::core::meta::StandardVisualKey;
 use tagged_media_file::TaggedMediaFile;
 use walkdir::WalkDir;
 
@@ -44,7 +47,7 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     
     // Read the tags from the file.
     let tags = TaggedMediaFile::new(path)?;
-    
+
     // Create or update a MediaFile by the file path.
     let mut media_file = library.find_media_file_by_file_path(path.to_str().unwrap())
         .unwrap_or_default();
@@ -92,6 +95,19 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     track_source.track_key = track.key.clone();
     track_source.media_file_key = media_file.key.clone();
     let track_source = track_source.save(library);
+
+    // Import images
+    for visual in tags.visuals.iter() {
+        if let Ok(dymage) = image::load_from_memory(&visual.data) {
+            let dimage = Dimage::new(&dymage).save(library);
+            let _ = library.save(&DimageRef {
+                model_key: release.key.clone().unwrap(),
+                dimage_key: dimage.key.clone().unwrap(),
+                ..Default::default()
+            });
+            log::info!("  Saved image for release {:?} {}", release.title, dimage.sha256);
+        }
+    }
 
     log::info!("Imported    {:30} {:30} {:60} {}", 
         track.artist_name(library).unwrap_or_default(), 
@@ -148,6 +164,7 @@ fn match_track(library: &Library, tags: &TaggedMediaFile) -> Option<Track> {
     None
 }
 
+// TODO matching hash of embedded artwork might be another good datapoint
 fn match_release(library: &Library, tags: &TaggedMediaFile) -> Option<Release> {
     let release = tags.release();
     let matched_release = library.find("
@@ -203,6 +220,8 @@ fn merge_track(library: &Library, track: &Track, tags: &TaggedMediaFile) -> Trac
 
     track
 }
+
+// fn match_dimage() ??
 
 fn merge_release(library: &Library, release: &Release, tags: &TaggedMediaFile) -> Release {
     let release = release.save(library);

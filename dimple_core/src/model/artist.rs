@@ -2,7 +2,7 @@ use dimple_core_macro::ModelSupport;
 
 use crate::library::Library;
 
-use super::{Genre, Link, Release};
+use super::{Dimage, Genre, Link, Release};
 
 // https://musicbrainz.org/doc/Artist
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, ModelSupport)]
@@ -48,6 +48,14 @@ impl Artist {
             ORDER BY date ASC, title ASC
         ";
         library.query(sql, (self.key.clone(),))
+    }
+
+    pub fn images(&self, library: &Library) -> Vec<Dimage> {
+        library.query("
+            SELECT d.* FROM DimageRef dr 
+            JOIN Dimage d ON (d.key = dr.dimage_key) 
+            WHERE dr.model_key = ?1
+        ", (self.key.clone().unwrap(),))
     }
 }
 

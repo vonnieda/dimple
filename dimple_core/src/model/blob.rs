@@ -29,8 +29,6 @@ impl Blob {
     }    
 
     fn calculate_sha256(data: &Vec<u8>) -> String {
-        // blake3::hash(data).to_string()
-
         let mut hasher = Sha256::new();
         hasher.update(data);
         let result = hasher.finalize();

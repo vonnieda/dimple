@@ -71,7 +71,7 @@ CREATE INDEX Track_release_key ON Track (release_key);
 
 CREATE TABLE Genre (
     key TEXT PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,
+    name TEXT UNIQUE NOT NULL,
     disambiguation TEXT,
     summary TEXT,
     save BOOL NOT NULL DEFAULT false,
@@ -206,11 +206,21 @@ CREATE TABLE Blob (
     length U64 NOT NULL
 );
 
+
 CREATE TABLE Dimage (
     key TEXT PRIMARY KEY,
     kind TEXT NOT NULL,
     width INT NOT NULL,
     height INT NOT NULL,
     png_thumbnail BLOB NOT NULL,
-    png_data BLOB NOT NULL
+    png_data BLOB NOT NULL,
+    sha256 UNIQUE NOT NULL
 );
+
+CREATE TABLE DimageRef (
+    key TEXT PRIMARY KEY,
+    model_key TEXT NOT NULL,
+    dimage_key TEXT NOT NULL,
+    FOREIGN KEY (dimage_key) REFERENCES Dimage(key)
+);
+CREATE UNIQUE INDEX DimageRef_unique_model_key_dimage_key ON DimageRef (model_key, dimage_key);
