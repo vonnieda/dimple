@@ -20,7 +20,6 @@ use crate::ui::AppWindow;
 pub struct ImageMangler {
     librarian: Library,
     artist_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
-    release_group_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     release_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     genre_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     track_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
@@ -35,8 +34,7 @@ impl ImageMangler {
     pub fn new(librarian: Library, ui: Weak<AppWindow>, cache_path: &str) -> Self {
         let images = Self {
             librarian: librarian.clone(),
-            artist_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/music-notes.png")),
-            release_group_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/vinyl-record.png")),
+            artist_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/users-three.png")),
             release_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/vinyl-record.png")),
             track_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/music-notes.png")),
             genre_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/globe-simple.png")),
@@ -80,10 +78,9 @@ impl ImageMangler {
     pub fn get_model_placeholder(&self, model: impl Model) -> SharedPixelBuffer<Rgba8Pixel> {
         match model.type_name().as_str() {
             "Artist" => return self.artist_placeholder.lock().unwrap().clone(),
-            "ReleaseGroup" => return self.release_group_placeholder.lock().unwrap().clone(),
             "Release" => return self.release_placeholder.lock().unwrap().clone(),
-            "Genre" => return self.genre_placeholder.lock().unwrap().clone(),
             "Track" => return self.track_placeholder.lock().unwrap().clone(),
+            "Genre" => return self.genre_placeholder.lock().unwrap().clone(),
             "Playlist" => return self.playlist_placeholder.lock().unwrap().clone(),
             _ => return self.other_placeholder.lock().unwrap().clone(),
         }
@@ -142,4 +139,8 @@ pub fn resize(image: DynamicImage, width: u32, height: u32) -> DynamicImage {
     resizer.resize(&src_image, &mut dst_image, None).unwrap();
 
     dst_image
+}
+
+pub fn dynamic_to_slint(dyn_image: &DynamicImage) -> slint::Image {
+    slint::Image::from_rgba8(dynamic_to_buffer(dyn_image))
 }

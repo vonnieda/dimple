@@ -40,6 +40,7 @@ export global PlayerBarAdapter {
     in property <string> position_label;
     in property <string> duration_label;
     in property <PlayerState> player_state;
+    in property <image> waveform: @image-url("../images/waveform.png");
 }
 
 export component BorderImage inherits TouchArea {
@@ -202,8 +203,15 @@ export component PlayerBar {
                     playing: PlayerBarAdapter.player-state == PlayerState.Playing;
                 }
             }
-            Rectangle {
-                vertical-stretch: 1;
+            VerticalLayout {
+                padding-top: 2px;
+                padding-bottom: 2px;
+                horizontal-stretch: 1;
+                image := Image {
+                    source: PlayerBarAdapter.waveform;
+                    image-fit: ImageFit.fill;
+                    height: 24px;
+                }
             }
             Scrubber {
                 position-seconds <=> PlayerBarAdapter.position-seconds;

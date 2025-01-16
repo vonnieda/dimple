@@ -11,6 +11,13 @@ pub struct PluginHost {
     plugins: Arc<RwLock<Vec<Box<dyn Plugin>>>>,
 }
 
+/// Right away, I need:
+/// - lrclib lyrics (already have, fit API)
+/// - musicbrainz links (needed for summary)
+/// - wikidata summary
+/// - tadb artist artwork
+/// - fanart artist artwork
+/// - caa release artwork
 impl PluginHost {
     pub fn add_plugin(&self, plugin: Box<dyn Plugin>) {
         self.plugins.write().unwrap().push(plugin);
@@ -38,14 +45,10 @@ impl PluginHost {
 }
 
 #[cfg(test)]
-mod tests {
+mod tests { 
     use crate::{
         library::Library,
-        model::{Artist, ArtistRef, Track},
-        plugins::{
-            example::ExamplePlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin,
-            s3_api_sync::S3ApiSyncPlugin, wikidata::WikidataPlugin,
-        },
+        model::{Artist, ArtistRef, Track}, plugins::{example::ExamplePlugin, lrclib::LrclibPlugin},
     };
 
     use super::PluginHost;

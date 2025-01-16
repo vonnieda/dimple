@@ -2,11 +2,6 @@ use serde::{Deserialize, Serialize};
 
 use super::plugin::Plugin;
 
-#[derive(Default)]
-pub struct WikidataPlugin {
-    config: WikidataPluginConfig,
-}
-
 #[derive(Serialize, Deserialize, Clone, Default)]
 struct WikidataPluginConfig {    
     pub url: String,
@@ -31,10 +26,11 @@ impl Plugin for WikidataPlugin {
     fn configuration(&self) -> String {
         serde_json::to_string(&self.config).unwrap()
     }
+}
 
-    fn status(&self) -> String {
-        "Ready".to_string()
-    }
+#[derive(Default)]
+pub struct WikidataPlugin {
+    config: WikidataPluginConfig,
 }
 
 struct WikidataClient {

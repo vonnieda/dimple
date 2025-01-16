@@ -6,9 +6,12 @@ use crate::ui::PlayerBarAdapter;
 
 use dimple_core::model::Artist;
 use dimple_core::model::Release;
+use dimple_core::player::Song;
 use dimple_core::{model::Track, player::PlayerState};
 
 use super::app_window_controller::App;
+use super::image_gen;
+use super::images;
 
 use slint::ComponentHandle;
 
@@ -37,9 +40,11 @@ pub fn player_bar_init(app: &App) {
             move |seconds| player.seek(Duration::from_secs(seconds as u64)));
     }).unwrap();
 
-    let player = app.player.clone();
-    let app = app.clone();
-    player.on_change(Box::new(move |_event| update_model(&app)));
+    let app1 = app.clone();
+    app.player.on_change(Box::new(move |_event| update_model(&app1)));
+
+    let app1 = app.clone();
+    app.player.on_change(Box::new(move |_event| if _event == "last_loaded_queue_index" { update_waveform(&app1) }));
 }
 
 fn update_model(app: &App) {
@@ -66,18 +71,34 @@ fn update_model(app: &App) {
             ui.global::<PlayerBarAdapter>().set_up_next_track(card);
         });
     
-        ui.global::<PlayerBarAdapter>().set_duration_seconds(player.track_duration().as_secs() as i32);
-        ui.global::<PlayerBarAdapter>().set_duration_label(format_duration(&player.track_duration()).into());
-        ui.global::<PlayerBarAdapter>().set_position_seconds(player.track_position().as_secs() as f32);
-        ui.global::<PlayerBarAdapter>().set_position_label(format_duration(&player.track_position()).into());
-        ui.global::<PlayerBarAdapter>().set_player_state(player.state().into());
-        ui.global::<PlayerBarAdapter>().set_now_playing_artist(artist_card(&current_track.artist(&library).unwrap_or_default()));
-        ui.global::<PlayerBarAdapter>().set_now_playing_release(release_card(&current_track.release(&library).unwrap_or_default()));
-        ui.global::<PlayerBarAdapter>().set_now_playing_track(now_playing_track);
-        ui.global::<PlayerBarAdapter>().set_up_next_artist(artist_card(&next_track.artist(&library).unwrap_or_default()));
-        ui.global::<PlayerBarAdapter>().set_up_next_release(release_card(&next_track.release(&library).unwrap_or_default()));
-        ui.global::<PlayerBarAdapter>().set_up_next_track(up_next_track);
+        let adapter: crate::ui::PlayerBarAdapter = ui.global::<PlayerBarAdapter>();
+        adapter.set_duration_seconds(player.track_duration().as_secs() as i32);
+        adapter.set_duration_seconds(player.track_duration().as_secs() as i32);
+        adapter.set_duration_label(format_duration(&player.track_duration()).into());
+        adapter.set_position_seconds(player.track_position().as_secs() as f32);
+        adapter.set_position_label(format_duration(&player.track_position()).into());
+        adapter.set_player_state(player.state().into());
+        adapter.set_now_playing_artist(artist_card(&current_track.artist(&library).unwrap_or_default()));
+        adapter.set_now_playing_release(release_card(&current_track.release(&library).unwrap_or_default()));
+        adapter.set_now_playing_track(now_playing_track);
+        adapter.set_up_next_artist(artist_card(&next_track.artist(&library).unwrap_or_default()));
+        adapter.set_up_next_release(release_card(&next_track.release(&library).unwrap_or_default()));
+        adapter.set_up_next_track(up_next_track);
     }).unwrap();
+}
+
+fn update_waveform(app: &App) {
+    let app = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        if let Some(song) = app.player.current_song() {
+            let adapter: crate::ui::PlayerBarAdapter = ui.global::<PlayerBarAdapter>();
+            adapter.set_waveform(generate_waveform(song));
+        }
+    }).unwrap();
+}
+
+fn generate_waveform(song: Song) -> slint::Image {
+    images::dynamic_to_slint(&image_gen::gen_song_waveform(&song, 800, 24))
 }
 
 fn format_duration(dur: &Duration) -> String {

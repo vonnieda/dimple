@@ -7,6 +7,8 @@ use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
 use crate::{library::Library, model::{Event, Playlist, Track}, notifier::{self, Notifier}};
 
+pub use playback_rs::Song;
+
 #[derive(Clone)]
 pub struct Player {
     library: Arc<Library>,
@@ -139,6 +141,10 @@ impl Player {
 
     pub fn is_playing(&self) -> bool {
         self.state() == PlayerState::Playing
+    }
+
+    pub fn current_song(&self) -> Option<Song> {
+        self.shared_state.read().unwrap().current_song.clone()
     }
 
     /// TODO magic. maybe this is a metadata item?
@@ -283,8 +289,9 @@ impl Player {
 
     fn load_next_available_song(&self, start_index: usize, inner: &playback_rs::Player) {
         let mut queue_index = start_index;
-        // TODO querying the db every 1/10 seconds? Need to copy tracks, or at least
-        // the next N tracks into the state and then reload on changes to the playlist.
+        // TODO cpu performance querying the db every 1/10 seconds? Need to
+        // copy tracks, or at least the next N tracks into the state and then
+        // reload on changes to the playlist.
         let tracks = self.queue().tracks(&self.library);
         loop {
             match tracks.get(queue_index) {
@@ -296,6 +303,9 @@ impl Player {
                         TrackDownloadStatus::Ready(song) => { 
                             inner.play_song_next(&song, None).unwrap();
                             self.set_last_loaded_queue_index(Some(queue_index));
+                            if queue_index == self.current_queue_index() {
+                                self.shared_state.write().unwrap().current_song = Some(song.clone());
+                            }
                             return
                         },
                         TrackDownloadStatus::Error(e) => {
@@ -348,6 +358,7 @@ struct SharedState {
     track_duration: Duration,
     track_position: Duration,
     inner_player_state: PlayerState,
+    current_song: Option<Song>,
 }
 
 #[derive(Clone, Debug)]

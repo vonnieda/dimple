@@ -68,6 +68,16 @@ impl Plugin for LrclibPlugin {
     }
 }
 
+// {
+//     "id": 3396226,
+//     "trackName": "I Want to Live",
+//     "artistName": "Borislav Slavov",
+//     "albumName": "Baldur's Gate 3 (Original Game Soundtrack)",
+//     "duration": 233,
+//     "instrumental": false,
+//     "plainLyrics": "I feel your breath upon my neck\n...The clock won't stop and this is what we get\n",
+//     "syncedLyrics": "[00:17.12] I feel your breath upon my neck\n...[03:20.31] The clock won't stop and this is what we get\n[03:25.72] "
+//   }
 #[derive(Clone, Debug, Deserialize)]
 struct GetResponse {
     pub id: Option<f64>,
@@ -120,16 +130,6 @@ mod tests {
     }
 }
 
-// {
-//     "id": 3396226,
-//     "trackName": "I Want to Live",
-//     "artistName": "Borislav Slavov",
-//     "albumName": "Baldur's Gate 3 (Original Game Soundtrack)",
-//     "duration": 233,
-//     "instrumental": false,
-//     "plainLyrics": "I feel your breath upon my neck\n...The clock won't stop and this is what we get\n",
-//     "syncedLyrics": "[00:17.12] I feel your breath upon my neck\n...[03:20.31] The clock won't stop and this is what we get\n[03:25.72] "
-//   }
 
 
 // let client = Client::builder()

@@ -9,14 +9,6 @@ pub struct MusicBrainzPlugin {
     config: MusicBrainzPluginConfig,
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
-struct MusicBrainzPluginConfig {    
-    pub url: String,
-    pub username: String,
-    pub password: String,
-    pub use_tls: bool,
-}
-
 impl Plugin for MusicBrainzPlugin {
     fn type_name(&self) -> String {
         "MusicBrainzPlugin".to_string()
@@ -33,10 +25,14 @@ impl Plugin for MusicBrainzPlugin {
     fn configuration(&self) -> String {
         serde_json::to_string(&self.config).unwrap()
     }
+}
 
-    fn status(&self) -> String {
-        "Ready".to_string()
-    }
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct MusicBrainzPluginConfig {    
+    pub url: String,
+    pub username: String,
+    pub password: String,
+    pub use_tls: bool,
 }
 
 // https://musicbrainz.org/doc/MusicBrainz_Entity

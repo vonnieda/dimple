@@ -102,6 +102,24 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     Ok(track_source)
 }
 
+fn match_artist(library: &Library, artist: &Artist) -> Option<Artist> {
+    library.find("
+        SELECT Artist.* 
+        FROM Artist 
+        WHERE (musicbrainz_id IS NOT NULL AND musicbrainz_id = ?1)
+        OR (Artist.name IS NOT NULL AND Artist.name = ?2)
+        ", (&artist.musicbrainz_id, &artist.name))
+}
+
+fn match_genre(library: &Library, genre: &Genre) -> Option<Genre> {
+    library.find("
+        SELECT Genre.* 
+        FROM Genre 
+        WHERE (musicbrainz_id IS NOT NULL AND musicbrainz_id = ?1)
+        OR (Genre.name IS NOT NULL AND Genre.name = ?2)
+        ", (&genre.musicbrainz_id, &genre.name))
+}
+
 fn match_track(library: &Library, tags: &TaggedMediaFile) -> Option<Track> {
     let track = tags.track();
     let matched_track = library.find("
@@ -216,24 +234,6 @@ fn merge_release(library: &Library, release: &Release, tags: &TaggedMediaFile) -
     }
 
     release
-}
-
-fn match_artist(library: &Library, artist: &Artist) -> Option<Artist> {
-    library.find("
-        SELECT Artist.* 
-        FROM Artist 
-        WHERE (musicbrainz_id IS NOT NULL AND musicbrainz_id = ?1)
-        OR (Artist.name IS NOT NULL AND Artist.name = ?2)
-        ", (&artist.musicbrainz_id, &artist.name))
-}
-
-fn match_genre(library: &Library, genre: &Genre) -> Option<Genre> {
-    library.find("
-        SELECT Genre.* 
-        FROM Genre 
-        WHERE (musicbrainz_id IS NOT NULL AND musicbrainz_id = ?1)
-        OR (Genre.name IS NOT NULL AND Genre.name = ?2)
-        ", (&genre.musicbrainz_id, &genre.name))
 }
 
 #[derive(Debug)]

@@ -137,3 +137,5 @@ software full time:
 - Phosphor Icons
 - Tantivy Search
 - [Tools Fairy](https://toolsfairy.com/image-test/sample-jpg-files)
+- https://github.com/freestrings/waveform
+
