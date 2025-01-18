@@ -39,9 +39,10 @@ pub fn release_details_init(app: &App) {
     }).unwrap();
 
     
-    // TODO filter events
+    // TODO filter events by key - but we can't get the key without the
+    // UI, so rethink the whole mess.
     let app1 = app.clone();
-    app.library.on_change(Box::new(move |_event| update_model(&app1)));
+    app.library.on_change(Box::new(move |event| if event.type_name == "Release" { update_model(&app1) }));
 }
 
 pub fn release_details(url: &str, app: &App) {

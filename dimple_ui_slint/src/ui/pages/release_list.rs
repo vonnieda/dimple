@@ -15,7 +15,7 @@ use slint::Model as _;
 pub fn release_list_init(app: &App) {
     let app = app.clone();
     let library = app.library.clone();
-    library.on_change(Box::new(move |_event| update_model(&app)));
+    // library.on_change(Box::new(move |_event| update_model(&app)));
 }
 
 pub fn release_list(app: &App) {

@@ -62,7 +62,7 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
         let length = track.length_ms
             .map(|ms| Duration::from_millis(ms as u64))
             .map(|dur| format_length(dur));
-        row.push(i.to_string().as_str().into()); // # (Ordinal)
+        row.push((i + 1).to_string().as_str().into()); // # (Ordinal)
         row.push(track.title.clone().unwrap_or_default().as_str().into()); // Title
         row.push(track.album_name(library).unwrap_or_default().as_str().into()); // Album
         row.push(track.artist_name(library).unwrap_or_default().as_str().into()); // Artist

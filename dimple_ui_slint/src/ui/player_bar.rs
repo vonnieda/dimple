@@ -89,16 +89,15 @@ fn update_model(app: &App) {
 
 fn update_waveform(app: &App) {
     let app = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
+    std::thread::spawn(move || {
         if let Some(song) = app.player.current_song() {
-            let adapter: crate::ui::PlayerBarAdapter = ui.global::<PlayerBarAdapter>();
-            adapter.set_waveform(generate_waveform(song));
+            let waveform = image_gen::gen_song_waveform(&song, 800, 24);
+            app.ui.upgrade_in_event_loop(move |ui| {
+                let adapter: crate::ui::PlayerBarAdapter = ui.global::<PlayerBarAdapter>();
+                adapter.set_waveform(images::dynamic_to_slint(&waveform));
+            }).unwrap();
         }
-    }).unwrap();
-}
-
-fn generate_waveform(song: Song) -> slint::Image {
-    images::dynamic_to_slint(&image_gen::gen_song_waveform(&song, 800, 24))
+    });
 }
 
 fn format_duration(dur: &Duration) -> String {

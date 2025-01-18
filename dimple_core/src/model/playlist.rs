@@ -44,6 +44,11 @@ impl Playlist {
     }
 
     pub fn insert(&self, library: &Library, model: &impl Model, index: usize) {
+        log::info!("insert {} {:?} {} {}", 
+            model.type_name(), 
+            model.key(), 
+            index, 
+            self.len(library));
         match model.type_name().as_str() {
             "Artist" => {
                 let artist = Artist::get(library, &model.key().unwrap()).unwrap();

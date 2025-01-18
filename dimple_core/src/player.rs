@@ -52,7 +52,8 @@ impl Player {
     pub fn play_now(&self, model: &impl Model) {
         log::info!("play_now {:?} {:?}", model.type_name(), model.key());
         self.queue().insert(&self.library, model, self.current_queue_index() + 1);
-        self.next();
+        // TODO only if already playing
+        // self.next();
     }
 
     /// Insert into the queue after the current item.
