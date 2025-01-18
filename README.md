@@ -138,4 +138,5 @@ software full time:
 - Tantivy Search
 - [Tools Fairy](https://toolsfairy.com/image-test/sample-jpg-files)
 - https://github.com/freestrings/waveform
+- https://github.com/jamsocket/fractional_index
 

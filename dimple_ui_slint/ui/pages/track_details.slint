@@ -21,16 +21,20 @@ export global TrackDetailsAdapter {
     in property <[LinkAdapter]> isrcs;
     in property <LinkAdapter> release: {name: "Fan Speed",url: "internal://release/1234"};
     in property <string> release-date;
+    
     in property <string> dump;
     in property <bool> save;
     in property <bool> love;
     in property <bool> download;
 
-    pure callback play_now(string);
-    pure callback add_to_queue(string);
     pure callback set_save(bool);
     pure callback set_download(bool);
     pure callback set_love(bool);
+
+    pure callback play_now(string /* key */);
+    pure callback play_next(string /* key */);
+    pure callback play_later(string /* key */);
+
     pure callback set_lyrics(string, string);
 }
 
@@ -69,7 +73,7 @@ export component TrackDetails inherits ScrollView {
                     ActionButton {
                         icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
                         label: @tr("Play Later");
-                        clicked => { TrackDetailsAdapter.add_to_queue(TrackDetailsAdapter.key); }
+                        clicked => { TrackDetailsAdapter.play_later(TrackDetailsAdapter.key); }
                     }
                     ActionButton {
                         icon: self.checked 

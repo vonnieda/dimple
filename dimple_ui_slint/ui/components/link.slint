@@ -25,13 +25,13 @@ export component Link inherits TouchArea {
         vertical-alignment: vertical-alignment;
         width: root.width;
         text: name;
-        wrap: TextWrap.word-wrap;
+        wrap: TextWrap.no-wrap;
+        overflow: TextOverflow.clip;
         font-weight: font-weight;
         font-size: font-size;
         color: parent.has-hover 
             ? Styles.link-color-hover
             : StyleMetrics.default-text-color;
-        overflow: TextOverflow.elide;
     }
 }
 
@@ -56,14 +56,14 @@ export component Links inherits HorizontalLayout {
                 vertical-alignment: bottom;
                 text: ", ";
                 font-size: font-size;
-                // wrap: word-wrap;
+                wrap: TextWrap.no-wrap;
             }    
         if i == links.length - 2:
             Text {
                 vertical-alignment: bottom;
                 text: ", and ";
                 font-size: font-size;
-                // wrap: word-wrap;
+                wrap: TextWrap.no-wrap;
             }    
     }
 }

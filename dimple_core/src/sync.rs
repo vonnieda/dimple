@@ -31,7 +31,7 @@ use storage::Storage;
 use tempfile::tempdir;
 use uuid::Uuid;
 
-use crate::{library::Library, model::{Blob, ChangeLog, Diff, Model, Track, TrackSource}};
+use crate::{library::Library, model::{Blob, ChangeLog, Diff, Model, ModelBasics, Track, TrackSource}};
 
 pub struct Sync {
     storage: Box<dyn Storage>,
@@ -95,10 +95,10 @@ impl Sync {
                 }
     
                 info!("Library contains {} tracks and {} changelogs.",
-                    remote_library.tracks().len(),
-                    remote_library.changelogs().len());
+                    Track::list(&remote_library).len(),
+                    ChangeLog::list(&remote_library).len());
     
-                let changelogs = remote_library.changelogs();
+                let changelogs = ChangeLog::list(&remote_library);
                 info!("Applying {} changelogs", changelogs.len());
     
                 for changelog in changelogs {

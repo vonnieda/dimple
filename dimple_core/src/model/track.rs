@@ -2,7 +2,7 @@ use dimple_core_macro::ModelSupport;
 
 use crate::library::Library;
 
-use super::{Artist, Genre, Link, ModelBasics as _, Release};
+use super::{Artist, Dimage, Genre, Link, ModelBasics as _, Release};
 
 // // https://musicbrainz.org/doc/Track
 // // https://musicbrainz.org/ws/2/release/4d3ce256-ea71-44c5-8ce9-deb8f1e7dce4?inc=aliases%2Bartist-credits%2Blabels%2Bdiscids%2Brecordings&fmt=json
@@ -87,6 +87,14 @@ impl Track {
                 ORDER BY l.url ASC
             ", (key,))
         }).unwrap_or_default()
+    }
+
+    pub fn images(&self, library: &Library) -> Vec<Dimage> {
+        library.query("
+            SELECT d.* FROM DimageRef dr 
+            JOIN Dimage d ON (d.key = dr.dimage_key) 
+            WHERE dr.model_key = ?1
+        ", (self.key.clone().unwrap(),))
     }
 }
 

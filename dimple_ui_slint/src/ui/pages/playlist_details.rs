@@ -96,11 +96,7 @@ fn set_name(app: &App, key: &str, name: &str) {
 
 fn play_now(app: &App, key: &str) {
     let playlist = app.library.get::<Playlist>(key).unwrap();
-    let play_queue = app.player.queue();
-    for track in playlist.tracks(&app.library) {
-        app.library.playlist_add(&play_queue, &track.key.unwrap());
-    }
-    app.navigate("dimple://queue".into());
+    app.player.play_now(&playlist);
 }
 
 fn delete(app: &App, key: &str) {

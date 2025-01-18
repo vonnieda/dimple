@@ -85,4 +85,4 @@ Dump new things at the bottom, move things to the top to prioritize.
   that also has tags, sorting, filtering, etc.
 - Each image on a page should be a slideshow, and the user can drop new images,
   and they can hide ones they don't like, and lock to a specific one.
-  
+- Drag and drop playlist management (and queue)

@@ -1,9 +1,9 @@
 
-use std::time::{Duration, SystemTime};
+use std::{any::Any, time::{Duration, SystemTime}};
 
 use chrono::{DateTime, Utc};
 use dimage::DimageKind;
-use rusqlite::{types::FromSql, Connection, Row, ToSql};
+use rusqlite::{types::FromSql, Connection, Params, Row, ToSql};
 
 mod artist;
 pub use artist::Artist;
@@ -52,6 +52,9 @@ pub use dimage::Dimage;
 
 mod dimage_ref;
 pub use dimage_ref::DimageRef;
+
+mod playlist_item;
+pub use playlist_item::PlaylistItem;
 
 use crate::library::Library;
 
@@ -212,6 +215,7 @@ pub trait ModelBasics<T> {
     fn get(library: &Library, key: &str) -> Option<T>;
     fn list(library: &Library) -> Vec<T>;
     fn save(&self, library: &Library) -> T;
+    fn query(library: &Library, sql: &str, params: impl Params) -> Vec<T>;
 }
 
 impl <T: Model> ModelBasics<T> for T  {
@@ -225,5 +229,9 @@ impl <T: Model> ModelBasics<T> for T  {
     
     fn list(library: &Library) -> Vec<T> {
         library.list()
+    }
+
+    fn query(library: &Library, sql: &str, params: impl Params) -> Vec<T> {
+        library.query(sql, params)
     }
 }

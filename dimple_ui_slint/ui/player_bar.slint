@@ -35,10 +35,10 @@ export global PlayerBarAdapter {
         image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
         title: {name: "A Reign of Fish"},
     };
-    in-out property <float> position_seconds;
-    in property <int> duration_seconds;
-    in property <string> position_label;
-    in property <string> duration_label;
+    in-out property <float> position_seconds: 20;
+    in property <int> duration_seconds: 120;
+    in property <string> position_label: "00:20";
+    in property <string> duration_label: "02:00";
     in property <PlayerState> player_state;
     in property <image> waveform: @image-url("../images/waveform.png");
 }

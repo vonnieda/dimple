@@ -1,7 +1,11 @@
+use std::thread;
+use std::time::Duration;
+
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
 use crate::ui::Page;
+use dimple_core::librarian;
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::ModelBasics;
@@ -20,53 +24,47 @@ pub fn artist_details_init(app: &App) {
         let app = app1.clone();
         ui.global::<ArtistDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
         let app = app1.clone();
-        ui.global::<ArtistDetailsAdapter>().on_add_to_queue(move |key| add_to_queue(&app, &key));
+        ui.global::<ArtistDetailsAdapter>().on_play_next(move |key| play_next(&app, &key));
+        let app = app1.clone();
+        ui.global::<ArtistDetailsAdapter>().on_play_later(move |key| play_later(&app, &key));
     }).unwrap();
 
-    
     // TODO filter events
     let app1 = app.clone();
     app.library.on_change(Box::new(move |_event| update_model(&app1)));
 }
 
 pub fn artist_details(url: &str, app: &App) {
-    let app = app.clone();
     let url = Url::parse(&url).unwrap();
     let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
-    let ui = app.ui.clone();
-    ui.upgrade_in_event_loop(move |ui| {
+
+    let app1 = app.clone();
+    let key1 = key.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
         ui.global::<ArtistDetailsAdapter>().set_key(key.into());
-        update_model(&app);
+        update_model(&app1);
         ui.set_page(Page::ArtistDetails);
+
+        let app2 = app1.clone();
+        let key2 = key1.clone();
+        std::thread::spawn(move || {
+            if let Some(artist) = Artist::get(&app2.library, &key2) {
+                librarian::refresh_metadata(&app2.library, &app2.plugins, &artist);
+            }
+        });    
     }).unwrap();
 }
 
 fn play_now(app: &App, key: &str) {
-    // let app = app.clone();
-    // let key = key.to_string();
-    // app.ui.upgrade_in_event_loop(move |ui| {
-    //     // TODO think about ephemeral or secondary playlist, or even
-    //     // a playlist inserted inbetween the playing items
-    //     let play_queue = app.player.queue();
-    //     app.library.playlist_add(&play_queue, &key);
-    //     let len = play_queue.len(&app.library);
-    //     app.player.set_queue_index(len - 1);
-    //     app.player.play();
-    // }).unwrap();
-    todo!()
+    app.player.play_now(&Artist::get(&app.library, key).unwrap());
 }
 
-fn add_to_queue(app: &App, key: &str) {
-    // let app = app.clone();
-    // let key = key.to_string();
-    // app.ui.upgrade_in_event_loop(move |ui| {
-    //     let play_queue = app.player.queue();
-    //     let release = Artist::get(&app.library, &key).unwrap();
-    //     for track in release.tracks(&app.library) {
-    //         app.library.playlist_add(&play_queue, &track.key.unwrap());
-    //     }
-    //     app.player.play();
-    // }).unwrap();
+fn play_next(app: &App, key: &str) {
+    app.player.play_next(&Artist::get(&app.library, key).unwrap());
+}
+
+fn play_later(app: &App, key: &str) {
+    app.player.play_later(&Artist::get(&app.library, key).unwrap());
 }
 
 fn update_model(app: &App) {
@@ -130,6 +128,8 @@ fn release_cards(images: &ImageMangler, releases: &[Release]) -> Vec<CardAdapter
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release);
             card.image.image = images.lazy_get(release.clone(), 200, 200, move |ui, image| {
+                // TODO STOPSHIP temporary due to race condition
+                thread::sleep(Duration::from_millis(50));
                 let mut card = ui.get_release_list().cards.row_data(index).unwrap();
                 card.image.image = image;
                 ui.get_release_list().cards.set_row_data(index, card);

@@ -12,6 +12,8 @@ impl <T: Send> Notifier<T> {
         }
     }
 
+    // TODO I know/think this should not need to take a Box and that it
+    // probably has something to do with lifetimes, but here we are.
     pub fn on_notify(&self, l: Box<dyn Fn(&T) + Send>) {
         self.subs.lock().unwrap().push(l);
     }

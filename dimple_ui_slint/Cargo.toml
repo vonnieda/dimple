@@ -54,4 +54,3 @@ short_description = "Open source, cross-platform music player."
 # deb_depends = ["libgl1-mesa-glx", "libsdl2-2.0-0 (>= 2.0.5)"]
 # osx_frameworks = ["OpenGL"]
 osx_url_schemes = ["lol.dimple.dimple_ui_slint", "dimple://"]
-

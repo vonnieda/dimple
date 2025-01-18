@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use crate::ui::app_window_controller::App;
 use crate::ui::Page;
+use dimple_core::library;
 use dimple_core::library::Library;
 use dimple_core::model::Playlist;
 use dimple_core::model::Track;
@@ -31,8 +32,8 @@ pub fn queue_details_init(app: &App) {
         });
         let app = app_.clone();
         ui.global::<QueueDetailsAdapter>().on_remove_all(move || {
-            let queue = app.player.queue();
-            app.library.playlist_clear(&queue);
+            app.player.queue().clear(&app.library);
+            // TODO change to monitoring
             app.ui.upgrade_in_event_loop(|ui| ui.global::<Navigator>().invoke_navigate("dimple://refresh".into())).unwrap();
         });
     }).unwrap();

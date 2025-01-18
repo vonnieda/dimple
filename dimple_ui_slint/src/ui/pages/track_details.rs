@@ -1,12 +1,10 @@
-use dimple_core::library::Library;
-use dimple_core::merge::CrdtRules;
+use dimple_core::librarian;
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Link;
 use dimple_core::model::ModelBasics as _;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
-use dimple_core::plugins::plugin_host::PluginHost;
 use slint::ModelRc;
 use url::Url;
 use crate::ui::app_window_controller::App;
@@ -22,7 +20,9 @@ pub fn track_details_init(app: &App) {
         let app = app1.clone();
         ui.global::<TrackDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
         let app = app1.clone();
-        ui.global::<TrackDetailsAdapter>().on_add_to_queue(move |key| add_to_queue(&app, &key));
+        ui.global::<TrackDetailsAdapter>().on_play_next(move |key| play_next(&app, &key));
+        let app = app1.clone();
+        ui.global::<TrackDetailsAdapter>().on_play_later(move |key| play_later(&app, &key));
         let app = app1.clone();
         ui.global::<TrackDetailsAdapter>().on_set_lyrics(move |key, lyrics| set_lyrics(&app, &key, &lyrics));
     }).unwrap();
@@ -39,18 +39,18 @@ pub fn track_details(url: &str, app: &App) {
     let app1 = app.clone();
     let key1 = key.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
-        ui.global::<TrackDetailsAdapter>().set_key(key1.into());
+        ui.global::<TrackDetailsAdapter>().set_key(key1.clone().into());
         update_model(&app1);
         ui.set_page(Page::TrackDetails);
-    }).unwrap();
 
-    let app1 = app.clone();
-    let key1 = key.clone();
-    std::thread::spawn(move || {
-        if let Some(track) = Track::get(&app1.library, &key1) {
-            refresh_metadata(&app1.library, &app1.plugins, &track);
-        }
-    });
+        let app2 = app1.clone();
+        let key2 = key1.clone();
+        std::thread::spawn(move || {
+            if let Some(track) = Track::get(&app2.library, &key2) {
+                librarian::refresh_metadata(&app2.library, &app2.plugins, &track);
+            }
+        });    
+    }).unwrap();
 }
 
 fn update_model(app: &App) {
@@ -103,36 +103,16 @@ fn update_model(app: &App) {
     }).unwrap();
 }
 
-fn refresh_metadata(library: &Library, plugins: &PluginHost, track: &Track) {
-    if let Ok(Some(track_r)) = plugins.metadata(library, track) {
-        if let Some(track_l) = Track::get(library, &track.key.clone().unwrap()) {
-            library.save(&CrdtRules::merge(track_l, track_r));
-        }
-    }
-}
-
 fn play_now(app: &App, key: &str) {
-    let app = app.clone();
-    let key = key.to_string();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        // TODO think about ephemeral or secondary playlist, or even
-        // a playlist inserted inbetween the playing items
-        let play_queue = app.player.queue();
-        app.library.playlist_add(&play_queue, &key);
-        let len = play_queue.len(&app.library);
-        app.player.set_queue_index(len - 1);
-        app.player.play();
-    }).unwrap();
+    app.player.play_now(&Track::get(&app.library, key).unwrap());
 }
 
-fn add_to_queue(app: &App, key: &str) {
-    let app = app.clone();
-    let key = key.to_string();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        let play_queue = app.player.queue();
-        app.library.playlist_add(&play_queue, &key);
-        app.player.play();
-    }).unwrap();
+fn play_next(app: &App, key: &str) {
+    app.player.play_next(&Track::get(&app.library, key).unwrap());
+}
+
+fn play_later(app: &App, key: &str) {
+    app.player.play_later(&Track::get(&app.library, key).unwrap());
 }
 
 fn set_lyrics(app: &App, key: &str, lyrics: &str) {

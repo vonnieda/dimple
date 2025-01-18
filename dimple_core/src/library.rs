@@ -175,6 +175,8 @@ impl Library {
 
     // TODO woops, major bug, it seems like upsert is saving with a new key
     // when a unique is hit, like in a duple sha256 on dimage. 
+    // Sheeeeeit, that's why import is slow. I think just switch to update
+    // and insert based on key.
     pub fn save<T: Model>(&self, obj: &T) -> T {
         // TODO txn
 
@@ -250,6 +252,8 @@ impl Library {
     }
 
     // Mik's album images are a good test for huge files
+    // TODO I think all this fallback stuff actually belongs in the 
+    // UI / ImageMangler
     pub fn image<T: Model>(&self, model: &T) -> Option<DynamicImage> {
         if model.type_name() == "Release" {
             return Release::get(self, &model.key().clone().unwrap()).unwrap()
@@ -268,30 +272,24 @@ impl Library {
                 }
             }
         }
+        else if model.type_name() == "Track" {
+            let track = Track::get(self, &model.key().clone().unwrap()).unwrap();
+            if let Some(image) = track.images(self).get(0) {
+                return Some(image.get_image())
+            }
+            if let Some(release) = track.release(self) {
+                if let Some(image) = release.images(self).get(0) {
+                    return Some(image.get_image())
+                }
+            }
+            for artist in track.artists(self).iter() {
+                if let Some(image) = artist.images(self).get(0) {
+                    return Some(image.get_image())
+                }
+            }
+        }
         None
     }
-
-    // TODO now that library.query takes params most of these can be moved into
-    // their caller's code
-    pub fn changelogs(&self) -> Vec<ChangeLog> {
-        self.query("SELECT * FROM ChangeLog ORDER BY timestamp ASC", ())
-    }
-
-    pub fn tracks(&self) -> Vec<Track> {
-        self.query("SELECT * FROM Track ORDER BY title", ())
-    }
-
-    pub fn playlist_add(&self, playlist: &Playlist, track_key: &str) {
-        self.conn().execute("INSERT INTO PlaylistItem 
-            (key, playlist_key, track_key) 
-            VALUES (?1, ?2, ?3)",
-            (&Uuid::new_v4().to_string(), playlist.key.clone().unwrap(), track_key)).unwrap();
-    }
-
-    pub fn playlist_clear(&self, playlist: &Playlist) {
-        self.conn().execute("DELETE FROM PlaylistItem
-            WHERE playlist_key = ?1", (playlist.key.clone().unwrap(),)).unwrap();
-    }    
 
     pub fn find_newest_changelog_by_field(&self, model: &str, model_key: &str, field: &str) -> Option<ChangeLog> {
         self.conn().query_row_and_then("SELECT * FROM ChangeLog 
@@ -389,7 +387,7 @@ impl Library {
         None
     }
 
-    fn conn(&self) -> PooledConnection<SqliteConnectionManager> {
+    pub fn conn(&self) -> PooledConnection<SqliteConnectionManager> {
         self.pool.get().unwrap()
     }
 }
@@ -408,16 +406,10 @@ mod tests {
     }
 
     #[test]
-    fn tracks() {
-        let library = Library::open_memory();
-        library.tracks();
-    }
-
-    #[test]
     fn load_track_content() {
         let library = Library::open_memory();
         library.import("tests/data/media_files");
-        let track = &library.tracks()[0];
+        let track = &library.list::<Track>()[0];
         let content = library.load_track_content(track).unwrap();
         assert!(content.len() > 0);
     }

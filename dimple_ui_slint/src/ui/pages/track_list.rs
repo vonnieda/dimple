@@ -83,41 +83,15 @@ fn sort_table(app: &App, col: i32, ascending: bool) {
 }
 
 fn play_now(app: &App, key: &str) {
-    let app = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        // TODO think about ephemeral or secondary playlist, or even
-        // a playlist inserted inbetween the playing items
-        // let row_data = ui.global::<TrackListAdapter>().get_row_data();
-        // let cell_data = row_data.row_data(row as usize).unwrap().row_data(6).unwrap();
-        // let key = cell_data.text.as_str();
-        // let play_queue = app.player.queue();
-        // app.library.playlist_insert(&play_queue, &key, row);
-    }).unwrap();
+    app.player.play_now(&Track::get(&app.library, key).unwrap());
 }
 
 fn play_next(app: &App, key: &str) {
-    let app = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        // TODO think about ephemeral or secondary playlist, or even
-        // a playlist inserted inbetween the playing items
-        // let row_data = ui.global::<TrackListAdapter>().get_row_data();
-        // let cell_data = row_data.row_data(row as usize).unwrap().row_data(6).unwrap();
-        // let key = cell_data.text.as_str();
-        // let play_queue = app.player.queue();
-        // app.library.playlist_insert(&play_queue, &key);
-    }).unwrap();
+    app.player.play_next(&Track::get(&app.library, key).unwrap());
 }
 
 fn play_later(app: &App, key: &str) {
-    let app = app.clone();
-    let key = key.to_string();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        // let row_data = ui.global::<TrackListAdapter>().get_row_data();
-        // let cell_data = row_data.row_data(row as usize).unwrap().row_data(6).unwrap();
-        // let key = cell_data.text.as_str();
-        let play_queue = app.player.queue();
-        app.library.playlist_add(&play_queue, &key);
-    }).unwrap();
+    app.player.play_later(&Track::get(&app.library, key).unwrap());
 }
 
 fn format_length(length: Duration) -> String {

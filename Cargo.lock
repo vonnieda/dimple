@@ -1624,7 +1624,9 @@ dependencies = [
  "dimple_core_macro",
  "directories",
  "env_logger 0.11.6",
+ "fakeit",
  "fast_image_resize 5.1.1",
+ "fractional_index",
  "image 0.25.5",
  "include_dir",
  "lazy_static",
@@ -2219,6 +2221,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e13624c2627564efccf4934284bdd98cbaa14e79b0b5a141218e507b3a823456"
 dependencies = [
  "percent-encoding",
+]
+
+[[package]]
+name = "fractional_index"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce01fad85c73f947e62a39152c7b0f785af7f44859da36e421c42a3023bcbe3a"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

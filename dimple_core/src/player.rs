@@ -5,7 +5,7 @@ use std::{sync::{mpsc::{Receiver, Sender}, Arc, Mutex, RwLock}, time::{Duration,
 use threadpool::ThreadPool;
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
-use crate::{library::Library, model::{Event, Playlist, Track}, notifier::{self, Notifier}};
+use crate::{library::Library, model::{Artist, Event, Model, ModelBasics as _, Playlist, Release, Track}, notifier::{self, Notifier}};
 
 pub use playback_rs::Song;
 
@@ -45,35 +45,27 @@ impl Player {
         player
     }
 
-    /// Insert into queue before the current song, and skip backwards to the
-    /// newly inserted song. The currently playing song, if any, will then
-    /// be played after.
-    pub fn play_now(&self, track_key: &str) {
-
+    /// Insert into the queue after the current item, and then skip forward
+    /// to the newly added item. If the item currently playing is a Release,
+    /// for instance, then the rest of the release will be skipped, not just
+    /// the current track.
+    pub fn play_now(&self, model: &impl Model) {
+        log::info!("play_now {:?} {:?}", model.type_name(), model.key());
+        self.queue().insert(&self.library, model, self.current_queue_index() + 1);
+        self.next();
     }
 
-    /// Insert into the queue after the current index, so that the song will
-    /// be played next.
-    pub fn play_next(&self, track_key: &str) {
-
+    /// Insert into the queue after the current item.
+    pub fn play_next(&self, model: &impl Model) {
+        log::info!("play_next {:?} {:?}", model.type_name(), model.key());
+        self.queue().insert(&self.library, model, self.current_queue_index() + 1);
     }
 
     /// Append to the end of the queue.
-    pub fn play_later(&self, track_key: &str) {
-
+    pub fn play_later(&self, model: &impl Model) {
+        log::info!("play_later {:?} {:?}", model.type_name(), model.key());
+        self.queue().append(&self.library, model);
     }
-
-    // pub fn playlist_add(&self, playlist: &Playlist, track_key: &str) {
-    //     self.conn().execute("INSERT INTO PlaylistItem 
-    //         (key, playlist_key, track_key) 
-    //         VALUES (?1, ?2, ?3)",
-    //         (&Uuid::new_v4().to_string(), playlist.key.clone().unwrap(), track_key)).unwrap();
-    // }
-
-    // pub fn playlist_clear(&self, playlist: &Playlist) {
-    //     self.conn().execute("DELETE FROM PlaylistItem
-    //         WHERE playlist_key = ?1", (playlist.key.clone().unwrap(),)).unwrap();
-    // }    
 
     pub fn play(&self) {
         self.sender.send(PlayerCommand::Play).unwrap();
@@ -374,7 +366,7 @@ enum PlayerCommand {
 mod tests {
     use std::{sync::Arc, time::Instant};
 
-    use crate::library::Library;
+    use crate::{library::Library, model::{ModelBasics as _, Track}};
 
     use super::Player;
 
@@ -386,10 +378,9 @@ mod tests {
         let library = Arc::new(Library::open_memory());
         let player = Player::new(library.clone());
         library.import("tests/data/media_files");
-        let tracks = library.tracks();
-        let play_queue = player.queue();
+        let tracks = Track::list(&library);
         for track in &tracks[0..3] {
-            library.playlist_add(&play_queue, track.key.as_ref().unwrap());
+            player.play_later(track);
         }
         assert!(!player.is_playing());
         player.play();

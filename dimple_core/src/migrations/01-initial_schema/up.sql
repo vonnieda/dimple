@@ -110,12 +110,12 @@ CREATE INDEX Playlist_musicbrainz_id ON Playlist (musicbrainz_id);
 CREATE TABLE PlaylistItem (
     key TEXT PRIMARY KEY,
     playlist_key TEXT NOT NULL,
+    ordinal TEXT NOT NULL,
     track_key TEXT NOT NULL,
     FOREIGN KEY (playlist_key) REFERENCES Playlist(key),
     FOREIGN KEY (track_key) REFERENCES Track(key)
 );
-
-
+CREATE INDEX PlaylistItem_playlist_key_ordinal ON PlaylistItem (playlist_key, ordinal);
 
 
 CREATE TABLE LinkRef (

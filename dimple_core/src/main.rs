@@ -69,13 +69,13 @@ fn main() {
     let command = &args[1];
     if command == "import" {
         let path = &args[2];
-        println!("Library currently contains {} tracks.", library.tracks().len());
-        println!("Importing {}.", path);
-        library.import(&path);
-        println!("Library now contains {} tracks, {} releases, {} artists.", 
-            library.tracks().len(),
-            Release::list(&library).len(),
-            Artist::list(&library).len());
+        // println!("Library currently contains {} tracks.", library.tracks().len());
+        // println!("Importing {}.", path);
+        // library.import(&path);
+        // println!("Library now contains {} tracks, {} releases, {} artists.", 
+        //     Track::list(&library).len(),
+        //     Release::list(&library).len(),
+        //     Artist::list(&library).len());
     }
     else if command == "artists" {
         for artist in Artist::list(&library).iter() {
@@ -88,7 +88,7 @@ fn main() {
         }
     }
     else if command == "tracks" {
-        let tracks = library.tracks();
+        let tracks = Track::list(&library);
         for track in tracks {
             print_track(&library, &track);
         }

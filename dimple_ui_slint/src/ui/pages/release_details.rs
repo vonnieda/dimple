@@ -4,6 +4,7 @@ use std::time::Duration;
 use crate::ui::app_window_controller::App;
 use crate::ui::CardAdapter;
 use crate::ui::Page;
+use dimple_core::librarian;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
@@ -13,12 +14,12 @@ use dimple_core::model::Release;
 use dimple_core::model::Track;
 use slint::ComponentHandle as _;
 use slint::ModelRc;
+use slint::SharedString;
 use slint::StandardListViewItem;
 use slint::VecModel;
 use url::Url;
 use crate::ui::LinkAdapter;
 use crate::ui::ReleaseDetailsAdapter;
-use crate::ui::ImageLinkAdapter;
 
 pub fn release_details_init(app: &App) {
     let app1 = app.clone();
@@ -26,7 +27,15 @@ pub fn release_details_init(app: &App) {
         let app = app1.clone();
         ui.global::<ReleaseDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
         let app = app1.clone();
-        ui.global::<ReleaseDetailsAdapter>().on_add_to_queue(move |key| add_to_queue(&app, &key));
+        ui.global::<ReleaseDetailsAdapter>().on_play_next(move |key| play_next(&app, &key));
+        let app = app1.clone();
+        ui.global::<ReleaseDetailsAdapter>().on_play_later(move |key| play_later(&app, &key));
+        let app = app1.clone();
+        ui.global::<ReleaseDetailsAdapter>().on_play_track_now(move |key| play_track_now(&app, &key));
+        let app = app1.clone();
+        ui.global::<ReleaseDetailsAdapter>().on_play_track_next(move |key| play_track_next(&app, &key));
+        let app = app1.clone();
+        ui.global::<ReleaseDetailsAdapter>().on_play_track_later(move |key| play_track_later(&app, &key));
     }).unwrap();
 
     
@@ -36,42 +45,23 @@ pub fn release_details_init(app: &App) {
 }
 
 pub fn release_details(url: &str, app: &App) {
-    let app = app.clone();
     let url = Url::parse(&url).unwrap();
     let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
-    let ui = app.ui.clone();
-    ui.upgrade_in_event_loop(move |ui| {
-        ui.global::<ReleaseDetailsAdapter>().set_key(key.into());
-        update_model(&app);
-        ui.set_page(Page::ReleaseDetails);
-    }).unwrap();
-}
 
-fn play_now(app: &App, key: &str) {
-    // let app = app.clone();
-    // let key = key.to_string();
-    // app.ui.upgrade_in_event_loop(move |ui| {
-    //     // TODO think about ephemeral or secondary playlist, or even
-    //     // a playlist inserted inbetween the playing items
-    //     let play_queue = app.player.queue();
-    //     app.library.playlist_add(&play_queue, &key);
-    //     let len = play_queue.len(&app.library);
-    //     app.player.set_queue_index(len - 1);
-    //     app.player.play();
-    // }).unwrap();
-    todo!()
-}
-
-fn add_to_queue(app: &App, key: &str) {
-    let app = app.clone();
-    let key = key.to_string();
+    let app1 = app.clone();
+    let key1 = key.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
-        let play_queue = app.player.queue();
-        let release = Release::get(&app.library, &key).unwrap();
-        for track in release.tracks(&app.library) {
-            app.library.playlist_add(&play_queue, &track.key.unwrap());
-        }
-        app.player.play();
+        ui.global::<ReleaseDetailsAdapter>().set_key(key1.clone().into());
+        update_model(&app1);
+        ui.set_page(Page::ReleaseDetails);
+
+        let app2 = app1.clone();
+        let key2 = key1.clone();
+        std::thread::spawn(move || {
+            if let Some(release) = Release::get(&app2.library, &key2) {
+                librarian::refresh_metadata(&app2.library, &app2.plugins, &release);
+            }
+        });            
     }).unwrap();
 }
 
@@ -113,9 +103,34 @@ fn update_model(app: &App) {
                 ui.global::<ReleaseDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
                 ui.global::<ReleaseDetailsAdapter>().set_dump(format!("{:?}", release).into());
                 ui.global::<ReleaseDetailsAdapter>().set_row_data(row_data(&library, &tracks));
+                ui.global::<ReleaseDetailsAdapter>().set_row_keys(row_keys(&tracks));
             }).unwrap();
         });
     }).unwrap();
+}
+
+fn play_now(app: &App, key: &str) {
+    app.player.play_now(&Release::get(&app.library, key).unwrap());
+}
+
+fn play_next(app: &App, key: &str) {
+    app.player.play_next(&Release::get(&app.library, key).unwrap());
+}
+
+fn play_later(app: &App, key: &str) {
+    app.player.play_later(&Release::get(&app.library, key).unwrap());
+}
+
+fn play_track_now(app: &App, key: &str) {
+    app.player.play_now(&Track::get(&app.library, key).unwrap());
+}
+
+fn play_track_next(app: &App, key: &str) {
+    app.player.play_next(&Track::get(&app.library, key).unwrap());
+}
+
+fn play_track_later(app: &App, key: &str) {
+    app.player.play_later(&Track::get(&app.library, key).unwrap());
 }
 
 fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
@@ -133,6 +148,14 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
         row_data.push(row.into());
     }
     row_data.into()
+}
+
+fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
+    let keys: Vec<_> = tracks.iter()
+        .map(|track| track.key.clone().unwrap())
+        .map(|key| SharedString::from(key))
+        .collect();
+    keys.as_slice().into()
 }
 
 fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
