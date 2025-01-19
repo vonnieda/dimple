@@ -73,6 +73,7 @@ pub trait Model: Sized + FromRow + Diff + Default + Clone + Send {
     fn set_key(&mut self, key: Option<String>);
     fn upsert(&self, conn: &Connection);
     fn log_changes(&self) -> bool;
+    // fn as_any(&self) -> &dyn Any;
 }
 
 pub struct ChangeLogValue {

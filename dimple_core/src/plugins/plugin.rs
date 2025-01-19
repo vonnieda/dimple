@@ -32,5 +32,9 @@ pub trait Plugin: Send + Sync {
     fn image(&self, _library: &Library, _track: &Track, _kind: Dimage) -> Result<Option<DynamicImage>, anyhow::Error> {
         Ok(None)
     }
+
+    fn artist_metadata(&self, _library: &Library, _artist: &Track) -> Result<Option<Track>, anyhow::Error> {
+        Ok(None)
+    }
 }
 

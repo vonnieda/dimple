@@ -23,7 +23,7 @@ impl PluginHost {
         self.plugins.write().unwrap().push(plugin);
     }
 
-    pub fn metadata(&self, library: &Library, track: &Track) -> Result<Option<Track>, anyhow::Error> {
+    pub fn metadata(&self, library: &Library, model: &impl Model) -> Result<Option<Track>, anyhow::Error> {
         let results = self.plugins
             .read()
             .unwrap()
@@ -48,7 +48,7 @@ impl PluginHost {
 mod tests { 
     use crate::{
         library::Library,
-        model::{Artist, ArtistRef, Track}, plugins::{example::ExamplePlugin, lrclib::LrclibPlugin},
+        model::{Artist, ArtistRef, Track}, plugins::{example::ExamplePlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, wikidata::WikidataPlugin},
     };
 
     use super::PluginHost;
@@ -76,6 +76,23 @@ mod tests {
 
         // println!("{:?}", plugins.lyrics(&library, &track));
         println!("{:?}", plugins.metadata(&library, &track));
+    }
+
+    #[test]
+    fn artist_metadata() {
+        let plugins = PluginHost::default();
+        plugins.add_plugin(Box::new(ExamplePlugin::default()));
+        plugins.add_plugin(Box::new(LrclibPlugin::default()));
+        plugins.add_plugin(Box::new(MusicBrainzPlugin::default()));
+        plugins.add_plugin(Box::new(WikidataPlugin::default()));
+
+        let library = Library::open_memory();
+        let v = library.save(&Artist {
+            name: Some("Metallica".to_string()),
+            ..Default::default()
+        });
+
+        println!("{:?}", plugins.metadata(&library, &artist));
     }
 }
 

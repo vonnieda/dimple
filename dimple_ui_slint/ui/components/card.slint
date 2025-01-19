@@ -53,3 +53,34 @@ export component Card inherits VerticalLayout {
     }
 }
 
+export component BorderImage inherits TouchArea {
+    in-out property <image> image;
+    mouse-cursor: MouseCursor.pointer;
+    Rectangle {
+        width: root.width;
+        height: root.height;
+        border-radius: Styles.thumbnail-border-radius;
+        border-color: Styles.thumbnail-border-color;
+        border-width: Styles.thumbnail-border-width;
+        clip: true;
+        Image {
+            width: root.width;
+            height: root.height;
+            source: image;
+        }
+    }
+}
+
+export component NeuCard {
+    width: 200px;
+    height: 200px;
+    in property <CardAdapter> model: {
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+        title: {name: "A Reign of Fish",url: "internal://release/1234"},
+        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+    };
+    BorderImage {
+        image: model.image.image;
+    }
+}
+
