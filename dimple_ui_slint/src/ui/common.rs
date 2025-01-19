@@ -1,19 +1,11 @@
-use std::collections::HashSet;
-
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Playlist;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
-use rayon::iter::IntoParallelIterator;
-use rayon::iter::ParallelIterator;
-use slint::ModelRc;
 use crate::ui::CardAdapter;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
-
-use super::image_gen::gen_fuzzy_circles;
-use super::image_gen::gen_fuzzy_rects;
 
 impl From<Artist> for CardAdapter {
     fn from(value: Artist) -> Self {
@@ -34,26 +26,6 @@ impl From<Artist> for CardAdapter {
         }
     }
 }
-
-// impl From<ReleaseGroup> for CardAdapter {
-//     fn from(value: ReleaseGroup) -> Self {
-//         CardAdapter {
-//             image: ImageLinkAdapter {
-//                 image: Default::default(),
-//                 name: value.title.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             title: LinkAdapter {
-//                 name: value.title.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             sub_title: LinkAdapter {
-//                 name: format!("{} {}", value.first_release_date.unwrap_or_default(), value.primary_type.unwrap_or_default()).into(),
-//                 url: format!("dimple://release-group/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//         }
-//     }
-// }
 
 impl From<Release> for CardAdapter {
     fn from(value: Release) -> Self {
@@ -137,156 +109,6 @@ impl From<Track> for CardAdapter {
     }
 }
 
-// impl From<Recording> for CardAdapter {
-//     fn from(value: Recording) -> Self {
-//         CardAdapter {
-//             image: ImageLinkAdapter {
-//                 image: Default::default(),
-//                 name: value.title.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://recording/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             title: LinkAdapter {
-//                 name: value.title.clone().unwrap_or_default().into(),
-//                 url: format!("dimple://recording/{}", value.key.clone().unwrap_or_default()).into(),
-//             },
-//             ..Default::default()
-//             // sub_title: LinkAdapter {
-//             //     name: value.disambiguation.unwrap_or_default().into(),
-//             //     url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
-//             // },
-//         }
-//     }
-// }
-
-
-
-// fn recording_card(recording: &Recording, width: u32, height: u32, lib: &Librarian) -> Card {
-//     Card {
-//         image: ImageLink {
-//             image: lib.thumbnail(&Entities::Recording(recording.clone()), width, height),
-//             link: Link {
-//                 name: recording.title.str(),
-//                 url: format!("dimple://recording/{}", recording.key.str()),
-//             },
-//         },
-//         title: Link {
-//             name: recording.title.str(),
-//             url: format!("dimple://release/{}", recording.key.str()),
-//         },
-//         // TODO
-//         // sub_title: 
-//         ..Default::default()
-//     }
-// }
-
-// fn artist_links(artist: &Artist) -> Vec<Link> {
-//     artist.links
-//         .iter()
-//         .map(|url| Link {
-//             name: url.clone(),
-//             url: url.clone(),
-//         })
-//         .chain(std::iter::once(Link { 
-//             name: format!("https://musicbrainz.org/artist/{}", artist.mbid().str()),
-//             url: format!("https://musicbrainz.org/artist/{}", artist.mbid().str()),
-//         }))
-//         .collect()
-// }
-
-// fn release_group_links(release_group: &ReleaseGroup) -> Vec<Link> {
-//     release_group.links
-//         .iter()
-//         .map(|url| Link {
-//             name: url.clone(),
-//             url: url.clone(),
-//         })
-//         .chain(std::iter::once(Link { 
-//             name: format!("https://musicbrainz.org/release-group/{}", release_group.mbid().str()),
-//             url: format!("https://musicbrainz.org/release-group/{}", release_group.mbid().str()),
-//         }))
-//         .collect()
-// }
-
-// fn release_links(release: &Release) -> Vec<Link> {
-//     release.links
-//         .iter()
-//         .map(|url| Link {
-//             name: url.clone(),
-//             url: url.clone(),
-//         })
-//         .chain(std::iter::once(Link { 
-//             name: format!("https://musicbrainz.org/release/{}", release.mbid().str()),
-//             url: format!("https://musicbrainz.org/release/{}", release.mbid().str()),
-//         }))
-//         .collect()
-// }
-
-// fn recording_links(recording: &Recording) -> Vec<Link> {
-//     recording.links
-//         .iter()
-//         .map(|url| Link {
-//             name: url.clone(),
-//             url: url.clone(),
-//         })
-//         .chain(std::iter::once(Link { 
-//             name: format!("https://musicbrainz.org/recording/{}", recording.mbid().str()),
-//             url: format!("https://musicbrainz.org/recording/{}", recording.mbid().str()),
-//         }))
-//         .collect()
-// }
-
-// fn card_adapters(cards: Vec<Card>) -> ModelRc<CardAdapter> {
-//     let card_models: Vec<_>  = cards.iter()
-//         .map(card_adapter)
-//         .collect();
-//     ModelRc::from(card_models.as_slice())
-// }
-
-// fn recording_adapters(recordings: Vec<Recording>) -> ModelRc<TrackAdapter> {
-//     let adapters: Vec<_> = recordings.iter()
-//         .map(|r| TrackAdapter {
-//             title: LinkAdapter {
-//                 name: r.title.str(),
-//                 url: format!("dimple://recording/{}", r.key.str()).into(),
-//             },
-//             // track_number: t.number.clone().into(),
-//             // length: length_to_string(t.length).into(),
-//             artists: Default::default(),
-//             plays: 0,
-//             ..Default::default()
-//         })
-//         .collect();
-//     ModelRc::from(adapters.as_slice())
-// }
-
-// fn track_adapters(tracks: Vec<Track>) -> ModelRc<TrackAdapter> {
-//     let adapters: Vec<_> = tracks.iter()
-//         .map(|t| TrackAdapter {
-//             title: LinkAdapter {
-//                 name: t.title.clone().into(),
-//                 url: format!("dimple://recording/{}", t.recording.key.str()).into(),
-//             },
-//             track_number: t.number.clone().into(),
-//             // length: length_to_string(t.length).into(),
-//             // artists: Default::default(),
-//             // plays: 0,
-//             // source_count: t.sources.len() as i32,
-//             ..Default::default()
-//         })
-//         .collect();
-//     ModelRc::from(adapters.as_slice())
-// }
-
-// fn media_adapters(media: Vec<Medium>) -> ModelRc<MediumAdapter> {
-//     let adapters: Vec<_> = media.iter()
-//         .map(|m| MediumAdapter {
-//             title: format!("{} {} of {}", m.format, m.position, m.disc_count).into(),
-//             tracks: track_adapters(m.tracks.clone()),
-//         })
-//         .collect();
-//     ModelRc::from(adapters.as_slice())
-// }
-
 // Creates a simple score for a release to use when selecting a
 // a default release.
 // TODO this is super naive, just needed something to set the example.
@@ -331,35 +153,4 @@ impl From<Track> for CardAdapter {
 
 //     score / 4.
 // }
-
-
-// fn model_card(model: impl Model) -> CardAdapter {
-//     match model {
-//         // Model::Artist(artist) => artist_card(artist),
-//         // Model::ReleaseGroup(release_group) => release_group_card(release_group),
-//         // Model::Genre(genre) => genre_card(genre),
-//         // Model::Recording(recording) => recording_card(recording),
-//         _ => todo!(),
-//     }
-// }
-
-// pub fn artist_card(artist: &Artist) -> CardAdapter {
-//     CardAdapter {
-//         image: ImageLinkAdapter {
-//             image: Default::default(),
-//             name: artist.name.clone().unwrap_or_default().into(),
-//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-//         },
-//         title: LinkAdapter {
-//             name: artist.name.clone().unwrap_or_default().into(),
-//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-//         },
-//         sub_title: LinkAdapter {
-//             name: "Artist".to_string().into(),
-//             url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
-//         },
-//     }
-// }
-
-
 
