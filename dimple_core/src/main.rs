@@ -101,14 +101,13 @@ fn main() {
     }
     else if command == "add" {
         let track_key = &args[2];
-        library.playlist_add(&player.queue(), track_key);
-        let play_queue = player.queue();
-        for track in play_queue.tracks(&library) {
+        player.queue().append(&library, &Track::get(&library, &track_key).unwrap());
+        for track in player.queue().tracks(&library) {
             print_track(&library, &track);
         }
     }
     else if command == "clear" {
-        library.playlist_clear(&player.queue());
+        player.queue().clear(&library);
         let play_queue = player.queue();
         for track in play_queue.tracks(&library) {
             print_track(&library, &track);
@@ -125,7 +124,7 @@ fn main() {
     } 
     else if command == "changelogs" {
         let mut i = 0;
-        for changelog in library.changelogs() {
+        for changelog in ChangeLog::list(&library) {
             print_changelog(&changelog);
             i += 1;
         }

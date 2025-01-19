@@ -39,6 +39,16 @@ impl Playlist {
         library.query(sql, (self.key.clone(),))
     }
 
+    pub fn items(&self, library: &Library) -> Vec<PlaylistItem> {
+        let sql = "
+            SELECT PlaylistItem.*
+            FROM PlaylistItem
+            WHERE PlaylistItem.playlist_key = ?1
+            ORDER BY PlaylistItem.ordinal ASC, PlaylistItem.rowid ASC
+        ";
+        library.query(sql, (self.key.clone(),))
+    }
+
     pub fn append(&self, library: &Library, model: &impl Model) {
         self.insert(library, model, self.len(library));
     }
@@ -64,16 +74,17 @@ impl Playlist {
             },
             "Track" => {
                 let track = Track::get(library, &model.key().unwrap()).unwrap();
-                let items = PlaylistItem::query(library, "
-                    SELECT PlaylistItem.* 
-                    FROM PlaylistItem 
-                    WHERE playlist_key = ? 
-                    ORDER BY ordinal, rowid
-                    LIMIT 2 OFFSET ?
-                ", (&self.key, index.checked_sub(1).unwrap_or(0)));
-                let before = items.get(0).cloned().map(|b| b.ordinal);
-                let after = items.get(1).cloned().map(|a| a.ordinal);
+                let items = self.items(library);
+                let index = index.min(items.len());
+                let before = if index == 0 { 
+                    None 
+                } 
+                else { 
+                    items.get(index - 1).cloned().map(|b| b.ordinal) 
+                };
+                let after = items.get(index).cloned().map(|a| a.ordinal);
                 let ordinal = Self::ordinal_between(&before, &after);
+                log::info!("{:?} {:?} {}", &before, &after, ordinal);
                 let _item = library.save(&PlaylistItem {
                     key: None,
                     ordinal,
@@ -116,7 +127,7 @@ impl Playlist {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Diff, Model, ModelBasics as _, Playlist, Track}};
+    use crate::{library::{self, Library}, model::{Diff, Model, ModelBasics as _, Playlist, PlaylistItem, Release, Track}};
 
     #[test]
     fn library_crud() {
@@ -150,5 +161,62 @@ mod tests {
         assert!(a < b);
         assert!(a < c);
         assert!(c < b);
+    }
+
+    #[test]
+    fn insert() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let playlist = Playlist::default().save(&library);
+        let track1 = Track {
+            title: Some("track1".to_string()),
+            ..Default::default()
+        }.save(&library);
+        let track2 = Track {
+            title: Some("track2".to_string()),
+            ..Default::default()
+        }.save(&library);
+        let track3 = Track {
+            title: Some("track3".to_string()),
+            ..Default::default()
+        }.save(&library);
+        let track4 = Track {
+            title: Some("track4".to_string()),
+            ..Default::default()
+        }.save(&library);
+        let track5 = Track {
+            title: Some("track5".to_string()),
+            ..Default::default()
+        }.save(&library);
+        playlist.append(&library, &track1);
+        playlist.append(&library, &track2);
+        playlist.append(&library, &track3);
+        playlist.insert(&library, &track4, 1);
+        playlist.insert(&library, &track5, 0);
+        playlist.append(&library, &track1);
+        // TODO finish these tests
+        dbg!(PlaylistItem::list(&library));
+        dbg!(playlist.tracks(&library).iter().map(|t| t.title.clone()).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn insert2() {
+        // it's play now on release page
+        // so inserting a release with index = 1 (current_index = 0, + 1)
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let release = Release::default().save(&library);
+        for i in 0..10 {
+            Track {
+                release_key: release.key.clone(),
+                title: Some(format!("track {}", i)),
+                ..Default::default()
+            }.save(&library);
+        }
+        let playlist = Playlist::default().save(&library);
+        playlist.insert(&library, &release, 1);
+        // TODO finish these tests
+        // dbg!(PlaylistItem::list(&library));
+        // dbg!(playlist.tracks(&library).iter().map(|t| t.title.clone()).collect::<Vec<_>>());
     }
 }

@@ -51,21 +51,24 @@ impl Player {
     /// the current track.
     pub fn play_now(&self, model: &impl Model) {
         log::info!("play_now {:?} {:?}", model.type_name(), model.key());
-        self.queue().insert(&self.library, model, self.current_queue_index() + 1);
-        // TODO only if already playing
-        // self.next();
+        let index = self.current_queue_index() + 1;
+        self.queue().insert(&self.library, model, index);
+        self.set_queue_index(index);
+        self.play();
     }
 
     /// Insert into the queue after the current item.
     pub fn play_next(&self, model: &impl Model) {
         log::info!("play_next {:?} {:?}", model.type_name(), model.key());
         self.queue().insert(&self.library, model, self.current_queue_index() + 1);
+        self.play();
     }
 
     /// Append to the end of the queue.
     pub fn play_later(&self, model: &impl Model) {
         log::info!("play_later {:?} {:?}", model.type_name(), model.key());
         self.queue().append(&self.library, model);
+        self.play();
     }
 
     pub fn play(&self) {
