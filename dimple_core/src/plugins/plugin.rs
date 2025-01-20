@@ -1,6 +1,8 @@
 use image::DynamicImage;
 
-use crate::{library::Library, model::{Dimage, Track}};
+use crate::{library::Library, model::{Artist, Dimage, Genre, Model, Release, Track}};
+
+use super::plugin_host::PluginHost;
 
 pub trait Plugin: Send + Sync {
     fn display_name(&self) -> String { 
@@ -25,16 +27,12 @@ pub trait Plugin: Send + Sync {
         None 
     }
 
-    fn metadata(&self, _library: &Library, _track: &Track) -> Result<Option<Track>, anyhow::Error> {
+    fn metadata(&self, _host: &PluginHost, _library: &Library, _model: &dyn Model) 
+        -> Result<Option<Box<dyn Model>>, anyhow::Error> {
         Ok(None)
     }
 
-    fn image(&self, _library: &Library, _track: &Track, _kind: Dimage) -> Result<Option<DynamicImage>, anyhow::Error> {
-        Ok(None)
-    }
-
-    fn artist_metadata(&self, _library: &Library, _artist: &Track) -> Result<Option<Track>, anyhow::Error> {
-        Ok(None)
-    }
+    // fn image(&self, _host: &PluginHost, _library: &Library, _track: &Track, _model: &PluginModel) -> Result<Option<DynamicImage>, anyhow::Error> {
+    //     Ok(None)
+    // }
 }
-

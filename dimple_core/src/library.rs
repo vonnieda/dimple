@@ -11,7 +11,7 @@ use threadpool::ThreadPool;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::{model::{Artist, Blob, ChangeLog, FromRow, MediaFile, Model, ModelBasics as _, Playlist, Release, Track, TrackSource}, notifier::Notifier, sync::Sync};
+use crate::{model::{Artist, Blob, ChangeLog, FromRow, LibraryModel, MediaFile, Model, ModelBasics as _, Playlist, Release, Track, TrackSource}, notifier::Notifier, sync::Sync};
 
 #[derive(Clone)]
 pub struct LibraryEvent {
@@ -177,7 +177,7 @@ impl Library {
     // when a unique is hit, like in a duple sha256 on dimage. 
     // Sheeeeeit, that's why import is slow. I think just switch to update
     // and insert based on key.
-    pub fn save<T: Model>(&self, obj: &T) -> T {
+    pub fn save<T: LibraryModel>(&self, obj: &T) -> T {
         // TODO txn
 
         // get the old object by key if one exists
@@ -209,7 +209,7 @@ impl Library {
 
     /// TODO I think drop Model and use a trait that excludes Diff and such
     /// to make this more clear. And then I think I can drop Model.log_changes
-    pub fn save_unlogged<T: Model>(&self, obj: &T) -> T {
+    pub fn save_unlogged<T: LibraryModel>(&self, obj: &T) -> T {
         // TODO txn
 
         // get the key or create a new one
@@ -223,13 +223,13 @@ impl Library {
         new
     }
 
-    pub fn get<T: Model>(&self, key: &str) -> Option<T> {
+    pub fn get<T: LibraryModel>(&self, key: &str) -> Option<T> {
         let sql = format!("SELECT * FROM {} WHERE key = ?1", T::default().type_name());
         self.conn().query_row(&sql, (key,), 
             |row| Ok(T::from_row(row))).optional().unwrap()
     }
 
-    pub fn list<T: Model>(&self) -> Vec<T> {
+    pub fn list<T: LibraryModel>(&self) -> Vec<T> {
         let sql = format!("SELECT * FROM {}", T::default().type_name());
         self.conn().prepare(&sql).unwrap()
             .query_map((), |row| Ok(T::from_row(row))).unwrap()
@@ -237,7 +237,7 @@ impl Library {
             .collect()
     }
 
-    pub fn query<T: Model, P: Params>(&self, sql: &str, params: P) -> Vec<T> {
+    pub fn query<T: LibraryModel, P: Params>(&self, sql: &str, params: P) -> Vec<T> {
         let conn = self.conn();
         let result = conn.prepare(&sql).unwrap()
             .query_map(params, |row| Ok(T::from_row(row))).unwrap()
@@ -246,7 +246,7 @@ impl Library {
         result
     }
 
-    pub fn find<T: Model, P: Params>(&self, sql: &str, params: P) -> Option<T> {
+    pub fn find<T: LibraryModel, P: Params>(&self, sql: &str, params: P) -> Option<T> {
         self.conn().query_row(&sql, params, |row| Ok(T::from_row(row))).
             optional().unwrap()
     }
@@ -254,7 +254,7 @@ impl Library {
     // Mik's album images are a good test for huge files
     // TODO I think all this fallback stuff actually belongs in the 
     // UI / ImageMangler
-    pub fn image<T: Model>(&self, model: &T) -> Option<DynamicImage> {
+    pub fn image<T: LibraryModel>(&self, model: &T) -> Option<DynamicImage> {
         if model.type_name() == "Release" {
             return Release::get(self, &model.key().clone().unwrap()).unwrap()
                 .images(self)

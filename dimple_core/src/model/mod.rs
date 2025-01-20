@@ -67,13 +67,16 @@ pub trait Diff {
     fn apply_diff(&mut self, diff: &[ChangeLog]);
 }
 
-pub trait Model: Sized + FromRow + Diff + Default + Clone + Send {
+pub trait Model: Send {
     fn type_name(&self) -> String;
+    fn as_any(&self) -> &dyn Any;
+}
+
+pub trait LibraryModel: Clone + Default + FromRow + Diff + Model {
     fn key(&self) -> Option<String>;
     fn set_key(&mut self, key: Option<String>);
     fn upsert(&self, conn: &Connection);
     fn log_changes(&self) -> bool;
-    // fn as_any(&self) -> &dyn Any;
 }
 
 pub struct ChangeLogValue {
@@ -219,7 +222,7 @@ pub trait ModelBasics<T> {
     fn query(library: &Library, sql: &str, params: impl Params) -> Vec<T>;
 }
 
-impl <T: Model> ModelBasics<T> for T  {
+impl <T: LibraryModel> ModelBasics<T> for T  {
     fn get(library: &Library, key: &str) -> Option<T> {
         library.get::<T>(key)
     }

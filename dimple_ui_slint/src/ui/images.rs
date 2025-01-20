@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use dimple_core::library::Library;
+use dimple_core::model::LibraryModel;
 use dimple_core::model::Model;
 use fast_image_resize::Resizer;
 use image::DynamicImage;
@@ -48,7 +49,7 @@ impl ImageMangler {
         images
     }
 
-    pub fn lazy_get<F>(&self, model: impl Model + 'static, width: u32, height: u32, set_image: F) -> slint::Image
+    pub fn lazy_get<F>(&self, model: impl LibraryModel + 'static, width: u32, height: u32, set_image: F) -> slint::Image
             where F: Fn(AppWindow, Image) + Send + Copy + 'static {
         let cache_key = format!("{}:{}:{}:{}", 
             model.type_name(), model.key().unwrap(), width, height);

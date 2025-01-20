@@ -69,10 +69,11 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                     };
 
                     quote! {
-                        use crate::model::{ChangeLogValue, ChangeLog, Diff, FromRow, Model};
+                        use crate::model::{ChangeLogValue, ChangeLog, Diff, FromRow, Model, LibraryModel};
                         use rusqlite::Row;
                         use rusqlite::params;
-                        
+                        use std::any::Any;
+
                         impl FromRow for #name {
                             fn from_row(row: &Row) -> Self {
                                 Self {
@@ -81,11 +82,7 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                             }
                         }
 
-                        impl Model for #name {
-                            fn type_name(&self) -> String {
-                                #name_str.to_string()
-                            }
-                        
+                        impl LibraryModel for #name {
                             fn key(&self) -> Option<String> {
                                 self.key.clone()
                             }
@@ -100,6 +97,16 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                             
                             fn log_changes(&self) -> bool {
                                 true
+                            }
+                        }
+
+                        impl Model for #name {
+                            fn type_name(&self) -> String {
+                                #name_str.to_string()
+                            }
+                        
+                            fn as_any(&self) -> &dyn Any {
+                                self
                             }
                         }    
 

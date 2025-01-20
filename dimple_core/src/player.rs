@@ -5,7 +5,7 @@ use std::{sync::{mpsc::{Receiver, Sender}, Arc, Mutex, RwLock}, time::{Duration,
 use threadpool::ThreadPool;
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
-use crate::{library::Library, model::{Artist, Event, Model, ModelBasics as _, Playlist, Release, Track}, notifier::{self, Notifier}};
+use crate::{library::Library, model::{Artist, Event, LibraryModel, Model, ModelBasics as _, Playlist, Release, Track}, notifier::{self, Notifier}};
 
 pub use playback_rs::Song;
 
@@ -22,7 +22,6 @@ pub struct Player {
 // TODO volume https://github.com/tramhao/termusic/blob/master/playback/src/rusty_backend/sink.rs
 // https://github.com/10buttons/awedio
 // https://sansan.cat/
-
 impl Player {
     pub fn new(library: Arc<Library>) -> Player {
         let (sender, receiver) = std::sync::mpsc::channel();
@@ -49,8 +48,7 @@ impl Player {
     /// to the newly added item. If the item currently playing is a Release,
     /// for instance, then the rest of the release will be skipped, not just
     /// the current track.
-    pub fn play_now(&self, model: &impl Model) {
-        log::info!("play_now {:?} {:?}", model.type_name(), model.key());
+    pub fn play_now(&self, model: &impl LibraryModel) {
         let index = self.current_queue_index() + 1;
         self.queue().insert(&self.library, model, index);
         self.set_queue_index(index);
@@ -58,15 +56,13 @@ impl Player {
     }
 
     /// Insert into the queue after the current item.
-    pub fn play_next(&self, model: &impl Model) {
-        log::info!("play_next {:?} {:?}", model.type_name(), model.key());
+    pub fn play_next(&self, model: &impl LibraryModel) {
         self.queue().insert(&self.library, model, self.current_queue_index() + 1);
         self.play();
     }
 
     /// Append to the end of the queue.
-    pub fn play_later(&self, model: &impl Model) {
-        log::info!("play_later {:?} {:?}", model.type_name(), model.key());
+    pub fn play_later(&self, model: &impl LibraryModel) {
         self.queue().append(&self.library, model);
         self.play();
     }

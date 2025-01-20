@@ -49,11 +49,11 @@ impl Playlist {
         library.query(sql, (self.key.clone(),))
     }
 
-    pub fn append(&self, library: &Library, model: &impl Model) {
+    pub fn append(&self, library: &Library, model: &impl LibraryModel) {
         self.insert(library, model, self.len(library));
     }
 
-    pub fn insert(&self, library: &Library, model: &impl Model, index: usize) {
+    pub fn insert(&self, library: &Library, model: &impl LibraryModel, index: usize) {
         log::info!("insert {} {:?} {} {}", 
             model.type_name(), 
             model.key(), 

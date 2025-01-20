@@ -20,6 +20,7 @@ pub struct Track {
     pub position: Option<u32>,
     pub length_ms: Option<u64>,
     pub lyrics: Option<String>,
+    // pub instrumental: Option<bool>;
     // LRC format (https://en.wikipedia.org/wiki/LRC_(file_format))
     pub synchronized_lyrics: Option<String>,
 

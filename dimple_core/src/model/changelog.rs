@@ -1,6 +1,6 @@
 use rusqlite::Row;
 
-use super::{Diff, FromRow, Model};
+use super::{Diff, FromRow, LibraryModel, Model};
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ChangeLog {
@@ -40,10 +40,16 @@ impl Diff for ChangeLog {
 }
 
 impl Model for ChangeLog {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+    
     fn type_name(&self) -> String {
         "ChangeLog".to_string()
     }
+}
 
+impl LibraryModel for ChangeLog {
     fn key(&self) -> Option<String> {
         self.key.clone()
     }
@@ -62,5 +68,5 @@ impl Model for ChangeLog {
     
     fn log_changes(&self) -> bool {
         false
-    }
+    }    
 }

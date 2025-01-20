@@ -1,12 +1,23 @@
-use std::{sync::Mutex, time::{Duration, Instant}};
+use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
 use serde::{Deserialize, Serialize};
 
-use super::plugin::Plugin;
+use crate::{library::Library, model::{Artist, Model, Track}};
 
-#[derive(Default)]
+use super::{plugin::{Plugin}, plugin_host::PluginHost};
+
 pub struct MusicBrainzPlugin {
     config: MusicBrainzPluginConfig,
+    rate_limit_lock: Arc<Mutex<Instant>>,
+}
+
+impl Default for MusicBrainzPlugin {
+    fn default() -> Self {
+        Self { 
+            config: Default::default(), 
+            rate_limit_lock: Arc::new(Mutex::new(Instant::now())),
+        }
+    }
 }
 
 impl Plugin for MusicBrainzPlugin {
@@ -25,27 +36,58 @@ impl Plugin for MusicBrainzPlugin {
     fn configuration(&self) -> String {
         serde_json::to_string(&self.config).unwrap()
     }
+    
+    fn metadata(&self, host: &PluginHost, library: &Library, model: &dyn Model) 
+        -> Result<Option<Box<dyn Model>>, anyhow::Error> {
+
+        if let Some(artist) = model.as_any().downcast_ref::<Artist>() {
+            if let Some(mbid) = artist.musicbrainz_id.clone() {
+                let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
+                let response = host.get(&url)?;
+                // if !response.cached() {
+                //     self.enforce_rate_limit();
+                // }
+                let artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
+                // TODO punch in or return Genres?
+                return Ok(Some(Box::new(Artist {
+                    country: artist.country,
+                    disambiguation: nempty(artist.disambiguation),
+                    key: None,
+                    musicbrainz_id: Some(artist.id),
+                    name: nempty(artist.name),
+                    summary: None,
+                    ..Default::default()
+                })))
+            }
+        }
+        Ok(None)
+    }
 }
 
-#[derive(Serialize, Deserialize, Clone, Default)]
-struct MusicBrainzPluginConfig {    
-    pub url: String,
-    pub username: String,
-    pub password: String,
-    pub use_tls: bool,
+// genres: value.0.genres.iter().flatten()
+//     .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
+//     .collect(),
+// known_ids: KnownIds {
+//     musicbrainz_id: Some(value.0.id.clone()),
+//     ..Default::default()
+// },
+// links: value.0.relations.iter().flatten()
+//     .filter_map(|r| match &r.content {
+//         RelationContent::Url(u) => Some(u.resource.to_string()),
+//         _ => None,
+//     })
+//     .chain(std::iter::once(value.0.id.clone())
+//         .map(|mbid| format!("https://musicbrainz.org/artist/{}", mbid)))
+//     .collect(),
+
+fn nempty(s: String) -> Option<String> {
+    if s.is_empty() {
+        return None
+    }
+    Some(s)
 }
 
-// https://musicbrainz.org/doc/MusicBrainz_Entity
-#[derive(Debug)]
-pub struct MusicBrainzClient {
-    rate_limit_lock: Mutex<Instant>,
-}
-
-impl MusicBrainzClient {
-    /// Blocks until at least one second has passed since the last request.
-    /// TODO I think I can adjust this to average over 10 seconds or something
-    /// so that we can do quick bursts without feeling slow and without
-    /// passing the rate limit.
+impl MusicBrainzPlugin {
     fn enforce_rate_limit(&self) {
         let mut last_request_time = self.rate_limit_lock.lock().unwrap();
 
@@ -60,6 +102,45 @@ impl MusicBrainzClient {
         *last_request_time = Instant::now();
     }
 }
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+struct MusicBrainzPluginConfig {    
+    pub url: String,
+    pub username: String,
+    pub password: String,
+}
+
+mod tests {
+    #[test]
+    fn it_works() {
+
+    }
+}
+// // https://musicbrainz.org/doc/MusicBrainz_Entity
+// #[derive(Debug)]
+// pub struct MusicBrainzClient {
+//     rate_limit_lock: Mutex<Instant>,
+// }
+
+// impl MusicBrainzClient {
+//     /// Blocks until at least one second has passed since the last request.
+//     /// TODO I think I can adjust this to average over 10 seconds or something
+//     /// so that we can do quick bursts without feeling slow and without
+//     /// passing the rate limit.
+//     fn enforce_rate_limit(&self) {
+//         let mut last_request_time = self.rate_limit_lock.lock().unwrap();
+
+//         if let Some(time_passed) = Instant::now().checked_duration_since(*last_request_time) {
+//             if time_passed < Duration::from_secs(1) {
+//                 let sleep_duration = Duration::from_secs(1) - time_passed;
+//                 std::thread::sleep(sleep_duration);
+//             }
+//         }
+
+//         // Update the last request time
+//         *last_request_time = Instant::now();
+//     }
+// }
 
 //     // https://musicbrainz.org/doc/MusicBrainz_API (Lookups)
 //     // > Note that the number of linked entities returned is always limited to 25. 

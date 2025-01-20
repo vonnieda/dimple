@@ -4,9 +4,9 @@ use anyhow::anyhow;
 use reqwest::blocking::Client;
 use serde::{Deserialize};
 
-use crate::{library::Library, model::Track};
+use crate::{library::Library, model::{Model, Track}};
 
-use super::{plugin::Plugin, USER_AGENT};
+use super::{plugin::{Plugin}, plugin_host::PluginHost, USER_AGENT};
 
 #[derive(Default)]
 pub struct LrclibPlugin {
@@ -21,51 +21,33 @@ impl Plugin for LrclibPlugin {
         "LRCLIB".to_string()
     }
 
-    fn configuration(&self) -> String { 
-        "".to_string() 
-    }
-    
-    fn set_configuration(&mut self, _config: &str) { 
-    
-    }
-    
-    fn progress(&self) -> Option<f32> { 
-        None 
-    }
-    
-    // TODO fallback to no album
+    // TODO start with album + artist and fallback to no album
     // let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}&album_name={}",
     //     track.artist.clone().unwrap_or_default(),
     //     track.title.clone().unwrap_or_default(),
     //     track.album.clone().unwrap_or_default(),
     // );
-    fn metadata(&self, library: &Library, track: &Track) -> Result<Option<Track>, anyhow::Error> {
-        let client = Client::builder()
-            .user_agent(USER_AGENT)
-            .build()?;
-        let artist = track.artist(library).ok_or(anyhow!("artist is required"))?;
-        let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}",
-            artist.name.clone().unwrap_or_default(),
-            track.title.clone().unwrap_or_default(),
-        );
-        let response = client.get(&url).send().unwrap();
-        log::info!("GET {} {}", response.status().as_u16(),& url);
-        if response.status() != 200 {
-            return Err(anyhow!("status code {}", response.status().as_u16()));
+    fn metadata(&self, host: &PluginHost, library: &Library, model: &dyn Model) 
+        -> Result<Option<Box<dyn Model>>, anyhow::Error> {
+
+        if let Some(track) = model.as_any().downcast_ref::<Track>() {
+            let artist = track.artist(library).ok_or(anyhow!("artist is required"))?;
+            let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}",
+                artist.name.clone().unwrap_or_default(),
+                track.title.clone().unwrap_or_default(),
+            );
+            let response: GetResponse = host.get(&url)?.json()?;
+            return Ok(Some(Box::new(Track {
+                lyrics: response.plain_lyrics,
+                synchronized_lyrics: response.synced_lyrics,
+                title: response.track_name,
+                length_ms: response.duration_s.map(|s| (s * 1000.) as u64),
+                ..Default::default()
+            })))
         }
-        let get_response = response.json::<GetResponse>().unwrap();
-        Ok(Some(Track {
-            lyrics: get_response.plain_lyrics,
-            synchronized_lyrics: get_response.synced_lyrics,
-            title: get_response.track_name,
-            length_ms: get_response.duration_s.map(|s| (s * 1000.) as u64),
-            ..Default::default()
-        }))
-    }
-    
-    fn image(&self, _library: &Library, _track: &Track, _kind: crate::model::Dimage) -> Result<Option<image::DynamicImage>, anyhow::Error> {
+
         Ok(None)
-    }
+    }    
 }
 
 // {
@@ -98,7 +80,7 @@ struct GetResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Artist, ArtistRef, Track}, plugins::plugin::Plugin};
+    use crate::{library::Library, model::{Artist, ArtistRef, Track}, plugins::{plugin::Plugin, plugin_host::PluginHost}};
 
     use super::LrclibPlugin;
 
@@ -123,25 +105,10 @@ mod tests {
         });
 
         let lrclib = LrclibPlugin::default();
-        let track = lrclib.metadata(&library, &track);
-        assert!(track.unwrap().unwrap()
-            .lyrics.unwrap()
+        let host = PluginHost::default();
+        let track = lrclib.metadata(&host, &library, &track).unwrap().unwrap();
+        let track = track.as_any().downcast_ref::<Track>().unwrap().clone();
+        assert!(track.lyrics.unwrap()
             .to_lowercase().contains("pulling your strings"));
     }
 }
-
-
-
-// let client = Client::builder()
-// .user_agent(super::plugin::USER_AGENT)
-// .build()?;
-// let request_token = PluginSupport::start_request(plugin, &url);
-// let response = client.get(url).send()?;
-// PluginSupport::end_request(request_token, 
-// Some(response.status().as_u16()), 
-// response.content_length());
-// let bytes = response.bytes()?;
-// if let Some(cache_path) = self.cache_path.clone() {
-// cacache::write_sync(cache_path.clone(), url, &bytes)?;
-// }
-// return Ok(CacheResponse::new(bytes.to_vec(), false))

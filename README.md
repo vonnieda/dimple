@@ -139,4 +139,5 @@ software full time:
 - [Tools Fairy](https://toolsfairy.com/image-test/sample-jpg-files)
 - https://github.com/freestrings/waveform
 - https://github.com/jamsocket/fractional_index
+- https://github.com/RustyNova016/musicbrainz_rs
 
