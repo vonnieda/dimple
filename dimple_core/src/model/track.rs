@@ -6,7 +6,7 @@ use super::{Artist, Dimage, Genre, Link, ModelBasics as _, Release};
 
 // // https://musicbrainz.org/doc/Track
 // // https://musicbrainz.org/ws/2/release/4d3ce256-ea71-44c5-8ce9-deb8f1e7dce4?inc=aliases%2Bartist-credits%2Blabels%2Bdiscids%2Brecordings&fmt=json
-#[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, ModelSupport)]
 pub struct Track {
     pub key: Option<String>,
     pub title: Option<String>,
@@ -36,6 +36,13 @@ pub struct Track {
     pub media_position: Option<u32>,
     pub media_title: Option<String>,
     pub media_format: Option<String>,
+
+    #[model_ignore]
+    pub artists: Vec<Artist>,
+    #[model_ignore]
+    pub genres: Vec<Genre>,
+    #[model_ignore]
+    pub links: Vec<Link>,
 }
 
 impl Track {

@@ -143,6 +143,10 @@ impl TaggedMediaFile {
                 .and_then(|s| parse_n_of_m_tag(&s).0)
                 .or_else(|| self.tag(StandardTagKey::TrackNumber)
                     .and_then(|s| parse_n_of_m_tag(&s).1)),
+
+            artists: vec![],
+            genres: vec![],
+            links: vec![],
         }
     }
 
@@ -168,6 +172,11 @@ impl TaggedMediaFile {
             quality: None,
             status: self.tag(StandardTagKey::MusicBrainzReleaseStatus),
             release_group_type: self.tag(StandardTagKey::MusicBrainzReleaseType),
+
+            artists: vec![],
+            genres: vec![],
+            links: vec![],
+            tracks: vec![],            
         }
     }
 
@@ -175,6 +184,10 @@ impl TaggedMediaFile {
     /// name // musicbrainz_id, genre // genre_musicbrainz_id, etc.
     /// Need to take each list's length into consideration, and keep things
     /// in order. Still prone to major errors, I figure. 
+    /// 
+    /// Although, the most common case is going to be a single artist and I
+    /// should at least take that when I can get it. And I guess just do
+    /// what Picard does.
     pub fn track_artists(&self) -> Vec<Artist> {
         self.tags(StandardTagKey::Artist).iter()
             .flat_map(|s| parse_artist_tag(s))

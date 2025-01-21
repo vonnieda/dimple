@@ -2,9 +2,9 @@ use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{library::Library, model::{Artist, Model, Track}};
+use crate::{library::Library, model::{Artist, Model, Release}, plugins::converters::ReleaseConverter};
 
-use super::{plugin::{Plugin}, plugin_host::PluginHost};
+use super::{converters::ArtistConverter, plugin::Plugin, plugin_host::PluginHost};
 
 pub struct MusicBrainzPlugin {
     config: MusicBrainzPluginConfig,
@@ -36,28 +36,28 @@ impl Plugin for MusicBrainzPlugin {
     fn configuration(&self) -> String {
         serde_json::to_string(&self.config).unwrap()
     }
-    
+
     fn metadata(&self, host: &PluginHost, library: &Library, model: &dyn Model) 
         -> Result<Option<Box<dyn Model>>, anyhow::Error> {
 
         if let Some(artist) = model.as_any().downcast_ref::<Artist>() {
             if let Some(mbid) = artist.musicbrainz_id.clone() {
+                // I think time to give the updated musicbrainz client a try
                 let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
                 let response = host.get(&url)?;
-                // if !response.cached() {
-                //     self.enforce_rate_limit();
-                // }
-                let artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
-                // TODO punch in or return Genres?
-                return Ok(Some(Box::new(Artist {
-                    country: artist.country,
-                    disambiguation: nempty(artist.disambiguation),
-                    key: None,
-                    musicbrainz_id: Some(artist.id),
-                    name: nempty(artist.name),
-                    summary: None,
-                    ..Default::default()
-                })))
+                let mb_artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
+                let artist = Artist::from(ArtistConverter::from(mb_artist));
+                return Ok(Some(Box::new(artist)))
+            }
+        }
+        if let Some(release) = model.as_any().downcast_ref::<Release>() {
+            if let Some(mbid) = release.musicbrainz_id.clone() {
+                // I think time to give the updated musicbrainz client a try
+                let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels", mbid);
+                let response = host.get(&url)?;
+                let mb_release = response.json::<musicbrainz_rs::entity::release::Release>()?;
+                let release = Release::from(ReleaseConverter::from(mb_release));
+                return Ok(Some(Box::new(release)))
             }
         }
         Ok(None)

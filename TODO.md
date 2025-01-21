@@ -90,3 +90,5 @@ Dump new things at the bottom, move things to the top to prioritize.
 - links in tables
 - gonna have to write my own table
 - retain scroll position on back and maybe in general if the url of a detail page doesn't change
+- genre numbers imported instead of names
+- auto refresh of media files

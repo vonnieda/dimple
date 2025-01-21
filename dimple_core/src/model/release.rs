@@ -7,7 +7,7 @@ use super::{Artist, Dimage, Genre, Link, Track};
 // https://musicbrainz.org/doc/Release
 // https://musicbrainz.org/release/a4864e94-6d75-4ade-bc93-0dabf3521453
 // https://musicbrainz.org/ws/2/release/a4864e94-6d75-4ade-bc93-0dabf3521453?fmt=json
-#[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, ModelSupport)]
 pub struct Release {
     pub key: Option<String>,
     pub title: Option<String>,
@@ -30,6 +30,15 @@ pub struct Release {
     pub musicbrainz_id: Option<String>,
     pub spotify_id: Option<String>,
     pub wikidata_id: Option<String>,
+
+    #[model_ignore]
+    pub artists: Vec<Artist>,
+    #[model_ignore]
+    pub genres: Vec<Genre>,
+    #[model_ignore]
+    pub links: Vec<Link>,
+    #[model_ignore]
+    pub tracks: Vec<Track>,
 }
 
 impl Release {

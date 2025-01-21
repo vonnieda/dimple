@@ -83,6 +83,10 @@ impl CrdtRules for Artist {
             // media_position: CrdtRules::merge(l.media_position, r.media_position),
             // media_title: CrdtRules::merge(l.media_title, r.media_title),
             // media_track_count: CrdtRules::merge(l.media_track_count, r.media_track_count),            
+
+            genres: vec![],
+            links: vec![],
+            releases: vec![],
         }
     }
 }
@@ -121,6 +125,11 @@ impl CrdtRules for Release {
             // media_position: CrdtRules::merge(l.media_position, r.media_position),
             // media_title: CrdtRules::merge(l.media_title, r.media_title),
             // media_track_count: CrdtRules::merge(l.media_track_count, r.media_track_count),            
+
+            artists: vec![],
+            genres: vec![],
+            links: vec![],
+            tracks: vec![],
         }
     }
 }
@@ -151,6 +160,10 @@ impl CrdtRules for Track {
             media_position: CrdtRules::merge(l.media_position, r.media_position),
             media_title: CrdtRules::merge(l.media_title, r.media_title),
             media_track_count: CrdtRules::merge(l.media_track_count, r.media_track_count),
+
+            artists: vec![],
+            genres: vec![],
+            links: vec![],
         }
     }
 }

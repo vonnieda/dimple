@@ -1,14 +1,12 @@
 use std::sync::{Arc, Mutex, RwLock};
 
-use anyhow::anyhow;
 use lru::LruCache;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use reqwest::blocking::{Client, Response};
+use reqwest::blocking::Client;
 use serde::de::DeserializeOwned;
 
-use crate::{library::Library, merge::CrdtRules, model::{Artist, Genre, LibraryModel, Model, Release, Track}};
+use crate::{library::Library, merge::CrdtRules, model::Model};
 
-use super::{plugin::{Plugin}, USER_AGENT};
+use super::{plugin::Plugin, USER_AGENT};
 
 #[derive(Clone)]
 pub struct PluginHost {
@@ -51,7 +49,7 @@ impl PluginHost {
         Some(model)
     }
 
-    pub fn image<T: Model>(&self, _library: &Library, model: &T) -> Option<T> {
+    pub fn image<T: Model>(&self, _library: &Library, _model: &T) -> Option<T> {
         todo!()
         // Some(self.plugins
         //     .read()
