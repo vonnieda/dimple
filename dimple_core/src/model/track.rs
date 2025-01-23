@@ -36,13 +36,6 @@ pub struct Track {
     pub media_position: Option<u32>,
     pub media_title: Option<String>,
     pub media_format: Option<String>,
-
-    #[model_ignore]
-    pub artists: Vec<Artist>,
-    #[model_ignore]
-    pub genres: Vec<Genre>,
-    #[model_ignore]
-    pub links: Vec<Link>,
 }
 
 impl Track {

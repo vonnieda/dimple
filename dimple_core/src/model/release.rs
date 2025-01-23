@@ -30,15 +30,6 @@ pub struct Release {
     pub musicbrainz_id: Option<String>,
     pub spotify_id: Option<String>,
     pub wikidata_id: Option<String>,
-
-    #[model_ignore]
-    pub artists: Vec<Artist>,
-    #[model_ignore]
-    pub genres: Vec<Genre>,
-    #[model_ignore]
-    pub links: Vec<Link>,
-    #[model_ignore]
-    pub tracks: Vec<Track>,
 }
 
 impl Release {

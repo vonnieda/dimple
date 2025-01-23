@@ -1,6 +1,8 @@
+use std::collections::HashSet;
+
 use chrono::{DateTime, Utc};
 
-use crate::model::{Artist, Genre, MediaFile, Release, Track};
+use crate::model::{Artist, Genre, Link, MediaFile, Release, Track};
 
 pub trait CrdtRules {
     /// Commutative: A v B = B v A
@@ -59,34 +61,13 @@ impl CrdtRules for Artist {
             save: CrdtRules::merge(l.save, r.save),
             download: CrdtRules::merge(l.download, r.download),
             
-            // release_key: CrdtRules::merge(l.release_key, r.release_key),
-            // position: CrdtRules::merge(l.position, r.position),
-            // length_ms: CrdtRules::merge(l.length_ms, r.length_ms),
-            // lyrics: CrdtRules::merge(l.lyrics, r.lyrics),
-            // synchronized_lyrics: CrdtRules::merge(l.synchronized_lyrics, r.synchronized_lyrics),
-
-            // barcode: CrdtRules::merge(l.barcode, r.barcode),
             country: CrdtRules::merge(l.country, r.country),
-            // date: CrdtRules::merge(l.date, r.date),
-            // packaging: CrdtRules::merge(l.packaging, r.packaging),
-            // status: CrdtRules::merge(l.status, r.status),
-            // quality: CrdtRules::merge(l.quality, r.quality),
-            // release_group_type: CrdtRules::merge(l.release_group_type, r.release_group_type),
 
             discogs_id: CrdtRules::merge(l.discogs_id, r.discogs_id),
             lastfm_id: CrdtRules::merge(l.lastfm_id, r.lastfm_id),
             musicbrainz_id: CrdtRules::merge(l.musicbrainz_id, r.musicbrainz_id),
             spotify_id: CrdtRules::merge(l.spotify_id, r.spotify_id),
             wikidata_id: CrdtRules::merge(l.wikidata_id, r.wikidata_id),
-
-            // media_format: CrdtRules::merge(l.media_format, r.media_format),
-            // media_position: CrdtRules::merge(l.media_position, r.media_position),
-            // media_title: CrdtRules::merge(l.media_title, r.media_title),
-            // media_track_count: CrdtRules::merge(l.media_track_count, r.media_track_count),            
-
-            genres: vec![],
-            links: vec![],
-            releases: vec![],
         }
     }
 }
@@ -125,11 +106,6 @@ impl CrdtRules for Release {
             // media_position: CrdtRules::merge(l.media_position, r.media_position),
             // media_title: CrdtRules::merge(l.media_title, r.media_title),
             // media_track_count: CrdtRules::merge(l.media_track_count, r.media_track_count),            
-
-            artists: vec![],
-            genres: vec![],
-            links: vec![],
-            tracks: vec![],
         }
     }
 }
@@ -160,10 +136,16 @@ impl CrdtRules for Track {
             media_position: CrdtRules::merge(l.media_position, r.media_position),
             media_title: CrdtRules::merge(l.media_title, r.media_title),
             media_track_count: CrdtRules::merge(l.media_track_count, r.media_track_count),
+         }
+    }
+}
 
-            artists: vec![],
-            genres: vec![],
-            links: vec![],
+impl CrdtRules for Link {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            key: CrdtRules::merge(l.key, r.key),
+            name: CrdtRules::merge(l.name, r.name),
+            url: CrdtRules::merge(l.url, r.url),
         }
     }
 }
@@ -202,6 +184,12 @@ impl CrdtRules for Genre {
 impl CrdtRules for DateTime<Utc> {
     fn merge(l: Self, r: Self) -> Self {
         l.max(r)
+    }
+}
+
+impl <T: CrdtRules + std::hash::Hash + Eq> CrdtRules for Vec<T> {
+    fn merge(l: Self, r: Self) -> Self {
+        l.into_iter().chain(r.into_iter()).collect::<HashSet<_>>().into_iter().collect()
     }
 }
 

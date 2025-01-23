@@ -52,7 +52,8 @@ fn main() {
     std::fs::create_dir_all(&config_dir).unwrap();
     std::fs::create_dir_all(&image_cache_dir).unwrap();
 
-    let library = Arc::new(Library::open(library_path.to_str().unwrap()));
+    // let library = Arc::new(Library::open(library_path.to_str().unwrap()));
+    let library = Arc::new(Library::open("test.db"));
 
     let access_key = env::var("DIMPLE_TEST_S3_ACCESS_KEY").unwrap();
     let secret_key = env::var("DIMPLE_TEST_S3_SECRET_KEY").unwrap();
@@ -69,13 +70,13 @@ fn main() {
     let command = &args[1];
     if command == "import" {
         let path = &args[2];
-        // println!("Library currently contains {} tracks.", library.tracks().len());
-        // println!("Importing {}.", path);
-        // library.import(&path);
-        // println!("Library now contains {} tracks, {} releases, {} artists.", 
-        //     Track::list(&library).len(),
-        //     Release::list(&library).len(),
-        //     Artist::list(&library).len());
+        println!("Library currently contains {} tracks.", Track::list(&library).len());
+        println!("Importing {}.", path);
+        library.import(&path);
+        println!("Library now contains {} tracks, {} releases, {} artists.", 
+            Track::list(&library).len(),
+            Release::list(&library).len(),
+            Artist::list(&library).len());
     }
     else if command == "artists" {
         for artist in Artist::list(&library).iter() {

@@ -31,6 +31,7 @@ raw-window-handle = "0.6.2"
 anyhow = "1.0.81"
 cacache = { version = "13.1.0", default-features = true, features = ["mmap"] }
 size = "0.4.1"
+convert_case = "0.7.1"
 
 [build-dependencies]
 slint-build = "1.9.1"

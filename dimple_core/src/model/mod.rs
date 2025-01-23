@@ -220,6 +220,7 @@ pub trait ModelBasics<T> {
     fn list(library: &Library) -> Vec<T>;
     fn save(&self, library: &Library) -> T;
     fn query(library: &Library, sql: &str, params: impl Params) -> Vec<T>;
+    fn find(library: &Library, sql: &str, params: impl Params) -> Option<T>;
 }
 
 impl <T: LibraryModel> ModelBasics<T> for T  {
@@ -237,5 +238,9 @@ impl <T: LibraryModel> ModelBasics<T> for T  {
 
     fn query(library: &Library, sql: &str, params: impl Params) -> Vec<T> {
         library.query(sql, params)
+    }
+
+    fn find(library: &Library, sql: &str, params: impl Params) -> Option<T> {
+        library.find(sql, params)
     }
 }

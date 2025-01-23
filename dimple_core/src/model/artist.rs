@@ -21,13 +21,6 @@ pub struct Artist {
     pub musicbrainz_id: Option<String>,
     pub spotify_id: Option<String>,
     pub wikidata_id: Option<String>,
-
-    #[model_ignore]
-    pub releases: Vec<Release>,
-    #[model_ignore]
-    pub genres: Vec<Genre>,
-    #[model_ignore]
-    pub links: Vec<Link>,
 }
 
 impl Artist {
