@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use playback_rs::Hint;
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Visual}};
 
-use crate::model::{Artist, Genre, Link, Release, Track};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, model::{Artist, Genre, Link, Release, Track}};
 
 /// https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
@@ -112,6 +112,28 @@ impl TaggedMediaFile {
         .collect()
     }
 
+    pub fn track_metadata(&self) -> TrackMetadata {
+        TrackMetadata {
+            track: self.track(),
+            artists: self.track_artists().into_iter().map(|artist| ArtistMetadata { artist, ..Default::default() }).collect(),
+            genres: self.track_genres(),
+            links: self.track_links(),
+            release: Some(self.release_metadata()),
+            ..Default::default()
+        }   
+    }
+
+    pub fn release_metadata(&self) -> ReleaseMetadata {
+        ReleaseMetadata {
+            // artists: self.track_artists(),
+            genres: self.track_genres(),
+            links: self.track_links(),
+            // release: self.release(),
+            // track: self.track(),
+            ..Default::default()
+        }        
+    }
+
     pub fn track(&self) -> Track {
         Track {
             key: None,
@@ -126,7 +148,8 @@ impl TaggedMediaFile {
                 .and_then(|s| parse_n_of_m_tag(&s).0),
             length_ms: self.length_ms,        
             lyrics: self.tag(StandardTagKey::Lyrics),
-            // TODO supported by some formats, find tags
+            // TODO supported by some formats, find tags, Symphonia may have
+            // support in v0.6.
             synchronized_lyrics: None,
 
             discogs_id: None,
@@ -143,10 +166,6 @@ impl TaggedMediaFile {
                 .and_then(|s| parse_n_of_m_tag(&s).0)
                 .or_else(|| self.tag(StandardTagKey::TrackNumber)
                     .and_then(|s| parse_n_of_m_tag(&s).1)),
-
-            artists: vec![],
-            genres: vec![],
-            links: vec![],
         }
     }
 
@@ -172,31 +191,20 @@ impl TaggedMediaFile {
             quality: None,
             status: self.tag(StandardTagKey::MusicBrainzReleaseStatus),
             release_group_type: self.tag(StandardTagKey::MusicBrainzReleaseType),
-
-            artists: vec![],
-            genres: vec![],
-            links: vec![],
-            tracks: vec![],            
         }
     }
 
-    /// TODO Would be nice to match the parallel multi-value tags like
-    /// name // musicbrainz_id, genre // genre_musicbrainz_id, etc.
-    /// Need to take each list's length into consideration, and keep things
-    /// in order. Still prone to major errors, I figure. 
-    /// 
-    /// Although, the most common case is going to be a single artist and I
-    /// should at least take that when I can get it. And I guess just do
-    /// what Picard does.
     pub fn track_artists(&self) -> Vec<Artist> {
+        // If no artists are found, parse the Artist tag, which can be split
+        // but may be ambiguous. 
         self.tags(StandardTagKey::Artist).iter()
             .flat_map(|s| parse_artist_tag(s))
             .map(|s| Artist {
                 name: Some(s.to_string()),
                 ..Default::default()
             })
-            .collect::<HashSet<_>>()
-            .into_iter()
+            // .collect::<HashSet<_>>()
+            // .into_iter()
             .collect()
     }
 
@@ -208,17 +216,6 @@ impl TaggedMediaFile {
                 ..Default::default()
             })
             .collect()
-    }
-
-    pub fn track_links(&self) -> Vec<Link> {
-        // self.tags(StandardTagKey::Link).iter()
-        //     .flat_map(|s| parse_genre_tag(s))
-        //     .map(|s| Genre {
-        //         name: Some(s.to_string()),
-        //         ..Default::default()
-        //     })
-        //     .collect()
-        vec![]
     }
 
     pub fn release_artists(&self) -> Vec<Artist> {
@@ -240,6 +237,25 @@ impl TaggedMediaFile {
             })
             .collect()
     }
+
+    pub fn release_links(&self) -> Vec<Link> {
+        vec![]
+    }
+
+    pub fn track_links(&self) -> Vec<Link> {
+        self.tag(StandardTagKey::Url).iter()
+            .chain(self.tag(StandardTagKey::UrlArtist).iter())
+            .chain(self.tag(StandardTagKey::UrlCopyright).iter())
+            .chain(self.tag(StandardTagKey::UrlInternetRadio).iter())
+            .chain(self.tag(StandardTagKey::UrlLabel).iter())
+            .chain(self.tag(StandardTagKey::UrlOfficial).iter())
+            .chain(self.tag(StandardTagKey::UrlPayment).iter())
+            .chain(self.tag(StandardTagKey::UrlPodcast).iter())
+            .chain(self.tag(StandardTagKey::UrlPurchase).iter())
+            .chain(self.tag(StandardTagKey::UrlSource).iter())
+            .map(|s| Link { url: s.to_string(), ..Default::default() })
+            .collect()
+    }
 }
 
 pub fn parse_n_of_m_tag(value: &str) -> (Option<u32>, Option<u32>) {
@@ -248,6 +264,8 @@ pub fn parse_n_of_m_tag(value: &str) -> (Option<u32>, Option<u32>) {
 }
 
 /// Split artist string handling various separators
+/// TODO need to collect examples of the ones currently failing and add them
+/// as tests.
 fn parse_artist_tag(artist_str: &str) -> Vec<String> {
     let mut artists = Vec::new();
     

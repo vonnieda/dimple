@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{library::Library, model::{Artist, Model, Release}, plugins::converters::ReleaseConverter};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata}, library::Library, model::{Artist, Model, Release}, plugins::converters::ReleaseConverter};
 
 use super::{converters::ArtistConverter, plugin::Plugin, plugin_host::PluginHost};
 
@@ -46,8 +46,9 @@ impl Plugin for MusicBrainzPlugin {
                 let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
                 let response = host.get(&url)?;
                 let mb_artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
-                let artist = Artist::from(ArtistConverter::from(mb_artist));
-                return Ok(Some(Box::new(artist)))
+                let artist: ArtistMetadata = ArtistConverter::from(mb_artist).into();
+                todo!()
+                // return Ok(Some(Box::new(artist)))
             }
         }
         if let Some(release) = model.as_any().downcast_ref::<Release>() {
@@ -56,8 +57,9 @@ impl Plugin for MusicBrainzPlugin {
                 let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels", mbid);
                 let response = host.get(&url)?;
                 let mb_release = response.json::<musicbrainz_rs::entity::release::Release>()?;
-                let release = Release::from(ReleaseConverter::from(mb_release));
-                return Ok(Some(Box::new(release)))
+                let release: ReleaseMetadata = ReleaseConverter::from(mb_release).into();
+                todo!()
+                // return Ok(Some(Box::new(release)))
             }
         }
         Ok(None)
