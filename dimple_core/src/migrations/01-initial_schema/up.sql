@@ -14,6 +14,7 @@ CREATE TABLE Artist (
     spotify_id TEXT,
     wikidata_id TEXT
 );
+CREATE INDEX Artist_musicbrainz_id ON Artist (musicbrainz_id);
 CREATE UNIQUE INDEX Artist_unique_name_disambiguation ON Artist (name, COALESCE(disambiguation, ''));
 
 CREATE TABLE Release (
@@ -84,6 +85,7 @@ CREATE TABLE Genre (
     wikidata_id TEXT
 );
 CREATE INDEX Genre_musicbrainz_id ON Genre (musicbrainz_id);
+CREATE UNIQUE INDEX Genre_unique_name_disambiguation ON Genre (name, COALESCE(disambiguation, ''));
 
 CREATE TABLE Link (
     key TEXT PRIMARY KEY,
@@ -119,7 +121,6 @@ CREATE INDEX PlaylistItem_playlist_key_ordinal ON PlaylistItem (playlist_key, or
 
 
 CREATE TABLE LinkRef (
-    key TEXT PRIMARY KEY,
     model_key TEXT NOT NULL,
     link_key TEXT NOT NULL,
     FOREIGN KEY (link_key) REFERENCES Link(key)
@@ -127,7 +128,6 @@ CREATE TABLE LinkRef (
 CREATE UNIQUE INDEX LinkRef_unique_model_key_link_key ON LinkRef (model_key, link_key);
 
 CREATE TABLE ArtistRef (
-    key TEXT PRIMARY KEY,
     model_key TEXT NOT NULL,
     artist_key TEXT NOT NULL,
     FOREIGN KEY (artist_key) REFERENCES Artist(key)
@@ -135,7 +135,6 @@ CREATE TABLE ArtistRef (
 CREATE UNIQUE INDEX ArtistRef_unique_model_key_artist_key ON ArtistRef (model_key, artist_key);
 
 CREATE TABLE GenreRef (
-    key TEXT PRIMARY KEY,
     model_key TEXT NOT NULL,
     genre_key TEXT NOT NULL,
     FOREIGN KEY (genre_key) REFERENCES Genre(key)
@@ -218,7 +217,6 @@ CREATE TABLE Dimage (
 );
 
 CREATE TABLE DimageRef (
-    key TEXT PRIMARY KEY,
     model_key TEXT NOT NULL,
     dimage_key TEXT NOT NULL,
     FOREIGN KEY (dimage_key) REFERENCES Dimage(key)

@@ -1,25 +1,20 @@
-use dimple_core_macro::ModelSupport;
+use crate::library::Library;
 
-#[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
+use super::{Artist, LibraryModel};
+
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct ArtistRef {
-    pub key: Option<String>,
     pub model_key: String,
     pub artist_key: String,
 }
 
-// Old reference
-// // https://musicbrainz.org/doc/Artist_Credits
-// // > Artist credits can be added to tracks, recordings, releases, and release groups. 
-// // Note that this combines portions of the artist_credit_name table, too.
-// #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Default, ModelSupport)]
-// pub struct ArtistCredit {
-//     pub key: Option<String>,
-//     pub name: Option<String>,
-//     pub join_phrase: Option<String>,
-    
-//     #[serde(skip)]
-//     pub artist: Artist,
-// }
+impl ArtistRef {
+    pub fn attach(library: &Library, artist: &Artist, model: &impl LibraryModel) {
+        let _ = library.conn().execute(
+            "INSERT INTO ArtistRef (artist_key, model_key) VALUES (?, ?)", 
+            (artist.key.clone(), model.key()));
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -30,13 +25,8 @@ mod tests {
         let library = Library::open_memory();
         let artist = library.save(&Artist::default());
         let track = library.save(&Track::default());
-        let model = ArtistRef {
-            key: None,
-            artist_key: artist.key.unwrap(),
-            model_key: track.key.unwrap(),
-        };
-        let model = library.save(&model);
-        assert!(model.key.is_some());
+        ArtistRef::attach(&library, &artist, &track);
+        assert!(track.artists(&library).len() == 1);
     }
 }
 

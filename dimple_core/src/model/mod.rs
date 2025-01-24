@@ -75,8 +75,10 @@ pub trait Model: Send {
 pub trait LibraryModel: Clone + Default + FromRow + Diff + Model {
     fn key(&self) -> Option<String>;
     fn set_key(&mut self, key: Option<String>);
-    fn upsert(&self, conn: &Connection);
     fn log_changes(&self) -> bool;
+    fn insert(&self, conn: &Connection);
+    fn update(&self, conn: &Connection);
+    fn upsert(&self, conn: &Connection);
 }
 
 pub struct ChangeLogValue {

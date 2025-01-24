@@ -145,14 +145,9 @@ mod tests {
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
         });
-        let _ac = library.save(&ArtistRef {
-            model_key: track.key.clone().unwrap(),
-            artist_key: artist.key.clone().unwrap(),
-            ..Default::default()
-        });
+        ArtistRef::attach(&library, &artist, &track);
 
-        // println!("{:?}", plugins.lyrics(&library, &track));
-        println!("{:?}", plugins.metadata(&library, &track));
+        assert!(plugins.metadata(&library, &track).is_some());
     }
 
     #[test]
@@ -171,8 +166,7 @@ mod tests {
             ..Default::default()
         });
 
-        println!("{:?}", plugins.metadata(&library, &artist));
-        println!("{:?}", plugins.metadata(&library, &artist));
+        assert!(plugins.metadata(&library, &artist).is_some());
     }
 }
 

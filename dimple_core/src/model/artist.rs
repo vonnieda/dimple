@@ -61,7 +61,7 @@ impl Artist {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Artist, ArtistRef, Diff, Track}};
+    use crate::{librarian::{self, ArtistMetadata}, library::Library, model::{Artist, ArtistRef, Diff, Track}};
 
     #[test]
     fn library_crud() {

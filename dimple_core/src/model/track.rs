@@ -125,22 +125,15 @@ mod tests {
             name: Some("Metallica".to_string()),
             ..Default::default()
         });
-        let _ = library.save(&ArtistRef {
-            model_key: track.key.clone().unwrap(),
-            artist_key: artist.key.clone().unwrap(),
-            ..Default::default()
-        });
+        ArtistRef::attach(&library, &artist, &track);
         let artist = library.save(&Artist {
+
             name: Some("Lou Reed".to_string()),
             ..Default::default()
         });
-        let _ = library.save(&ArtistRef {
-            model_key: track.key.clone().unwrap(),
-            artist_key: artist.key.clone().unwrap(),
-            ..Default::default()
-        });
+        ArtistRef::attach(&library, &artist, &track);
 
-        dbg!(track.artists(&library));
+        // dbg!(track.artists(&library));
     }
 
     #[test]
@@ -171,36 +164,16 @@ mod tests {
             title: Some("Lucy".to_string()),
             ..Default::default()
         });
-        let _ = library.save(&GenreRef {
-            genre_key: heavy_metal.key.clone().unwrap(),
-            model_key: track.key.clone().unwrap(),
-            ..Default::default()
-        });
-        let _ = library.save(&GenreRef {
-            genre_key: rock.key.clone().unwrap(),
-            model_key: track.key.clone().unwrap(),
-            ..Default::default()
-        });
+        GenreRef::attach(&library, &heavy_metal, &track);
+        GenreRef::attach(&library, &rock, &track);
 
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()
         });
-        let _ = library.save(&GenreRef {
-            genre_key: rock.key.clone().unwrap(),
-            model_key: artist.key.clone().unwrap(),
-            ..Default::default()
-        });
-        let _ = library.save(&GenreRef {
-            genre_key: heavy_metal.key.clone().unwrap(),
-            model_key: artist.key.clone().unwrap(),
-            ..Default::default()
-        });
-        let _ = library.save(&GenreRef {
-            genre_key: death_metal.key.clone().unwrap(),
-            model_key: artist.key.clone().unwrap(),
-            ..Default::default()
-        });
+        GenreRef::attach(&library, &rock, &artist);
+        GenreRef::attach(&library, &heavy_metal, &artist);
+        GenreRef::attach(&library, &death_metal, &artist);
 
         assert!(artist.genres(&library).len() == 3);
         assert!(track.genres(&library).len() == 2);

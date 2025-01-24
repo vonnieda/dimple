@@ -98,11 +98,7 @@ mod tests {
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
         });
-        let _ = library.save(&ArtistRef {
-            model_key: track.key.clone().unwrap(),
-            artist_key: artist.key.clone().unwrap(),
-            ..Default::default()
-        });
+        ArtistRef::attach(&library, &artist, &track);
 
         let lrclib = LrclibPlugin::default();
         let host = PluginHost::default();

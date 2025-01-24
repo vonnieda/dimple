@@ -84,6 +84,30 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                         conn.execute(&sql, params!(#(#params,)*)).unwrap();
                     };
 
+                    let params = active_fields.clone().enumerate()
+                        .map(|(i, f)| {
+                            let field_name = &f.ident;
+                            quote! {
+                                &self.#field_name
+                            }
+                        });
+                    let insert = quote! {
+                        let sql = format!("INSERT INTO {} ({}) VALUES ({})", #name_str, #columns, #column_positions);
+                        conn.execute(&sql, params!(#(#params,)*)).unwrap();
+                    };
+
+                    let params = active_fields.clone().enumerate()
+                        .map(|(i, f)| {
+                            let field_name = &f.ident;
+                            quote! {
+                                &self.#field_name
+                            }
+                        });
+                    let update = quote! {
+                        let sql = format!("UPDATE {} SET ({}) = ({}) WHERE key = ?1", #name_str, #columns, #column_positions);
+                        conn.execute(&sql, params!(#(#params,)*)).unwrap();
+                    };
+            
                     quote! {
                         use crate::model::{ChangeLogValue, ChangeLog, Diff, FromRow, Model, LibraryModel};
                         use rusqlite::Row;
@@ -114,6 +138,14 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                             
                             fn log_changes(&self) -> bool {
                                 true
+                            }
+
+                            fn insert(&self, conn: &rusqlite::Connection) {
+                                #insert
+                            }
+
+                            fn update(&self, conn: &rusqlite::Connection) {
+                                #update
                             }
                         }
 

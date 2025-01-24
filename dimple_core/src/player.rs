@@ -148,7 +148,7 @@ impl Player {
         let key = format!("__dimple_system_play_queue_{}", self.library.id());
         let playlist = match self.library.get::<Playlist>(&key) {
             Some(play_queue) => play_queue,
-            None => self.library.save(&Playlist {
+            None => self.library.insert(&Playlist {
                 key: Some(key.to_string()),
                 ..Default::default()
             })

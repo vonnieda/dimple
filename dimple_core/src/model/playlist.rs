@@ -85,12 +85,13 @@ impl Playlist {
                 let after = items.get(index).cloned().map(|a| a.ordinal);
                 let ordinal = Self::ordinal_between(&before, &after);
                 log::info!("{:?} {:?} {}", &before, &after, ordinal);
-                let _item = library.save(&PlaylistItem {
+                let item = PlaylistItem {
                     key: None,
                     ordinal,
                     playlist_key: self.key.clone().unwrap(),
                     track_key: track.key.clone().unwrap(),
-                });
+                };
+                let _item = library.save(&item);
             },
             _ => todo!(),
         }
@@ -195,8 +196,8 @@ mod tests {
         playlist.insert(&library, &track5, 0);
         playlist.append(&library, &track1);
         // TODO finish these tests
-        dbg!(PlaylistItem::list(&library));
-        dbg!(playlist.tracks(&library).iter().map(|t| t.title.clone()).collect::<Vec<_>>());
+        // dbg!(PlaylistItem::list(&library));
+        // dbg!(playlist.tracks(&library).iter().map(|t| t.title.clone()).collect::<Vec<_>>());
     }
 
     #[test]

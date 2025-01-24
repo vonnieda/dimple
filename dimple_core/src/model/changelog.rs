@@ -68,5 +68,15 @@ impl LibraryModel for ChangeLog {
     
     fn log_changes(&self) -> bool {
         false
+    }
+    
+    fn insert(&self, conn: &rusqlite::Connection) {
+        todo!()
+    }
+    
+    fn update(&self, conn: &rusqlite::Connection) {
+        todo!()
     }    
+
+    
 }

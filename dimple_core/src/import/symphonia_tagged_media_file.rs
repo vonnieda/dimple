@@ -20,15 +20,15 @@ use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, model::
 /// Everything in Genre (17) is pretty fucked
 /// "Bohren & Der Club of Gore" got split into ("Bohren", "Der Club of Gore")
 #[derive(Clone, Debug)]
-pub struct TaggedMediaFile {
+pub struct SymphoniaTaggedMediaFile {
     pub path: String,
     pub tags: Vec<Tag>,
     pub visuals: Vec<Visual>,
     pub length_ms: Option<u64>,
 }
 
-impl TaggedMediaFile {
-    pub fn new(path: &Path) -> Result<TaggedMediaFile, anyhow::Error> {
+impl SymphoniaTaggedMediaFile {
+    pub fn new(path: &Path) -> Result<SymphoniaTaggedMediaFile, anyhow::Error> {
         let media_source = File::open(&path).unwrap();
         let media_source_stream =
             MediaSourceStream::new(Box::new(media_source), Default::default());
@@ -75,7 +75,7 @@ impl TaggedMediaFile {
 
         workaround_mixcase_std_keys(&mut tags);
 
-        let media_file = TaggedMediaFile {
+        let media_file = SymphoniaTaggedMediaFile {
             path: path.to_str().unwrap().to_string(),
             tags,
             visuals,

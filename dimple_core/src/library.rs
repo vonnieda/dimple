@@ -173,38 +173,29 @@ impl Library {
         self.ulids.lock().unwrap().generate().unwrap().to_string()
     }
 
-    // TODO woops, major bug, it seems like upsert is saving with a new key
-    // when a unique is hit, like in a duple sha256 on dimage. 
-    // Sheeeeeit, that's why import is slow. I think just switch to update
-    // and insert based on key.
-    pub fn save<T: LibraryModel>(&self, obj: &T) -> T {
-        // TODO txn
-
-        // get the old object by key if one exists
-        let old: T = obj.key().as_ref().and_then(|key| self.get(&key))
-            .or_else(|| Some(T::default())).unwrap();
-        // get the key or create a new one
-        let key = obj.key().or_else(|| Some(Uuid::new_v4().to_string()));
-        // execute the insert
+    pub fn insert<T: LibraryModel>(&self, obj: &T) -> T {
+        let conn = self.conn();
         let mut obj = obj.clone();
-        obj.set_key(key.clone());
-        obj.upsert(&self.conn());
-        // load the newly inserted object
-        let new: T = self.get(&key.unwrap()).unwrap();
-        // if obj.log_changes() {
-        //     // if we're logging changes, diff the old to the new
-        //     let diff = old.diff(&new);
-        //     for mut change in diff {
-        //         // each change gets a new ulid, the library actor, a new key
-        //         // and gets saved
-        //         change.timestamp = self.ulid();
-        //         change.actor = self.id();
-        //         change.model_key = new.key().clone().unwrap();
-        //         self.save(&change);
-        //     }
-        // }
+        if obj.key().is_none() {
+            obj.set_key(Some(uuid::Uuid::new_v4().to_string()));
+        }
+        obj.insert(&conn);
         self.emit_change(&obj.type_name(), &obj.key().unwrap());
-        new
+        obj
+    }
+
+    pub fn save<T: LibraryModel>(&self, obj: &T) -> T {
+        let conn = self.conn();
+        let mut obj = obj.clone();
+        if obj.key().is_none() {
+            obj.set_key(Some(uuid::Uuid::new_v4().to_string()));
+            obj.insert(&conn);
+        }
+        else {
+            obj.update(&conn);
+        };
+        self.emit_change(&obj.type_name(), &obj.key().unwrap());
+        obj
     }
 
     /// TODO I think drop Model and use a trait that excludes Diff and such

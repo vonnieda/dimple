@@ -1,5 +1,6 @@
 pub mod spotify;
-pub mod tagged_media_file;
+pub mod lofty_tagged_media_file;
+pub mod symphonia_tagged_media_file;
 
 use std::path::Path;
 
@@ -8,8 +9,7 @@ use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, Dimag
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator as _};
-use symphonia::core::meta::StandardVisualKey;
-use tagged_media_file::TaggedMediaFile;
+use lofty_tagged_media_file::LoftyTaggedMediaFile;
 use walkdir::WalkDir;
 
 pub fn import(library: &Library, path: &str) {
@@ -20,7 +20,7 @@ pub fn import(library: &Library, path: &str) {
     let files = scan(path);
     log::info!("Scanned {} files.", files.len());
 
-    files.par_iter().for_each(|file| {
+    files.iter().for_each(|file| {
         let _ = import_single_file(&library, Path::new(&file.path), force);
     });
 }
@@ -43,17 +43,19 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     if !path.is_file() {
         return Err(anyhow::anyhow!("Path must be a file: {:?}", path));
     }
-    
+
+    log::info!("Importing {:?}.", path);
+
     // Read the tags from the file.
-    let tags = TaggedMediaFile::new(path)?;
+    let tags = LoftyTaggedMediaFile::new(path)?;
 
     // Create or update a MediaFile by the file path.
     let mut media_file = library.find_media_file_by_file_path(path.to_str().unwrap())
         .unwrap_or_default();
+    media_file.file_path = path.to_str().unwrap().to_string();
     media_file.last_imported = Utc::now();
     media_file.last_modified = path.metadata()?.modified()?.into();
     let media_file = media_file.save(library);
-    log::info!("MediaFile {:?}", media_file.key);
     
     // Find or create a TrackSource by the MediaFile key. This is not yet saved,
     // since it will be updated below.
@@ -63,48 +65,45 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     
     // Match and merge the Track, preferring the one on the TrackSource if it
     // exists.
-    let metadata = tags.track_metadata();
-    println!("{:?}", metadata.artists.iter().map(|a| a.artist.name.clone()).collect::<Vec<_>>());
-    // for tag in &tags.tags {
-    //     println!("{:?} {} {}", tag.std_key, tag.key, tag.value.to_string());
-    // }
-    // dbg!(&track_metadata);
-
-    return Err(anyhow!("asd"));
-
-    let track = track_source.track(library).unwrap_or_default();
-    let track = CrdtRules::merge(track, tags.track());
-    if track.title.is_none() {
+    let track_metadata = tags.track_metadata();
+    if track_metadata.links.len() > 0 {
+        dbg!(&track_metadata.links);
+    }
+    if track_metadata.track.title.is_none() {
         log::warn!("No track title {}", path.to_string_lossy());
     }
-    // let track = librarian::merge_track(library, &track);
+    let track = librarian::merge_track_metadata(library, &track_metadata, track_source.track(library));
 
     // Update the TrackSource with the saved track_key.
     track_source.track_key = track.key.clone();
     track_source.media_file_key = media_file.key.clone();
     let track_source = track_source.save(library);
-    log::info!("TrackSource {:?}", track_source.key);
 
-    // Import images
-    for visual in tags.visuals.iter() {
-        if let Ok(dymage) = image::load_from_memory(&visual.data) {
-            // TODO this should be a match/merge
-            let dimage = Dimage::new(&dymage).save(library);
-            let _ = library.save(&DimageRef {
-                model_key: track.release_key.clone().unwrap(),
-                dimage_key: dimage.key.clone().unwrap(),
-                ..Default::default()
-            });
-        }
-    }
+    // // Import images
+    // // for visual in tags.visuals.iter() {
+    // //     if let Ok(dymage) = image::load_from_memory(&visual.data) {
+    // //         // TODO this should be a match/merge
+    // //         let dimage = Dimage::new(&dymage).save(library);
+    // //         let _ = library.save(&DimageRef {
+    // //             model_key: track.release_key.clone().unwrap(),
+    // //             dimage_key: dimage.key.clone().unwrap(),
+    // //             ..Default::default()
+    // //         });
+    // //     }
+    // // }
 
-    // log::info!("Imported    {:30} {:30} {:60} {}", 
-    //     track.artist_name(library).unwrap_or_default(), 
-    //     track.album_name(library).unwrap_or_default(),
-    //     track.title.unwrap_or_default(),
-    //     path.file_name().unwrap_or_default().to_str().unwrap_or_default());
+    // dbg!(track_metadata);
+    print_track(&track, library);
 
     Ok(track_source)
+}
+
+fn print_track(track: &Track, library: &Library) {
+    println!("{:?}", track.title);
+    println!("  Artists: {:?}", track.artists(library).iter().map(|a| a.name.clone()).collect::<Vec<_>>());
+    println!("  Genres: {:?}", track.genres(library).iter().map(|a| a.name.clone()).collect::<Vec<_>>());
+    println!("  Release: {:?}", track.release(library).map(|r| r.key.clone()));
+    println!("  Links: {:?}", track.links(library));
 }
 
 #[derive(Debug)]

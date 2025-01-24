@@ -1,4 +1,4 @@
-use crate::{import::tagged_media_file::TaggedMediaFile, library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Genre, GenreRef, LibraryModel, Link, Model, ModelBasics as _, Release, Track}, plugins::plugin_host::PluginHost};
+use crate::{library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Genre, GenreRef, LibraryModel, Link, LinkRef, Model, ModelBasics as _, Release, Track}, plugins::plugin_host::PluginHost};
 
 pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &impl LibraryModel) {
     log::info!("refresh_metadata {:?} {:?}", model.type_name(), model.key());
@@ -40,30 +40,50 @@ pub fn merge_artist(library: &Library, artist: &ArtistMetadata) -> Artist {
     let merged = CrdtRules::merge(matched, artist.artist.clone());
     let merged = merged.save(library);
     merge_genres(library, &artist.genres, &merged);
+    merge_links(library, &artist.links, &merged);
     merged
 }
 
-pub fn merge_release(library: &Library, release: &ReleaseMetadata) -> Release {
-    let matched = match_release(library, &release).unwrap_or_default();
-    let merged = CrdtRules::merge(matched, release.release.clone());
+// two things: we shouldn't be creating a release if there's no release info
+// at all
+// and even if we do, we need pull it first like we did the track - okay fixed that
+// do others need that treatment?
+pub fn merge_release(library: &Library, metadata: &ReleaseMetadata, pre_match: Option<Release>) -> Release {
+    let matched = pre_match.or_else(|| match_release(library, &metadata)).unwrap_or_default();
+    let merged = CrdtRules::merge(matched, metadata.release.clone());
     let merged = merged.save(library);
-    merge_artists(library, &release.artists, &merged);
-    merge_genres(library, &release.genres, &merged);
+    merge_artists(library, &metadata.artists, &merged);
+    merge_genres(library, &metadata.genres, &merged);
+    merge_links(library, &metadata.links, &merged);
     merged
 }
 
-pub fn merge_track(library: &Library, track: &TrackMetadata) -> Track {
-    let matched = match_track(library, &track).unwrap_or_default();
-    let merged = CrdtRules::merge(matched, track.track.clone());
+pub fn merge_track_metadata(library: &Library, metadata: &TrackMetadata, pre_match: Option<Track>) -> Track {
+    let matched = pre_match.or_else(|| match_track(library, &metadata)).unwrap_or_default();
+    let merged = CrdtRules::merge(matched, metadata.track.clone());
     let mut merged = merged.save(library);
-    merge_artists(library, &track.artists, &merged);
-    merge_genres(library, &track.genres, &merged);
-    if let Some(release) = track.release.clone() {
-        let release = merge_release(library, &release);
+    merge_artists(library, &metadata.artists, &merged);
+    merge_genres(library, &metadata.genres, &merged);
+    merge_links(library, &metadata.links, &merged);
+    if let Some(release) = metadata.release.clone() {
+        let release = merge_release(library, &release, merged.release(library));
         merged.release_key = release.key;
         merged = merged.save(&library);
     }
     merged
+}
+
+pub fn merge_link(library: &Library, link: &Link) -> Link {
+    let matched = match_link(library, &link).unwrap_or_default();
+    let link = CrdtRules::merge(matched, link.clone());
+    link.save(library)
+}
+
+pub fn merge_links<T: LibraryModel>(library: &Library, links: &[Link], model: &T) {
+    for link in links {
+        let link = merge_link(library, link);
+        merge_link_ref(library, &link, model);
+    }
 }
 
 pub fn merge_genre(library: &Library, genre: &Genre) -> Genre {
@@ -87,44 +107,32 @@ pub fn merge_artists<T: LibraryModel>(library: &Library, artists: &[ArtistMetada
 }
 
 pub fn merge_artist_ref<T: LibraryModel>(library: &Library, artist: &Artist, model: &T) {
-    library.save(&ArtistRef {
-        artist_key: artist.key.clone().unwrap(),
-        model_key: model.key().clone().unwrap(),
-        ..Default::default()
-    });
+    ArtistRef::attach(library, artist, model);
 }
 
 pub fn merge_genre_ref<T: LibraryModel>(library: &Library, genre: &Genre, model: &T) {
-    library.save(&GenreRef {
-        genre_key: genre.key.clone().unwrap(),
-        model_key: model.key().clone().unwrap(),
-        ..Default::default()
-    });
+    GenreRef::attach(library, genre, model);
 }
 
+pub fn merge_link_ref<T: LibraryModel>(library: &Library, link: &Link, model: &T) {
+    LinkRef::attach(library, link, model);
+}
 
-// TODO all the match functions can be improved to provide finer matches,
-// but I think it all gets replaced with search once I implement Tantivy.
-
-// TODO also, I think these immediately should be modified to check for
-// key just in case. 
 
 pub fn match_artist(library: &Library, artist: &Artist) -> Option<Artist> {
     library.find("
         SELECT Artist.* 
         FROM Artist 
-        WHERE (musicbrainz_id IS NOT NULL AND musicbrainz_id = ?1)
-        OR (Artist.name IS NOT NULL AND Artist.name = ?2 AND Artist.disambiguation = ?3)
+        WHERE (Artist.musicbrainz_id IS NOT NULL AND Artist.musicbrainz_id = ?1)
+        OR (Artist.name IS NOT NULL AND Artist.name = ?2 AND ((Artist.disambiguation IS NULL AND ?3 IS NULL) OR (Artist.disambiguation = ?3)))
         ", (&artist.musicbrainz_id, &artist.name, &artist.disambiguation))
 }
 
-
-// TODO matching hash of embedded artwork might be another good datapoint
 pub fn match_release(library: &Library, release: &ReleaseMetadata) -> Option<Release> {
     let matched_release = library.find("
         SELECT Release.* 
         FROM Release 
-        WHERE musicbrainz_id IS NOT NULL AND musicbrainz_id = ?1", 
+        WHERE Release.musicbrainz_id IS NOT NULL AND Release.musicbrainz_id = ?1", 
         (&release.release.musicbrainz_id,));
     if matched_release.is_some() {
         return matched_release
@@ -177,9 +185,17 @@ pub fn match_genre(library: &Library, genre: &Genre) -> Option<Genre> {
     library.find("
         SELECT Genre.* 
         FROM Genre 
-        WHERE (musicbrainz_id IS NOT NULL AND musicbrainz_id = ?1)
-        OR (Genre.name IS NOT NULL AND Genre.name = ?2 AND Genre.disambiguation = ?3)
+        WHERE (Genre.musicbrainz_id IS NOT NULL AND Genre.musicbrainz_id = ?1)
+        OR (Genre.name IS NOT NULL AND Genre.name = ?2 AND ((Genre.disambiguation IS NULL AND ?3 IS NULL) OR (Genre.disambiguation = ?3)))
         ", (&genre.musicbrainz_id, &genre.name, &genre.disambiguation))
+}
+
+pub fn match_link(library: &Library, link: &Link) -> Option<Link> {
+    library.find("
+        SELECT Link.* 
+        FROM Link 
+        WHERE (Link.url = ?1)
+        ", (&link.url,))
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
@@ -205,4 +221,51 @@ pub struct TrackMetadata {
     pub genres: Vec<Genre>,
     pub links: Vec<Link>,
     pub release: Option<ReleaseMetadata>,
+}
+
+mod tests {
+    use crate::{librarian::{self, ArtistMetadata}, library::Library, model::Artist};
+
+    #[test]
+    fn merge_artist_metadata() {
+        let library = Library::open_memory();
+        let artist1 = librarian::merge_artist(&library, &ArtistMetadata {
+            artist: Artist {
+                name: Some("Something Cool".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+        dbg!(&artist1);
+        let artist2 = librarian::merge_artist(&library, &ArtistMetadata {
+            artist: Artist {
+                name: Some("Something Cool".to_string()),
+                musicbrainz_id: Some("4563463".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+        dbg!(&artist2);
+        let artist3 = librarian::merge_artist(&library, &ArtistMetadata {
+            artist: Artist {
+                name: Some("Something Cool".to_string()),
+                disambiguation: Some("the other one".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+        dbg!(&artist3);
+        let artist4 = librarian::merge_artist(&library, &ArtistMetadata {
+            artist: Artist {
+                name: Some("Something Cool".to_string()),
+                disambiguation: Some("the other one".to_string()),
+                musicbrainz_id: Some("123123".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+        assert!(artist1.key != artist3.key);
+        assert!(artist1.key == artist2.key);
+        assert!(artist3.key == artist4.key);
+    }
 }
