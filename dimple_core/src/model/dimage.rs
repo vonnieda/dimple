@@ -11,11 +11,11 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
 /// A model for storing an image in Dimple. Not Image because too overloaded.
-#[derive(Clone, Debug, Default, PartialEq, ModelSupport)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, ModelSupport)]
 pub struct Dimage {
     pub key: Option<String>,
 
-    pub kind: DimageKind,
+    pub kind: Option<DimageKind>,
     pub width: u32,
     pub height: u32,
     pub png_thumbnail: Vec<u8>,
@@ -76,7 +76,7 @@ pub fn resize(image: &DynamicImage, width: u32, height: u32) -> DynamicImage {
 /// This list is based on and gives thanks to:
 // https://wiki.fanart.tv/ImageTypes/Music/hdmusiclogo/
 // https://fanart.tv/music-fanart/
-#[derive(Clone, Debug, PartialEq, Hash, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Default)]
 pub enum DimageKind {
     #[default]
     MusicArtistThumb, // 1000x1000

@@ -54,7 +54,7 @@ impl Playlist {
     }
 
     pub fn insert(&self, library: &Library, model: &impl LibraryModel, index: usize) {
-        log::info!("insert {} {:?} {} {}", 
+        log::debug!("insert {} {:?} {} {}", 
             model.type_name(), 
             model.key(), 
             index, 
@@ -84,7 +84,7 @@ impl Playlist {
                 };
                 let after = items.get(index).cloned().map(|a| a.ordinal);
                 let ordinal = Self::ordinal_between(&before, &after);
-                log::info!("{:?} {:?} {}", &before, &after, ordinal);
+                log::debug!("{:?} {:?} {}", &before, &after, ordinal);
                 let item = PlaylistItem {
                     key: None,
                     ordinal,

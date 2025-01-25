@@ -47,7 +47,7 @@ pub use link::Link;
 mod link_ref;
 pub use link_ref::LinkRef;
 
-mod dimage;
+pub mod dimage;
 pub use dimage::Dimage;
 
 mod dimage_ref;
@@ -213,6 +213,18 @@ impl From<Vec<u8>> for ChangeLogValue {
 
 impl From<ChangeLogValue> for Vec<u8> {
     fn from(value: ChangeLogValue) -> Self {
+        todo!()
+    }
+}
+
+impl From<ChangeLogValue> for Option<DimageKind> {
+    fn from(value: ChangeLogValue) -> Self {
+        todo!()
+    }
+}
+
+impl From<Option<DimageKind>> for ChangeLogValue {
+    fn from(value: Option<DimageKind>) -> Self {
         todo!()
     }
 }

@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use chrono::{DateTime, Utc};
 
-use crate::model::{Artist, Genre, Link, MediaFile, Release, Track};
+use crate::model::{Artist, Dimage, Genre, Link, MediaFile, Release, Track};
 
 pub trait CrdtRules {
     /// Commutative: A v B = B v A
@@ -82,12 +82,6 @@ impl CrdtRules for Release {
             save: CrdtRules::merge(l.save, r.save),
             download: CrdtRules::merge(l.download, r.download),
             
-            // release_key: CrdtRules::merge(l.release_key, r.release_key),
-            // position: CrdtRules::merge(l.position, r.position),
-            // length_ms: CrdtRules::merge(l.length_ms, r.length_ms),
-            // lyrics: CrdtRules::merge(l.lyrics, r.lyrics),
-            // synchronized_lyrics: CrdtRules::merge(l.synchronized_lyrics, r.synchronized_lyrics),
-
             barcode: CrdtRules::merge(l.barcode, r.barcode),
             country: CrdtRules::merge(l.country, r.country),
             date: CrdtRules::merge(l.date, r.date),
@@ -101,11 +95,6 @@ impl CrdtRules for Release {
             musicbrainz_id: CrdtRules::merge(l.musicbrainz_id, r.musicbrainz_id),
             spotify_id: CrdtRules::merge(l.spotify_id, r.spotify_id),
             wikidata_id: CrdtRules::merge(l.wikidata_id, r.wikidata_id),
-
-            // media_format: CrdtRules::merge(l.media_format, r.media_format),
-            // media_position: CrdtRules::merge(l.media_position, r.media_position),
-            // media_title: CrdtRules::merge(l.media_title, r.media_title),
-            // media_track_count: CrdtRules::merge(l.media_track_count, r.media_track_count),            
         }
     }
 }
@@ -137,6 +126,31 @@ impl CrdtRules for Track {
             media_title: CrdtRules::merge(l.media_title, r.media_title),
             media_track_count: CrdtRules::merge(l.media_track_count, r.media_track_count),
          }
+    }
+}
+
+impl CrdtRules for Dimage {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            width: CrdtRules::merge(l.width, r.width),
+            height: CrdtRules::merge(l.height, r.height),
+            key: CrdtRules::merge(l.key, r.key),
+            kind: r.kind,
+            png_data: CrdtRules::merge(l.png_data, r.png_data),
+            png_thumbnail: CrdtRules::merge(l.png_thumbnail, r.png_thumbnail),
+            sha256: CrdtRules::merge(l.sha256, r.sha256),
+        }
+    }
+}
+
+impl CrdtRules for Vec<u8> {
+    fn merge(l: Self, r: Self) -> Self {
+        if l.len() >= r.len() {
+            l
+        }
+        else {
+            r
+        }
     }
 }
 

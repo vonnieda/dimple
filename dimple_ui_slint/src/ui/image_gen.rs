@@ -1,7 +1,8 @@
 use std::f32::consts::PI;
 
 use dimple_core::player::Song;
-use image::DynamicImage;
+use image::{DynamicImage, ImageBuffer};
+use sonogram::{ColourGradient, FrequencyScale, RGBAColour, SpecOptionsBuilder};
 use tiny_skia::*;
 
 pub fn gen_fuzzy_circles(width: u32, height: u32) -> DynamicImage {
@@ -133,6 +134,34 @@ pub fn gen_song_waveform(song: &Song, width: u32, height: u32) -> DynamicImage {
     }
 
     let image: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> = image::ImageBuffer::from_raw(width, height, pixmap.data().to_vec()).unwrap();    
+    DynamicImage::ImageRgba8(image)
+}
+
+pub fn gen_song_spectrogram(song: &Song, width: u32, height: u32) -> DynamicImage {
+    assert!(song.channel_count == 1 || song.channel_count == 2);
+
+    // Left is channel 0
+    let l_samples = song.samples.get(0).unwrap();
+    // Right is channel 1, or if mono, duplicate the left channel
+    let r_samples = song.samples.get(1).or(song.samples.get(0)).unwrap();
+    assert!(l_samples.len() == r_samples.len());
+
+    let spec_builder = SpecOptionsBuilder::new(2048)
+        .load_data_from_memory_f32(l_samples.clone(), song.sample_rate);
+    let mut spectrograph = spec_builder.build().unwrap().compute();
+    // let mut gradient = ColourGradient::new();
+    // gradient.add_colour(RGBAColour::new(216, 47, 216, 255)); // White
+    // gradient.add_colour(RGBAColour::new(0x8a, 0x65, 0x8a, 200)); // White
+    // gradient.add_colour(RGBAColour::new(216, 47, 216, 0)); // Black
+    // let mut gradient = ColourGradient::rainbow_theme();
+    // let mut gradient = ColourGradient::black_white_theme();
+    let mut gradient = ColourGradient::default_theme();
+    let rgba = spectrograph.to_rgba_in_memory(FrequencyScale::Log, 
+        &mut gradient, 
+        width as usize, 
+        height as usize);
+
+    let image: ImageBuffer<image::Rgba<u8>, Vec<u8>> = ImageBuffer::from_raw(width, height, rgba).unwrap();    
     DynamicImage::ImageRgba8(image)
 }
 

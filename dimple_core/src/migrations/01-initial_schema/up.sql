@@ -208,7 +208,7 @@ CREATE TABLE Blob (
 
 CREATE TABLE Dimage (
     key TEXT PRIMARY KEY,
-    kind TEXT NOT NULL,
+    kind TEXT,
     width INT NOT NULL,
     height INT NOT NULL,
     png_thumbnail BLOB NOT NULL,

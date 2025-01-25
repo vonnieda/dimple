@@ -1,4 +1,4 @@
-use crate::{library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Genre, GenreRef, LibraryModel, Link, LinkRef, Model, ModelBasics as _, Release, Track}, plugins::plugin_host::PluginHost};
+use crate::{library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Dimage, DimageRef, Genre, GenreRef, LibraryModel, Link, LinkRef, Model, ModelBasics as _, Release, Track}, plugins::plugin_host::PluginHost};
 
 pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &impl LibraryModel) {
     log::info!("refresh_metadata {:?} {:?}", model.type_name(), model.key());
@@ -13,7 +13,7 @@ pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &impl Li
         "Artist" => {
             if let Some(artist) = Artist::get(library, &model.key().clone().unwrap()) {
                 if let Some(metadata) = plugins.metadata(library, &artist.clone()) {
-                    let artist = library.save(&CrdtRules::merge(artist, metadata));
+                    library.save(&CrdtRules::merge(artist, metadata));
                 }
             }
         }
@@ -35,12 +35,13 @@ pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &impl Li
     }
 }
 
-pub fn merge_artist(library: &Library, artist: &ArtistMetadata) -> Artist {
+pub fn merge_artist_metadata(library: &Library, artist: &ArtistMetadata) -> Artist {
     let matched = match_artist(library, &artist.artist).unwrap_or_default();
     let merged = CrdtRules::merge(matched, artist.artist.clone());
     let merged = merged.save(library);
     merge_genres(library, &artist.genres, &merged);
     merge_links(library, &artist.links, &merged);
+    merge_images(library, &artist.images, &merged);
     merged
 }
 
@@ -48,13 +49,14 @@ pub fn merge_artist(library: &Library, artist: &ArtistMetadata) -> Artist {
 // at all
 // and even if we do, we need pull it first like we did the track - okay fixed that
 // do others need that treatment?
-pub fn merge_release(library: &Library, metadata: &ReleaseMetadata, pre_match: Option<Release>) -> Release {
+pub fn merge_release_metadata(library: &Library, metadata: &ReleaseMetadata, pre_match: Option<Release>) -> Release {
     let matched = pre_match.or_else(|| match_release(library, &metadata)).unwrap_or_default();
     let merged = CrdtRules::merge(matched, metadata.release.clone());
     let merged = merged.save(library);
     merge_artists(library, &metadata.artists, &merged);
     merge_genres(library, &metadata.genres, &merged);
     merge_links(library, &metadata.links, &merged);
+    merge_images(library, &metadata.images, &merged);
     merged
 }
 
@@ -65,8 +67,9 @@ pub fn merge_track_metadata(library: &Library, metadata: &TrackMetadata, pre_mat
     merge_artists(library, &metadata.artists, &merged);
     merge_genres(library, &metadata.genres, &merged);
     merge_links(library, &metadata.links, &merged);
+    merge_images(library, &metadata.images, &merged);
     if let Some(release) = metadata.release.clone() {
-        let release = merge_release(library, &release, merged.release(library));
+        let release = merge_release_metadata(library, &release, merged.release(library));
         merged.release_key = release.key;
         merged = merged.save(&library);
     }
@@ -77,6 +80,19 @@ pub fn merge_link(library: &Library, link: &Link) -> Link {
     let matched = match_link(library, &link).unwrap_or_default();
     let link = CrdtRules::merge(matched, link.clone());
     link.save(library)
+}
+
+pub fn merge_images<T: LibraryModel>(library: &Library, images: &[Dimage], model: &T) {
+    for dimage in images {
+        let dimage = merge_image(library, dimage);
+        DimageRef::attach(library, &dimage, model);
+    }
+}
+
+pub fn merge_image(library: &Library, dimage: &Dimage) -> Dimage {
+    let matched = match_dimage(library, &dimage).unwrap_or_default();
+    let dimage = CrdtRules::merge(matched, dimage.clone());
+    dimage.save(library)
 }
 
 pub fn merge_links<T: LibraryModel>(library: &Library, links: &[Link], model: &T) {
@@ -101,7 +117,7 @@ pub fn merge_genres<T: LibraryModel>(library: &Library, genres: &[Genre], model:
 
 pub fn merge_artists<T: LibraryModel>(library: &Library, artists: &[ArtistMetadata], model: &T) {
     for artist in artists {
-        let artist = merge_artist(library, &artist);
+        let artist = merge_artist_metadata(library, &artist);
         merge_artist_ref(library, &artist, model);
     }
 }
@@ -117,7 +133,6 @@ pub fn merge_genre_ref<T: LibraryModel>(library: &Library, genre: &Genre, model:
 pub fn merge_link_ref<T: LibraryModel>(library: &Library, link: &Link, model: &T) {
     LinkRef::attach(library, link, model);
 }
-
 
 pub fn match_artist(library: &Library, artist: &Artist) -> Option<Artist> {
     library.find("
@@ -198,11 +213,20 @@ pub fn match_link(library: &Library, link: &Link) -> Option<Link> {
         ", (&link.url,))
 }
 
+pub fn match_dimage(library: &Library, dimage: &Dimage) -> Option<Dimage> {
+    library.find("
+        SELECT Dimage.* 
+        FROM Dimage 
+        WHERE (Dimage.sha256 = ?1)
+        ", (&dimage.sha256,))
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct ArtistMetadata {
     pub artist: Artist,
     pub genres: Vec<Genre>,
     pub links: Vec<Link>,
+    pub images: Vec<Dimage>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
@@ -212,6 +236,7 @@ pub struct ReleaseMetadata {
     pub genres: Vec<Genre>,
     pub links: Vec<Link>,
     pub tracks: Vec<TrackMetadata>,
+    pub images: Vec<Dimage>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
@@ -221,6 +246,7 @@ pub struct TrackMetadata {
     pub genres: Vec<Genre>,
     pub links: Vec<Link>,
     pub release: Option<ReleaseMetadata>,
+    pub images: Vec<Dimage>,
 }
 
 mod tests {
@@ -229,7 +255,7 @@ mod tests {
     #[test]
     fn merge_artist_metadata() {
         let library = Library::open_memory();
-        let artist1 = librarian::merge_artist(&library, &ArtistMetadata {
+        let artist1 = librarian::merge_artist_metadata(&library, &ArtistMetadata {
             artist: Artist {
                 name: Some("Something Cool".to_string()),
                 ..Default::default()
@@ -237,7 +263,7 @@ mod tests {
             ..Default::default()
         });
         dbg!(&artist1);
-        let artist2 = librarian::merge_artist(&library, &ArtistMetadata {
+        let artist2 = librarian::merge_artist_metadata(&library, &ArtistMetadata {
             artist: Artist {
                 name: Some("Something Cool".to_string()),
                 musicbrainz_id: Some("4563463".to_string()),
@@ -246,7 +272,7 @@ mod tests {
             ..Default::default()
         });
         dbg!(&artist2);
-        let artist3 = librarian::merge_artist(&library, &ArtistMetadata {
+        let artist3 = librarian::merge_artist_metadata(&library, &ArtistMetadata {
             artist: Artist {
                 name: Some("Something Cool".to_string()),
                 disambiguation: Some("the other one".to_string()),
@@ -255,7 +281,7 @@ mod tests {
             ..Default::default()
         });
         dbg!(&artist3);
-        let artist4 = librarian::merge_artist(&library, &ArtistMetadata {
+        let artist4 = librarian::merge_artist_metadata(&library, &ArtistMetadata {
             artist: Artist {
                 name: Some("Something Cool".to_string()),
                 disambiguation: Some("the other one".to_string()),

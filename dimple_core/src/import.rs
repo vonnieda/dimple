@@ -20,7 +20,7 @@ pub fn import(library: &Library, path: &str) {
     let files = scan(path);
     log::info!("Scanned {} files.", files.len());
 
-    files.iter().for_each(|file| {
+    files.par_iter().for_each(|file| {
         let _ = import_single_file(&library, Path::new(&file.path), force);
     });
 }
@@ -66,9 +66,6 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     // Match and merge the Track, preferring the one on the TrackSource if it
     // exists.
     let track_metadata = tags.track_metadata();
-    if track_metadata.links.len() > 0 {
-        dbg!(&track_metadata.links);
-    }
     if track_metadata.track.title.is_none() {
         log::warn!("No track title {}", path.to_string_lossy());
     }
@@ -79,21 +76,8 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     track_source.media_file_key = media_file.key.clone();
     let track_source = track_source.save(library);
 
-    // // Import images
-    // // for visual in tags.visuals.iter() {
-    // //     if let Ok(dymage) = image::load_from_memory(&visual.data) {
-    // //         // TODO this should be a match/merge
-    // //         let dimage = Dimage::new(&dymage).save(library);
-    // //         let _ = library.save(&DimageRef {
-    // //             model_key: track.release_key.clone().unwrap(),
-    // //             dimage_key: dimage.key.clone().unwrap(),
-    // //             ..Default::default()
-    // //         });
-    // //     }
-    // // }
-
     // dbg!(track_metadata);
-    print_track(&track, library);
+    // print_track(&track, library);
 
     Ok(track_source)
 }

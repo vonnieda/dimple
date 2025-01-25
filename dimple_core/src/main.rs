@@ -5,7 +5,7 @@ use directories::ProjectDirs;
 
 fn main() {
     let mut builder = env_logger::Builder::new();
-    builder.filter_level(log::LevelFilter::Debug);
+    builder.filter_level(log::LevelFilter::Info);
     builder.format_timestamp_millis();
     builder.parse_default_env();
 
@@ -52,8 +52,8 @@ fn main() {
     std::fs::create_dir_all(&config_dir).unwrap();
     std::fs::create_dir_all(&image_cache_dir).unwrap();
 
-    // let library = Arc::new(Library::open(library_path.to_str().unwrap()));
-    let library = Arc::new(Library::open("test.db"));
+    let library = Arc::new(Library::open(library_path.to_str().unwrap()));
+    // let library = Arc::new(Library::open("test.db"));
 
     let access_key = env::var("DIMPLE_TEST_S3_ACCESS_KEY").unwrap();
     let secret_key = env::var("DIMPLE_TEST_S3_SECRET_KEY").unwrap();

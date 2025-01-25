@@ -1,10 +1,11 @@
 use std::{collections::{HashMap, HashSet}, fs::File, path::Path, sync::Arc};
 
 use anyhow::anyhow;
+use image::DynamicImage;
 use itertools::Itertools;
-use lofty::{file::{TaggedFile, TaggedFileExt}, tag::{Accessor, ItemKey, Tag, TagExt, TagItem, TagType}};
+use lofty::{file::{TaggedFile, TaggedFileExt}, picture::PictureType, tag::{Accessor, ItemKey, Tag, TagExt, TagItem, TagType}};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, model::{Artist, Genre, Link, Release, Track}};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, model::{dimage::DimageKind, Artist, Dimage, Genre, Link, Release, Track}};
 
 /// https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
@@ -40,6 +41,24 @@ impl LoftyTaggedMediaFile {
         Ok(media_file)
     }
 
+    pub fn images(&self) -> Vec<Dimage> {
+        self.tags.pictures().iter().filter_map(|pic| {
+            if let Ok(dymage) = image::load_from_memory(pic.data()) {
+                let mut dimage = Dimage::new(&dymage);
+                dimage.kind = match pic.pic_type() {
+                    // TODO
+                    PictureType::Artist => Some(DimageKind::MusicArtistThumb),
+                    _ => None,
+                };
+                Some(dimage)
+            }
+            else {
+                None
+            }
+        })
+        .collect()
+    }
+
     pub fn track_metadata(&self) -> TrackMetadata {
         TrackMetadata {
             track: self.track(),
@@ -47,6 +66,7 @@ impl LoftyTaggedMediaFile {
             genres: self.track_genres(),
             links: self.track_links(),
             release: Some(self.release_metadata()),            
+            images: self.images(),
         }   
     }
 
@@ -69,7 +89,8 @@ impl LoftyTaggedMediaFile {
             artists: self.release_artists(),
             links: self.release_links(),
             genres: self.release_genres(),            
-            ..Default::default()
+            images: self.images(),
+            tracks: vec![],
         }
     }    
 
