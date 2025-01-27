@@ -195,8 +195,6 @@ impl SymphoniaTaggedMediaFile {
     }
 
     pub fn track_artists(&self) -> Vec<Artist> {
-        // If no artists are found, parse the Artist tag, which can be split
-        // but may be ambiguous. 
         self.tags(StandardTagKey::Artist).iter()
             .flat_map(|s| parse_artist_tag(s))
             .map(|s| Artist {

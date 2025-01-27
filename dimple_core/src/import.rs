@@ -21,15 +21,22 @@ pub fn import(library: &Library, path: &str) {
     log::info!("Scanned {} files.", files.len());
 
     files.par_iter().for_each(|file| {
-        let _ = import_single_file(&library, Path::new(&file.path), force);
+        let path = Path::new(&file.path);
+        if let Err(e) = import_single_file(&library, path, force) {
+            log::error!("  Error reading {:?}: {}", path, e);
+        }
     });
 }
 
 fn scan(path: &str) -> Vec<ScannedFile> {
+    const IGNORE_EXTENSIONS: [&str;5] = ["jpg", "png", "pdf", "m4p", "DS_Store"];
+    const IGNORE_FILENAMES: [&str;1] = [".DS_Store"];
+
     let files = WalkDir::new(path).into_iter()
         .filter_map(|dir_entry| dir_entry.ok())
         .filter(|dir_entry| dir_entry.file_type().is_file())
-        .filter(|dir_entry| dir_entry.file_name() != ".DS_Store")
+        .filter(|dir_entry| !IGNORE_FILENAMES.contains(&dir_entry.file_name().to_str().unwrap()))
+        .filter(|dir_entry| !IGNORE_EXTENSIONS.contains(&dir_entry.path().extension().unwrap_or_default().to_ascii_lowercase().to_str().unwrap()))
         .map(|dir_entry| ScannedFile {
             path: dir_entry.path().to_str().unwrap().to_string(),
             last_modified: dir_entry.metadata().unwrap().modified().unwrap().into(),
@@ -43,12 +50,29 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     if !path.is_file() {
         return Err(anyhow::anyhow!("Path must be a file: {:?}", path));
     }
-
-    log::info!("Importing {:?}.", path);
+    // log::info!("Importing {:?}.", path);
 
     // Read the tags from the file.
     let tags = LoftyTaggedMediaFile::new(path)?;
-
+    let track_metadata = tags.track_metadata();
+    if track_metadata.track.title.is_none() {
+        log::warn!("  No track title {}", path.to_string_lossy());
+    }
+    if track_metadata.release.is_none() {
+        log::warn!("  No release {}", path.to_string_lossy());
+    }
+    if track_metadata.release.clone().unwrap().release.title.is_none() {
+        log::warn!("  No release title {}", path.to_string_lossy());
+    }
+    if track_metadata.artists.is_empty() {
+        log::warn!("  No artists {}", path.to_string_lossy());
+    }
+    // log::info!("{:?} {:?} {:?} {:?}", 
+    //     path.file_name().unwrap(), 
+    //     track_metadata.clone().artists.get(0).map(|f| f.artist.name.clone().unwrap_or_default().to_string()),
+    //     track_metadata.clone().release.unwrap().release.title,
+    //     track_metadata.clone().track.title);
+    
     // Create or update a MediaFile by the file path.
     let mut media_file = library.find_media_file_by_file_path(path.to_str().unwrap())
         .unwrap_or_default();
@@ -65,19 +89,12 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     
     // Match and merge the Track, preferring the one on the TrackSource if it
     // exists.
-    let track_metadata = tags.track_metadata();
-    if track_metadata.track.title.is_none() {
-        log::warn!("No track title {}", path.to_string_lossy());
-    }
     let track = librarian::merge_track_metadata(library, &track_metadata, track_source.track(library));
 
     // Update the TrackSource with the saved track_key.
     track_source.track_key = track.key.clone();
     track_source.media_file_key = media_file.key.clone();
     let track_source = track_source.save(library);
-
-    // dbg!(track_metadata);
-    // print_track(&track, library);
 
     Ok(track_source)
 }

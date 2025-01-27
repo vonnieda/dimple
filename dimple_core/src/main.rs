@@ -52,8 +52,12 @@ fn main() {
     std::fs::create_dir_all(&config_dir).unwrap();
     std::fs::create_dir_all(&image_cache_dir).unwrap();
 
-    let library = Arc::new(Library::open(library_path.to_str().unwrap()));
-    // let library = Arc::new(Library::open("test.db"));
+    let library = if let Some(path) = env::var("DIMPLE_LIBRARY_PATH").ok() {
+        Arc::new(Library::open(&path))
+    }
+    else {
+        Arc::new(Library::open(library_path.to_str().unwrap()))    
+    };
 
     let access_key = env::var("DIMPLE_TEST_S3_ACCESS_KEY").unwrap();
     let secret_key = env::var("DIMPLE_TEST_S3_SECRET_KEY").unwrap();

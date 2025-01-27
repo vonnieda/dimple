@@ -1,6 +1,6 @@
 use dimple_core::{library::Library, player::Player, plugins::{lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugin_host::PluginHost, wikidata::WikidataPlugin}};
 use player_bar;
-use std::{collections::VecDeque, sync::{Arc, Mutex}};
+use std::{collections::VecDeque, env, sync::{Arc, Mutex}};
 
 use slint::{ComponentHandle, SharedString, Weak};
 
@@ -46,7 +46,14 @@ impl AppWindowController {
         std::fs::create_dir_all(&config_dir).unwrap();
         std::fs::create_dir_all(&image_cache_dir).unwrap();
 
-        let library = Library::open(library_path.to_str().unwrap());
+        let library = if let Some(path) = env::var("DIMPLE_LIBRARY_PATH").ok() {
+            Library::open(&path)
+        }
+        else {
+            Library::open(library_path.to_str().unwrap()) 
+        };
+    
+
         let images = ImageMangler::new(library.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         let player = Player::new(Arc::new(library.clone()));
         let plugins = PluginHost::default();

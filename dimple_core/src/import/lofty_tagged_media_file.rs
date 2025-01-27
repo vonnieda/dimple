@@ -46,7 +46,7 @@ impl LoftyTaggedMediaFile {
             if let Ok(dymage) = image::load_from_memory(pic.data()) {
                 let mut dimage = Dimage::new(&dymage);
                 dimage.kind = match pic.pic_type() {
-                    // TODO
+                    // TODO more
                     PictureType::Artist => Some(DimageKind::MusicArtistThumb),
                     _ => None,
                 };
@@ -124,23 +124,44 @@ impl LoftyTaggedMediaFile {
     }
 
     fn release_artists(&self) -> Vec<ArtistMetadata> {
-        self.tags.get_strings(&ItemKey::AlbumArtist)
-        .zip_longest(self.tags.get_strings(&ItemKey::MusicBrainzReleaseArtistId))
-        .map(|artist| {
-            ArtistMetadata {
-                artist: Artist {
-                    name: artist.clone().left().map(Into::into),
-                    musicbrainz_id: artist.clone().right().map(Into::into),
+        let artists = self.tags.get_strings(&ItemKey::AlbumArtist)
+            .zip_longest(self.tags.get_strings(&ItemKey::MusicBrainzReleaseArtistId))
+            .map(|artist| {
+                ArtistMetadata {
+                    artist: Artist {
+                        name: artist.clone().left().map(Into::into),
+                        musicbrainz_id: artist.clone().right().map(Into::into),
+                        ..Default::default()
+                    },
                     ..Default::default()
-                },
-                ..Default::default()
-            }
-        })
-        .collect()      
+                }
+            })
+            .collect::<Vec<ArtistMetadata>>();
+        if !artists.is_empty() {
+            return artists
+        }
+        artists
     }
 
     fn track_artists(&self) -> Vec<ArtistMetadata> {
-        self.tags.get_strings(&ItemKey::TrackArtists)
+        let artists: Vec<_> = self.tags.get_strings(&ItemKey::TrackArtists)
+            .zip_longest(self.tags.get_strings(&ItemKey::MusicBrainzArtistId))
+            .map(|artist| {
+                ArtistMetadata {
+                    artist: Artist {
+                        name: artist.clone().left().map(Into::into),
+                        musicbrainz_id: artist.clone().right().map(Into::into),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }
+            })
+            .collect();
+        if !artists.is_empty() {
+            return artists
+        }
+        self.tags.get_strings(&ItemKey::TrackArtist)
+            .flat_map(|a| parse_artist_tag(a))
             .zip_longest(self.tags.get_strings(&ItemKey::MusicBrainzArtistId))
             .map(|artist| {
                 ArtistMetadata {
@@ -172,6 +193,44 @@ impl LoftyTaggedMediaFile {
     }
 }
 
+/// Split artist string handling various separators
+/// TODO need to collect examples of the ones currently failing and add them
+/// as tests.
+fn parse_artist_tag(artist_str: &str) -> Vec<String> {
+    let mut artists = Vec::new();
+    
+    // Common separators in music tags
+    for part in artist_str.split(&['/', ',', ';', '&', '+'][..]) {
+        let part = part.trim();
+        if !part.is_empty() {
+            // Handle "feat." and "featuring" specially
+            if let Some(feat_pos) = part.to_lowercase().find("feat.") {
+                let (artist, featuring) = part.split_at(feat_pos);
+                if !artist.trim().is_empty() {
+                    artists.push(artist.trim().to_string());
+                }
+                let feat_artist = featuring.replacen("feat.", "", 1);
+                if !feat_artist.trim().is_empty() {
+                    artists.push(feat_artist.trim().to_string());
+                }
+            } 
+            else if let Some(feat_pos) = part.to_lowercase().find("featuring") {
+                let (artist, featuring) = part.split_at(feat_pos);
+                if !artist.trim().is_empty() {
+                    artists.push(artist.trim().to_string());
+                }
+                let feat_artist = featuring.replacen("featuring", "", 1);
+                if !feat_artist.trim().is_empty() {
+                    artists.push(feat_artist.trim().to_string());
+                }
+            } 
+            else {
+                artists.push(part.to_string());
+            }
+        }
+    }
+    artists
+}
 
 /// Split genre string handling various separators
 fn parse_genre_tag(genre_str: &str) -> Vec<&str> {
