@@ -167,22 +167,6 @@ CREATE INDEX TrackSource_idx_media_file_key ON TrackSource (media_file_key);
 
 
 
--- TODO Rename to Scrobble, I think.
-CREATE TABLE Event (
-    key TEXT PRIMARY KEY,
-    timestamp TEXT NOT NULL,
-    event_type TEXT NOT NULL,
-    artist TEXT,
-    album TEXT,
-    title TEXT,
-    source_type TEXT NOT NULL,
-    source TEXT NOT NULL
-);
-CREATE INDEX Event_idx_1 ON Event (timestamp, event_type);
-CREATE INDEX Event_idx_2 ON Event (timestamp);
-CREATE INDEX Event_idx_3 ON Event (event_type);
-CREATE UNIQUE INDEX Event_idx_4 ON Event (source_type, source);
-
 
 CREATE TABLE Metadata (key TEXT PRIMARY KEY, value TEXT);
 
@@ -222,3 +206,20 @@ CREATE TABLE DimageRef (
     FOREIGN KEY (dimage_key) REFERENCES Dimage(key)
 );
 CREATE UNIQUE INDEX DimageRef_unique_model_key_dimage_key ON DimageRef (model_key, dimage_key);
+
+
+-- TODO Rename to Scrobble, I think.
+CREATE TABLE Event (
+    key TEXT PRIMARY KEY,
+    timestamp TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    artist TEXT,
+    album TEXT,
+    title TEXT,
+    source_type TEXT NOT NULL,
+    source TEXT NOT NULL
+);
+CREATE INDEX Event_idx_1 ON Event (timestamp, event_type);
+CREATE INDEX Event_idx_2 ON Event (timestamp);
+CREATE INDEX Event_idx_3 ON Event (event_type);
+CREATE UNIQUE INDEX Event_idx_4 ON Event (source_type, source);

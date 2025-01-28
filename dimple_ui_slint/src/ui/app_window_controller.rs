@@ -57,9 +57,9 @@ impl AppWindowController {
         let images = ImageMangler::new(library.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         let player = Player::new(Arc::new(library.clone()));
         let plugins = PluginHost::default();
-        plugins.add_plugin(Box::new(LrclibPlugin::default()));
-        plugins.add_plugin(Box::new(MusicBrainzPlugin::default()));
-        plugins.add_plugin(Box::new(WikidataPlugin::default()));
+        plugins.add_plugin(Arc::new(LrclibPlugin::default()));
+        plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
+        plugins.add_plugin(Arc::new(WikidataPlugin::default()));
         let ui_weak = ui.as_weak();
         Self {
             ui,

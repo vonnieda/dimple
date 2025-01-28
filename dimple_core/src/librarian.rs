@@ -1,42 +1,42 @@
-use crate::{library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Dimage, DimageRef, Genre, GenreRef, LibraryModel, Link, LinkRef, Model, ModelBasics as _, Release, Track}, plugins::plugin_host::PluginHost};
+use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Dimage, DimageRef, Genre, GenreRef, LibraryModel, Link, LinkRef, Model, ModelBasics as _, Release, Track}, plugins::plugin_host::PluginHost};
 
 pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &impl LibraryModel) {
     log::info!("refresh_metadata {:?} {:?}", model.type_name(), model.key());
     match model.type_name().as_str() {
         "Track" => {
             if let Some(track) = Track::get(library, &model.key().clone().unwrap()) {
-                if let Some(metadata) = plugins.metadata(library, &track.clone()) {
-                    library.save(&CrdtRules::merge(track, metadata));
+                for metadata in plugins.track_metadata(library, &track) {
+                    librarian::merge_track_metadata(library, &metadata, Some(track.clone()));
                 }
             }
         }
         "Artist" => {
             if let Some(artist) = Artist::get(library, &model.key().clone().unwrap()) {
-                if let Some(metadata) = plugins.metadata(library, &artist.clone()) {
-                    library.save(&CrdtRules::merge(artist, metadata));
+                for metadata in plugins.artist_metadata(library, &artist) {
+                    librarian::merge_artist_metadata(library, &metadata, Some(artist.clone()));
                 }
             }
         }
         "Release" => {
             if let Some(release) = Release::get(library, &model.key().clone().unwrap()) {
-                if let Some(metadata) = plugins.metadata(library, &release.clone()) {
-                    library.save(&CrdtRules::merge(release, metadata));
+                for metadata in plugins.release_metadata(library, &release) {
+                    librarian::merge_release_metadata(library, &metadata, Some(release.clone()));
                 }
             }
         }
-        "Genre" => {
-            if let Some(genre) = Genre::get(library, &model.key().clone().unwrap()) {
-                if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
-                    library.save(&CrdtRules::merge(genre, metadata));
-                }
-            }
-        }
+        // "Genre" => {
+        //     if let Some(genre) = Genre::get(library, &model.key().clone().unwrap()) {
+        //         if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
+        //             library.save(&CrdtRules::merge(genre, metadata));
+        //         }
+        //     }
+        // }
         _ => todo!()
     }
 }
 
-pub fn merge_artist_metadata(library: &Library, artist: &ArtistMetadata) -> Artist {
-    let matched = match_artist(library, &artist.artist).unwrap_or_default();
+pub fn merge_artist_metadata(library: &Library, artist: &ArtistMetadata, pre_match: Option<Artist>) -> Artist {
+    let matched = pre_match.or_else(|| match_artist(library, &artist.artist)).unwrap_or_default();
     let merged = CrdtRules::merge(matched, artist.artist.clone());
     let merged = merged.save(library);
     merge_genres(library, &artist.genres, &merged);
@@ -117,7 +117,7 @@ pub fn merge_genres<T: LibraryModel>(library: &Library, genres: &[Genre], model:
 
 pub fn merge_artists<T: LibraryModel>(library: &Library, artists: &[ArtistMetadata], model: &T) {
     for artist in artists {
-        let artist = merge_artist_metadata(library, &artist);
+        let artist = merge_artist_metadata(library, &artist, None);
         merge_artist_ref(library, &artist, model);
     }
 }
@@ -261,7 +261,7 @@ mod tests {
                 ..Default::default()
             },
             ..Default::default()
-        });
+        }, None);
         dbg!(&artist1);
         let artist2 = librarian::merge_artist_metadata(&library, &ArtistMetadata {
             artist: Artist {
@@ -270,7 +270,7 @@ mod tests {
                 ..Default::default()
             },
             ..Default::default()
-        });
+        }, None);
         dbg!(&artist2);
         let artist3 = librarian::merge_artist_metadata(&library, &ArtistMetadata {
             artist: Artist {
@@ -279,7 +279,7 @@ mod tests {
                 ..Default::default()
             },
             ..Default::default()
-        });
+        }, None);
         dbg!(&artist3);
         let artist4 = librarian::merge_artist_metadata(&library, &ArtistMetadata {
             artist: Artist {
@@ -289,7 +289,7 @@ mod tests {
                 ..Default::default()
             },
             ..Default::default()
-        });
+        }, None);
         assert!(artist1.key != artist3.key);
         assert!(artist1.key == artist2.key);
         assert!(artist3.key == artist4.key);

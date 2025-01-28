@@ -2,9 +2,9 @@ use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata}, library::Library, model::{Artist, Model, Release}, plugins::converters::ReleaseConverter};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, library::Library, model::{Artist, Model, Release, Track}, plugins::converters::ReleaseConverter};
 
-use super::{converters::ArtistConverter, plugin::Plugin, plugin_host::PluginHost};
+use super::{converters::{ArtistConverter, TrackConverter}, plugin::Plugin, plugin_host::PluginHost};
 
 pub struct MusicBrainzPlugin {
     config: MusicBrainzPluginConfig,
@@ -37,50 +37,46 @@ impl Plugin for MusicBrainzPlugin {
         serde_json::to_string(&self.config).unwrap()
     }
 
-    fn metadata(&self, host: &PluginHost, library: &Library, model: &dyn Model) 
-        -> Result<Option<Box<dyn Model>>, anyhow::Error> {
+    fn artist_metadata(&self, host: &PluginHost, _library: &Library, artist: &Artist) 
+        -> Result<Option<ArtistMetadata>, anyhow::Error> {
 
-        if let Some(artist) = model.as_any().downcast_ref::<Artist>() {
-            if let Some(mbid) = artist.musicbrainz_id.clone() {
-                // I think time to give the updated musicbrainz client a try
-                let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
-                let response = host.get(&url)?;
-                let mb_artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
-                let artist: ArtistMetadata = ArtistConverter::from(mb_artist).into();
-                todo!()
-                // return Ok(Some(Box::new(artist)))
-            }
-        }
-        if let Some(release) = model.as_any().downcast_ref::<Release>() {
-            if let Some(mbid) = release.musicbrainz_id.clone() {
-                // I think time to give the updated musicbrainz client a try
-                let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels", mbid);
-                let response = host.get(&url)?;
-                let mb_release = response.json::<musicbrainz_rs::entity::release::Release>()?;
-                let release: ReleaseMetadata = ReleaseConverter::from(mb_release).into();
-                todo!()
-                // return Ok(Some(Box::new(release)))
-            }
+        if let Some(mbid) = artist.musicbrainz_id.clone() {
+            let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
+            let response = host.get(&url)?;
+            let mb_artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
+            let artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
+            return Ok(Some(artist_metadata))
         }
         Ok(None)
     }
-}
 
-// genres: value.0.genres.iter().flatten()
-//     .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
-//     .collect(),
-// known_ids: KnownIds {
-//     musicbrainz_id: Some(value.0.id.clone()),
-//     ..Default::default()
-// },
-// links: value.0.relations.iter().flatten()
-//     .filter_map(|r| match &r.content {
-//         RelationContent::Url(u) => Some(u.resource.to_string()),
-//         _ => None,
-//     })
-//     .chain(std::iter::once(value.0.id.clone())
-//         .map(|mbid| format!("https://musicbrainz.org/artist/{}", mbid)))
-//     .collect(),
+    fn release_metadata(&self, host: &PluginHost, _library: &Library, release: &Release) 
+        -> Result<Option<ReleaseMetadata>, anyhow::Error> {
+
+        if let Some(mbid) = release.musicbrainz_id.clone() {
+            let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels", mbid);
+            let response = host.get(&url)?;
+            let mb_release = response.json::<musicbrainz_rs::entity::release::Release>()?;
+            let release_metadata: ReleaseMetadata = ReleaseConverter::from(mb_release).into();
+            return Ok(Some(release_metadata))
+        }
+        Ok(None)
+    }
+
+    fn track_metadata(&self, host: &PluginHost, _library: &Library, track: &Track) 
+        -> Result<Option<TrackMetadata>, anyhow::Error> {
+
+        todo!()
+        // if let Some(mbid) = track.musicbrainz_id.clone() {
+        //     let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
+        //     let response = host.get(&url)?;
+        //     let mb_track = response.json::<musicbrainz_rs::entity::release::Track>()?;
+        //     let track_metadata: TrackMetadata = TrackConverter::from(mb_track).into();
+        //     return Ok(Some(track_metadata))
+        // }
+        // Ok(None)
+    }
+}
 
 fn nempty(s: String) -> Option<String> {
     if s.is_empty() {
@@ -113,9 +109,21 @@ struct MusicBrainzPluginConfig {
 }
 
 mod tests {
+    use crate::{library::Library, model::Artist, plugins::{plugin::Plugin, plugin_host::PluginHost}};
+
+    use super::MusicBrainzPlugin;
+
     #[test]
     fn it_works() {
-
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let plugin_host = PluginHost::default();
+        let plugin = MusicBrainzPlugin::default();
+        let metadata = plugin.artist_metadata(&plugin_host, &library, &Artist {
+            musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
+            ..Default::default()
+        }).unwrap().unwrap();
+        assert!(metadata.artist.name == Some("Blonde Redhead".to_string()));
     }
 }
 // // https://musicbrainz.org/doc/MusicBrainz_Entity

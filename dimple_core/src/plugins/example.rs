@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{library::Library, model::{Model, Track}};
+use crate::{librarian::{TrackMetadata}, library::Library, model::{Model, Track}};
 
 use super::{plugin::Plugin, plugin_host::PluginHost};
 
@@ -34,16 +34,13 @@ impl Plugin for ExamplePlugin {
         serde_json::to_string(&self.config).unwrap()
     }
 
-    fn metadata(&self, _host: &PluginHost, _library: &Library, model: &dyn Model) 
-        -> Result<Option<Box<dyn Model>>, anyhow::Error> {
-
-        if let Some(track) = model.as_any().downcast_ref::<Track>() {
-            return Ok(Some(Box::new(Track {
+    fn track_metadata(&self, _host: &PluginHost, _library: &Library, _artist: &Track) -> Result<Option<TrackMetadata>, anyhow::Error> {
+        Ok(Some(TrackMetadata {
+            track: Track {
                 lyrics: Some(format!("(unrecognizable shrieking)")),
                 ..Default::default()
-            })))
-        }
-
-        Ok(None)
-    }    
+            },
+            ..Default::default()
+        }))
+    }
 }

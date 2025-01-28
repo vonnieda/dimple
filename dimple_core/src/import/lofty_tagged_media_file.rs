@@ -200,7 +200,7 @@ fn parse_artist_tag(artist_str: &str) -> Vec<String> {
     let mut artists = Vec::new();
     
     // Common separators in music tags
-    for part in artist_str.split(&['/', ',', ';', '&', '+'][..]) {
+    for part in artist_str.split(&['/', ',', ';'][..]) {
         let part = part.trim();
         if !part.is_empty() {
             // Handle "feat." and "featuring" specially

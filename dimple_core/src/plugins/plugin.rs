@@ -1,6 +1,7 @@
+use anyhow::Error;
 use image::DynamicImage;
 
-use crate::{library::Library, model::{Artist, Dimage, Genre, Model, Release, Track}};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, library::Library, model::{Artist, Dimage, Genre, Model, Release, Track}};
 
 use super::plugin_host::PluginHost;
 
@@ -27,8 +28,20 @@ pub trait Plugin: Send + Sync {
         None 
     }
 
-    fn metadata(&self, _host: &PluginHost, _library: &Library, _model: &dyn Model) 
-        -> Result<Option<Box<dyn Model>>, anyhow::Error> {
+    // fn metadata(&self, _host: &PluginHost, _library: &Library, _model: &dyn Model) 
+    //     -> Result<Option<MetadataResponse>, anyhow::Error> {
+    //     Ok(None)
+    // }
+
+    fn artist_metadata(&self, _host: &PluginHost, _library: &Library, _artist: &Artist) -> Result<Option<ArtistMetadata>, anyhow::Error> {
+        Ok(None)
+    }
+
+    fn track_metadata(&self, _host: &PluginHost, _library: &Library, _track: &Track) -> Result<Option<TrackMetadata>, anyhow::Error> {
+        Ok(None)
+    }
+
+    fn release_metadata(&self, _host: &PluginHost, _library: &Library, _release: &Release) -> Result<Option<ReleaseMetadata>, anyhow::Error> {
         Ok(None)
     }
 

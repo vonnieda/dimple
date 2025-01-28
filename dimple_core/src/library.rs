@@ -14,19 +14,6 @@ use uuid::Uuid;
 use crate::{model::{Artist, Blob, ChangeLog, FromRow, LibraryModel, MediaFile, Model, ModelBasics as _, Playlist, Release, Track, TrackSource}, notifier::Notifier, sync::Sync};
 
 #[derive(Clone)]
-pub struct LibraryEvent {
-    pub library: Library,
-    pub type_name: String,
-    pub key: String,
-}
-
-impl Debug for LibraryEvent {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("LibraryEvent").field("type_name", &self.type_name).field("key", &self.key).finish()
-    }
-}
-
-#[derive(Clone)]
 pub struct Library {
     pool: Pool<SqliteConnectionManager>,
     ulids: Arc<Mutex<Generator>>,
@@ -380,6 +367,19 @@ impl Library {
 
     pub fn conn(&self) -> PooledConnection<SqliteConnectionManager> {
         self.pool.get().unwrap()
+    }
+}
+
+#[derive(Clone)]
+pub struct LibraryEvent {
+    pub library: Library,
+    pub type_name: String,
+    pub key: String,
+}
+
+impl Debug for LibraryEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LibraryEvent").field("type_name", &self.type_name).field("key", &self.key).finish()
     }
 }
 

@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use reqwest::blocking::Client;
 use serde::{Deserialize};
 
-use crate::{library::Library, model::{Model, Track}};
+use crate::{librarian::TrackMetadata, library::Library, model::{Model, Track}};
 
 use super::{plugin::{Plugin}, plugin_host::PluginHost, USER_AGENT};
 
@@ -21,33 +21,33 @@ impl Plugin for LrclibPlugin {
         "LRCLIB".to_string()
     }
 
-    // TODO start with album + artist and fallback to no album
-    // let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}&album_name={}",
-    //     track.artist.clone().unwrap_or_default(),
-    //     track.title.clone().unwrap_or_default(),
-    //     track.album.clone().unwrap_or_default(),
-    // );
-    fn metadata(&self, host: &PluginHost, library: &Library, model: &dyn Model) 
-        -> Result<Option<Box<dyn Model>>, anyhow::Error> {
+    // // TODO start with album + artist and fallback to no album
+    // // let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}&album_name={}",
+    // //     track.artist.clone().unwrap_or_default(),
+    // //     track.title.clone().unwrap_or_default(),
+    // //     track.album.clone().unwrap_or_default(),
+    // // );
+    fn track_metadata(&self, host: &PluginHost, library: &Library, track: &Track) 
+        -> Result<Option<crate::librarian::TrackMetadata>, anyhow::Error> {
 
-        if let Some(track) = model.as_any().downcast_ref::<Track>() {
-            let artist = track.artist(library).ok_or(anyhow!("artist is required"))?;
-            let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}",
-                artist.name.clone().unwrap_or_default(),
-                track.title.clone().unwrap_or_default(),
-            );
-            let response: GetResponse = host.get(&url)?.json()?;
-            return Ok(Some(Box::new(Track {
+        let artist = track.artist(library).ok_or(anyhow!("artist is required"))?;
+        let album = track.album_name(library);
+        let url = format!("https://lrclib.net/api/get?artist_name={}&track_name={}",
+            artist.name.clone().unwrap_or_default(),
+            track.title.clone().unwrap_or_default(),
+        );
+        let response: GetResponse = host.get(&url)?.json()?;
+        Ok(Some(TrackMetadata {
+            track: Track {
                 lyrics: response.plain_lyrics,
                 synchronized_lyrics: response.synced_lyrics,
                 title: response.track_name,
                 length_ms: response.duration_s.map(|s| (s * 1000.) as u64),
                 ..Default::default()
-            })))
-        }
-
-        Ok(None)
-    }    
+            },
+            ..Default::default()
+        }))
+    }
 }
 
 // {
@@ -102,9 +102,7 @@ mod tests {
 
         let lrclib = LrclibPlugin::default();
         let host = PluginHost::default();
-        let track = lrclib.metadata(&host, &library, &track).unwrap().unwrap();
-        let track = track.as_any().downcast_ref::<Track>().unwrap().clone();
-        assert!(track.lyrics.unwrap()
-            .to_lowercase().contains("pulling your strings"));
+        let track_metadata = lrclib.track_metadata(&host, &library, &track).unwrap().unwrap();
+        assert!(track_metadata.track.lyrics.unwrap().to_lowercase().contains("pulling your strings"));
     }
 }

@@ -92,3 +92,5 @@ Dump new things at the bottom, move things to the top to prioritize.
 - retain scroll position on back and maybe in general if the url of a detail page doesn't change
 - genre numbers imported instead of names
 - auto refresh of media files
+- importing is blowing up the ui due to too many notifications
+- musicbrainz genres are not getting linked in import I think

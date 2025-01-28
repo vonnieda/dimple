@@ -1,8 +1,8 @@
 use musicbrainz_rs::entity::relations::RelationContent;
 
 use crate::{
-    librarian::{ArtistMetadata, ReleaseMetadata},
-    model::{Artist, Link, Release},
+    librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata},
+    model::{Artist, Link, Release, Track},
 };
 
 // Note that in the converters below ..Default should never be used. If a Default
@@ -89,7 +89,7 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                 musicbrainz_id: Some(value.0.id.clone()),
                 title: none_if_empty(value.0.title),
                 packaging: value.0.packaging.map(|f| format!("{:?}", f)),
-                // primary_type: value.0.release_group.clone().and_then(|rg| rg.primary_type).and_then(|pt| Some(format!("{:?}", pt))),
+                release_group_type: value.0.release_group.clone().and_then(|rg| rg.primary_type).and_then(|pt| Some(format!("{:?}", pt))),
                 // release_group: value.0.release_group
                 //     .map(|f| ReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
                 status: value.0.status.map(|f| format!("{:?}", f)),
@@ -139,31 +139,34 @@ impl From<musicbrainz_rs::entity::release::Track> for TrackConverter {
     }
 }
 
-impl From<TrackConverter> for crate::model::Track {
+impl From<TrackConverter> for TrackMetadata {
     fn from(value: TrackConverter) -> Self {
-        crate::model::Track {
-            // artist_credits: value.0.recording.artist_credit.iter().flatten()
-            //     .map(|artist_credit| ArtistCredit::from(ArtistCreditConverter::from(artist_credit.to_owned())))
-            //     .collect(),
-            // genres: value.0.recording.genres.iter().flatten()
-            //     .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
-            //     .collect(),
-            key: None,
-            musicbrainz_id: Some(value.0.id),
-            // length: value.0.length,
-            // number: u32::from_str_radix(&value.0.number, 10).ok(),
-            position: Some(value.0.position),
-            title: none_if_empty(value.0.title),
+        Self {
+            track: Track {
+                // artist_credits: value.0.recording.artist_credit.iter().flatten()
+                //     .map(|artist_credit| ArtistCredit::from(ArtistCreditConverter::from(artist_credit.to_owned())))
+                //     .collect(),
+                // genres: value.0.recording.genres.iter().flatten()
+                //     .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
+                //     .collect(),
+                key: None,
+                musicbrainz_id: Some(value.0.id),
+                // length: value.0.length,
+                // number: u32::from_str_radix(&value.0.number, 10).ok(),
+                position: Some(value.0.position),
+                title: none_if_empty(value.0.title),
 
-            // links: value.0.relations.iter().flatten()
-            //     .filter_map(|r| match &r.content {
-            //         RelationContent::Url(u) => Some(u.resource.to_string()),
-            //         _ => None,
-            //     })
-            //     .chain(std::iter::once(value.0.id.clone())
-            //         .map(|mbid| format!("https://musicbrainz.org/release/{}", mbid)))
-            //     .map(|s| Link { key: None, name: None, url: s })
-            //     .collect(),
+                // links: value.0.relations.iter().flatten()
+                //     .filter_map(|r| match &r.content {
+                //         RelationContent::Url(u) => Some(u.resource.to_string()),
+                //         _ => None,
+                //     })
+                //     .chain(std::iter::once(value.0.id.clone())
+                //         .map(|mbid| format!("https://musicbrainz.org/release/{}", mbid)))
+                //     .map(|s| Link { key: None, name: None, url: s })
+                //     .collect(),
+                ..Default::default()
+            },
             ..Default::default()
         }
     }
