@@ -44,7 +44,7 @@ pub fn player_bar_init(app: &App) {
     app.player.on_change(Box::new(move |_event| update_model(&app1)));
 
     let app1 = app.clone();
-    app.player.on_change(Box::new(move |_event| if _event == "last_loaded_queue_index" { update_waveform(&app1) }));
+    app.player.on_change(Box::new(move |event| if event == "last_loaded_queue_index" || event == "duration" { update_waveform(&app1) }));
 }
 
 fn update_model(app: &App) {

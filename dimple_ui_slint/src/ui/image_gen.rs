@@ -155,7 +155,8 @@ pub fn gen_song_spectrogram(song: &Song, width: u32, height: u32) -> DynamicImag
     // gradient.add_colour(RGBAColour::new(216, 47, 216, 0)); // Black
     // let mut gradient = ColourGradient::rainbow_theme();
     // let mut gradient = ColourGradient::black_white_theme();
-    let mut gradient = ColourGradient::default_theme();
+    // let mut gradient = ColourGradient::default_theme();
+    let mut gradient = ColourGradient::audacity_theme();
     let rgba = spectrograph.to_rgba_in_memory(FrequencyScale::Log, 
         &mut gradient, 
         width as usize, 
