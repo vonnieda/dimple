@@ -94,3 +94,4 @@ Dump new things at the bottom, move things to the top to prioritize.
 - auto refresh of media files
 - importing is blowing up the ui due to too many notifications
 - musicbrainz genres are not getting linked in import I think
+- add support for composer: https://github.com/navidrome/navidrome/issues/211

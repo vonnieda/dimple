@@ -1,5 +1,5 @@
 import { Slider , GroupBox, HorizontalBox} from "std-widgets.slint";
-import { StyleMetrics, Button, VerticalBox } from "std-widgets.slint";
+import { StyleMetrics, Button, VerticalBox, Palette } from "std-widgets.slint";
 import { CardAdapter } from "components/card.slint";
 import {Link, LinkAdapter} from "./components/link.slint";
 import { Styles, Navigator, AppState } from "common.slint";
@@ -70,7 +70,7 @@ component InfoAreaLabel inherits HorizontalLayout {
         source: icon;
         height: 1.5rem;
         width: 1.5rem;
-        colorize: StyleMetrics.default-text-color;
+        colorize: Palette.foreground;
     }
     Rectangle {
         width: 8px;
@@ -96,7 +96,7 @@ component PlayerButtons inherits HorizontalLayout {
             height: 46px;
             colorize: parent.has-hover 
                 ? Styles.link-color-hover
-                : StyleMetrics.default-text-color;
+                : Palette.foreground;
         }                
     }
     TouchArea {
@@ -108,7 +108,7 @@ component PlayerButtons inherits HorizontalLayout {
             width: 46px;
             height: 46px;
             colorize: parent.has-hover ? Styles.link-color-hover
-                : StyleMetrics.default-text-color;
+                : Palette.foreground;
         }                
         if !playing: Image {
             source: @image-url("../icons/phosphor/SVGs/fill/play-circle-fill.svg");
@@ -116,7 +116,7 @@ component PlayerButtons inherits HorizontalLayout {
             height: 46px;
             colorize: parent.has-hover 
                 ? Styles.link-color-hover
-                : StyleMetrics.default-text-color;
+                : Palette.foreground;
         }                
     }
     TouchArea {

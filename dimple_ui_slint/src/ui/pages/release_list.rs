@@ -7,9 +7,11 @@ use dimple_core::library::Library;
 use dimple_core::model::Artist;
 use dimple_core::model::Release;
 use dimple_core::model::ModelBasics;
+use slint::ComponentHandle;
 use slint::ModelRc;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
+use crate::ui::ReleaseListAdapter;
 use slint::Model as _;
 
 pub fn release_list_init(app: &App) {
@@ -36,10 +38,8 @@ fn update_model(app: &App) {
         let images = app.images.clone();
         ui.upgrade_in_event_loop(move |ui| {
             let cards = release_cards(&images, &releases, &library);
-            let adapter = CardGridAdapter {
-                cards: ModelRc::from(cards.as_slice()),
-            };
-            ui.set_release_list(adapter);
+            let adapter = ui.global::<ReleaseListAdapter>();
+            adapter.set_cards(ModelRc::from(cards.as_slice()));
         }).unwrap();
     });
 }

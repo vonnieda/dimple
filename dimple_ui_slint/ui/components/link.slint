@@ -27,6 +27,7 @@ export component Link inherits TouchArea {
         text: name;
         wrap: TextWrap.no-wrap;
         overflow: TextOverflow.clip;
+        font-family: Styles.default-font-family;
         font-weight: font-weight;
         font-size: font-size;
         color: parent.has-hover 
@@ -53,6 +54,7 @@ export component Links inherits HorizontalLayout {
         // TODO edge cases
         if i < links.length - 2:
             Text {
+                font-family: Styles.default-font-family;
                 vertical-alignment: bottom;
                 text: ", ";
                 font-size: font-size;
@@ -60,6 +62,7 @@ export component Links inherits HorizontalLayout {
             }    
         if i == links.length - 2:
             Text {
+                font-family: Styles.default-font-family;
                 vertical-alignment: bottom;
                 text: ", and ";
                 font-size: font-size;

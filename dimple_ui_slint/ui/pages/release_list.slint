@@ -3,9 +3,75 @@ import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { CardAdapter, Card } from "../components/card.slint";
 import {Styles} from "../common.slint";
 
-export component ReleaseList inherits VerticalBox {
-    in-out property <CardGridAdapter> model: model_ph;
+export global ReleaseListAdapter {
+    in-out property <[CardAdapter]> cards: [{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },];
+}
 
+export component ReleaseList inherits VerticalLayout {
     Text {
         text: "Releases";
         font-size: 1rem * Styles.page_title_font_rem;
@@ -14,29 +80,16 @@ export component ReleaseList inherits VerticalBox {
         vertical-scrollbar-policy: always-on;
         horizontal-scrollbar-policy: always-off;
         viewport-width: parent.width;
-        VerticalBox {
+        VerticalLayout {
             card-grid := CardGrid {
-                cards: model.cards;
+                cards: ReleaseListAdapter.cards;
                 parent-width: root.width;
             }
         }
     }
     Text {
         horizontal-alignment: right;
-        text: model.cards.length + " items";
+        text: ReleaseListAdapter.cards.length + " items";
     }
-
-    property <CardAdapter> card_ph: {
-        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-    };
-    
-    property <[CardAdapter]> cards_ph: [card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph];
-    // property <[CardAdapter]> cards_ph: [card_ph, card_ph, card_ph, card_ph, card_ph, card_ph];
-
-    property <CardGridAdapter> model_ph: {
-        cards: cards_ph,
-    };
 }
 
