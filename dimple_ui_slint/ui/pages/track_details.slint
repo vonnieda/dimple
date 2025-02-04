@@ -5,6 +5,7 @@ import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Styles, Navigator, AppState } from "../common.slint";
 import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
+import { GenreList } from "../components/tag.slint";
 
 export global TrackDetailsAdapter {
     in property <string> key;
@@ -102,6 +103,7 @@ export component TrackDetails inherits ScrollView {
                 alignment: start;
                 // Title
                 Text {
+                    font-family: Styles.default-font-family;
                     text: TrackDetailsAdapter.card.title.name;
                     font-weight: Styles.font-weight-bold;
                     font-size: 1rem * Styles.page_title_font_rem;
@@ -109,6 +111,7 @@ export component TrackDetails inherits ScrollView {
                 }
                 // Disambiguation
                 if TrackDetailsAdapter.disambiguation != "": Text {
+                    font-family: Styles.default-font-family;
                     text: TrackDetailsAdapter.disambiguation;
                     font-italic: true;
                     font-size: 1.3rem;
@@ -117,6 +120,7 @@ export component TrackDetails inherits ScrollView {
                 if TrackDetailsAdapter.artists.length > 0: HorizontalLayout {
                     alignment: start;
                     Text {
+                        font-family: Styles.default-font-family;
                         text: "Track by ";
                         font-size: 1.3rem;
                     }
@@ -129,6 +133,7 @@ export component TrackDetails inherits ScrollView {
                 HorizontalLayout {
                     alignment: start;
                     Text {
+                        font-family: Styles.default-font-family;
                         text: "Released \{TrackDetailsAdapter.release-date} on ";
                         font-size: 1.3rem;
                     }
@@ -137,20 +142,18 @@ export component TrackDetails inherits ScrollView {
                         font-size: 1.3rem;
                     }
                 }                
+                
                 // Genres
-                if TrackDetailsAdapter.genres.length > 0: HorizontalLayout {
-                    alignment: start;
-                    Text {
-                        text: "In ";
-                        font-size: 1.3rem;
-                    }    
-                    Links {
-                        links: TrackDetailsAdapter.genres;
-                        font-size: 1.3rem;
-                    }
+                GenreList {
+                    genres: TrackDetailsAdapter.genres;
+                    min-width: 64px;
+                    min-height: 8px;
+                    preferred-width: 5000px;
                 }
+
                 // Summary
                 if TrackDetailsAdapter.summary != "": Text {
+                    font-family: Styles.default-font-family;
                     text: TrackDetailsAdapter.summary;
                     wrap: word-wrap;
                     font-size: 1.2rem;
@@ -162,15 +165,17 @@ export component TrackDetails inherits ScrollView {
         in-out property <bool> lyrics_editing: false;
         VerticalBox {
             Text {
+                font-family: Styles.default-font-family;
                 text: "Lyrics";
                 font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
             }
             if !lyrics_editing: TouchArea {
                 text := Text {
+                    font-family: Styles.default-font-family;
                     text: TrackDetailsAdapter.lyrics;
                     wrap: word-wrap;
-                    font-size: 1.3rem;
+                    // font-size: 1rem;
                 }
                 width: text.width;
                 height: text.height;
@@ -179,7 +184,7 @@ export component TrackDetails inherits ScrollView {
             if lyrics_editing: VerticalBox {
                 text_edit := TextEdit {
                     text: TrackDetailsAdapter.lyrics;
-                    font-size: 1.3rem;
+                    // font-size: 1.3rem;
                     min-height: 200px;
                     // accepted(text) => { 
                     //     lyrics_editing = false;                
@@ -210,6 +215,7 @@ export component TrackDetails inherits ScrollView {
             Text {
                 text: "Links";
                 font-weight: Styles.font-weight-bold;
+                font-family: Styles.default-font-family;
                 font-size: 2rem;
             }
             for link in TrackDetailsAdapter.links: Link {
@@ -225,11 +231,13 @@ export component TrackDetails inherits ScrollView {
                 text: "Debug";
                 font-weight: Styles.font-weight-bold;
                 font-size: 2rem;
+                font-family: Styles.default-font-family;
             }
             Text {
                 text: TrackDetailsAdapter.dump;
                 wrap: word-wrap;
                 font-size: 1.3rem;
+                font-family: Styles.default-font-family;
             }
         }
     }

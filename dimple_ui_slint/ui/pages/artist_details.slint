@@ -4,8 +4,7 @@ import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, Button} from "std-widgets.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { Styles, Navigator, AppState } from "../common.slint";
-import { Tag } from "../components/tag.slint";
-import {TagModel} from "../components/tag_card_grid.slint";
+import { Tag, GenreList } from "../components/tag.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 
@@ -123,16 +122,11 @@ export component ArtistDetails inherits ScrollView {
                     font-size: 1.3rem;
                 }
                 // Genres
-                if ArtistDetailsAdapter.genres.length > 0: HorizontalLayout {
-                    alignment: start;
-                    Text {
-                        text: "In ";
-                        font-size: 1.3rem;
-                    }    
-                    Links {
-                        links: ArtistDetailsAdapter.genres;
-                        font-size: 1.3rem;
-                    }
+                GenreList {
+                    genres: ArtistDetailsAdapter.genres;
+                    min-width: 64px;
+                    min-height: 8px;
+                    preferred-width: 5000px;
                 }
                 // Summary
                 if ArtistDetailsAdapter.summary != "": Text {

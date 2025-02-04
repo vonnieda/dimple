@@ -65,8 +65,6 @@ impl Plugin for MusicBrainzPlugin {
 
     fn track_metadata(&self, host: &PluginHost, _library: &Library, track: &Track) 
         -> Result<Option<TrackMetadata>, anyhow::Error> {
-
-        todo!()
         // if let Some(mbid) = track.musicbrainz_id.clone() {
         //     let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
         //     let response = host.get(&url)?;
@@ -74,7 +72,7 @@ impl Plugin for MusicBrainzPlugin {
         //     let track_metadata: TrackMetadata = TrackConverter::from(mb_track).into();
         //     return Ok(Some(track_metadata))
         // }
-        // Ok(None)
+        Ok(None)
     }
 }
 

@@ -1,5 +1,5 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
-import { Card, CardAdapter } from "card.slint";
+import { Card, CardAdapter, NeuCard } from "card.slint";
 import { Styles, Navigator } from "../common.slint";
 import {StyleMetrics} from "std-widgets.slint";
 
@@ -43,5 +43,63 @@ export component CardGrid inherits VerticalBox {
     };
 
     property <[CardAdapter]> cards_ph: [card_ph, card_ph, card_ph, card_ph, card_ph];
+}
+
+component Card2 inherits Rectangle {
+    border-width: 3px;
+    border-color: white;
+    border-radius: 16px;
+    clip: true;
+}
+
+// New version of CardGrid from experiments. Calculates all positions instead of
+// relying on hbox and vbox. Works great, no weirds.
+
+export component CardGrid2 inherits ScrollView {
+    in-out property <[CardAdapter]> cards;
+    property <[color]> colors: [#638d5d, #838d5d, #5d8a8d, #7f5d8d, #8d6b5d, #5d648d, #8d825d];
+    property <length> spacing: 16px;
+    property <length> card-width: 200px;
+    property <int> cols: self.width / (card-width + spacing);
+    property <int> count: cards.length;
+    property <length> pad: (self.width - (cols * (card-width + spacing))) / cols;
+
+    preferred-height: Math.ceil(1.0 * count / cols) * (card-width + spacing);
+    viewport-height: self.preferred-height;
+    horizontal-scrollbar-policy: always-off;
+    
+    for i in count: Card2 {
+        width: card-width;
+        height: card-width; 
+        property <int> roh: i / cols;
+        property <int> kol: Math.mod(i, cols);
+        x: kol * (card-width + (spacing + pad));
+        y: roh * (card-width + spacing);
+        background: colors[Math.mod(i, colors.length)];
+    }
+}
+
+export component CardGrid3 inherits Rectangle {
+    in-out property <[CardAdapter]> cards;
+    property <[color]> colors: [#638d5d, #838d5d, #5d8a8d, #7f5d8d, #8d6b5d, #5d648d, #8d825d];
+    property <length> spacing: 16px;
+    in-out property <length> card-width: 200px;
+    in-out property <length> card-height: 240px;
+    property <int> cols: self.width / (card-width + spacing);
+    property <int> count: cards.length;
+    property <length> pad: (self.width - (cols * (card-width + spacing))) / cols;
+
+    preferred-height: Math.ceil(1.0 * count / cols) * (card-width + spacing);
+    
+    for i in count: Card {
+        model: cards[i];
+        width: card-width;
+        height: card-height; 
+        property <int> roh: i / cols;
+        property <int> kol: Math.mod(i, cols);
+        x: kol * (card-width + (spacing + pad));
+        y: roh * (card-height + spacing);
+        // background: colors[Math.mod(i, colors.length)];
+    }
 }
 

@@ -95,3 +95,28 @@ Dump new things at the bottom, move things to the top to prioritize.
 - importing is blowing up the ui due to too many notifications
 - musicbrainz genres are not getting linked in import I think
 - add support for composer: https://github.com/navidrome/navidrome/issues/211
+- playlists should take releases and playlists as items
+- number of plays on artists, tracks, releases, etc.
+- popularity (from your history) on artists, tracks, releases, etc.
+- m4a not playing (Built to Spill - You In Reverse)
+    thread '<unnamed>' panicked at dimple_core/src/player/track_downloader.rs:41:90:
+    called `Result::unwrap()` on an `Err` value: malformed stream: isomp4: overread atom
+
+    Location:
+        dimple_core/vendor/playback-rs/src/lib.rs:816:40
+    stack backtrace:
+      0: rust_begin_unwind
+                at /rustc/90b35a6239c3d8bdabc530a6a0816f7ff89a0aaf/library/std/src/panicking.rs:665:5
+      1: core::panicking::panic_fmt
+                at /rustc/90b35a6239c3d8bdabc530a6a0816f7ff89a0aaf/library/core/src/panicking.rs:74:14
+      2: core::result::unwrap_failed
+                at /rustc/90b35a6239c3d8bdabc530a6a0816f7ff89a0aaf/library/core/src/result.rs:1700:5
+      3: core::result::Result<T,E>::unwrap
+                at /Users/jason/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/result.rs:1104:23
+      4: dimple_core::player::track_downloader::TrackDownloader::get::{{closure}}::{{closure}}
+                at /Users/jason/Projects/Dimple/dimple_core/src/player/track_downloader.rs:41:28
+      5: <F as threadpool::FnBox>::call_box
+                at /Users/jason/.cargo/registry/src/index.crates.io-6f17d22bba15001f/threadpool-1.8.1/src/lib.rs:95:9
+      6: threadpool::spawn_in_pool::{{closure}}
+                at /Users/jason/.cargo/registry/src/index.crates.io-6f17d22bba15001f/threadpool-1.8.1/src/lib.rs:769:17
+    note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.

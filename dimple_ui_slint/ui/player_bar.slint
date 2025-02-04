@@ -143,7 +143,7 @@ component Scrubber inherits VerticalLayout {
     slider := Slider { 
         value <=> position-seconds;
         maximum: duration-seconds;
-        vertical-stretch: 0;
+        height: self.min-height;
         changed => { AppState.player_seek(self.value) }
     }
     HorizontalLayout {

@@ -1,0 +1,22 @@
+export struct FlowLayoutParams {
+    width: length, 
+    num_elements: int, 
+    padding: length, 
+    spacing: length,
+    preferred-widths: [length],
+    preferred-heights: [length],
+}
+
+export struct FlowLayoutResults {
+    xs: [length],
+    ys: [length],
+    height: length,
+    widths: [length],
+    heights: [length],
+}
+
+export global FlowLayoutLogic {
+    callback calculate-positions(width: length, num_elements: int, spacing: length,
+        preferred-widths: [length], preferred-heights: [length]) -> FlowLayoutResults;
+}
+

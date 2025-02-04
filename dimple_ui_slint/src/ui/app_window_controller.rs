@@ -80,6 +80,8 @@ impl AppWindowController {
         let app = self.app.clone();
         self.ui.global::<Navigator>().on_navigate(move |url| app.navigate(url));
 
+        flow_layout::init(&self.ui);
+
         player_bar::player_bar_init(&self.app);
 
         pages::artist_details::artist_details_init(&self.app);
@@ -99,7 +101,7 @@ impl AppWindowController {
         pages::track_details::track_details_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
-
+        
         let app = self.app.clone();
         self.ui.window().on_close_requested(move || {
             app.ui.upgrade_in_event_loop(|ui| ui.window().set_minimized(true)).unwrap();

@@ -30,6 +30,7 @@ import { PlaylistList, PlaylistListAdapter } from "pages/playlist_list.slint";
 import { PlaylistDetailsAdapter, PlaylistDetails } from "pages/playlist_details.slint";
 import { HistoryListAdapter, HistoryList } from "pages/history_list.slint";
 import { QueueDetailsAdapter, QueueDetails } from "pages/queue_details.slint";
+import { FlowLayoutLogic, FlowLayoutResults } from "components/flow_layout.slint";
 
 import "../fonts/Roboto/Roboto-Black.ttf";
 import "../fonts/Roboto/Roboto-BlackItalic.ttf";
@@ -68,7 +69,8 @@ export { Navigator, Styles, AppState, TrackListAdapter,
     HistoryListAdapter, PlaylistDetailsAdapter,
     SettingsAdapter, TrackDetailsAdapter, QueueDetailsAdapter,
     PlaylistListAdapter, PluginAdapter, PlayerBarAdapter, 
-    ReleaseDetailsAdapter, ArtistDetailsAdapter, GenreDetailsAdapter, ReleaseListAdapter }
+    ReleaseDetailsAdapter, ArtistDetailsAdapter, GenreDetailsAdapter, 
+    ReleaseListAdapter, FlowLayoutLogic, FlowLayoutResults, HomeAdapter }
 
 export enum Page { Home, SearchResults,
     ArtistList, ArtistDetails,
@@ -163,13 +165,10 @@ export component AppWindow inherits Window {
     // default-font-weight: 500;
     // background: #1f1f1f;
 
-    in-out property <Page> page: TrackDetails;
+    in-out property <Page> page: Home;
 
-    in-out property <HomeAdapter> home;
     in-out property <CardGridAdapter> search;
     in-out property <CardGridAdapter> artist-list;
-    in-out property <CardGridAdapter> release-group-list;
-    in-out property <CardGridAdapter> release-list;
     in-out property <CardGridAdapter> genre-list;
     in-out property <CardGridAdapter> playlist-list;
     in-out property <SideBarAdapter> sidebar;
@@ -192,9 +191,7 @@ export component AppWindow inherits Window {
                 GroupBox {
                     horizontal-stretch: 1;
                     Rectangle {
-                        if page == Page.Home: Home {
-                            model: root.home;
-                        }
+                        if page == Page.Home: Home {}
                         if page == Page.SearchResults: SearchResults {
                             model: root.search;
                         }
@@ -202,9 +199,7 @@ export component AppWindow inherits Window {
                             model: root.artist-list;
                         }
                         if page == Page.ArtistDetails: ArtistDetails {}
-                        if page == Page.ReleaseList: ReleaseList {  
-                            model: root.release-list;
-                        }                
+                        if page == Page.ReleaseList: ReleaseList {}
                         if page == Page.ReleaseDetails: ReleaseDetails {}                
                         if page == Page.TrackList: TrackList {}
                         if page == Page.TrackDetails: TrackDetails {}  

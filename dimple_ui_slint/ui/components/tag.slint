@@ -1,27 +1,70 @@
+import { FlowLayoutResults } from "./flow_layout.slint";
+import { FlowLayoutLogic } from "flow_layout.slint";
+import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { Navigator } from "../common.slint";
+
 export component Tag inherits TouchArea {
-    // in property <color> color: #4ff692;
-    in property <color> color: #f6b94f;
-    in property <color> font-color: #000000;
-    in property <int> font-weight: 400;
-    in property <string> name: "heavy metal";
-    in property <string> url;
-    in property <length> font-size: 1.3rem;
+    in-out property <string> text: "heavy metal";
+    in-out property <color> color: #638d5d;
 
     Rectangle {
-        border-radius: 12px;
-        height: text.min-height + 12px;
-        width: text.min-width + 12px;
-        background: parent.has-hover 
-            ? color.brighter(0.10)
-            : color;
-
-        text := Text {
-            font-size: font-size;
-            text: name;
-            color: font-color;
-            font-weight: font-weight;
+        clip: true;
+        border-width: 2px;
+        border-color: white;
+        border-radius: 16px;
+        background: root.has-hover ? root.color.brighter(0.1) : root.color;
+        HorizontalLayout {
+            padding: 8px;
+            text := Text {
+                text: root.text;
+                // font-size: 1rem;
+            }
         }
     }
 }
 
+export component GenreList inherits Rectangle {
+    in-out property <[LinkAdapter]> genres;
+    property <[color]> colors: [#638d5d, #838d5d, #5d8a8d, #7f5d8d, #8d6b5d, #5d648d, #8d825d];
+    property <length> spacing: 8px;
+    
+    for i in layout.widths.length: Tag {
+        color: colors[Math.mod(i, colors.length)];
+        text: genres[i].name;
+
+        // Start FlowLayout Support
+        x: layout.xs[i];
+        y: layout.ys[i];
+        width: layout.widths[i];
+        height: layout.heights[i];
+        clicked => { Navigator.navigate(genres[i].url); }
+        init => {
+            preferred-widths[i] = self.preferred-width;
+            preferred-heights[i] = self.preferred-height;
+        }
+        // End FlowLayout Support
+    }
+
+    // Start FlowLayout Support
+    in-out property <[length]> preferred-widths: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    in-out property <[length]> preferred-heights: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    in-out property <FlowLayoutResults> layout;
+    height: layout.height;
+
+    init => {
+        layout = FlowLayoutLogic.calculate-positions(self.width, self.genres.length, 
+            self.spacing, self.preferred-widths, self.preferred-heights);
+    }
+
+    changed width => { 
+        layout = FlowLayoutLogic.calculate-positions(self.width, self.genres.length, 
+            self.spacing, self.preferred-widths, self.preferred-heights);
+    }
+
+    changed genres => {
+        layout = FlowLayoutLogic.calculate-positions(self.width, self.genres.length, 
+            self.spacing, self.preferred-widths, self.preferred-heights);
+    }
+    // End FlowLayout Support
+}
 

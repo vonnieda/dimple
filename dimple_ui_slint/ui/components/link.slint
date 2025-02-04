@@ -25,7 +25,7 @@ export component Link inherits TouchArea {
         vertical-alignment: vertical-alignment;
         width: root.width;
         text: name;
-        wrap: TextWrap.no-wrap;
+        wrap: TextWrap.char-wrap;
         overflow: TextOverflow.clip;
         font-family: Styles.default-font-family;
         font-weight: font-weight;
@@ -58,7 +58,7 @@ export component Links inherits HorizontalLayout {
                 vertical-alignment: bottom;
                 text: ", ";
                 font-size: font-size;
-                wrap: TextWrap.no-wrap;
+                wrap: TextWrap.char-wrap;
             }    
         if i == links.length - 2:
             Text {
@@ -66,7 +66,7 @@ export component Links inherits HorizontalLayout {
                 vertical-alignment: bottom;
                 text: ", and ";
                 font-size: font-size;
-                wrap: TextWrap.no-wrap;
+                wrap: TextWrap.char-wrap;
             }    
     }
 }

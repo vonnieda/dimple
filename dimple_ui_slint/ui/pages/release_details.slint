@@ -11,6 +11,8 @@ import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Styles, Navigator, AppState } from "../common.slint";
 import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
+import { Tag, GenreList } from "../components/tag.slint";
+import { FlowLayoutResults, FlowLayoutLogic } from "../components/flow_layout.slint";
 
 export global ReleaseDetailsAdapter {
     in property <string> key;
@@ -162,12 +164,14 @@ export component ReleaseDetails inherits ScrollView {
                     font-size: 1rem * Styles.page_title_font_rem;
                     wrap: word-wrap;
                 }
+                
                 // Disambiguation
                 if ReleaseDetailsAdapter.disambiguation != "": Text {
                     text: ReleaseDetailsAdapter.disambiguation;
                     font-italic: true;
                     font-size: 1.3rem;
                 }
+
                 // Type and artists
                 if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
                     alignment: start;
@@ -180,18 +184,14 @@ export component ReleaseDetails inherits ScrollView {
                         font-size: 1.3rem;
                     }
                 }
-                // Genres
-                if ReleaseDetailsAdapter.genres.length > 0: HorizontalLayout {
-                    alignment: start;
-                    Text {
-                        text: "In ";
-                        font-size: 1.3rem;
-                    }    
-                    Links {
-                        links: ReleaseDetailsAdapter.genres;
-                        font-size: 1.3rem;
-                    }
+
+                GenreList {
+                    genres: ReleaseDetailsAdapter.genres;
+                    min-width: 64px;
+                    min-height: 8px;
+                    preferred-width: 5000px;
                 }
+        
                 // Summary
                 if ReleaseDetailsAdapter.summary != "": Text {
                     text: ReleaseDetailsAdapter.summary;

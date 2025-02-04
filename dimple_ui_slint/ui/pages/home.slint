@@ -1,36 +1,89 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
+import { CardGrid, CardGridAdapter, CardGrid2, CardGrid3 } from "../components/card_grid.slint";
 import { Styles } from "../common.slint";
 import { LinkAdapter } from "../components/link.slint";
 
 export struct HomeSectionAdapter {
     title: string,
+    sub-title: string,
     cards: [CardAdapter],    
 }
 
-export struct HomeAdapter {
-    sections: [HomeSectionAdapter],
-    cards: [CardAdapter],
+export global HomeAdapter {
+    in-out property <[HomeSectionAdapter]> sections: [
+        { title: "For You", sub-title: "From your listens.", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+        { title: "Recents", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+        { title: "New Releases", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+        { title: "Popular", sub-title: "With MusicBrainz listeners.", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+        { title: "Old Favorites", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+    ];
 }
 
-export component Home inherits VerticalBox {
-    in-out property <HomeAdapter> model;
+export component Home inherits ScrollView {
+    VerticalBox {
+        alignment: start;
 
-    Text {
-        text: "Home";
-        font-size: 1rem * Styles.page_title_font_rem;
-    }
-
-    for section in model.sections: VerticalLayout {
         Text {
-            text: section.title;
-            font-size: 1rem * Styles.section_font_rem;
+            text: "Home";
+            font-size: 1rem * Styles.page_title_font_rem;
         }
-        ScrollView {                        
-            CardGrid {
+
+        for section in HomeAdapter.sections: VerticalBox {
+            Text {
+                text: section.title;
+                font-size: 1rem * Styles.section_font_rem;
+            }
+            if section.sub-title != "": Text {
+                text: section.sub-title;
+                font-size: 1rem;
+                font-italic: true;
+            }
+            CardGrid3 {
                 cards: section.cards;
-                parent-width: parent.width;
+                height: self.preferred-height;
+                card-width: Styles.thumbnail-width-large;
             }
         }
     }

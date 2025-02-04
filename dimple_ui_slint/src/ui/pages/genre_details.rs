@@ -105,9 +105,10 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
             card.image.image = images.lazy_get(release.clone(), 200, 200, move |ui, image| {
-                let mut card = ui.get_release_list().cards.row_data(index).unwrap();
+                let adapter = ui.global::<GenreDetailsAdapter>();
+                let mut card = adapter.get_releases().row_data(index).unwrap();
                 card.image.image = image;
-                ui.get_release_list().cards.set_row_data(index, card);
+                adapter.get_releases().set_row_data(index, card);
             });
             card
         })
