@@ -81,7 +81,6 @@ export component CardGrid2 inherits ScrollView {
 
 export component CardGrid3 inherits Rectangle {
     in-out property <[CardAdapter]> cards;
-    property <[color]> colors: [#638d5d, #838d5d, #5d8a8d, #7f5d8d, #8d6b5d, #5d648d, #8d825d];
     property <length> spacing: 16px;
     in-out property <length> card-width: 200px;
     in-out property <length> card-height: 240px;
@@ -89,7 +88,7 @@ export component CardGrid3 inherits Rectangle {
     property <int> count: cards.length;
     property <length> pad: (self.width - (cols * (card-width + spacing))) / cols;
 
-    preferred-height: Math.ceil(1.0 * count / cols) * (card-width + spacing);
+    preferred-height: Math.ceil(1.0 * count / cols) * (card-height + spacing);
     
     for i in count: Card {
         model: cards[i];
@@ -99,7 +98,6 @@ export component CardGrid3 inherits Rectangle {
         property <int> kol: Math.mod(i, cols);
         x: kol * (card-width + (spacing + pad));
         y: roh * (card-height + spacing);
-        // background: colors[Math.mod(i, colors.length)];
     }
 }
 
