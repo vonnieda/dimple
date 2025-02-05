@@ -38,6 +38,7 @@ import "../fonts/Inter/Inter-VariableFont_opsz,wght.ttf";
 import "../fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf";
 
 import "../icons/phosphor/Fonts/regular/Phosphor.ttf";
+import { HorizontalRule, VerticalRule } from "components/hrule.slint";
 
 export { Navigator, Styles, AppState, TrackListAdapter, 
     HistoryListAdapter, PlaylistDetailsAdapter,
@@ -71,55 +72,51 @@ export component AppWindow inherits Window {
     in-out property <CardGridAdapter> playlist-list;
     in-out property <SideBarAdapter> sidebar;
 
-    VerticalLayout {
-        padding: 8px;
-        padding-top: 4px;
-        spacing: 4px;
+    VerticalBox {
         NavBar {}
+        HorizontalRule {}
         HorizontalLayout {
-            spacing: 8px;
-            padding: 0;
-            GroupBox {
-                min-width: 220px;
+            HorizontalBox {
+                padding: 0;
+                width: AppState.sidebar_open ? self.preferred-width.max(200px) : 0px;
+                visible: AppState.sidebar_open;
+                opacity: AppState.sidebar_open ? 1.0 : 0.0;
+                animate width, opacity {
+                    duration: 100ms;
+                }
                 SideBar {
                     model: root.sidebar;
                 }
+                VerticalRule {}
+                Rectangle { width: parent.spacing; }
             }
-            VerticalLayout {
-                GroupBox {
-                    horizontal-stretch: 1;
-                    Rectangle {
-                        if page == Page.Home: Home {}
-                        if page == Page.SearchResults: SearchResults {
-                            model: root.search;
-                        }
-                        if page == Page.ArtistList: ArtistList {
-                            model: root.artist-list;
-                        }
-                        if page == Page.ArtistDetails: ArtistDetails {}
-                        if page == Page.ReleaseList: ReleaseList {}
-                        if page == Page.ReleaseDetails: ReleaseDetails {}                
-                        if page == Page.TrackList: TrackList {}
-                        if page == Page.TrackDetails: TrackDetails {}  
-                        if page == Page.GenreList: GenreList {  
-                            model: root.genre-list;
-                        }
-                        if page == Page.GenreDetails: GenreDetails {}
-                        if page == Page.PlaylistList: PlaylistList {  
-                            model: root.playlist-list;
-                        }
-                        if page == Page.PlaylistDetails: PlaylistDetails {}
-                        if page == Page.HistoryList: HistoryList {}
-                        if page == Page.Settings: Settings {}
-                        if page == Page.QueueDetails: QueueDetails {}
-                    }
-                }    
+            Rectangle {
+                if page == Page.Home: Home {}
+                if page == Page.SearchResults: SearchResults {
+                    model: root.search;
+                }
+                if page == Page.ArtistList: ArtistList {
+                    model: root.artist-list;
+                }
+                if page == Page.ArtistDetails: ArtistDetails {}
+                if page == Page.ReleaseList: ReleaseList {}
+                if page == Page.ReleaseDetails: ReleaseDetails {}                
+                if page == Page.TrackList: TrackList {}
+                if page == Page.TrackDetails: TrackDetails {}  
+                if page == Page.GenreList: GenreList {  
+                    model: root.genre-list;
+                }
+                if page == Page.GenreDetails: GenreDetails {}
+                if page == Page.PlaylistList: PlaylistList {  
+                    model: root.playlist-list;
+                }
+                if page == Page.PlaylistDetails: PlaylistDetails {}
+                if page == Page.HistoryList: HistoryList {}
+                if page == Page.Settings: Settings {}
+                if page == Page.QueueDetails: QueueDetails {}
             }
         }   
-        GroupBox {
-            vertical-stretch: 0;
-            PlayerBar {
-            }
-        }
+        HorizontalRule {}
+        PlayerBar {}
     }
 }

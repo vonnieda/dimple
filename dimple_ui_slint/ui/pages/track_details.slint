@@ -71,26 +71,17 @@ component PlayButtons inherits ActionButtons {
 }
 
 export component TrackDetails inherits ScrollView {
-    VerticalLayout {
-        alignment: start;
-        // Header: Image, Title, Artists, Genres, Summary
-        HorizontalLayout {
-            alignment: start;
-            VerticalLayout {
-                image := BorderImage {
-                    width: Styles.thumbnail-width-extra-large;
-                    height: Styles.thumbnail-width-extra-large;
-                    image: TrackDetailsAdapter.card.image.image;
-                }
-                // PlayButtons {
-                // }
-                // Rectangle {
-                //     vertical-stretch: 1;
-                // }
+    VerticalBox {
+        padding: 0;
+        HorizontalBox {
+            padding: 0;
+            image := BorderImage {
+                width: Styles.thumbnail-width-extra-large;
+                height: Styles.thumbnail-width-extra-large;
+                image: TrackDetailsAdapter.card.image.image;
             }
             VerticalBox {
-                padding-top: 0;
-                alignment: start;
+                padding: 0;
                 // Title
                 Texxt {
                     text: TrackDetailsAdapter.card.title.name;
@@ -137,45 +128,12 @@ export component TrackDetails inherits ScrollView {
         }
 
         // Lyrics
-        in-out property <bool> lyrics_editing: false;
         VerticalBox {
             Texxt {
                 text: "Lyrics";
             }
-            if !lyrics_editing: TouchArea {
-                text := Texxt {
-                    text: TrackDetailsAdapter.lyrics;
-                    wrap: word-wrap;
-                }
-                width: text.width;
-                height: text.height;
-                clicked => { lyrics_editing = true; }
-            }
-            if lyrics_editing: VerticalBox {
-                text_edit := TextEdit {
-                    text: TrackDetailsAdapter.lyrics;
-                    min-height: 200px;
-                    // accepted(text) => { 
-                    //     lyrics_editing = false;                
-                    //     TrackDetailsAdapter.set_lyrics(TrackDetailsAdapter.key, text);
-                    // }
-                }
-                HorizontalBox {
-                    Button {
-                        text: "Save";
-                        clicked => {
-                            lyrics_editing = false;                
-                            TrackDetailsAdapter.set_lyrics(TrackDetailsAdapter.key, text_edit.text);
-                        }
-                    }
-                    Button {
-                        text: "Cancel";
-                        clicked => {
-                            // TODO reset if changed
-                            lyrics_editing = false;                
-                        }
-                    }
-                }
+            Texxt {
+                text: TrackDetailsAdapter.lyrics;
             }
         }
 

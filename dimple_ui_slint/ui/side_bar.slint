@@ -87,20 +87,7 @@ export component SideBar inherits VerticalBox {
     in-out property <SideBarAdapter> model;
 
     padding: 0;
-
-    // LineEdit {
-    //     placeholder-text: "Search...";
-    //     edited(query) => { Navigator.navigate("dimple://search/" + query); }
-    //     accepted(query) => { Navigator.navigate("dimple://search/" + query); }
-    // }
-    // Rectangle {
-    //     height: 0px;
-    // }
-    SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/regular/house.svg");
-        url: "dimple://home";
-        text: "Home";
-    }
+    
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
         url: "dimple://artists";
@@ -131,11 +118,6 @@ export component SideBar inherits VerticalBox {
         url: "dimple://history";
         text: "History";
     }
-    SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/regular/queue.svg");
-        url: "dimple://queue";
-        text: "Queue";
-    }
 
     // Pinned items
     for card in model.pinned-items: SideBarImageItem {
@@ -147,20 +129,20 @@ export component SideBar inherits VerticalBox {
         
     }
 
-    SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/regular/arrow-left.svg");
-        text: "Back";
-        url: "dimple://back";
-    }
-    SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/regular/arrow-clockwise.svg");
-        text: "Refresh";
-        url: "dimple://refresh";
-    }
-    SideBarMenuItem {
-        image: @image-url("../icons/phosphor/SVGs/regular/gear.svg");
-        text: "Settings";
-        url: "dimple://settings";
-    }
+    // SideBarMenuItem {
+    //     image: @image-url("../icons/phosphor/SVGs/regular/arrow-left.svg");
+    //     text: "Back";
+    //     url: "dimple://back";
+    // }
+    // SideBarMenuItem {
+    //     image: @image-url("../icons/phosphor/SVGs/regular/arrow-clockwise.svg");
+    //     text: "Refresh";
+    //     url: "dimple://refresh";
+    // }
+    // SideBarMenuItem {
+    //     image: @image-url("../icons/phosphor/SVGs/regular/gear.svg");
+    //     text: "Settings";
+    //     url: "dimple://settings";
+    // }
 }
 
