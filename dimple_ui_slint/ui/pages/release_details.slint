@@ -5,10 +5,10 @@ import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
-import { CardAdapter } from "../components/card.slint";
+import { CardAdapter, BorderImage } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { Styles, Navigator, AppState } from "../common.slint";
+import { Styles, Navigator, AppState, Texxt } from "../common.slint";
 import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 import { Tag, GenreList } from "../components/tag.slint";
@@ -63,20 +63,6 @@ export global ReleaseDetailsAdapter {
     pure callback play_track_later(string /* key */);
 
     pure callback sort_table(int /* column */, bool /* ascending */);
-}
-
-export component BorderImage inherits Rectangle {
-    in-out property <image> image;
-
-    border-radius: Styles.thumbnail-border-radius;
-    border-color: Styles.thumbnail-border-color;
-    border-width: Styles.thumbnail-border-width;
-    clip: true;
-    Image {
-        width: parent.width;
-        height: parent.height;
-        source: image;
-    }
 }
 
 export component ReleaseDetails inherits ScrollView {
@@ -158,30 +144,24 @@ export component ReleaseDetails inherits ScrollView {
             VerticalBox {
                 alignment: start;
                 // Title
-                Text {
+                Texxt {
                     text: ReleaseDetailsAdapter.card.title.name;
-                    font-weight: Styles.font-weight-bold;
-                    font-size: 1rem * Styles.page_title_font_rem;
                     wrap: word-wrap;
                 }
                 
                 // Disambiguation
-                if ReleaseDetailsAdapter.disambiguation != "": Text {
+                if ReleaseDetailsAdapter.disambiguation != "": Texxt {
                     text: ReleaseDetailsAdapter.disambiguation;
-                    font-italic: true;
-                    font-size: 1.3rem;
                 }
 
                 // Type and artists
                 if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
                     alignment: start;
-                    Text {
+                    Texxt {
                         text: "\{ReleaseDetailsAdapter.release-type} by ";
-                        font-size: 1.3rem;
                     }
                     Links {
                         links: ReleaseDetailsAdapter.artists;
-                        font-size: 1.3rem;
                     }
                 }
 
@@ -193,20 +173,17 @@ export component ReleaseDetails inherits ScrollView {
                 }
         
                 // Summary
-                if ReleaseDetailsAdapter.summary != "": Text {
+                if ReleaseDetailsAdapter.summary != "": Texxt {
                     text: ReleaseDetailsAdapter.summary;
                     wrap: word-wrap;
-                    font-size: 1.2rem;
                 }
             }
         }
 
         // Tracks
         VerticalBox {
-            Text {
+            Texxt {
                 text: "Tracks";
-                font-weight: Styles.font-weight-bold;
-                font-size: 2rem;
             }
             table := StandardTableView {
                 columns: [
@@ -238,35 +215,13 @@ export component ReleaseDetails inherits ScrollView {
         // Links
         if ReleaseDetailsAdapter.links.length > 0: VerticalBox {
             alignment: start;
-            Text {
+            Texxt {
                 text: "Links";
-                font-weight: Styles.font-weight-bold;
-                font-size: 2rem;
             }
             for link in ReleaseDetailsAdapter.links: Link {
                 url: link.url;
                 name: link.name;
-                font-size: 1.3rem;
             }
-        }
-
-        // Debug Dump
-        if AppState.debug: VerticalBox {
-            alignment: start;
-            Text {
-                text: "Debug";
-                font-weight: Styles.font-weight-bold;
-                font-size: 2rem;
-            }
-            Text {
-                text: ReleaseDetailsAdapter.dump;
-                wrap: word-wrap;
-                font-size: 1.3rem;
-            }
-        }
-
-        Rectangle {
-            vertical-stretch: 0;
         }
     }
 }

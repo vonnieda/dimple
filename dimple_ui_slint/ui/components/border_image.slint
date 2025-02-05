@@ -1,0 +1,16 @@
+import { Styles } from "../common.slint";
+import { Palette } from "std-widgets.slint";
+export component BorderImage inherits Rectangle {
+    in-out property <image> image;
+
+    border-radius: Styles.thumbnail-border-radius;
+    border-color: Palette.border;
+    border-width: Styles.thumbnail-border-width;
+    clip: true;
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: image;
+    }
+}
+

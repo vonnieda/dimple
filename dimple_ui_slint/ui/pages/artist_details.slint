@@ -1,9 +1,9 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { CardAdapter } from "../components/card.slint";
+import { CardAdapter, BorderImage } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, Button} from "std-widgets.slint";
 import { CardGrid } from "../components/card_grid.slint";
-import { Styles, Navigator, AppState } from "../common.slint";
+import { Styles, Navigator, AppState, Texxt } from "../common.slint";
 import { Tag, GenreList } from "../components/tag.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
@@ -32,20 +32,6 @@ export global ArtistDetailsAdapter {
     pure callback play_now(string /* key */);
     pure callback play_next(string /* key */);
     pure callback play_later(string /* key */);
-}
-
-export component BorderImage inherits Rectangle {
-    in-out property <image> image;
-
-    border-radius: Styles.thumbnail-border-radius;
-    border-color: Styles.thumbnail-border-color;
-    border-width: Styles.thumbnail-border-width;
-    clip: true;
-    Image {
-        width: parent.width;
-        height: parent.height;
-        source: image;
-    }
 }
 
 export component ArtistDetails inherits ScrollView {
@@ -97,29 +83,13 @@ export component ArtistDetails inherits ScrollView {
             VerticalBox {
                 alignment: start;
                 // Title
-                Text {
+                Texxt {
                     text: ArtistDetailsAdapter.card.title.name;
-                    font-weight: Styles.font-weight-bold;
-                    font-size: 1rem * Styles.page_title_font_rem;
                     wrap: word-wrap;
                 }
-                // // Type and artists
-                // if ArtistDetailsAdapter.artists.length > 0: HorizontalLayout {
-                //     alignment: start;
-                //     Text {
-                //         text: "\{ReleaseDetailsAdapter.release-type} by ";
-                //         font-size: 1.3rem;
-                //     }
-                //     Links {
-                //         links: ReleaseDetailsAdapter.artists;
-                //         font-size: 1.3rem;
-                //     }
-                // }
                 // Disambiguation
-                if ArtistDetailsAdapter.disambiguation != "": Text {
+                if ArtistDetailsAdapter.disambiguation != "": Texxt {
                     text: ArtistDetailsAdapter.disambiguation;
-                    font-italic: true;
-                    font-size: 1.3rem;
                 }
                 // Genres
                 GenreList {
@@ -129,20 +99,17 @@ export component ArtistDetails inherits ScrollView {
                     preferred-width: 5000px;
                 }
                 // Summary
-                if ArtistDetailsAdapter.summary != "": Text {
+                if ArtistDetailsAdapter.summary != "": Texxt {
                     text: ArtistDetailsAdapter.summary;
                     wrap: word-wrap;
-                    font-size: 1.2rem;
                 }
             }
         }
 
         // Releases
         if ArtistDetailsAdapter.releases.length > 0: VerticalLayout {
-            Text {
+            Texxt {
                 text: "Releases";
-                font-weight: Styles.font-weight-bold;
-                font-size: 2rem;
             }
             CardGrid {
                 cards: ArtistDetailsAdapter.releases;
@@ -152,29 +119,12 @@ export component ArtistDetails inherits ScrollView {
 
         // Links
         if ArtistDetailsAdapter.links.length > 0: VerticalBox {
-            Text {
+            Texxt {
                 text: "Links";
-                font-weight: Styles.font-weight-bold;
-                font-size: 2rem;
             }
             for link in ArtistDetailsAdapter.links: Link {
                 url: link.url;
                 name: link.name;
-                font-size: 1.3rem;
-            }
-        }
-
-        // Debug Dump
-        if AppState.debug: VerticalBox {
-            Text {
-                text: "Debug";
-                font-weight: Styles.font-weight-bold;
-                font-size: 2rem;
-            }
-            Text {
-                text: ArtistDetailsAdapter.dump;
-                wrap: word-wrap;
-                font-size: 1.3rem;
             }
         }
     }

@@ -32,36 +32,10 @@ import { HistoryListAdapter, HistoryList } from "pages/history_list.slint";
 import { QueueDetailsAdapter, QueueDetails } from "pages/queue_details.slint";
 import { FlowLayoutLogic, FlowLayoutResults } from "components/flow_layout.slint";
 
-import "../fonts/Roboto/Roboto-Black.ttf";
-import "../fonts/Roboto/Roboto-BlackItalic.ttf";
-import "../fonts/Roboto/Roboto-Bold.ttf";
-import "../fonts/Roboto/Roboto-BoldItalic.ttf";
-import "../fonts/Roboto/Roboto-Italic.ttf";
-import "../fonts/Roboto/Roboto-Light.ttf";
-import "../fonts/Roboto/Roboto-LightItalic.ttf";
-import "../fonts/Roboto/Roboto-Medium.ttf";
-import "../fonts/Roboto/Roboto-MediumItalic.ttf";
-import "../fonts/Roboto/Roboto-Regular.ttf";
-import "../fonts/Roboto/Roboto-Thin.ttf";
-import "../fonts/Roboto/Roboto-ThinItalic.ttf";
+import { NavBar } from "nav_bar.slint";
 
-import "../fonts/Manrope/fonts/ttf/Manrope-Bold.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-ExtraBold.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-ExtraLight.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-Light.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-Medium.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-Regular.ttf";
-import "../fonts/Manrope/fonts/ttf/Manrope-SemiBold.ttf";
-
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Black.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Bold.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraBold.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-ExtraLight.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Light.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Medium.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Regular.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-SemiBold.ttf";
-import "../fonts/Commissioner/static/Commissioner/Commissioner-Thin.ttf";
+import "../fonts/Inter/Inter-VariableFont_opsz,wght.ttf";
+import "../fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf";
 
 import "../icons/phosphor/Fonts/regular/Phosphor.ttf";
 
@@ -81,91 +55,15 @@ export enum Page { Home, SearchResults,
     QueueDetails, HistoryList
 }
 
-component NavBarButton inherits TouchArea {
-    in property <image> source;
-    width: image.width;
-    image := Image {
-        source: root.source;
-        colorize: parent.has-hover 
-            ? Styles.link-color-hover
-            : Palette.foreground;
-        width: 24px;
-    }
-}
-
-component NavBar inherits HorizontalBox {
-    padding: 0;
-
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
-        clicked => { Navigator.navigate("dimple://artists") }
-    }
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
-        clicked => { Navigator.navigate("dimple://releases") }
-    }
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/music-note.svg");
-        clicked => { Navigator.navigate("dimple://track") }
-    }
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/playlist.svg");
-        clicked => { Navigator.navigate("dimple://playlists") }
-    }
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/globe-simple.svg");
-        clicked => { Navigator.navigate("dimple://genres") }
-    }
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/clock-counter-clockwise.svg");
-        clicked => { Navigator.navigate("dimple://history") }
-    }
-    Rectangle {
-        width: parent.spacing;
-    }
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/house.svg");
-        clicked => { Navigator.navigate("dimple://home") }
-    }
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/arrow-left.svg");
-        clicked => { Navigator.navigate("dimple://back") }
-    }
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/arrow-clockwise.svg");
-        clicked => { Navigator.navigate("dimple://refresh") }
-    }
-    LineEdit {
-        placeholder-text: "Search for songs, artists, genres, playlists, URLs...";
-        edited(query) => { Navigator.navigate("dimple://search/" + query); }
-        accepted(query) => { Navigator.navigate("dimple://search/" + query); }
-        font-size: 1.3rem;
-        height: self.font-size * 2;
-    }
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/gear.svg");
-        clicked => { Navigator.navigate("dimple://settings") }
-    }
-}
-
-component HorizontalRule inherits Rectangle {
-    height: 1px;
-    background: Styles.thumbnail-border-color;
-}
-
 export component AppWindow inherits Window {
     title: "Dimple";
     icon: @image-url("../images/app_icon_512x512.png");
     preferred-width: 1440px;
     preferred-height: 1024px;
     default-font-size: Styles.default-font-size;
-    // default-font-family: "Roboto";
     default-font-family: Styles.default-font-family;
-    // default-font-family: "Commissioner";
-    // default-font-weight: 500;
-    // background: #1f1f1f;
 
-    in-out property <Page> page: Home;
+    in-out property <Page> page: TrackDetails;
 
     in-out property <CardGridAdapter> search;
     in-out property <CardGridAdapter> artist-list;
@@ -177,7 +75,7 @@ export component AppWindow inherits Window {
         padding: 8px;
         padding-top: 4px;
         spacing: 4px;
-        // NavBar {}
+        NavBar {}
         HorizontalLayout {
             spacing: 8px;
             padding: 0;

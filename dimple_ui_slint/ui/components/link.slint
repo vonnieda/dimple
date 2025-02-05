@@ -1,5 +1,5 @@
-import { Styles, Navigator } from "../common.slint";
-import {StyleMetrics} from "std-widgets.slint";
+import { Styles, Navigator, Texxt } from "../common.slint";
+import {StyleMetrics, Palette} from "std-widgets.slint";
 
 export struct LinkAdapter {
     name: string,
@@ -15,30 +15,29 @@ export struct ImageLinkAdapter {
 export component Link inherits TouchArea {
     in property <string> url;
     in property <string> name;
-    in property <length> font-size: 1.2rem;
+    in property <length> font-size: Styles.default-font-size;
     in property <int> font-weight;
     in property <TextVerticalAlignment> vertical-alignment: bottom;
 
     mouse-cursor: pointer;
     clicked => { Navigator.navigate(url); }
-    title := Text {
+    title := Texxt {
         vertical-alignment: vertical-alignment;
         width: root.width;
         text: name;
         wrap: TextWrap.char-wrap;
         overflow: TextOverflow.clip;
-        font-family: Styles.default-font-family;
         font-weight: font-weight;
         font-size: font-size;
         color: parent.has-hover 
-            ? Styles.link-color-hover
-            : StyleMetrics.default-text-color;
+            ? Palette.accent-foreground
+            : Palette.foreground;
     }
 }
 
 export component Links inherits HorizontalLayout {
     in property <[LinkAdapter]> links;
-    in property <length> font-size: 1.2rem;
+    in property <length> font-size: Styles.default-font-size;
     alignment: start;
     padding: 0;
     // TODO I think the kerning ends up incorrect when doing it this way. It
@@ -53,16 +52,14 @@ export component Links inherits HorizontalLayout {
         }
         // TODO edge cases
         if i < links.length - 2:
-            Text {
-                font-family: Styles.default-font-family;
+            Texxt {
                 vertical-alignment: bottom;
                 text: ", ";
                 font-size: font-size;
                 wrap: TextWrap.char-wrap;
             }    
         if i == links.length - 2:
-            Text {
-                font-family: Styles.default-font-family;
+            Texxt {
                 vertical-alignment: bottom;
                 text: ", and ";
                 font-size: font-size;

@@ -1,7 +1,7 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid, CardGridAdapter, CardGrid2, CardGrid3 } from "../components/card_grid.slint";
-import { Styles } from "../common.slint";
+import { Styles, Texxt } from "../common.slint";
 import { LinkAdapter } from "../components/link.slint";
 
 export struct HomeSectionAdapter {
@@ -65,20 +65,16 @@ export component Home inherits ScrollView {
     VerticalBox {
         alignment: start;
 
-        Text {
+        Texxt {
             text: "Home";
-            font-size: 1rem * Styles.page_title_font_rem;
         }
 
         for section in HomeAdapter.sections: VerticalBox {
-            Text {
+            Texxt {
                 text: section.title;
-                font-size: 1rem * Styles.section_font_rem;
             }
-            if section.sub-title != "": Text {
+            if section.sub-title != "": Texxt {
                 text: section.sub-title;
-                font-size: 1rem;
-                font-italic: true;
             }
             CardGrid3 {
                 // TODO limit to 1 row, "Show All"

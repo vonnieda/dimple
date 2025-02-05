@@ -1,7 +1,7 @@
 import { ScrollView, VerticalBox, GridBox, HorizontalBox } from "std-widgets.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { CardAdapter, Card } from "../components/card.slint";
-import {Styles} from "../common.slint";
+import {Styles, Texxt} from "../common.slint";
 
 export global ReleaseListAdapter {
     in-out property <[CardAdapter]> cards: [{
@@ -72,9 +72,8 @@ export global ReleaseListAdapter {
 }
 
 export component ReleaseList inherits VerticalLayout {
-    Text {
+    Texxt {
         text: "Releases";
-        font-size: 1rem * Styles.page_title_font_rem;
     }
     ScrollView {        
         vertical-scrollbar-policy: always-on;
@@ -87,7 +86,7 @@ export component ReleaseList inherits VerticalLayout {
             }
         }
     }
-    Text {
+    Texxt {
         horizontal-alignment: right;
         text: ReleaseListAdapter.cards.length + " items";
     }

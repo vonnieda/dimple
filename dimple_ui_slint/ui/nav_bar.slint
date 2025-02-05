@@ -1,0 +1,69 @@
+import { HorizontalBox, LineEdit, Palette } from "std-widgets.slint";
+import { Navigator, Styles } from "common.slint";
+
+component NavBarButton inherits TouchArea {
+    in property <image> source;
+    width: image.width;
+    image := Image {
+        source: root.source;
+        colorize: parent.has-hover 
+            ? Palette.accent-foreground
+            : Palette.foreground;
+        width: 24px;
+        height: 24px;
+    }
+}
+
+export component NavBar inherits HorizontalBox {
+    padding: 0;
+
+    NavBarButton {
+        source: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
+        clicked => { Navigator.navigate("dimple://artists") }
+    }
+    NavBarButton {
+        source: @image-url("../icons/phosphor/SVGs/regular/vinyl-record.svg");
+        clicked => { Navigator.navigate("dimple://releases") }
+    }
+    NavBarButton {
+        source: @image-url("../icons/phosphor/SVGs/regular/music-note.svg");
+        clicked => { Navigator.navigate("dimple://track") }
+    }
+    NavBarButton {
+        source: @image-url("../icons/phosphor/SVGs/regular/playlist.svg");
+        clicked => { Navigator.navigate("dimple://playlists") }
+    }
+    NavBarButton {
+        source: @image-url("../icons/phosphor/SVGs/regular/globe-simple.svg");
+        clicked => { Navigator.navigate("dimple://genres") }
+    }
+    NavBarButton {
+        source: @image-url("../icons/phosphor/SVGs/regular/clock-counter-clockwise.svg");
+        clicked => { Navigator.navigate("dimple://history") }
+    }
+    Rectangle {
+        width: parent.spacing;
+    }
+    NavBarButton {
+        source: @image-url("../icons/phosphor/SVGs/regular/house.svg");
+        clicked => { Navigator.navigate("dimple://home") }
+    }
+    NavBarButton {
+        source: @image-url("../icons/phosphor/SVGs/regular/arrow-left.svg");
+        clicked => { Navigator.navigate("dimple://back") }
+    }
+    NavBarButton {
+        source: @image-url("../icons/phosphor/SVGs/regular/arrow-clockwise.svg");
+        clicked => { Navigator.navigate("dimple://refresh") }
+    }
+    LineEdit {
+        placeholder-text: "Search for songs, artists, genres, playlists, URLs...";
+        edited(query) => { Navigator.navigate("dimple://search/" + query); }
+        accepted(query) => { Navigator.navigate("dimple://search/" + query); }
+        font-size: Styles.default-font-size;
+    }
+    NavBarButton {
+        source: @image-url("../icons/phosphor/SVGs/regular/gear.svg");
+        clicked => { Navigator.navigate("dimple://settings") }
+    }
+}

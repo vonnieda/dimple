@@ -1,14 +1,13 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { CardAdapter, Card } from "../components/card.slint";
-import {Styles} from "../common.slint";
+import {Styles, Texxt} from "../common.slint";
 
 export component ArtistList inherits VerticalBox {
     in-out property <CardGridAdapter> model: model_ph;
 
-    Text { 
+    Texxt { 
         text: "Artists";
-        font-size: 1rem * Styles.page_title_font_rem;
     }
     ScrollView {        
         vertical-scrollbar-policy: always-on;
@@ -21,7 +20,7 @@ export component ArtistList inherits VerticalBox {
             }
         }
     }
-    Text {
+    Texxt {
         horizontal-alignment: right;
         text: model.cards.length + " items";
     }

@@ -1,6 +1,6 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Styles, Navigator } from "../common.slint";
-import {StyleMetrics} from "std-widgets.slint";
+import {StyleMetrics, Palette} from "std-widgets.slint";
 import {ImageLinkAdapter, LinkAdapter} from "../components/link.slint";
 import { Link } from "link.slint";
 
@@ -31,7 +31,7 @@ export component Card inherits VerticalLayout {
             height: 100%;
             border-radius: Styles.thumbnail-border-radius;
             border-width: Styles.thumbnail-border-width;
-            border-color: Styles.thumbnail-border-color;
+            border-color: Palette.border;
             clip: true;
             Image {
                 width: 100%;
@@ -60,7 +60,7 @@ export component BorderImage inherits TouchArea {
         width: root.width;
         height: root.height;
         border-radius: Styles.thumbnail-border-radius;
-        border-color: Styles.thumbnail-border-color;
+        border-color: Palette.border;
         border-width: Styles.thumbnail-border-width;
         clip: true;
         Image {

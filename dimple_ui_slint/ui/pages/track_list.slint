@@ -2,7 +2,7 @@ import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox, StandardListView, Palette} from "std-widgets.slint";
-import { AppState, Styles, Navigator } from "../common.slint";
+import { AppState, Styles, Navigator, Texxt } from "../common.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
 export global TrackListAdapter {
@@ -51,9 +51,8 @@ export component TrackList inherits VerticalBox {
         }
     }    
 
-    Text {
+    Texxt {
         text: "Tracks";
-        font-size: 1rem * Styles.page_title_font_rem;
     }
 
     table := StandardTableView {
@@ -87,7 +86,7 @@ export component TrackList inherits VerticalBox {
         }
     }
     
-    Text {
+    Texxt {
         horizontal-alignment: right;
         text: TrackListAdapter.row_data.length + " items";
     }

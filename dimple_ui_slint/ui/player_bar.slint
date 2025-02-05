@@ -1,8 +1,8 @@
 import { Slider , GroupBox, HorizontalBox} from "std-widgets.slint";
 import { StyleMetrics, Button, VerticalBox, Palette } from "std-widgets.slint";
-import { CardAdapter } from "components/card.slint";
+import { CardAdapter, BorderImage } from "components/card.slint";
 import {Link, LinkAdapter} from "./components/link.slint";
-import { Styles, Navigator, AppState } from "common.slint";
+import { Styles, Navigator, AppState, Texxt } from "common.slint";
 
 export enum PlayerState {
     Playing,
@@ -43,27 +43,8 @@ export global PlayerBarAdapter {
     in property <image> waveform: @image-url("../images/waveform.png");
 }
 
-export component BorderImage inherits TouchArea {
-    in-out property <image> image;
-    mouse-cursor: MouseCursor.pointer;
-    Rectangle {
-        width: parent.width;
-        height: parent.width;
-        border-radius: Styles.thumbnail-border-radius;
-        border-color: Styles.thumbnail-border-color;
-        border-width: Styles.thumbnail-border-width;
-        clip: true;
-        Image {
-            width: parent.width;
-            height: parent.height;
-            source: image;
-        }
-    }
-}
-
 component InfoAreaLabel inherits HorizontalLayout {
     in property <image> icon;
-    in property <float> font-weight;
     in property <LinkAdapter> link;
 
     Image {
@@ -79,8 +60,6 @@ component InfoAreaLabel inherits HorizontalLayout {
         url: link.url;
         name: link.name;
         vertical-alignment: bottom;
-        font-size: 1.5rem;
-        font-weight: font-weight;
     }
 }
 
@@ -95,7 +74,7 @@ component PlayerButtons inherits HorizontalLayout {
             width: 46px;
             height: 46px;
             colorize: parent.has-hover 
-                ? Styles.link-color-hover
+                ? Palette.accent-foreground
                 : Palette.foreground;
         }                
     }
@@ -107,7 +86,8 @@ component PlayerButtons inherits HorizontalLayout {
             source: @image-url("../icons/phosphor/SVGs/fill/pause-circle-fill.svg");
             width: 46px;
             height: 46px;
-            colorize: parent.has-hover ? Styles.link-color-hover
+            colorize: parent.has-hover 
+                ? Palette.accent-foreground
                 : Palette.foreground;
         }                
         if !playing: Image {
@@ -115,7 +95,7 @@ component PlayerButtons inherits HorizontalLayout {
             width: 46px;
             height: 46px;
             colorize: parent.has-hover 
-                ? Styles.link-color-hover
+                ? Palette.accent-foreground
                 : Palette.foreground;
         }                
     }
@@ -128,8 +108,8 @@ component PlayerButtons inherits HorizontalLayout {
             width: 46px;
             height: 46px;
             colorize: parent.has-hover 
-                ? Styles.link-color-hover
-                : StyleMetrics.default-text-color;
+                ? Palette.accent-foreground
+                : Palette.foreground;
         }                
     }                        
 }
@@ -147,14 +127,12 @@ component Scrubber inherits VerticalLayout {
         changed => { AppState.player_seek(self.value) }
     }
     HorizontalLayout {
-        Text {
+        Texxt {
             text: position-label;
-            font-size: 1rem;
         }
-        Text {
+        Texxt {
             horizontal-alignment: right;
             text: duration-label;
-            font-size: 1rem;
         }
     }
 }

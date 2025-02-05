@@ -1,4 +1,5 @@
 import { HorizontalBox, Palette } from "std-widgets.slint";
+import { Texxt } from "../common.slint";
 export component PopupMenuButton inherits TouchArea {
     in property <string> text;
     in property <image> icon;
@@ -13,7 +14,7 @@ export component PopupMenuButton inherits TouchArea {
                 width: 20px;
                 height: 20px;
             }
-            Text {
+            Texxt {
                 horizontal-alignment: left;
                 vertical-alignment: center;
                 text: root.text;

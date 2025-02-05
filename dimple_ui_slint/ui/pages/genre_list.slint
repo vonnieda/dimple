@@ -1,13 +1,12 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
-import {Styles} from "../common.slint";
+import {Styles, Texxt} from "../common.slint";
 
 export component GenreList inherits VerticalBox {
     in-out property <CardGridAdapter> model;
 
-    Text {
+    Texxt {
         text: "Genres";
-        font-size: 1rem * Styles.page_title_font_rem;
     }
     ScrollView {        
         vertical-scrollbar-policy: always-on;
@@ -20,7 +19,7 @@ export component GenreList inherits VerticalBox {
             }
         }
     }
-    Text {
+    Texxt {
         horizontal-alignment: right;
         text: model.cards.length + " items";
     }

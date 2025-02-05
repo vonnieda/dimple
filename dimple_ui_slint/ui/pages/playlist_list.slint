@@ -1,6 +1,6 @@
 import { ScrollView, VerticalBox, HorizontalBox, Button } from "std-widgets.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
-import {Styles} from "../common.slint";
+import {Styles, Texxt} from "../common.slint";
 import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
 
 export global PlaylistListAdapter {
@@ -11,9 +11,8 @@ export component PlaylistList inherits VerticalBox {
     in-out property <CardGridAdapter> model;
 
     VerticalLayout {
-        Text {
+        Texxt {
             text: "Playlists";
-            font-size: 1rem * Styles.page_title_font_rem;
         }    
         ActionButtons {
             ActionButton {
@@ -36,7 +35,7 @@ export component PlaylistList inherits VerticalBox {
         }
     }
 
-    Text {
+    Texxt {
         horizontal-alignment: right;
         text: model.cards.length + " items";
     }

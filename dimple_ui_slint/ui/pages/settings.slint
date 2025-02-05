@@ -12,7 +12,7 @@
 
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox, Slider, Switch, LineEdit, GridBox} from "std-widgets.slint";
-import { AppState, Styles, Navigator } from "../common.slint";
+import { AppState, Styles, Navigator, Texxt } from "../common.slint";
 import { ActionButton } from "../components/action_buttons.slint";
 
 export struct PluginAdapter {
@@ -34,14 +34,13 @@ export global SettingsAdapter {
 }
 
 component General inherits VerticalBox {
-    Text {
+    Texxt {
         text: "General";
-        font-size: 1rem * Styles.section_font_rem;
     }
 
     // HorizontalBox {
     //     alignment: LayoutAlignment.start;
-    //     Text {
+    //     Texxt {
     //         text: "Font Size";
     //         vertical-alignment: center;
     //     }
@@ -57,7 +56,7 @@ component General inherits VerticalBox {
     // }
 
     HorizontalBox {
-        Text {
+        Texxt {
             text: "Offline Mode";
             vertical-alignment: center;
         }
@@ -72,9 +71,8 @@ component General inherits VerticalBox {
 }
 
 component Database inherits VerticalBox {
-    Text {
+    Texxt {
         text: "Database";
-        font-size: 1rem * Styles.section_font_rem;
     }
 
     HorizontalBox {
@@ -87,7 +85,7 @@ component Database inherits VerticalBox {
     }
 
     VerticalBox {
-        for stat in SettingsAdapter.database-stats: Text {
+        for stat in SettingsAdapter.database-stats: Texxt {
             text: stat;
             vertical-alignment: center;
         }
@@ -95,9 +93,8 @@ component Database inherits VerticalBox {
 }
 
 component Cache inherits VerticalBox {
-    Text {
+    Texxt {
         text: "Cache";
-        font-size: 1rem * Styles.section_font_rem;
     }
 
     HorizontalBox {
@@ -110,7 +107,7 @@ component Cache inherits VerticalBox {
     }
 
     VerticalBox {
-        for stat in SettingsAdapter.cache-stats: Text {
+        for stat in SettingsAdapter.cache-stats: Texxt {
             text: stat;
             vertical-alignment: center;
         }
@@ -118,9 +115,8 @@ component Cache inherits VerticalBox {
 }
 
 component Sync inherits VerticalBox {
-    Text {
+    Texxt {
         text: "Sync";
-        font-size: 1rem * Styles.section_font_rem;
     }
 
     HorizontalBox {
@@ -133,10 +129,9 @@ component Sync inherits VerticalBox {
 
     HorizontalBox {
         alignment: start;
-        Text {
+        Texxt {
             text: "S3 Endpoint";
             vertical-alignment: center;
-            font-size: 1.3rem;
         }
         LineEdit {
             min-width: 200px;
@@ -145,10 +140,9 @@ component Sync inherits VerticalBox {
 
     HorizontalBox {
         alignment: start;
-        Text {
+        Texxt {
             text: "S3 Region";
             vertical-alignment: center;
-            font-size: 1.3rem;
         }
         LineEdit {
             min-width: 200px;
@@ -157,10 +151,9 @@ component Sync inherits VerticalBox {
 
     HorizontalBox {
         alignment: start;
-        Text {
+        Texxt {
             text: "S3 Bucket";
             vertical-alignment: center;
-            font-size: 1.3rem;
         }
         LineEdit {
             min-width: 200px;
@@ -169,10 +162,9 @@ component Sync inherits VerticalBox {
 
     HorizontalBox {
         alignment: start;
-        Text {
+        Texxt {
             text: "S3 Access Key";
             vertical-alignment: center;
-            font-size: 1.3rem;
         }
         LineEdit {
             min-width: 200px;
@@ -181,10 +173,9 @@ component Sync inherits VerticalBox {
 
     HorizontalBox {
         alignment: start;
-        Text {
+        Texxt {
             text: "S3 Secret Key";
             vertical-alignment: center;
-            font-size: 1.3rem;
         }
         LineEdit {
             min-width: 200px;
@@ -193,10 +184,9 @@ component Sync inherits VerticalBox {
 
     HorizontalBox {
         alignment: start;
-        Text {
+        Texxt {
             text: "S3 Prefix";
             vertical-alignment: center;
-            font-size: 1.3rem;
         }
         LineEdit {
             min-width: 200px;
@@ -205,13 +195,12 @@ component Sync inherits VerticalBox {
 }
 
 component Development inherits VerticalBox {
-    Text {
+    Texxt {
         text: "Development";
-        font-size: 1rem * Styles.section_font_rem;
     }
 
     HorizontalBox {
-        Text {
+        Texxt {
             text: "Show model JSON?";
             vertical-alignment: center;
         }
@@ -232,15 +221,13 @@ component PluginRow inherits HorizontalBox {
     in property <bool> enabled: true;
 
     VerticalBox {
-        Text {
+        Texxt {
             text: title;
-            font-size: 1.3rem;
         }
-        Text {
+        Texxt {
             text: sub-title;
-            font-italic: true;
         }
-        Text {
+        Texxt {
             text: status;
         }
     }
@@ -270,9 +257,8 @@ component PluginRow inherits HorizontalBox {
 component Plugins inherits VerticalBox {
     alignment: start;
     
-    Text {
+    Texxt {
         text: "Plugins";
-        font-size: 1rem * Styles.section_font_rem;
     }
 
     HorizontalBox {
@@ -294,15 +280,14 @@ component Plugins inherits VerticalBox {
 component Import inherits VerticalBox {
     alignment: start;
 
-    Text {
+    Texxt {
         text: "Import";
-        font-size: 1rem * Styles.section_font_rem;
         vertical-alignment: center;
     }
 
     HorizontalBox {
         alignment: start;
-        Text {
+        Texxt {
             text: @tr("Import music files, listening history, playlists, databases, and more. See [TODO LINK] for a list of supported types. Or just pick a file and try. Dimple never changes any of your files.");
             vertical-alignment: center;
             wrap: word-wrap;
@@ -325,11 +310,8 @@ component Import inherits VerticalBox {
 }
 
 export component Settings inherits VerticalBox {
-    in property <length> header-font-size: 1.5rem;
-
-    Text {
+    Texxt {
         text: "Settings";
-        font-size: 1rem * Styles.page_title_font_rem;
     }
 
     ScrollView {

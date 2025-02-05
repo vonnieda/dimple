@@ -2,7 +2,7 @@ import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, TextEdit, LineEdit, Palette} from "std-widgets.slint";
-import { AppState, Styles } from "../common.slint";
+import { AppState, Styles, Texxt } from "../common.slint";
 import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
 
 export global PlaylistDetailsAdapter {
@@ -31,9 +31,8 @@ export component PlaylistDetails inherits VerticalBox {
     in-out property <bool> name_editing: false;
     VerticalLayout {        
         if !name_editing: TouchArea {
-            text := Text {
+            text := Texxt {
                 text: PlaylistDetailsAdapter.name;
-                font-size: 1rem * Styles.page_title_font_rem;
             }
             width: text.width;
             height: text.height;
@@ -41,7 +40,6 @@ export component PlaylistDetails inherits VerticalBox {
         }
         if name_editing: LineEdit {
             text: PlaylistDetailsAdapter.name;
-            font-size: 1rem * Styles.page_title_font_rem;
             accepted(text) => { 
                 name_editing = false;                
                 PlaylistDetailsAdapter.set_name(PlaylistDetailsAdapter.key, text);
@@ -106,7 +104,7 @@ export component PlaylistDetails inherits VerticalBox {
         row-pointer-event(row, event, point) => {
         }
     }
-    Text {
+    Texxt {
         horizontal-alignment: right;
         text: PlaylistDetailsAdapter.row_data.length + " items";
     }

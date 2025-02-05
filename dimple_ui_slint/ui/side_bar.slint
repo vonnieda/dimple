@@ -1,7 +1,7 @@
 import { Button , LineEdit, HorizontalBox, GroupBox} from "std-widgets.slint";
 import { Navigator } from "common.slint";
 import { Styles, Navigator, AppState } from "common.slint";
-import {StyleMetrics, VerticalBox, TextEdit, Spinner, Slider, CheckBox} from "std-widgets.slint";
+import {StyleMetrics, VerticalBox, TextEdit, Spinner, Slider, CheckBox, Palette} from "std-widgets.slint";
 import {Link, LinkAdapter, ImageLinkAdapter} from "./components/link.slint";
 import {CardAdapter} from "./components/card.slint";
 
@@ -48,13 +48,10 @@ component SideBarImageItem inherits Rectangle {
             title-area := Link {
                 url: card.title.url;
                 name: card.title.name;
-                font-size: 1.3rem;
-                font-weight: Styles.font-weight-bold;
             }
             sub-title-area := Link {
                 url: card.sub-title.url;
                 name: card.sub-title.name;
-                font-size: 1.2rem;
             }
         }
     }
@@ -75,33 +72,30 @@ component SideBarMenuItem inherits HorizontalLayout {
             width: Styles.icon-width-sidebar;
             height: Styles.icon-width-sidebar;
             colorize: parent.has-hover 
-                ? Styles.link-color-hover
-                : StyleMetrics.default-text-color;
+                ? Palette.accent-foreground
+                : Palette.foreground;
 
         }
     }
     Link {
-        font-size: 1.6rem;
         name: text;
         url: url;
     }
 }
 
-export component SideBar inherits VerticalLayout {
+export component SideBar inherits VerticalBox {
     in-out property <SideBarAdapter> model;
 
-    spacing: 16px;
+    padding: 0;
 
-    LineEdit {
-        placeholder-text: "Search...";
-        edited(query) => { Navigator.navigate("dimple://search/" + query); }
-        accepted(query) => { Navigator.navigate("dimple://search/" + query); }
-        font-size: 1.3rem;
-        height: self.font-size * 2.5;
-    }
-    Rectangle {
-        height: parent.spacing;
-    }
+    // LineEdit {
+    //     placeholder-text: "Search...";
+    //     edited(query) => { Navigator.navigate("dimple://search/" + query); }
+    //     accepted(query) => { Navigator.navigate("dimple://search/" + query); }
+    // }
+    // Rectangle {
+    //     height: 0px;
+    // }
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/regular/house.svg");
         url: "dimple://home";
