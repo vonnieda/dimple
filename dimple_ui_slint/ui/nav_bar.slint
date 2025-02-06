@@ -1,5 +1,6 @@
-import { HorizontalBox, LineEdit, Palette } from "std-widgets.slint";
+import { HorizontalBox, LineEdit, Palette, Button } from "std-widgets.slint";
 import { Styles, Navigator, AppState } from "./common.slint";
+import { Texxt } from "common.slint";
 
 component NavBarButton inherits TouchArea {
     in property <image> source;
@@ -17,8 +18,12 @@ component NavBarButton inherits TouchArea {
 export component NavBar inherits HorizontalBox {
     padding: 0;
     NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/sidebar.svg");
+        source: @image-url("../icons/phosphor/SVGs/regular/sidebar-simple.svg");
         clicked => { AppState.sidebar_open = !AppState.sidebar_open; }
+    }
+    NavBarButton {
+        source: @image-url("../icons/phosphor/SVGs/regular/queue.svg");
+        clicked => { Navigator.navigate("dimple://queue") }
     }
     Rectangle {
         width: parent.spacing;
@@ -47,11 +52,96 @@ export component NavBar inherits HorizontalBox {
         height: self.font-size * 2;
     }
     NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/queue.svg");
-        clicked => { Navigator.navigate("dimple://queue") }
-    }
-    NavBarButton {
         source: @image-url("../icons/phosphor/SVGs/regular/gear.svg");
         clicked => { Navigator.navigate("dimple://settings") }
     }
+
+    // Button {
+    //     width: self.min-width;
+    //     clicked => {
+    //         if Styles.default-font-family == "Commissioner" {
+    //             Styles.default-font-family = "Inter";
+    //         }
+    //         else if Styles.default-font-family == "Inter" {
+    //             Styles.default-font-family = "Manrope";
+    //         }
+    //         else if Styles.default-font-family == "Manrope" {
+    //             Styles.default-font-family = "Noto Sans";
+    //         }
+    //         else if Styles.default-font-family == "Noto Sans" {
+    //             Styles.default-font-family = "Outfit";
+    //         }
+    //         else if Styles.default-font-family == "Outfit" {
+    //             Styles.default-font-family = "Roboto";
+    //         }
+    //         else if Styles.default-font-family == "Roboto" {
+    //             Styles.default-font-family = "Source Code Pro";
+    //         }
+    //         else if Styles.default-font-family == "Source Code Pro" {
+    //             Styles.default-font-family = "Source Sans 3";
+    //         }
+    //         else if Styles.default-font-family == "Source Sans 3" {
+    //             Styles.default-font-family = "Wingdings";
+    //         }
+    //         else if Styles.default-font-family == "Wingdings" {
+    //             Styles.default-font-family = "Inter";
+    //         }
+    //     }
+    //     text: "Font";
+    // }
+    // Texxt {
+    //     text: Styles.default-font-family;
+    // }
+    // Button {
+    //     width: self.min-width;
+    //     clicked => {
+    //         Styles.default-font-size -= 0.5px;            
+    //     }
+    //     text: "-";
+    // }
+    // Button {
+    //     width: self.min-width;
+    //     clicked => {
+    //         Styles.default-font-size += 0.5px;            
+    //     }
+    //     text: "+";
+    // }
+    // Texxt {
+    //     text: Styles.default-font-size / 1px;
+    // }
+
+    // Button {
+    //     width: self.min-width;
+    //     clicked => {
+    //         Styles.default-font-weight -= 25;            
+    //     }
+    //     text: "-";
+    // }
+    // Button {
+    //     width: self.min-width;
+    //     clicked => {
+    //         Styles.default-font-weight += 25;            
+    //     }
+    //     text: "+";
+    // }
+    // Texxt {
+    //     text: Styles.default-font-weight;
+    // }
+    // Texxt {
+    //     text: "test";
+    //     font-weight: 100;
+    // }
+    // Texxt {
+    //     text: "test";
+    //     font-weight: 400;
+    // }
+    // Texxt {
+    //     text: "test";
+    //     font-weight: 700;
+    // }
+    // Texxt {
+    //     text: "test";
+    //     font-italic: true;
+    // }
+
 }

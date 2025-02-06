@@ -91,8 +91,8 @@ fn update_waveform(app: &App) {
     let app = app.clone();
     std::thread::spawn(move || {
         if let Some(song) = app.player.current_song() {
-            // let waveform = image_gen::gen_song_waveform(&song, 800, 24);
-            let waveform = image_gen::gen_song_spectrogram(&song, 800, 24);
+            let waveform = image_gen::gen_song_waveform(&song, 800, 24);
+            // let waveform = image_gen::gen_song_spectrogram(&song, 800, 24);
             app.ui.upgrade_in_event_loop(move |ui| {
                 let adapter: crate::ui::PlayerBarAdapter = ui.global::<PlayerBarAdapter>();
                 adapter.set_waveform(images::dynamic_to_slint(&waveform));

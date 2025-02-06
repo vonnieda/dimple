@@ -1,7 +1,12 @@
 import { StyleMetrics , VerticalBox} from "std-widgets.slint";
 
 export global Styles  {
+    in-out property <string> default-font-family: "Inter";
+    in-out property <length> default-font-size: 16px;
+    in-out property<int> default-font-weight: 400;
+
     in-out property<int> font-weight-bold: 700;
+    in-out property<int> font-weight-light: 100;
 
     in-out property<length> thumbnail-width-sidebar: 48px;
 
@@ -13,17 +18,6 @@ export global Styles  {
     in-out property<length> thumbnail-width-extra-large: 275px;
     in-out property<length> thumbnail-border-radius: 5px;
     in-out property<length> thumbnail-border-width: 1px;
-
-    in-out property <length> default-font-size: 16px;
-    // in-out property <string> default-font-family: "";
-    // in-out property <string> default-font-family: "Manrope";
-    in-out property <string> default-font-family: "Inter";
-    // in-out property <string> default-font-family: "Comissioner";
-    // in-out property <string> default-font-family: "Roboto";
-
-    in-out property <float> page_title_font_rem: 3;
-    in-out property <float> section_font_rem: 2;
-
 }
 
 export global Navigator {
@@ -37,7 +31,7 @@ export global Navigator {
 export global AppState {
     in-out property <bool> offline-mode: false;
     in-out property <bool> debug: false;
-    in-out property <bool> sidebar_open: true;
+    in-out property <bool> sidebar_open: false;
 
     callback player_previous();
     callback player_play_pause();
@@ -48,5 +42,23 @@ export global AppState {
 export component Texxt inherits Text {
     font-size: Styles.default-font-size;
     font-family: Styles.default-font-family;
+    font-weight: Styles.default-font-weight;
     wrap: word-wrap;
 }
+
+export component PageTitle inherits Texxt {
+    font-size: Styles.default-font-size * 3;
+}
+
+export component PageSubtitle inherits Texxt {
+    font-italic: true;
+}
+
+export component SectionTitle inherits Texxt {
+    font-size: Styles.default-font-size * 2;
+}
+
+export component SectionSubtitle inherits Texxt {
+    font-italic: true;
+}
+

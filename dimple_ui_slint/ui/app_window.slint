@@ -31,14 +31,12 @@ import { PlaylistDetailsAdapter, PlaylistDetails } from "pages/playlist_details.
 import { HistoryListAdapter, HistoryList } from "pages/history_list.slint";
 import { QueueDetailsAdapter, QueueDetails } from "pages/queue_details.slint";
 import { FlowLayoutLogic, FlowLayoutResults } from "components/flow_layout.slint";
-
+import { HorizontalRule, VerticalRule } from "components/hrule.slint";
 import { NavBar } from "nav_bar.slint";
 
 import "../fonts/Inter/Inter-VariableFont_opsz,wght.ttf";
 import "../fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf";
-
 import "../icons/phosphor/Fonts/regular/Phosphor.ttf";
-import { HorizontalRule, VerticalRule } from "components/hrule.slint";
 
 export { Navigator, Styles, AppState, TrackListAdapter, 
     HistoryListAdapter, PlaylistDetailsAdapter,
@@ -63,8 +61,9 @@ export component AppWindow inherits Window {
     preferred-height: 1024px;
     default-font-size: Styles.default-font-size;
     default-font-family: Styles.default-font-family;
+    default-font-weight: Styles.default-font-weight;
 
-    in-out property <Page> page: TrackDetails;
+    in-out property <Page> page: Home;
 
     in-out property <CardGridAdapter> search;
     in-out property <CardGridAdapter> artist-list;

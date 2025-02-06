@@ -49,8 +49,8 @@ component InfoAreaLabel inherits HorizontalLayout {
 
     Image {
         source: icon;
-        height: 1.5rem;
-        width: 1.5rem;
+        width: 20px;
+        height: 20px;
         colorize: Palette.foreground;
     }
     Rectangle {
@@ -59,7 +59,6 @@ component InfoAreaLabel inherits HorizontalLayout {
     Link {
         url: link.url;
         name: link.name;
-        vertical-alignment: bottom;
     }
 }
 

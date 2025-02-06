@@ -1,36 +1,24 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Card, CardAdapter, NeuCard } from "card.slint";
 import { Styles, Navigator } from "../common.slint";
-import {StyleMetrics} from "std-widgets.slint";
+import {StyleMetrics, HorizontalBox} from "std-widgets.slint";
 
 export struct CardGridAdapter {
     cards: [CardAdapter],
 }
 
-// TODO See: https://github.com/slint-ui/slint/discussions/4661
-// TODO See: https://releases.slint.dev/1.4.1/docs/slint/src/recipes/recipes#custom-table-view
-// TODO noticed that Slint 1.8.0 added ScrollView.scrolled, which I think would let me
-// implement something similar to StandardTableView for scrolling long lists. 
 export component CardGrid inherits VerticalBox {
     in-out property <[CardAdapter]> cards: cards_ph;
-
-    in property <length> parent_width: 1000px;
-
+    in property <length> parent-width: 1000px;
     property <int> cols: Math.max(1, Math.floor((self.parent_width - StyleMetrics.layout-padding) 
         / (Styles.thumbnail-width-large + StyleMetrics.layout-spacing)));
 
-    // TODO this still isn't quite right, keep ending up with hscroll. I think
-    // just give up on calculating the spacing, use space-between and then
-    // insert empties to fill the gap at the end.
-    // property <length> col_spacing: (self.parent_width - StyleMetrics.layout-padding - StyleMetrics.layout-spacing - (cols * Styles.thumbnail-width-large)) / (cols);
-    // Shit, just realized it's the genre links adding the hscroll sometimes. The above might have been working.
-
-    spacing: StyleMetrics.layout-spacing;
-    padding-right: StyleMetrics.layout-padding;
     alignment: start;
-    for row in Math.ceil(cards.length / cols): HorizontalLayout {
+    padding: 0;
+
+    for row in Math.ceil(cards.length / cols): HorizontalBox {
         alignment: start;
-        spacing: StyleMetrics.layout-spacing;
+        padding: 0;
         for col in Math.min(cols, cards.length - (row * cols)): Card {
             model: cards[row * cols + col];
         }
@@ -101,3 +89,24 @@ export component CardGrid3 inherits Rectangle {
     }
 }
 
+// New version of CardGrid from experiments. Calculates all positions instead of
+// relying on hbox and vbox. Works great, no weirds.
+// export component CardGrid2 inherits Rectangle {
+//     in-out property <[CardAdapter]> cards;
+//     property <length> spacing: 16px;
+//     in-out property <length> card-width: 200px;
+//     in-out property <length> card-height: 200px;
+//     property <int> cols: self.width / (card-width + spacing);
+//     property <int> count: cards.length;
+//     property <length> pad: (self.width - (cols * (card-width + spacing))) / cols;
+
+//     preferred-height: Math.ceil(1.0 * count / cols) * (card-height + spacing);
+    
+//     for i in count: Card2 {
+//         model: cards[i];
+//         property <int> roh: i / cols;
+//         property <int> kol: Math.mod(i, cols);
+//         x: kol * (card-width + (spacing + pad));
+//         y: roh * (card-height + spacing);
+//     }
+// }

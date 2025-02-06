@@ -1,38 +1,34 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
-import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
+import { CardGrid, CardGridAdapter, CardGrid2 } from "../components/card_grid.slint";
 import { CardAdapter, Card } from "../components/card.slint";
-import {Styles, Texxt} from "../common.slint";
+import {Styles, Texxt, PageTitle, PageSubtitle} from "../common.slint";
 
-export component ArtistList inherits VerticalBox {
+export component ArtistList inherits ScrollView {
     in-out property <CardGridAdapter> model: model_ph;
 
-    Texxt { 
-        text: "Artists";
-    }
-    ScrollView {        
-        vertical-scrollbar-policy: always-on;
-        horizontal-scrollbar-policy: always-off;
-        viewport-width: parent.width;
-        VerticalBox {
-            card-grid := CardGrid {
-                cards: model.cards;
-                parent-width: root.width;
-            }
+    VerticalBox {
+        alignment: start;
+        padding: 0;
+
+        PageTitle { 
+            text: "Artists";
         }
-    }
-    Texxt {
-        horizontal-alignment: right;
-        text: model.cards.length + " items";
+        PageSubtitle {
+            text: model.cards.length + " items";
+        }
+        CardGrid2 {
+            cards: model.cards;
+            height: self.preferred-height;
+        }
     }
 
     property <CardAdapter> card_ph: {
-        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Mega-Super-Fish",url: "internal://release/1234"},
+        title: {name: "A Reign of Super Mega Ultra Fish",url: "internal://release/1234"},
+        sub-title: {name: "Fresh Finger Lickin' Good Pliers",url: "internal://artist/9876"},
     };
     
     property <[CardAdapter]> cards_ph: [card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph];
-    // property <[CardAdapter]> cards_ph: [card_ph, card_ph, card_ph, card_ph, card_ph, card_ph];
 
     property <CardGridAdapter> model_ph: {
         cards: cards_ph,

@@ -16,7 +16,7 @@ export component Link inherits TouchArea {
     in property <string> url;
     in property <string> name;
     in property <length> font-size: Styles.default-font-size;
-    in property <int> font-weight;
+    in property <int> font-weight: Styles.default-font-weight;
     in property <TextVerticalAlignment> vertical-alignment: bottom;
 
     mouse-cursor: pointer;
@@ -25,8 +25,8 @@ export component Link inherits TouchArea {
         vertical-alignment: vertical-alignment;
         width: root.width;
         text: name;
-        wrap: TextWrap.no-wrap;
-        overflow: TextOverflow.clip;
+        // wrap: TextWrap.no-wrap;
+        // overflow: TextOverflow.clip;
         font-weight: font-weight;
         font-size: font-size;
         color: parent.has-hover 

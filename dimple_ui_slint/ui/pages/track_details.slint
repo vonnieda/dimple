@@ -3,7 +3,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBo
 import { CardAdapter, BorderImage } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { Styles, Navigator, AppState, Texxt } from "../common.slint";
+import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
 import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
 import { GenreList } from "../components/tag.slint";
 
@@ -39,60 +39,69 @@ export global TrackDetailsAdapter {
     pure callback set_lyrics(string, string);
 }
 
-component PlayButtons inherits ActionButtons {
-    ActionButton {
-        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-        label: @tr("Play Now");
-        clicked => { TrackDetailsAdapter.play_now(TrackDetailsAdapter.key); }
-    }
-    ActionButton {
-        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
-        label: @tr("Play Later");
-        clicked => { TrackDetailsAdapter.play_later(TrackDetailsAdapter.key); }
-    }
-    ActionButton {
-        icon: self.checked 
-            ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
-            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
-        label: @tr("Love");
-        checkable: true;
-        checked: TrackDetailsAdapter.love;
-        clicked => { TrackDetailsAdapter.set_love(self.checked); }
-    }
-    ActionButton {
-        icon: self.checked 
-            ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
-            : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
-        label: @tr("Download");
-        checkable: true;
-        checked: TrackDetailsAdapter.download;
-        clicked => { TrackDetailsAdapter.set_download(self.checked); }
-    }
-}
+// component PlayButtons inherits ActionButtons {
+//     ActionButton {
+//         icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+//         label: @tr("Play Now");
+//         clicked => { TrackDetailsAdapter.play_now(TrackDetailsAdapter.key); }
+//     }
+//     ActionButton {
+//         icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+//         label: @tr("Play Later");
+//         clicked => { TrackDetailsAdapter.play_later(TrackDetailsAdapter.key); }
+//     }
+//     ActionButton {
+//         icon: self.checked 
+//             ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
+//             : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+//         label: @tr("Love");
+//         checkable: true;
+//         checked: TrackDetailsAdapter.love;
+//         clicked => { TrackDetailsAdapter.set_love(self.checked); }
+//     }
+//     ActionButton {
+//         icon: self.checked 
+//             ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
+//             : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
+//         label: @tr("Download");
+//         checkable: true;
+//         checked: TrackDetailsAdapter.download;
+//         clicked => { TrackDetailsAdapter.set_download(self.checked); }
+//     }
+// }
 
 export component TrackDetails inherits ScrollView {
     VerticalBox {
+        alignment: start;
         padding: 0;
         HorizontalBox {
+            alignment: start;
             padding: 0;
-            image := BorderImage {
+            BorderImage {
                 width: Styles.thumbnail-width-extra-large;
                 height: Styles.thumbnail-width-extra-large;
                 image: TrackDetailsAdapter.card.image.image;
             }
             VerticalBox {
+                alignment: start;
                 padding: 0;
-                // Title
-                Texxt {
+                PageTitle {
                     text: TrackDetailsAdapter.card.title.name;
                 }
-                // Disambiguation
-                if TrackDetailsAdapter.disambiguation != "": Texxt {
+                if TrackDetailsAdapter.disambiguation != "": PageSubtitle {
                     text: TrackDetailsAdapter.disambiguation;
                 }
+                GenreList {
+                    genres: TrackDetailsAdapter.genres;
+                    min-width: 64px;
+                    min-height: 8px;
+                    preferred-width: 5000px;
+                }
+
                 // Type and artists
                 if TrackDetailsAdapter.artists.length > 0: HorizontalLayout {
                     alignment: start;
+                    padding: 0;
                     Texxt {
                         text: "Track by ";
                     }
@@ -100,9 +109,11 @@ export component TrackDetails inherits ScrollView {
                         links: TrackDetailsAdapter.artists;
                     }
                 }
+                
                 // Release
                 HorizontalLayout {
                     alignment: start;
+                    padding: 0;
                     Texxt {
                         text: "Released \{TrackDetailsAdapter.release-date} on ";
                     }
@@ -111,14 +122,6 @@ export component TrackDetails inherits ScrollView {
                     }
                 }                
                 
-                // Genres
-                GenreList {
-                    genres: TrackDetailsAdapter.genres;
-                    min-width: 64px;
-                    min-height: 8px;
-                    preferred-width: 5000px;
-                }
-
                 // Summary
                 if TrackDetailsAdapter.summary != "": Texxt {
                     text: TrackDetailsAdapter.summary;
@@ -129,7 +132,9 @@ export component TrackDetails inherits ScrollView {
 
         // Lyrics
         VerticalBox {
-            Texxt {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
                 text: "Lyrics";
             }
             Texxt {
@@ -139,7 +144,9 @@ export component TrackDetails inherits ScrollView {
 
         // Links
         if TrackDetailsAdapter.links.length > 0: VerticalBox {
-            Texxt {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
                 text: "Links";
             }
             for link in TrackDetailsAdapter.links: Link {

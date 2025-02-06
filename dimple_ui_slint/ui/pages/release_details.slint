@@ -8,7 +8,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widge
 import { CardAdapter, BorderImage } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { Styles, Navigator, AppState, Texxt } from "../common.slint";
+import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle } from "../common.slint";
 import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 import { Tag, GenreList } from "../components/tag.slint";
@@ -96,61 +96,27 @@ export component ReleaseDetails inherits ScrollView {
         }
     }    
 
-    VerticalLayout {
-        // alignment: LayoutAlignment.stretch;
-        // Header: Image, Title, Artists, Genres, Summary
-        HorizontalLayout {
+    VerticalBox {
+        alignment: start;
+        padding: 0;
+        HorizontalBox {
             alignment: start;
-            VerticalLayout {
-                BorderImage {
-                    width: Styles.thumbnail-width-extra-large;
-                    height: Styles.thumbnail-width-extra-large;
-                    image: ReleaseDetailsAdapter.card.image.image;
-                }
-                ActionButtons {
-                    ActionButton {
-                        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-                        label: @tr("Play Now");
-                        clicked => { ReleaseDetailsAdapter.play_now(ReleaseDetailsAdapter.key); }
-                    }
-                    ActionButton {
-                        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
-                        label: @tr("Play Later");
-                        clicked => { ReleaseDetailsAdapter.play_later(ReleaseDetailsAdapter.key); }
-                    }
-                    ActionButton {
-                        icon: self.checked 
-                            ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
-                            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
-                        label: @tr("Love");
-                        checkable: true;
-                        checked: ReleaseDetailsAdapter.love;
-                        clicked => { ReleaseDetailsAdapter.set_love(self.checked); }
-                    }
-                    ActionButton {
-                        icon: self.checked 
-                            ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
-                            : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
-                        label: @tr("Play Later");
-                        checkable: true;
-                        checked: ReleaseDetailsAdapter.download;
-                        clicked => { ReleaseDetailsAdapter.set_download(self.checked); }
-                    }
-                }
-                Rectangle {
-                    vertical-stretch: 1;
-                }
+            padding: 0;
+            BorderImage {
+                width: Styles.thumbnail-width-extra-large;
+                height: Styles.thumbnail-width-extra-large;
+                image: ReleaseDetailsAdapter.card.image.image;
             }
             VerticalBox {
                 alignment: start;
-                // Title
-                Texxt {
+                padding: 0;
+                PageTitle {
                     text: ReleaseDetailsAdapter.card.title.name;
                     wrap: word-wrap;
                 }
                 
                 // Disambiguation
-                if ReleaseDetailsAdapter.disambiguation != "": Texxt {
+                if ReleaseDetailsAdapter.disambiguation != "": PageSubtitle {
                     text: ReleaseDetailsAdapter.disambiguation;
                 }
 
@@ -172,7 +138,6 @@ export component ReleaseDetails inherits ScrollView {
                     preferred-width: 5000px;
                 }
         
-                // Summary
                 if ReleaseDetailsAdapter.summary != "": Texxt {
                     text: ReleaseDetailsAdapter.summary;
                     wrap: word-wrap;

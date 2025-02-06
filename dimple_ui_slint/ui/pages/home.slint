@@ -1,7 +1,7 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { CardGrid, CardGridAdapter, CardGrid2, CardGrid3 } from "../components/card_grid.slint";
-import { Styles, Texxt } from "../common.slint";
+import { CardGrid, CardGridAdapter, CardGrid2 } from "../components/card_grid.slint";
+import { Styles, Texxt, PageTitle, SectionTitle, SectionSubtitle } from "../common.slint";
 import { LinkAdapter } from "../components/link.slint";
 
 export struct HomeSectionAdapter {
@@ -14,11 +14,19 @@ export global HomeAdapter {
     in-out property <[HomeSectionAdapter]> sections: [
         { title: "For You", sub-title: "From your listens.", cards: [
             { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
-            title: {name: "A Reign of Fish"}},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
             { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
             title: {name: "A Reign of Fish"}},
             { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
-            title: {name: "A Reign of Fish"}},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
             { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
             title: {name: "A Reign of Fish"}},
             { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
@@ -42,7 +50,7 @@ export global HomeAdapter {
             { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
             title: {name: "A Reign of Fish"}},
         ]},
-        { title: "Popular", sub-title: "With MusicBrainz listeners.", cards: [
+        { title: "Popular", sub-title: "With other MusicBrainz listeners.", cards: [
             { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
             title: {name: "A Reign of Fish"}},
             { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
@@ -64,23 +72,24 @@ export global HomeAdapter {
 export component Home inherits ScrollView {
     VerticalBox {
         alignment: start;
+        padding: 0;
 
-        Texxt {
+        PageTitle {
             text: "Home";
         }
 
         for section in HomeAdapter.sections: VerticalBox {
-            Texxt {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
                 text: section.title;
             }
-            if section.sub-title != "": Texxt {
+            if section.sub-title != "": SectionSubtitle {
                 text: section.sub-title;
             }
-            CardGrid3 {
-                // TODO limit to 1 row, "Show All"
+            CardGrid {
                 cards: section.cards;
-                height: self.preferred-height;
-                card-width: Styles.thumbnail-width-large;
+                parent-width: root.width;
             }
         }
     }
