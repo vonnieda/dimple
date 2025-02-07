@@ -14,7 +14,7 @@ export enum PlayerState {
 export global PlayerBarAdapter {
     in property <CardAdapter> now_playing_artist: {
         image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
-        title: {name: "A Reign of Fish"},
+        title: {name: "A Reign of Super Hyper Mega Ultra Fish"},
     };
     in property <CardAdapter> now_playing_release: {
         image: {image: @image-url("../icons/phosphor/PNGs/regular/vinyl-record.png")},
@@ -64,6 +64,7 @@ component InfoAreaLabel inherits HorizontalLayout {
 }
 
 component PlayerButtons inherits HorizontalLayout {
+    alignment: LayoutAlignment.end;
     in property <bool> playing: false;
     TouchArea {
         width: 46px;
@@ -129,6 +130,7 @@ component Scrubber inherits VerticalLayout {
     HorizontalLayout {
         Texxt {
             text: position-label;
+            wrap: no-wrap;
         }
         Texxt {
             horizontal-alignment: right;
@@ -158,11 +160,14 @@ component TrackInfo inherits VerticalLayout {
 
 export component PlayerBar {
     HorizontalLayout {
-        BorderImage {
-            width: Styles.thumbnail-width-medium;
-            height: Styles.thumbnail-width-medium;
-            source: PlayerBarAdapter.now-playing-track.image.image;
-            clicked => { Navigator.navigate("dimple://queue") }
+        VerticalLayout {
+            alignment: space-around;
+            BorderImage {
+                width: Styles.thumbnail-width-medium;
+                height: Styles.thumbnail-width-medium;
+                source: PlayerBarAdapter.now-playing-track.image.image;
+                clicked => { Navigator.navigate("dimple://queue") }
+            }
         }
         VerticalLayout {
             horizontal-stretch: 1;
@@ -197,6 +202,51 @@ export component PlayerBar {
                 duration-seconds: PlayerBarAdapter.duration-seconds;
                 duration-label: PlayerBarAdapter.duration-label;
             }
+        }
+    }
+}
+
+export component PlayerBar2 inherits HorizontalBox {
+    alignment: stretch;
+    padding: 0;
+
+    HorizontalBox {
+        padding: 0;
+        width: self.preferred-width;
+        VerticalLayout {
+            alignment: center;
+            BorderImage {
+                width: Styles.thumbnail-width-small;
+                height: Styles.thumbnail-width-small;
+                source: PlayerBarAdapter.now-playing-track.image.image;
+                clicked => { Navigator.navigate("dimple://queue") }
+            }
+        }
+        TrackInfo {
+            artist: PlayerBarAdapter.now-playing-artist.title;
+            release: PlayerBarAdapter.now-playing-release.title;
+            track: PlayerBarAdapter.now-playing-track.title;
+        }
+    }
+    VerticalLayout {
+        Image {
+            source: PlayerBarAdapter.waveform;
+            image-fit: ImageFit.fill;
+            height: 24px;
+            min-width: 100px;
+        }
+        Scrubber {
+            position-seconds <=> PlayerBarAdapter.position-seconds;
+            position-label: PlayerBarAdapter.position-label;
+            duration-seconds: PlayerBarAdapter.duration-seconds;
+            duration-label: PlayerBarAdapter.duration-label;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        width: self.preferred-width;
+        PlayerButtons {
+            playing: PlayerBarAdapter.player-state == PlayerState.Playing;
         }
     }
 }

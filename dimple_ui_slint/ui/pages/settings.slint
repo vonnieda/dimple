@@ -12,7 +12,7 @@
 
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox, Slider, Switch, LineEdit, GridBox} from "std-widgets.slint";
-import { AppState, Styles, Navigator, Texxt } from "../common.slint";
+import { AppState, Styles, Navigator, Texxt, PageSubtitle, SectionTitle, PageTitle } from "../common.slint";
 import { ActionButton } from "../components/action_buttons.slint";
 
 export struct PluginAdapter {
@@ -34,7 +34,7 @@ export global SettingsAdapter {
 }
 
 component General inherits VerticalBox {
-    Texxt {
+    SectionTitle {
         text: "General";
     }
 
@@ -71,7 +71,7 @@ component General inherits VerticalBox {
 }
 
 component Database inherits VerticalBox {
-    Texxt {
+    SectionTitle {
         text: "Database";
     }
 
@@ -93,7 +93,7 @@ component Database inherits VerticalBox {
 }
 
 component Cache inherits VerticalBox {
-    Texxt {
+    SectionTitle {
         text: "Cache";
     }
 
@@ -115,101 +115,76 @@ component Cache inherits VerticalBox {
 }
 
 component Sync inherits VerticalBox {
-    Texxt {
+    SectionTitle {
         text: "Sync";
     }
 
-    HorizontalBox {
-        alignment: start;
-        ActionButton {
-            icon: @image-url("../../icons/phosphor/SVGs/regular/arrow-clockwise.svg");
-            text: "Sync Now";
-        }
-    }
-
-    HorizontalBox {
-        alignment: start;
+    GridBox {
         Texxt {
+            row: 0;
+            col: 0;
             text: "S3 Endpoint";
             vertical-alignment: center;
         }
         LineEdit {
+            row: 0;
+            col: 1;
+            colspan: 2;
             min-width: 200px;
-        }
-    }
-
-    HorizontalBox {
-        alignment: start;
+        }        
         Texxt {
+            row: 1;
+            col: 0;
             text: "S3 Region";
             vertical-alignment: center;
         }
         LineEdit {
+            row: 1;
+            col: 1;
+            colspan: 2;
             min-width: 200px;
-        }
-    }
-
-    HorizontalBox {
-        alignment: start;
+        }        
         Texxt {
+            row: 2;
+            col: 0;
             text: "S3 Bucket";
             vertical-alignment: center;
         }
         LineEdit {
+            row: 2;
+            col: 1;
+            colspan: 2;
             min-width: 200px;
-        }
-    }
-
-    HorizontalBox {
-        alignment: start;
+        }        
         Texxt {
+            row: 3;
+            col: 0;
             text: "S3 Access Key";
             vertical-alignment: center;
         }
         LineEdit {
+            row: 3;
+            col: 1;
+            colspan: 2;
             min-width: 200px;
-        }
-    }
-
-    HorizontalBox {
-        alignment: start;
+        }        
         Texxt {
-            text: "S3 Secret Key";
-            vertical-alignment: center;
-        }
-        LineEdit {
-            min-width: 200px;
-        }
-    }
-
-    HorizontalBox {
-        alignment: start;
-        Texxt {
+            row: 4;
+            col: 0;
             text: "S3 Prefix";
             vertical-alignment: center;
         }
         LineEdit {
+            row: 4;
+            col: 1;
+            colspan: 2;
             min-width: 200px;
-        }
-    }
-}
-
-component Development inherits VerticalBox {
-    Texxt {
-        text: "Development";
-    }
-
-    HorizontalBox {
-        Texxt {
-            text: "Show model JSON?";
-            vertical-alignment: center;
-        }
-
-        CheckBox {
-            checked: AppState.debug;
-            toggled => {
-                SettingsAdapter.set_debug(self.checked);
-            }
+        }        
+        ActionButton {
+            row: 5;
+            col: 0;
+            icon: @image-url("../../icons/phosphor/SVGs/regular/arrow-clockwise.svg");
+            text: "Sync Now";
         }
     }
 }
@@ -257,7 +232,7 @@ component PluginRow inherits HorizontalBox {
 component Plugins inherits VerticalBox {
     alignment: start;
     
-    Texxt {
+    SectionTitle {
         text: "Plugins";
     }
 
@@ -280,7 +255,7 @@ component Plugins inherits VerticalBox {
 component Import inherits VerticalBox {
     alignment: start;
 
-    Texxt {
+    SectionTitle {
         text: "Import";
         vertical-alignment: center;
     }
@@ -297,12 +272,12 @@ component Import inherits VerticalBox {
     HorizontalBox {
         alignment: start;
         ActionButton {
-            text: "Import Files";
+            text: "Import File(s)";
             icon: @image-url("../../icons/phosphor/SVGs/regular/file.svg");
             clicked => { SettingsAdapter.import_files(); }
         }
         ActionButton {
-            text: "Import Folders";
+            text: "Import Folder(s)";
             icon: @image-url("../../icons/phosphor/SVGs/regular/folder.svg");
             clicked => { SettingsAdapter.import_directories(); }
         }
@@ -310,7 +285,7 @@ component Import inherits VerticalBox {
 }
 
 export component Settings inherits VerticalBox {
-    Texxt {
+    PageTitle {
         text: "Settings";
     }
 
@@ -327,8 +302,6 @@ export component Settings inherits VerticalBox {
             Database { }
 
             Cache { }
-
-            Development { }
         }
     }
 }
