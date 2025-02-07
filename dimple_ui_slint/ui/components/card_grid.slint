@@ -1,6 +1,6 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
-import { Card, CardAdapter, NeuCard } from "card.slint";
-import { Styles, Navigator } from "../common.slint";
+import { Card, CardAdapter } from "card.slint";
+import { Styles, Navigator, Texxt } from "../common.slint";
 import {StyleMetrics, HorizontalBox} from "std-widgets.slint";
 
 export struct CardGridAdapter {
@@ -9,17 +9,21 @@ export struct CardGridAdapter {
 
 export component CardGrid inherits VerticalBox {
     in-out property <[CardAdapter]> cards: cards_ph;
-    in property <length> parent-width: 1000px;
-    property <int> cols: Math.max(1, Math.floor((self.parent_width - StyleMetrics.layout-padding) 
-        / (Styles.thumbnail-width-large + StyleMetrics.layout-spacing)));
+    in property <int> max-rows: 0;
+    in property <length> card-width: Styles.thumbnail-width-large;
+
+    property <int> cols: Math.max(1, Math.floor(self.width / (self.card-width + self.spacing)));
+    property <int> rows: self.max-rows >= 1 ? self.max-rows : Math.ceil(cards.length / cols);
+    // property <length> addl-spacing: (self.width - ((self.card-width + self.spacing) * cols)) / cols;
 
     alignment: start;
     padding: 0;
 
-    for row in Math.ceil(cards.length / cols): HorizontalBox {
+    for row in rows: HorizontalBox {
         alignment: start;
         padding: 0;
         for col in Math.min(cols, cards.length - (row * cols)): Card {
+            // width: root.card-width + addl-spacing;
             model: cards[row * cols + col];
         }
     }
@@ -30,80 +34,64 @@ export component CardGrid inherits VerticalBox {
         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
     };
 
-    property <[CardAdapter]> cards_ph: [card_ph, card_ph, card_ph, card_ph, card_ph];
+    property <CardAdapter> card_ph2: {
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/users-three.png"),name: "Bob The Wonderful Explorer",url: "internal://release/1234"},
+        title: {name: "Bob The Wonderful Explorer",url: "internal://release/1234"},
+        sub-title: {name: "A man of infinite stories and very few talents.",url: "internal://artist/9876"},
+    };
+
+    property <[CardAdapter]> cards_ph: [card_ph, card_ph2, card_ph, card_ph2, card_ph2, card_ph, card_ph, card_ph2, card_ph2, card_ph2, card_ph, card_ph, card_ph, card_ph2, card_ph];
 }
 
-component Card2 inherits Rectangle {
-    border-width: 3px;
-    border-color: white;
-    border-radius: 16px;
-    clip: true;
-}
+// component Card2 inherits Rectangle {
+//     border-width: 3px;
+//     border-color: white;
+//     border-radius: 16px;
+//     clip: true;
+// }
 
-// New version of CardGrid from experiments. Calculates all positions instead of
-// relying on hbox and vbox. Works great, no weirds.
+// // New version of CardGrid from experiments. Calculates all positions instead of
+// // relying on hbox and vbox. Works great, no weirds.
 
-export component CardGrid2 inherits ScrollView {
-    in-out property <[CardAdapter]> cards;
-    property <[color]> colors: [#638d5d, #838d5d, #5d8a8d, #7f5d8d, #8d6b5d, #5d648d, #8d825d];
-    property <length> spacing: 16px;
-    property <length> card-width: 200px;
-    property <int> cols: self.width / (card-width + spacing);
-    property <int> count: cards.length;
-    property <length> pad: (self.width - (cols * (card-width + spacing))) / cols;
+// export component CardGrid2 inherits ScrollView {
+//     in-out property <[CardAdapter]> cards;
+//     property <[color]> colors: [#638d5d, #838d5d, #5d8a8d, #7f5d8d, #8d6b5d, #5d648d, #8d825d];
+//     property <length> spacing: 16px;
+//     property <length> card-width: 200px;
+//     property <int> cols: self.width / (card-width + spacing);
+//     property <int> count: cards.length;
+//     property <length> pad: (self.width - (cols * (card-width + spacing))) / cols;
 
-    preferred-height: Math.ceil(1.0 * count / cols) * (card-width + spacing);
-    viewport-height: self.preferred-height;
-    horizontal-scrollbar-policy: always-off;
+//     preferred-height: Math.ceil(1.0 * count / cols) * (card-width + spacing);
+//     viewport-height: self.preferred-height;
+//     horizontal-scrollbar-policy: always-off;
     
-    for i in count: Card2 {
-        width: card-width;
-        height: card-width; 
-        property <int> roh: i / cols;
-        property <int> kol: Math.mod(i, cols);
-        x: kol * (card-width + (spacing + pad));
-        y: roh * (card-width + spacing);
-        background: colors[Math.mod(i, colors.length)];
-    }
-}
+//     for i in count: Card2 {
+//         width: card-width;
+//         height: card-width; 
+//         property <int> roh: i / cols;
+//         property <int> kol: Math.mod(i, cols);
+//         x: kol * (card-width + (spacing + pad));
+//         y: roh * (card-width + spacing);
+//         background: colors[Math.mod(i, colors.length)];
+//     }
+// }
 
-export component CardGrid3 inherits Rectangle {
-    in-out property <[CardAdapter]> cards;
-    property <length> spacing: 16px;
-    in-out property <length> card-width: 200px;
-    in-out property <length> card-height: 240px;
-    property <int> cols: self.width / (card-width + spacing);
-    property <int> count: cards.length;
-    property <length> pad: (self.width - (cols * (card-width + spacing))) / cols;
-
-    preferred-height: Math.ceil(1.0 * count / cols) * (card-height + spacing);
-    
-    for i in count: Card {
-        model: cards[i];
-        width: card-width;
-        height: card-height; 
-        property <int> roh: i / cols;
-        property <int> kol: Math.mod(i, cols);
-        x: kol * (card-width + (spacing + pad));
-        y: roh * (card-height + spacing);
-    }
-}
-
-// New version of CardGrid from experiments. Calculates all positions instead of
-// relying on hbox and vbox. Works great, no weirds.
-// export component CardGrid2 inherits Rectangle {
+// export component CardGrid3 inherits Rectangle {
 //     in-out property <[CardAdapter]> cards;
 //     property <length> spacing: 16px;
 //     in-out property <length> card-width: 200px;
-//     in-out property <length> card-height: 200px;
+//     in-out property <length> card-height: 240px;
 //     property <int> cols: self.width / (card-width + spacing);
 //     property <int> count: cards.length;
 //     property <length> pad: (self.width - (cols * (card-width + spacing))) / cols;
 
 //     preferred-height: Math.ceil(1.0 * count / cols) * (card-height + spacing);
     
-//     for i in count: Card2 {
+//     for i in count: Card {
 //         model: cards[i];
+//         width: card-width;
+//         height: card-height; 
 //         property <int> roh: i / cols;
 //         property <int> kol: Math.mod(i, cols);
 //         x: kol * (card-width + (spacing + pad));

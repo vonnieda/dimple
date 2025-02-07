@@ -36,7 +36,7 @@ pub fn init(ui: &AppWindow) {
             ys: ret_ys.as_slice().into(),
             widths: ret_widths.as_slice().into(),
             heights: ret_heights.as_slice().into(),
-            height: y + row_height + row_height + spacing,
+            height: y + row_height + spacing,
         }
     });
 }

@@ -3,6 +3,7 @@ import { Styles, Navigator } from "../common.slint";
 import {StyleMetrics, Palette} from "std-widgets.slint";
 import {ImageLinkAdapter, LinkAdapter} from "../components/link.slint";
 import { Link } from "link.slint";
+import { BorderImage } from "border_image.slint";
 
 export struct CardAdapter {
     image: ImageLinkAdapter,
@@ -10,7 +11,7 @@ export struct CardAdapter {
     sub-title: LinkAdapter,
 }
 
-export component Card inherits VerticalLayout {
+export component Card inherits VerticalBox {
     in property <CardAdapter> model: {
         image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Fish",url: "internal://release/1234"},
         title: {name: "A Reign of Fish",url: "internal://release/1234"},
@@ -18,69 +19,23 @@ export component Card inherits VerticalLayout {
     };
 
     width: Styles.thumbnail-width-large;
-    spacing: 2px;
     alignment: start;
+    padding: 0;
+    spacing: 4px;
 
-    image-area := TouchArea {
+    BorderImage {
+        source: model.image.image;
         width: root.width;
-        height: Styles.thumbnail-width-large;
-        mouse-cursor: pointer;
+        height: root.width;
         clicked => { Navigator.navigate(model.image.url); }
-        Rectangle {
-            width: 100%;
-            height: 100%;
-            border-radius: Styles.thumbnail-border-radius;
-            border-width: Styles.thumbnail-border-width;
-            border-color: Palette.border;
-            clip: true;
-            Image {
-                width: 100%;
-                height: 100%;
-                source: model.image.image;
-                accessible-role: button;
-                accessible-description: model.image.name;
-            }    
-        }
     }
-    Rectangle {}
-    title-area := Link {
+    Link {
         url: model.title.url;
         name: model.title.name;
     }
-    sub-title-area := Link {
+    Link {
         url: model.sub-title.url;
         name: model.sub-title.name;
-    }
-}
-
-export component BorderImage inherits TouchArea {
-    in-out property <image> image;
-    mouse-cursor: MouseCursor.pointer;
-    Rectangle {
-        width: root.width;
-        height: root.height;
-        border-radius: Styles.thumbnail-border-radius;
-        border-color: Palette.border;
-        border-width: Styles.thumbnail-border-width;
-        clip: true;
-        Image {
-            width: root.width;
-            height: root.height;
-            source: image;
-        }
-    }
-}
-
-export component NeuCard {
-    width: 200px;
-    height: 200px;
-    in property <CardAdapter> model: {
-        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Fish",url: "internal://release/1234"},
-        title: {name: "A Reign of Fish",url: "internal://release/1234"},
-        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
-    };
-    BorderImage {
-        image: model.image.image;
     }
 }
 

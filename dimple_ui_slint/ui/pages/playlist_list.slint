@@ -1,19 +1,40 @@
 import { ScrollView, VerticalBox, HorizontalBox, Button } from "std-widgets.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
-import {Styles, Texxt} from "../common.slint";
+import { CardAdapter } from "../components/card.slint";
+import {Styles, Texxt, PageTitle, PageSubtitle} from "../common.slint";
 import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
 
 export global PlaylistListAdapter {
+    in-out property <[CardAdapter]> cards: [
+        card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, 
+        card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph,
+        card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph,
+        card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph,
+        card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph,
+    ];
+
     pure callback new_playlist();
+
+    property <CardAdapter> card_ph: {
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Mega-Super-Fish",url: "internal://release/1234"},
+        title: {name: "A Reign of Super Mega Ultra Fish",url: "internal://release/1234"},
+        sub-title: {name: "Fresh Finger Lickin' Good Pliers",url: "internal://artist/9876"},
+    };
 }
 
 export component PlaylistList inherits VerticalBox {
-    in-out property <CardGridAdapter> model;
+    padding: 0;
 
     VerticalLayout {
-        Texxt {
+        alignment: start;
+        padding: 0;
+    
+        PageTitle {
             text: "Playlists";
         }    
+        PageSubtitle {
+            text: PlaylistListAdapter.cards.length + " items";
+        }
         ActionButtons {
             ActionButton {
                 label: @tr("New Playlist");
@@ -24,19 +45,12 @@ export component PlaylistList inherits VerticalBox {
     }
 
     ScrollView {        
-        vertical-scrollbar-policy: always-on;
         horizontal-scrollbar-policy: always-off;
-        viewport-width: parent.width;
         VerticalBox {
-            card-grid := CardGrid {
-                cards: model.cards;
-                parent-width: root.width;
+            width: 100%;
+            CardGrid {
+                cards: PlaylistListAdapter.cards;
             }
         }
-    }
-
-    Texxt {
-        horizontal-alignment: right;
-        text: model.cards.length + " items";
     }
 }

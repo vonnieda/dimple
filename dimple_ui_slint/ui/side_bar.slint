@@ -57,11 +57,14 @@ component SideBarImageItem inherits Rectangle {
     }
 }
 
-component SideBarMenuItem inherits HorizontalLayout {
+component SideBarMenuItem inherits HorizontalBox {
     in property <image> image: @image-url("../icons/phosphor/SVGs/regular/house.svg");
     in property <string> url: "dimple://home";
     in property <string> text: "Home";
-    spacing: 8px;
+
+    alignment: start;
+    padding: 0;
+    spacing: 4px;
 
     TouchArea {
         width: Styles.icon-width-sidebar;
@@ -80,6 +83,8 @@ component SideBarMenuItem inherits HorizontalLayout {
     Link {
         name: text;
         url: url;
+        font-size: Styles.default-font-size * 1.2;
+        font-weight: Styles.font-weight-bold;
     }
 }
 

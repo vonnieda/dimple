@@ -6,10 +6,9 @@ export component SearchResults inherits VerticalLayout {
     in-out property <CardGridAdapter> model;
 
     ScrollView {                        
-        card-grid := CardGrid {
-            cards: model.cards;
-            parent-width: parent.width;
-        }
+        // CardGrid {
+        //     cards: model.cards;
+        // }
     }
     Texxt {
         horizontal-alignment: right;

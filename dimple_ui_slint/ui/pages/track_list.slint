@@ -2,7 +2,7 @@ import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox, StandardListView, Palette} from "std-widgets.slint";
-import { AppState, Styles, Navigator, Texxt } from "../common.slint";
+import { AppState, Styles, Navigator, Texxt, PageTitle, PageSubtitle } from "../common.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
 export global TrackListAdapter {
@@ -17,47 +17,49 @@ export global TrackListAdapter {
     pure callback play_next(string /* key */);
     pure callback play_later(string /* key */);
 }
- 
-export component TrackList inherits VerticalBox {
-    in-out property <length> popup-x;
-    in-out property <length> popup-y;
+
+component RowPopupMenu inherits PopupMenu {
     in-out property <int> popup-row;
 
-    // Looks like maybe auto positioning in 1.9.0 https://github.com/slint-ui/slint/blob/master/CHANGELOG.md
-    // Improved PopupWindow positioning: positioned it to avoid clipping by the window
-    popup := PopupMenu {
-        x: popup-x; 
-        y: popup-y; 
+    PopupMenuButton {
+        text: "Play Later";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+        clicked => { TrackListAdapter.play_later(TrackListAdapter.row_keys[popup-row]); }
+    }
+    PopupMenuButton {
+        text: "Play Next";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+        clicked => { TrackListAdapter.play_next(TrackListAdapter.row_keys[popup-row]); }
+    }
+    PopupMenuButton {
+        text: "Play Now";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+        clicked => { TrackListAdapter.play_now(TrackListAdapter.row_keys[popup-row]); }
+    }
+    PopupMenuButton {
+        text: "Track Info";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
+        clicked => { Navigator.navigate("dimple://track/" + TrackListAdapter.row_keys[root.popup-row]); }
+    }
+}    
 
-        PopupMenuButton {
-            text: "Play Later";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
-            clicked => { TrackListAdapter.play_later(TrackListAdapter.row_keys[popup-row]); }
-        }
-        PopupMenuButton {
-            text: "Play Next";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
-            clicked => { TrackListAdapter.play_next(TrackListAdapter.row_keys[popup-row]); }
-        }
-        PopupMenuButton {
-            text: "Play Now";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-            clicked => { TrackListAdapter.play_now(TrackListAdapter.row_keys[popup-row]); }
-        }
-        PopupMenuButton {
-            text: "Track Info";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
-            clicked => { Navigator.navigate("dimple://track/" + TrackListAdapter.row_keys[root.popup-row]); }
-        }
-    }    
+export component TrackList inherits VerticalBox {
+    alignment: start;
+    padding: 0;
 
-    Texxt {
-        text: "Tracks";
+    popup := RowPopupMenu {}
+
+    VerticalLayout {
+        PageTitle {
+            text: "Tracks";
+        }
+        PageSubtitle {
+            text: TrackListAdapter.row_data.length + " items";
+        }
     }
 
     table := StandardTableView {
-        vertical-stretch: 1;
-        horizontal-stretch: 1;
+        preferred-height: root.height;
         // https://docs.slint.dev/latest/docs/slint/src/language/builtins/structs#tablecolumn
         columns: [
             { title: "Title", horizontal_stretch: 0.40 },
@@ -70,25 +72,20 @@ export component TrackList inherits VerticalBox {
         rows: TrackListAdapter.row_data;
         sort-ascending(index) => { TrackListAdapter.sort_table(index, true); }
         sort-descending(index) => { TrackListAdapter.sort_table(index, false); }
-        row-pointer-event(row, event, point) => {
-            if event.button == PointerEventButton.right 
-                    && event.kind == PointerEventKind.down {
-                popup-x = point.x;
-                popup-y = point.y;
-                popup-row = row;
-                popup.show();
-            }
-            else if event.button == PointerEventButton.left 
-                    && row == table.current-row
-                    && event.kind == PointerEventKind.down {
-                Navigator.navigate("dimple://track/" + TrackListAdapter.row_keys[row]);
-            }
-        }
-    }
-    
-    Texxt {
-        horizontal-alignment: right;
-        text: TrackListAdapter.row_data.length + " items";
-    }
+        // row-pointer-event(row, event, point) => {
+        //     if event.button == PointerEventButton.right 
+        //             && event.kind == PointerEventKind.down {
+        //         popup-x = point.x;
+        //         popup-y = point.y;
+        //         popup-row = row;
+        //         popup.show();
+        //     }
+        //     else if event.button == PointerEventButton.left 
+        //             && row == table.current-row
+        //             && event.kind == PointerEventKind.down {
+        //         Navigator.navigate("dimple://track/" + TrackListAdapter.row_keys[row]);
+        //     }
+        // }
+    }    
 }
 

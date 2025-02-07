@@ -1,8 +1,9 @@
 import { Slider , GroupBox, HorizontalBox} from "std-widgets.slint";
 import { StyleMetrics, Button, VerticalBox, Palette } from "std-widgets.slint";
-import { CardAdapter, BorderImage } from "components/card.slint";
+import { CardAdapter } from "components/card.slint";
 import {Link, LinkAdapter} from "./components/link.slint";
 import { Styles, Navigator, AppState, Texxt } from "common.slint";
+import { BorderImage } from "components/border_image.slint";
 
 export enum PlayerState {
     Playing,
@@ -160,7 +161,7 @@ export component PlayerBar {
         BorderImage {
             width: Styles.thumbnail-width-medium;
             height: Styles.thumbnail-width-medium;
-            image: PlayerBarAdapter.now-playing-track.image.image;
+            source: PlayerBarAdapter.now-playing-track.image.image;
             clicked => { Navigator.navigate("dimple://queue") }
         }
         VerticalLayout {

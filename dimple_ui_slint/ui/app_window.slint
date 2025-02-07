@@ -68,7 +68,6 @@ export component AppWindow inherits Window {
     in-out property <CardGridAdapter> search;
     in-out property <CardGridAdapter> artist-list;
     in-out property <CardGridAdapter> genre-list;
-    in-out property <CardGridAdapter> playlist-list;
     in-out property <SideBarAdapter> sidebar;
 
     VerticalBox {
@@ -76,8 +75,9 @@ export component AppWindow inherits Window {
         HorizontalRule {}
         HorizontalLayout {
             HorizontalBox {
+                min-height: 0;
                 padding: 0;
-                width: AppState.sidebar_open ? self.preferred-width.max(200px) : 0px;
+                width: AppState.sidebar_open ? self.preferred-width.max(250px) : 0px;
                 visible: AppState.sidebar_open;
                 opacity: AppState.sidebar_open ? 1.0 : 0.0;
                 animate width, opacity {
@@ -106,9 +106,7 @@ export component AppWindow inherits Window {
                     model: root.genre-list;
                 }
                 if page == Page.GenreDetails: GenreDetails {}
-                if page == Page.PlaylistList: PlaylistList {  
-                    model: root.playlist-list;
-                }
+                if page == Page.PlaylistList: PlaylistList {}  
                 if page == Page.PlaylistDetails: PlaylistDetails {}
                 if page == Page.HistoryList: HistoryList {}
                 if page == Page.Settings: Settings {}

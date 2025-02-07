@@ -45,46 +45,45 @@ export component PlaylistDetails inherits VerticalBox {
                 PlaylistDetailsAdapter.set_name(PlaylistDetailsAdapter.key, text);
             }
         }
-        ActionButtons {
-            ActionButton {
-                icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-                label: @tr("Play Now");
-                clicked => { PlaylistDetailsAdapter.play_now(PlaylistDetailsAdapter.key); }
-            }
-            ActionButton {
-                icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
-                label: @tr("Play Later");
-                clicked => { PlaylistDetailsAdapter.add_to_queue(PlaylistDetailsAdapter.key); }
-            }
-            ActionButton {
-                icon: self.checked 
-                    ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
-                    : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
-                label: @tr("Love");
-                checkable: true;
-                checked: PlaylistDetailsAdapter.love;
-                clicked => { PlaylistDetailsAdapter.set_love(PlaylistDetailsAdapter.key, self.checked); }
-            }
-            ActionButton {
-                icon: self.checked 
-                    ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
-                    : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
-                label: @tr("Play Later");
-                checkable: true;
-                checked: PlaylistDetailsAdapter.download;
-                clicked => { PlaylistDetailsAdapter.set_download(PlaylistDetailsAdapter.key, self.checked); }
-            }
-            ActionButton {
-                label: @tr("Delete Playlist");
-                icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
-                clicked => { PlaylistDetailsAdapter.delete(PlaylistDetailsAdapter.key); }
-            }
-        }
+        // ActionButtons {
+        //     ActionButton {
+        //         icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+        //         label: @tr("Play Now");
+        //         clicked => { PlaylistDetailsAdapter.play_now(PlaylistDetailsAdapter.key); }
+        //     }
+        //     ActionButton {
+        //         icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+        //         label: @tr("Play Later");
+        //         clicked => { PlaylistDetailsAdapter.add_to_queue(PlaylistDetailsAdapter.key); }
+        //     }
+        //     ActionButton {
+        //         icon: self.checked 
+        //             ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
+        //             : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+        //         label: @tr("Love");
+        //         checkable: true;
+        //         checked: PlaylistDetailsAdapter.love;
+        //         clicked => { PlaylistDetailsAdapter.set_love(PlaylistDetailsAdapter.key, self.checked); }
+        //     }
+        //     ActionButton {
+        //         icon: self.checked 
+        //             ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
+        //             : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
+        //         label: @tr("Play Later");
+        //         checkable: true;
+        //         checked: PlaylistDetailsAdapter.download;
+        //         clicked => { PlaylistDetailsAdapter.set_download(PlaylistDetailsAdapter.key, self.checked); }
+        //     }
+        //     ActionButton {
+        //         label: @tr("Delete Playlist");
+        //         icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
+        //         clicked => { PlaylistDetailsAdapter.delete(PlaylistDetailsAdapter.key); }
+        //     }
+        // }
     }
 
     StandardTableView {
-        vertical-stretch: 1;
-        horizontal-stretch: 1;
+        preferred-height: root.height;
         columns: [
             { title: "#", horizontal_stretch: 0.10 },
             { title: "Title", horizontal_stretch: 0.40 },

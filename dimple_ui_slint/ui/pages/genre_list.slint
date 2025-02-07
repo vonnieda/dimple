@@ -1,26 +1,38 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
-import {Styles, Texxt} from "../common.slint";
+import {CardAdapter} from "../components/card.slint";
+import {Styles, Texxt, PageSubtitle, PageTitle} from "../common.slint";
 
-export component GenreList inherits VerticalBox {
-    in-out property <CardGridAdapter> model;
+export component GenreList inherits ScrollView {
+    in-out property <CardGridAdapter> model: model_ph;
 
-    Texxt {
-        text: "Genres";
-    }
-    ScrollView {        
-        vertical-scrollbar-policy: always-on;
-        horizontal-scrollbar-policy: always-off;
-        viewport-width: parent.width;
-        VerticalBox {
-            card-grid := CardGrid {
-                cards: model.cards;
-                parent-width: root.width;
+    VerticalBox {
+        width: 100%;
+        alignment: start;
+        padding: 0;
+
+        VerticalLayout {
+            PageTitle { 
+                text: "Genres";
+            }
+            PageSubtitle {
+                text: model.cards.length + " items";
             }
         }
+        CardGrid {
+            cards: model.cards;
+        }
     }
-    Texxt {
-        horizontal-alignment: right;
-        text: model.cards.length + " items";
-    }
+
+    property <CardAdapter> card_ph: {
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Mega-Super-Fish",url: "internal://release/1234"},
+        title: {name: "A Reign of Super Mega Ultra Fish",url: "internal://release/1234"},
+        sub-title: {name: "Fresh Finger Lickin' Good Pliers",url: "internal://artist/9876"},
+    };
+    
+    property <[CardAdapter]> cards_ph: [card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph];
+
+    property <CardGridAdapter> model_ph: {
+        cards: cards_ph,
+    };
 }

@@ -5,14 +5,15 @@ import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
-import { CardAdapter, BorderImage } from "../components/card.slint";
+import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle } from "../common.slint";
+import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
 import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 import { Tag, GenreList } from "../components/tag.slint";
 import { FlowLayoutResults, FlowLayoutLogic } from "../components/flow_layout.slint";
+import { BorderImage } from "../components/border_image.slint";
 
 export global ReleaseDetailsAdapter {
     in property <string> key;
@@ -22,7 +23,7 @@ export global ReleaseDetailsAdapter {
                 title: {name: "A Reign of Fish"},
             };
     in property <string> disambiguation: "Not to be confused with Rain of Fish by Fargo.";
-    in property <string> summary: "Fresh Pliers does it again with 'A Reign of Fish'. Magna est quis laboris veniam do laborum. Cupidatat ea ipsum aliquip fugiat eu magna labore est eu est labore. Ex nostrud culpa id veniam aliqua aliqua ipsum. Velit do id amet labore mollit id cillum commodo Lorem proident labore eu. Incididunt minim irure culpa excepteur officia sit consequat est mollit. Ipsum anim anim sunt dolore. Laborum consequat deserunt laboris ullamco cillum. Ullamco deserunt ut quis dolore aliquip esse consequat velit amet. Nulla tempor veniam dolor amet occaecat adipisicing nulla laboris.\n\nQui non irure anim irure nisi nulla ex aliquip. Sit do irure esse magna sit do eiusmod. Anim commodo velit non enim nulla.\n\nAnim incididunt dolore nulla laboris eu mollit Lorem minim reprehenderit in quis magna mollit. Labore Lorem esse anim ipsum esse irure ipsum proident deserunt officia consequat sunt sit. Ex laborum ipsum laboris nisi proident. Nulla culpa est commodo dolor. Magna sint id et ut esse mollit qui elit voluptate ea.\n\nDuis amet qui reprehenderit cupidatat qui proident pariatur non ea aute reprehenderit nisi qui. Et elit anim culpa amet eu excepteur voluptate ad adipisicing esse eiusmod. Aliqua Lorem excepteur fugiat aute ullamco ea nostrud ipsum mollit cupidatat id magna. Nisi consectetur cillum incididunt deserunt non officia non laborum non ullamco non eiusmod dolor. Eu sit aute adipisicing Lorem consectetur nisi excepteur laboris eiusmod exercitation proident eu laborum fugiat. Ad id velit minim laboris eu. Do ex aliqua nisi aliqua laborum sunt qui quis officia labore do. Deserunt culpa culpa Lorem reprehenderit consequat ad pariatur anim quis. Nulla officia id ipsum adipisicing commodo labore culpa consectetur nostrud labore. Reprehenderit minim magna qui ullamco aute incididunt. Ipsum eu ad ex consequat et amet.";
+    in property <string> summary: "Fresh Pliers does it again with 'A Reign of Fish'. Ex nostrud culpa id veniam aliqua aliqua ipsum. Velit do id amet labore mollit id cillum commodo Lorem proident labore eu. Incididunt minim irure culpa excepteur officia sit consequat est mollit. Ipsum anim anim sunt dolore. Laborum consequat deserunt laboris ullamco cillum. Ullamco deserunt ut quis dolore aliquip esse consequat velit amet. Nulla tempor veniam dolor amet occaecat adipisicing nulla laboris.\n\nQui non irure anim irure nisi nulla ex aliquip. Sit do irure esse magna sit do eiusmod. Anim commodo velit non enim nulla.\n\nAnim incididunt dolore nulla laboris eu mollit Lorem minim reprehenderit in quis magna mollit. Labore Lorem esse anim ipsum esse irure ipsum proident deserunt officia consequat sunt sit. Ex laborum ipsum laboris nisi proident. Nulla culpa est commodo dolor. Magna sint id et ut esse mollit qui elit voluptate ea.";
     in property <[LinkAdapter]> genres: [{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},];
     in property <[LinkAdapter]> links: [{name: "https://bandcamp.com/arof",url: "internal://release/1234"}];
     in property <[LinkAdapter]> artists: [{name: "Fresh Pliers"},{name: "Example Band"},{name: "Teal Cup"},];
@@ -65,65 +66,70 @@ export global ReleaseDetailsAdapter {
     pure callback sort_table(int /* column */, bool /* ascending */);
 }
 
+// popup := PopupMenu {
+//     x: popup-x; 
+//     y: popup-y; 
+
+//     PopupMenuButton {
+//         text: "Play Later";
+//         icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+//         clicked => { ReleaseDetailsAdapter.play_track_later(ReleaseDetailsAdapter.row_keys[popup-row]); }
+//     }
+//     PopupMenuButton {
+//         text: "Play Next";
+//         icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+//         clicked => { ReleaseDetailsAdapter.play_track_next(ReleaseDetailsAdapter.row_keys[popup-row]); }
+//     }
+//     PopupMenuButton {
+//         text: "Play Now";
+//         icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+//         clicked => { ReleaseDetailsAdapter.play_track_now(ReleaseDetailsAdapter.row_keys[popup-row]); }
+//     }
+//     PopupMenuButton {
+//         text: "Track Info";
+//         icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
+//         clicked => { Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[root.popup-row]); }
+//     }
+// }    
+
 export component ReleaseDetails inherits ScrollView {
+    horizontal-scrollbar-policy: always-off;
+
     in-out property <length> popup-x;
     in-out property <length> popup-y;
     in-out property <int> popup-row;
 
-    popup := PopupMenu {
-        x: popup-x; 
-        y: popup-y; 
-
-        PopupMenuButton {
-            text: "Play Later";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
-            clicked => { ReleaseDetailsAdapter.play_track_later(ReleaseDetailsAdapter.row_keys[popup-row]); }
-        }
-        PopupMenuButton {
-            text: "Play Next";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
-            clicked => { ReleaseDetailsAdapter.play_track_next(ReleaseDetailsAdapter.row_keys[popup-row]); }
-        }
-        PopupMenuButton {
-            text: "Play Now";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-            clicked => { ReleaseDetailsAdapter.play_track_now(ReleaseDetailsAdapter.row_keys[popup-row]); }
-        }
-        PopupMenuButton {
-            text: "Track Info";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
-            clicked => { Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[root.popup-row]); }
-        }
-    }    
-
     VerticalBox {
+        width: 100%;
         alignment: start;
         padding: 0;
+
         HorizontalBox {
             alignment: start;
             padding: 0;
+
             BorderImage {
                 width: Styles.thumbnail-width-extra-large;
                 height: Styles.thumbnail-width-extra-large;
-                image: ReleaseDetailsAdapter.card.image.image;
+                source: ReleaseDetailsAdapter.card.image.image;
             }
             VerticalBox {
                 alignment: start;
                 padding: 0;
-                PageTitle {
-                    text: ReleaseDetailsAdapter.card.title.name;
-                    wrap: word-wrap;
-                }
-                
-                // Disambiguation
-                if ReleaseDetailsAdapter.disambiguation != "": PageSubtitle {
-                    text: ReleaseDetailsAdapter.disambiguation;
+
+                VerticalLayout {
+                    PageTitle {
+                        text: ReleaseDetailsAdapter.card.title.name;
+                        wrap: word-wrap;
+                    }
+                    if ReleaseDetailsAdapter.disambiguation != "": PageSubtitle {
+                        text: ReleaseDetailsAdapter.disambiguation;
+                    }
                 }
 
-                // Type and artists
                 if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
                     alignment: start;
-                    Texxt {
+                    if ReleaseDetailsAdapter.release-type != "": Texxt {
                         text: "\{ReleaseDetailsAdapter.release-type} by ";
                     }
                     Links {
@@ -146,41 +152,37 @@ export component ReleaseDetails inherits ScrollView {
         }
 
         // Tracks
-        VerticalBox {
-            Texxt {
-                text: "Tracks";
-            }
-            table := StandardTableView {
-                columns: [
-                    { title: "#", horizontal_stretch: 0.10 },
-                    { title: "Title", horizontal_stretch: 0.50 },
-                    { title: "Artist", horizontal_stretch: 0.30 },
-                    { title: "Length", horizontal_stretch: 0.10 },
-                    ];
-                rows: ReleaseDetailsAdapter.row_data;
-                sort-ascending(index) => { ReleaseDetailsAdapter.sort_table(index, true); }
-                sort-descending(index) => { ReleaseDetailsAdapter.sort_table(index, false); }
-                row-pointer-event(row, event, point) => {
-                    if event.button == PointerEventButton.right 
-                            && event.kind == PointerEventKind.down {
-                        popup-x = table.absolute-position.x + point.x;
-                        popup-y = table.absolute-position.y + point.y;
-                        popup-row = row;
-                        popup.show();
-                    }
-                    else if event.button == PointerEventButton.left 
-                            && row == table.current-row
-                            && event.kind == PointerEventKind.down {
-                        Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[row]);
-                    }
-                }
-            }
+        table := StandardTableView {
+            preferred-height: root.height;
+            columns: [
+                { title: "#", horizontal_stretch: 0.10 },
+                { title: "Title", horizontal_stretch: 0.50 },
+                { title: "Artist", horizontal_stretch: 0.30 },
+                { title: "Length", horizontal_stretch: 0.10 },
+                ];
+            rows: ReleaseDetailsAdapter.row_data;
+            sort-ascending(index) => { ReleaseDetailsAdapter.sort_table(index, true); }
+            sort-descending(index) => { ReleaseDetailsAdapter.sort_table(index, false); }
+            // row-pointer-event(row, event, point) => {
+            //     if event.button == PointerEventButton.right 
+            //             && event.kind == PointerEventKind.down {
+            //         popup-x = table.absolute-position.x + point.x;
+            //         popup-y = table.absolute-position.y + point.y;
+            //         popup-row = row;
+            //         popup.show();
+            //     }
+            //     else if event.button == PointerEventButton.left 
+            //             && row == table.current-row
+            //             && event.kind == PointerEventKind.down {
+            //         Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[row]);
+            //     }
+            // }
         }
 
-        // Links
         if ReleaseDetailsAdapter.links.length > 0: VerticalBox {
             alignment: start;
-            Texxt {
+            padding: 0;
+            SectionTitle {
                 text: "Links";
             }
             for link in ReleaseDetailsAdapter.links: Link {

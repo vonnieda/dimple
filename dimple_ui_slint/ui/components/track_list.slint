@@ -1,0 +1,100 @@
+import {LinkAdapter} from "link.slint";
+import { Links, Link } from "link.slint";
+import { Styles, Navigator } from "../common.slint";
+import {StyleMetrics} from "std-widgets.slint";
+
+export struct TrackAdapter {
+    title: LinkAdapter,
+    track_number: string,
+    length: string, // 5:03
+    artists: [LinkAdapter],
+    plays: int,
+    source_count: int,
+}
+
+export component TrackList inherits VerticalLayout {
+    in-out property <[TrackAdapter]> tracks;
+
+    in-out property <length> font-size: 1.3rem;
+
+    HorizontalLayout {
+        padding: 4px;
+        Text {
+            text: "#";
+            font-size: root.font-size;
+            font-weight: Styles.font-weight-bold;
+            width: 10%;
+        }
+        HorizontalLayout {
+            // TODO like, save, etc. icons
+        }
+        Text {
+            text: "Title";
+            font-size: root.font-size;
+            font-weight: Styles.font-weight-bold;
+            width: 60%;
+        }
+        Text {
+            text: "Plays";
+            font-size: root.font-size;
+            font-weight: Styles.font-weight-bold;
+            width: 10%;
+        }
+        Text {
+            text: "Sources";
+            font-size: root.font-size;
+            font-weight: Styles.font-weight-bold;
+            width: 10%;
+        }
+        Text {
+            text: "Length";
+            font-size: root.font-size;
+            font-weight: Styles.font-weight-bold;
+            width: 10%;
+        }
+    }
+    Rectangle {
+        background: StyleMetrics.default-text-color.darker(0.5);
+        height: 1px;
+    }
+    for track in tracks: VerticalLayout {
+       HorizontalLayout {
+            padding: 4px;
+            Text {
+                vertical-alignment: center;
+                text: track.track_number;
+                font-size: root.font-size;
+                width: 10%;
+            }
+            VerticalLayout {
+                width: 60%;
+                spacing: 4px;
+                Link {
+                    name: track.title.name;
+                    url: track.title.url;
+                }
+                Links {
+                    links: track.artists;
+                }
+            }
+            Text {
+                vertical-alignment: center;
+                text: track.plays;
+                font-size: root.font-size;
+                width: 10%;
+            }
+            Text {
+                vertical-alignment: center;
+                text: track.source-count;
+                font-size: root.font-size;
+                width: 10%;
+            }
+            Text {
+                vertical-alignment: center;
+                text: track.length;
+                font-size: root.font-size;
+                width: 10%;
+            }
+        }
+    }
+}

@@ -1,5 +1,5 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
-import { CardGrid, CardGridAdapter, CardGrid2 } from "../components/card_grid.slint";
+import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { CardAdapter, Card } from "../components/card.slint";
 import {Styles, Texxt, PageTitle, PageSubtitle} from "../common.slint";
 
@@ -7,18 +7,20 @@ export component ArtistList inherits ScrollView {
     in-out property <CardGridAdapter> model: model_ph;
 
     VerticalBox {
+        width: 100%;
         alignment: start;
         padding: 0;
 
-        PageTitle { 
-            text: "Artists";
+        VerticalLayout {
+            PageTitle { 
+                text: "Artists";
+            }
+            PageSubtitle {
+                text: model.cards.length + " items";
+            }
         }
-        PageSubtitle {
-            text: model.cards.length + " items";
-        }
-        CardGrid2 {
+        CardGrid {
             cards: model.cards;
-            height: self.preferred-height;
         }
     }
 

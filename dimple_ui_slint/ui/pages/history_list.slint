@@ -3,7 +3,7 @@ import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { AppState } from "../common.slint";
-import {Styles, Texxt} from "../common.slint";
+import {Styles, Texxt, PageTitle, PageSubtitle} from "../common.slint";
 
 export global HistoryListAdapter {
     in property <[[StandardListViewItem]]> row_data;
@@ -14,14 +14,18 @@ export global HistoryListAdapter {
 export component HistoryList inherits VerticalBox {
     property <int> sort-index: -1;
     property <bool> sort-acending;
-        
-    Texxt {
-        text: "Listening History";
+
+    VerticalLayout {
+        PageTitle {
+            text: "Listening History";
+        }
+        PageSubtitle {
+            text: HistoryListAdapter.row_data.length + " items";
+        }
     }
 
     StandardTableView {
-        vertical-stretch: 1;
-        horizontal-stretch: 1;
+        preferred-height: root.height;
         columns: [
             { title: "Date", horizontal_stretch: 0.15 },
             { title: "Type", horizontal_stretch: 0.15 },
@@ -41,10 +45,5 @@ export component HistoryList inherits VerticalBox {
             root.sort-index = index;
             root.sort-acending = false;
         }        
-    }
-    
-    Texxt {
-        horizontal-alignment: right;
-        text: HistoryListAdapter.row_data.length + " items";
-    }
+    }    
 }

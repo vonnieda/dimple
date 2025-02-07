@@ -2,11 +2,32 @@ import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, Palette} from "std-widgets.slint";
-import { Styles, AppState, Navigator, Texxt } from "../common.slint";
+import { Styles, AppState, Navigator, Texxt, PageTitle, PageSubtitle } from "../common.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
 export global QueueDetailsAdapter {
     in property <[[StandardListViewItem]]> row_data: [
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
+        [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
         [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
         [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
         [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
@@ -18,44 +39,49 @@ export global QueueDetailsAdapter {
     pure callback remove_all();
 }
 
-export component QueueDetails inherits VerticalBox {
-    in-out property <length> popup-x;
-    in-out property <length> popup-y;
+
+component RowPopupMenu inherits PopupMenu {
     in-out property <int> popup-row;
 
-    popup := PopupMenu {
-        x: popup-x; 
-        y: popup-y; 
+    PopupMenuButton {
+        text: "Play Now";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+        clicked => { QueueDetailsAdapter.play_now(popup-row); }
+    }
+    PopupMenuButton {
+        text: "Remove This";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+        clicked => { QueueDetailsAdapter.remove_row(popup-row); }
+    }
+    PopupMenuButton {
+        text: "Remove All";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
+        clicked => { QueueDetailsAdapter.remove_all(); }
+    }
+    PopupMenuButton {
+        text: "Track Info";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
+        clicked => { Navigator.navigate("dimple://track/" + QueueDetailsAdapter.row_keys[root.popup-row]); }
+    }
+}
 
-        PopupMenuButton {
-            text: "Play Now";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-            clicked => { QueueDetailsAdapter.play_now(popup-row); }
+export component QueueDetails inherits VerticalBox {
+    alignment: start;
+    padding: 0;
+
+    popup := RowPopupMenu {}
+
+    VerticalLayout {
+        PageTitle {
+            text: "Play Queue";
         }
-        PopupMenuButton {
-            text: "Remove This";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
-            clicked => { QueueDetailsAdapter.remove_row(popup-row); }
-        }
-        PopupMenuButton {
-            text: "Remove All";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
-            clicked => { QueueDetailsAdapter.remove_all(); }
-        }
-        PopupMenuButton {
-            text: "Track Info";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
-            clicked => { Navigator.navigate("dimple://track/" + QueueDetailsAdapter.row_keys[root.popup-row]); }
+        PageSubtitle {
+            text: QueueDetailsAdapter.row_data.length + " items";
         }
     }
-
-    Texxt {
-        text: "Play Queue";
-    }
-        
+  
     table := StandardTableView {
-        vertical-stretch: 1;
-        horizontal-stretch: 1;
+        preferred-height: root.height;
         columns: [
             { title: "#", horizontal_stretch: 0.10 },
             { title: "Title", horizontal_stretch: 0.40 },
@@ -66,24 +92,19 @@ export component QueueDetails inherits VerticalBox {
         rows: QueueDetailsAdapter.row_data;
         sort-ascending(index) => { QueueDetailsAdapter.sort_table(index, true); }
         sort-descending(index) => { QueueDetailsAdapter.sort_table(index, false); }
-        row-pointer-event(row, event, point) => {
-            if event.button == PointerEventButton.right 
-                    && event.kind == PointerEventKind.down {
-                popup-x = point.x;
-                popup-y = point.y;
-                popup-row = row;
-                popup.show();
-            }
-            else if event.button == PointerEventButton.left 
-                    && row == table.current-row
-                    && event.kind == PointerEventKind.down {
-                Navigator.navigate("dimple://track/" + QueueDetailsAdapter.row_keys[row]);
-            }
-        }
-    }
-
-    Texxt {
-        horizontal-alignment: right;
-        text: QueueDetailsAdapter.row_data.length + " items";
+        // row-pointer-event(row, event, point) => {
+        //     if event.button == PointerEventButton.right 
+        //             && event.kind == PointerEventKind.down {
+        //         popup-x = point.x;
+        //         popup-y = point.y;
+        //         popup-row = row;
+        //         popup.show();
+        //     }
+        //     else if event.button == PointerEventButton.left 
+        //             && row == table.current-row
+        //             && event.kind == PointerEventKind.down {
+        //         Navigator.navigate("dimple://track/" + QueueDetailsAdapter.row_keys[row]);
+        //     }
+        // }
     }
 }

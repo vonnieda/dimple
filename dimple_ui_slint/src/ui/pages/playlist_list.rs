@@ -3,7 +3,7 @@ use crate::ui::CardAdapter;
 use crate::ui::CardGridAdapter;
 use crate::ui::Page;
 use dimple_core::model::Playlist;
-use slint::Model;
+use slint::Model as _;
 use slint::ModelRc;
 use crate::ui::PlaylistListAdapter;
 use slint::ComponentHandle;
@@ -27,17 +27,14 @@ pub fn playlist_list(app: &App) {
                 .map(|(index, playlist)| {
                     let mut card: CardAdapter = playlist.clone().into();
                     card.image.image = images.lazy_get(playlist, 200, 200, move |ui, image| {
-                        let mut card = ui.get_playlist_list().cards.row_data(index).unwrap();
+                        let mut card = ui.global::<PlaylistListAdapter>().get_cards().row_data(index).unwrap();
                         card.image.image = image;
-                        ui.get_playlist_list().cards.set_row_data(index, card);
+                        ui.global::<PlaylistListAdapter>().get_cards().set_row_data(index, card);
                     });
                     card
                 })
                 .collect();
-            let adapter = CardGridAdapter {
-                cards: ModelRc::from(cards.as_slice()),
-            };
-            ui.set_playlist_list(adapter);
+            ui.global::<PlaylistListAdapter>().set_cards(cards.as_slice().into());
             ui.set_page(Page::PlaylistList);
         }).unwrap();
     });

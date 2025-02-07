@@ -1,16 +1,21 @@
 import { Styles } from "../common.slint";
 import { Palette } from "std-widgets.slint";
-export component BorderImage inherits Rectangle {
-    in-out property <image> image;
 
-    border-radius: Styles.thumbnail-border-radius;
-    border-color: Palette.border;
-    border-width: Styles.thumbnail-border-width;
-    clip: true;
-    Image {
-        width: parent.width;
-        height: parent.height;
-        source: image;
+export component BorderImage inherits TouchArea {
+    in-out property <image> source;
+    mouse-cursor: MouseCursor.pointer;
+    Rectangle {
+        width: root.width;
+        height: root.height;
+        border-radius: Styles.thumbnail-border-radius;
+        border-color: Palette.border;
+        border-width: Styles.thumbnail-border-width;
+        clip: true;
+        Image {
+            width: root.width;
+            height: root.height;
+            source: root.source;
+        }
     }
 }
 

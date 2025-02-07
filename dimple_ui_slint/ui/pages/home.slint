@@ -1,6 +1,6 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { CardGrid, CardGridAdapter, CardGrid2 } from "../components/card_grid.slint";
+import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { Styles, Texxt, PageTitle, SectionTitle, SectionSubtitle } from "../common.slint";
 import { LinkAdapter } from "../components/link.slint";
 
@@ -70,7 +70,10 @@ export global HomeAdapter {
 }
 
 export component Home inherits ScrollView {
+    horizontal-scrollbar-policy: always-off;
+
     VerticalBox {
+        width: 100%;
         alignment: start;
         padding: 0;
 
@@ -81,15 +84,18 @@ export component Home inherits ScrollView {
         for section in HomeAdapter.sections: VerticalBox {
             alignment: start;
             padding: 0;
-            SectionTitle {
-                text: section.title;
-            }
-            if section.sub-title != "": SectionSubtitle {
-                text: section.sub-title;
+            padding-bottom: 16px;
+            VerticalLayout {
+                SectionTitle {
+                    text: section.title;
+                }
+                if section.sub-title != "": SectionSubtitle {
+                    text: section.sub-title;
+                }
             }
             CardGrid {
                 cards: section.cards;
-                parent-width: root.width;
+                max-rows: 1;
             }
         }
     }
