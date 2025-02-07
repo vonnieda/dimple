@@ -1,7 +1,8 @@
 import { FlowLayoutResults } from "./flow_layout.slint";
 import { FlowLayoutLogic } from "flow_layout.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { Navigator, Texxt } from "../common.slint";
+import { Navigator, Texxt, Styles } from "../common.slint";
+import { Palette } from "std-widgets.slint";
 
 export component Tag inherits TouchArea {
     in-out property <string> text: "heavy metal";
@@ -9,10 +10,10 @@ export component Tag inherits TouchArea {
 
     Rectangle {
         clip: true;
-        border-width: 2px;
-        border-color: white;
-        border-radius: 16px;
-        background: root.has-hover ? root.color.brighter(0.1) : root.color;
+        border-width: Styles.thumbnail-border-width;
+        border-color: Palette.border;
+        border-radius: Styles.thumbnail-border-radius;
+        background: root.has-hover ? root.color.brighter(0.25) : root.color;
         HorizontalLayout {
             padding: 8px;
             text := Texxt {

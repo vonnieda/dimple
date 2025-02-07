@@ -70,7 +70,7 @@ fn new_releases(app: &App) -> ModelRc<CardAdapter> {
 
 fn made_for_you(app: &App) -> ModelRc<CardAdapter> {
     let releases: Vec<Release> = app.library.query("
-        SELECT * FROM Release ORDER BY date DESC LIMIT 10 
+        SELECT * FROM Release ORDER BY random() LIMIT 10 
     ", ());
     let images = app.images.clone();
     let cards: Vec<CardAdapter> = release_cards(&images, &releases, &app.library);
@@ -79,8 +79,19 @@ fn made_for_you(app: &App) -> ModelRc<CardAdapter> {
 
 fn jump_back_in(app: &App) -> ModelRc<CardAdapter> {
     let releases: Vec<Release> = app.library.query("
-        SELECT * FROM Release ORDER BY date DESC LIMIT 10 
-    ", ());
+        SELECT Release.* 
+        FROM Release 
+        JOIN ArtistRef ON (ArtistRef.model_key = Release.key)
+        JOIN Artist ON (Artist.key = ArtistRef.artist_key)
+        JOIN 
+            (SELECT artist,album,count(title) AS cnt 
+                FROM Event 
+                WHERE (event_type = 'track_played' OR event_type = 'track_restarted') 
+                GROUP BY artist,album) AS Ranks 
+            ON (Release.title = Ranks.album AND Artist.name = Ranks.artist)
+        WHERE cnt > 3
+        ORDER BY random() LIMIT 10;
+        ", ());
     let images = app.images.clone();
     let cards: Vec<CardAdapter> = release_cards(&images, &releases, &app.library);
     cards.as_slice().into()

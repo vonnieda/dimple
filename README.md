@@ -45,11 +45,12 @@ software full time:
 
 ## Sync
 - Sync, stream, and download your music on any supported device, with any S3
-  compatible storage service. 
-- Dimple offers a cheap and built in option that helps pay for development,
-  or use any S3 compatible storage you like. You can even self-host!
+  compatible storage service.
+- Dimple Cloud is a cheap and built in storage option that helps pay for 
+  development, or use any [S3 compatible storage you like](https://www.s3compare.io/). 
+  You can even self-host!
 - Keep your likes, listens, playlists, metadata and more synchronized between
-  your devices
+  your devices.
 
 ## Rich Metadata
 - Metadata from MusicBrainz, Wikipedia, ListenBrainz, Last.fm, Discogs, etc.

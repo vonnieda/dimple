@@ -2,7 +2,7 @@ import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, TextEdit, LineEdit, Palette} from "std-widgets.slint";
-import { AppState, Styles, Texxt } from "../common.slint";
+import { AppState, Styles, Texxt, PageTitle, PageSubtitle } from "../common.slint";
 import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
 
 export global PlaylistDetailsAdapter {
@@ -22,6 +22,9 @@ export global PlaylistDetailsAdapter {
 }
 
 export component PlaylistDetails inherits VerticalBox {
+    alignment: start;
+    padding: 0;
+
     property <int> sort-index: -1;
     property <bool> sort-acending;
     in-out property <length> popup-x;
@@ -29,57 +32,25 @@ export component PlaylistDetails inherits VerticalBox {
     in-out property <int> popup-row;
 
     in-out property <bool> name_editing: false;
-    VerticalLayout {        
-        if !name_editing: TouchArea {
-            text := Texxt {
+    if !name_editing: VerticalLayout {
+        TouchArea {
+            text := PageTitle {
                 text: PlaylistDetailsAdapter.name;
             }
             width: text.width;
             height: text.height;
             clicked => { name_editing = true; }
         }
-        if name_editing: LineEdit {
-            text: PlaylistDetailsAdapter.name;
-            accepted(text) => { 
-                name_editing = false;                
-                PlaylistDetailsAdapter.set_name(PlaylistDetailsAdapter.key, text);
-            }
+        PageSubtitle {
+            text: PlaylistDetailsAdapter.row_data.length + " items";
         }
-        // ActionButtons {
-        //     ActionButton {
-        //         icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-        //         label: @tr("Play Now");
-        //         clicked => { PlaylistDetailsAdapter.play_now(PlaylistDetailsAdapter.key); }
-        //     }
-        //     ActionButton {
-        //         icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
-        //         label: @tr("Play Later");
-        //         clicked => { PlaylistDetailsAdapter.add_to_queue(PlaylistDetailsAdapter.key); }
-        //     }
-        //     ActionButton {
-        //         icon: self.checked 
-        //             ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
-        //             : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
-        //         label: @tr("Love");
-        //         checkable: true;
-        //         checked: PlaylistDetailsAdapter.love;
-        //         clicked => { PlaylistDetailsAdapter.set_love(PlaylistDetailsAdapter.key, self.checked); }
-        //     }
-        //     ActionButton {
-        //         icon: self.checked 
-        //             ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
-        //             : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
-        //         label: @tr("Play Later");
-        //         checkable: true;
-        //         checked: PlaylistDetailsAdapter.download;
-        //         clicked => { PlaylistDetailsAdapter.set_download(PlaylistDetailsAdapter.key, self.checked); }
-        //     }
-        //     ActionButton {
-        //         label: @tr("Delete Playlist");
-        //         icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
-        //         clicked => { PlaylistDetailsAdapter.delete(PlaylistDetailsAdapter.key); }
-        //     }
-        // }
+    }
+    if name_editing: LineEdit {
+        text: PlaylistDetailsAdapter.name;
+        accepted(text) => { 
+            name_editing = false;                
+            PlaylistDetailsAdapter.set_name(PlaylistDetailsAdapter.key, text);
+        }
     }
 
     StandardTableView {
@@ -102,9 +73,5 @@ export component PlaylistDetails inherits VerticalBox {
         }        
         row-pointer-event(row, event, point) => {
         }
-    }
-    Texxt {
-        horizontal-alignment: right;
-        text: PlaylistDetailsAdapter.row_data.length + " items";
     }
 }
