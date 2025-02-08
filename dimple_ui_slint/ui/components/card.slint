@@ -18,6 +18,8 @@ export component Card inherits VerticalBox {
         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
     };
 
+    callback pointer-event(event: PointerEvent, x: length, y: length);
+
     width: Styles.thumbnail-width-large;
     alignment: start;
     padding: 0;
@@ -28,6 +30,8 @@ export component Card inherits VerticalBox {
         width: root.width;
         height: root.width;
         clicked => { Navigator.navigate(model.image.url); }
+        // pointer-event(event) => { root.pointer-event(event, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y); }
+        pointer-event(event) => { root.pointer-event(event, self.absolute-position.x + self.mouse-x, self.absolute-position.y); }
     }
     Link {
         url: model.title.url;

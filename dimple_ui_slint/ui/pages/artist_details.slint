@@ -1,7 +1,7 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { CardAdapter } from "../components/card.slint";
-import { StyleMetrics , ScrollView, ListView, Button} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, Button, Palette} from "std-widgets.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
 import { Tag, GenreList } from "../components/tag.slint";
@@ -34,6 +34,32 @@ export global ArtistDetailsAdapter {
     pure callback play_next(string /* key */);
     pure callback play_later(string /* key */);
 }
+
+// Little test of having a header bar that appears as the user scrolls down the
+// page. Needs to be outside the ScrollView, but then I had problems sizing the
+// ScrollView.
+// Rectangle {
+//     x: 0;
+//     y: scroll.viewport-y <= -self.height ? 0 : -self.height;
+//     z: 1;
+//     height: Styles.thumbnail-width-small;
+//     width: root.width;
+//     background: Palette.background;
+//     animate y {
+//         duration: 50ms;             
+//     }
+//     HorizontalBox {
+//         padding: 0;
+//         BorderImage {
+//             width: Styles.thumbnail-width-small;
+//             height: Styles.thumbnail-width-small;
+//             source: ArtistDetailsAdapter.card.image.image;
+//         }
+//         PageTitle {
+//             text: ArtistDetailsAdapter.card.title.name;
+//         }
+//     }    
+// }
 
 export component ArtistDetails inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
@@ -100,5 +126,4 @@ export component ArtistDetails inherits ScrollView {
         }
     }
 }
-
 

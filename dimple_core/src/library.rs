@@ -11,7 +11,7 @@ use threadpool::ThreadPool;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::{model::{Artist, Blob, ChangeLog, FromRow, LibraryModel, MediaFile, Model, ModelBasics as _, Playlist, Release, Track, TrackSource}, notifier::Notifier, sync::Sync};
+use crate::{model::{Artist, Blob, ChangeLog, FromRow, Genre, LibraryModel, MediaFile, Model, ModelBasics as _, Playlist, Release, Track, TrackSource}, notifier::Notifier, sync::Sync};
 
 #[derive(Clone)]
 pub struct Library {
@@ -262,6 +262,22 @@ impl Library {
             }
             for artist in track.artists(self).iter() {
                 if let Some(image) = artist.images(self).get(0) {
+                    return Some(image.get_image())
+                }
+            }
+        }
+        else if model.type_name() == "Genre" {
+            let genre = Genre::get(self, &model.key().clone().unwrap()).unwrap();
+            if let Some(image) = genre.images(self).get(0) {
+                return Some(image.get_image())
+            }
+            for artist in genre.artists(self).iter() {
+                if let Some(image) = artist.images(self).get(0) {
+                    return Some(image.get_image())
+                }
+            }
+            for release in genre.releases(self).iter() {
+                if let Some(image) = release.images(self).get(0) {
                     return Some(image.get_image())
                 }
             }

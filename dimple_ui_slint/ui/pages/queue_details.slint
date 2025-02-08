@@ -59,7 +59,7 @@ component RowPopupMenu inherits PopupMenu {
         clicked => { QueueDetailsAdapter.remove_all(); }
     }
     PopupMenuButton {
-        text: "Track Info";
+        text: "Details";
         icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
         clicked => { Navigator.navigate("dimple://track/" + QueueDetailsAdapter.row_keys[root.popup-row]); }
     }
@@ -69,7 +69,16 @@ export component QueueDetails inherits VerticalBox {
     alignment: start;
     padding: 0;
 
-    popup := RowPopupMenu {}
+    in-out property <length> row-menu-x;
+    in-out property <length> row-menu-y;
+    in-out property <int> row-menu-row;
+    row-menu := RowPopupMenu {
+        x: row-menu-x;
+        y: row-menu-y;
+        popup-row: row-menu-row;
+        width: self.preferred-width;
+        height: self.preferred-height;
+    }
 
     VerticalLayout {
         PageTitle {
@@ -92,19 +101,19 @@ export component QueueDetails inherits VerticalBox {
         rows: QueueDetailsAdapter.row_data;
         sort-ascending(index) => { QueueDetailsAdapter.sort_table(index, true); }
         sort-descending(index) => { QueueDetailsAdapter.sort_table(index, false); }
-        // row-pointer-event(row, event, point) => {
-        //     if event.button == PointerEventButton.right 
-        //             && event.kind == PointerEventKind.down {
-        //         popup-x = point.x;
-        //         popup-y = point.y;
-        //         popup-row = row;
-        //         popup.show();
-        //     }
-        //     else if event.button == PointerEventButton.left 
-        //             && row == table.current-row
-        //             && event.kind == PointerEventKind.down {
-        //         Navigator.navigate("dimple://track/" + QueueDetailsAdapter.row_keys[row]);
-        //     }
-        // }
+        row-pointer-event(row, event, point) => {
+            if event.button == PointerEventButton.right 
+                    && event.kind == PointerEventKind.down {
+                row-menu-x = point.x;
+                row-menu-y = point.y;
+                row-menu-row = row;
+                row-menu.show();
+            }
+            else if event.button == PointerEventButton.left 
+                    && row == table.current-row
+                    && event.kind == PointerEventKind.down {
+                Navigator.navigate("dimple://track/" + QueueDetailsAdapter.row_keys[row]);
+            }
+        }
     }
 }

@@ -19,12 +19,15 @@ export component CardGrid inherits VerticalBox {
     alignment: start;
     padding: 0;
 
+    callback pointer-event(event: PointerEvent, x: length, y: length);
+
     for row in rows: HorizontalBox {
         alignment: start;
         padding: 0;
         for col in Math.min(cols, cards.length - (row * cols)): Card {
             // width: root.card-width + addl-spacing;
             model: cards[row * cols + col];
+            pointer-event(event, x, y) => { root.pointer-event(event, x, y); }
         }
     }
 

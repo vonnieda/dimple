@@ -40,6 +40,12 @@ export component GenreList inherits Rectangle {
         width: layout.widths[i];
         height: layout.heights[i];
         clicked => { Navigator.navigate(genres[i].url); }
+        changed preferred-width => {
+            preferred-widths[i] = self.preferred-width;
+        }
+        changed preferred-height => {
+            preferred-heights[i] = self.preferred-height;
+        }
         init => {
             preferred-widths[i] = self.preferred-width;
             preferred-heights[i] = self.preferred-height;
