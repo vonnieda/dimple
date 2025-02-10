@@ -2,7 +2,6 @@ import { ScrollView, VerticalBox, HorizontalBox, Button } from "std-widgets.slin
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { CardAdapter } from "../components/card.slint";
 import {Styles, Texxt, PageTitle, PageSubtitle} from "../common.slint";
-import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
 
 export global PlaylistListAdapter {
     in-out property <[CardAdapter]> cards: [
@@ -35,13 +34,13 @@ export component PlaylistList inherits VerticalBox {
         PageSubtitle {
             text: PlaylistListAdapter.cards.length + " items";
         }
-        ActionButtons {
-            ActionButton {
-                label: @tr("New Playlist");
-                icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
-                clicked => { PlaylistListAdapter.new_playlist(); }
-            }
-        }
+        // ActionButtons {
+        //     ActionButton {
+        //         label: @tr("New Playlist");
+        //         icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
+        //         clicked => { PlaylistListAdapter.new_playlist(); }
+        //     }
+        // }
     }
 
     ScrollView {        

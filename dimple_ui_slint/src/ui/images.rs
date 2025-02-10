@@ -41,7 +41,7 @@ impl ImageMangler {
             genre_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/globe-simple.png")),
             playlist_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/playlist.png")),
             other_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/question.png")),
-            threadpool: ThreadPool::new(8),
+            threadpool: ThreadPool::default(),
             cache_path: cache_path.to_string(),
             ui,
         };

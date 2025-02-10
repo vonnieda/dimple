@@ -4,8 +4,8 @@ import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
-import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
-import { GenreList } from "../components/tag.slint";
+// import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
+import { TagList, LinkButtons } from "../components/tag.slint";
 import { BorderImage } from "../components/border_image.slint";
 
 export global TrackDetailsAdapter {
@@ -102,13 +102,13 @@ export component TrackDetails inherits ScrollView {
                     }
                 }
 
-                // if TrackDetailsAdapter.artists.length > 0: Links {
-                //     links: TrackDetailsAdapter.artists;
-                // }
+                LinkButtons {
+                    links: TrackDetailsAdapter.links;
+                }
 
-                GenreList {
+                TagList {
                     colors: [#6d6371];
-                    genres: TrackDetailsAdapter.artists;
+                    tags: TrackDetailsAdapter.artists;
                     min-width: 64px;
                     min-height: 8px;
                     preferred-width: 5000px;
@@ -118,8 +118,8 @@ export component TrackDetails inherits ScrollView {
                 //     text: "\{TrackDetailsAdapter.release-date}";
                 // }
 
-                GenreList {
-                    genres: TrackDetailsAdapter.genres;
+                TagList {
+                    tags: TrackDetailsAdapter.genres;
                     min-width: 64px;
                     min-height: 8px;
                     preferred-width: 5000px;

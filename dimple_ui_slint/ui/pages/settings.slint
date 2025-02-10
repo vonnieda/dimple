@@ -13,7 +13,7 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox, Slider, Switch, LineEdit, GridBox} from "std-widgets.slint";
 import { AppState, Styles, Navigator, Texxt, PageSubtitle, SectionTitle, PageTitle } from "../common.slint";
-import { ActionButton } from "../components/action_buttons.slint";
+// import { ActionButton } from "../components/action_buttons.slint";
 
 export struct PluginAdapter {
     title: string,
@@ -33,35 +33,24 @@ export global SettingsAdapter {
     pure callback import_directories();
 }
 
+component ActionButton inherits Button {
+    colorize-icon: true;
+}
+
 component General inherits VerticalBox {
     SectionTitle {
         text: "General";
     }
 
-    // HorizontalBox {
-    //     alignment: LayoutAlignment.start;
-    //     Texxt {
-    //         text: "Font Size";
-    //         vertical-alignment: center;
-    //     }
-
-    //     Slider {
-    //         width: 200px;
-    //         minimum: 1;
-    //         maximum: 24;
-    //         changed => {
-    //             SettingsAdapter.set_font_size(self.value);
-    //         }
-    //     }
-    // }
-
     HorizontalBox {
+        alignment: start;
+        
         Texxt {
             text: "Offline Mode";
             vertical-alignment: center;
         }
 
-        CheckBox {
+        Switch {
             checked: AppState.offline-mode;
             toggled => {
                 SettingsAdapter.set_online(!self.checked);

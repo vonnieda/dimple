@@ -1,10 +1,10 @@
 Dump new things at the bottom, move things to the top to prioritize.
 
 - [x] List sorting.
-- Track detail musicbrainz info, first pass.
+- [x] Track detail musicbrainz info, first pass.
 - [x] Lyrics.
 - Tantivy search.
-- Change player bar to use player.on_change.
+- [x] Change player bar to use player.on_change.
 - [x] Figure out how I'm going to implement queueing controls on table rows.
 - Show currently playing track as playing in queue.
 - Clicking on a playbar item should take you to the item in the queue, from
@@ -30,7 +30,7 @@ Dump new things at the bottom, move things to the top to prioritize.
   settings somehow so I got those back and that made the text larger and
   more clear. I also increased the text side of the sidebar items, and
   spaced them out further.
-- Bug: Dragging the seek slider breaks the binding, so it stops updating
+- [x] Bug: Dragging the seek slider breaks the binding, so it stops updating
   after the first drag. 
   https://github.com/slint-ui/slint/discussions/7120
 - Bug: Sorting by ordinal is lex not numeric. 
@@ -78,8 +78,8 @@ Dump new things at the bottom, move things to the top to prioritize.
   and player just sits there.
 - Bug: Moving a file on the filesystem leaves an orphaned and incorrect
   MediaFile behind.
-- Make playlsit item ordinal real.
-- Bug: Seeing a lot of lyrics with double newlines. 
+- [x] Make playlsit item ordinal real.
+- [x] Bug: Seeing a lot of lyrics with double newlines. 
   Ex: Blue Oyster Cult - Heavy Metal: The Black and Silver.
 - Re-combine all the grid pages into one relatively smart "results list", 
   that also has tags, sorting, filtering, etc.

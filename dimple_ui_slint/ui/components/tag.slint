@@ -2,7 +2,8 @@ import { FlowLayoutResults } from "./flow_layout.slint";
 import { FlowLayoutLogic } from "flow_layout.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Navigator, Texxt, Styles } from "../common.slint";
-import { Palette } from "std-widgets.slint";
+import { Palette, VerticalBox, Button } from "std-widgets.slint";
+import { BorderImage } from "border_image.slint";
 
 export component Tag inherits TouchArea {
     in-out property <string> text: "heavy metal";
@@ -13,33 +14,41 @@ export component Tag inherits TouchArea {
         border-width: Styles.thumbnail-border-width;
         border-color: Palette.border;
         border-radius: Styles.thumbnail-border-radius;
-        background: root.has-hover ? root.color.brighter(0.25) : root.color;
+
+        background: root.has-hover 
+            ? Palette.accent-background
+            : color;
+
         HorizontalLayout {
-            padding: 8px;
+            padding: 4px;
             text := Texxt {
                 text: root.text;
                 wrap: no-wrap;
                 overflow: clip;
+                color: root.has-hover 
+                    ? Palette.accent-foreground
+                    : Palette.control-foreground;
+                
             }
         }
     }
 }
 
-export component GenreList inherits Rectangle {
-    in-out property <[LinkAdapter]> genres;
+export component TagList inherits Rectangle {
+    in-out property <[LinkAdapter]> tags;
     in-out property <[color]> colors: [#638d5d, #838d5d, #5d8a8d, #7f5d8d, #8d6b5d, #5d648d, #8d825d];
     property <length> spacing: 8px;
     
     for i in layout.widths.length: Tag {
         color: colors[Math.mod(i, colors.length)];
-        text: genres[i].name;
+        text: tags[i].name;
 
         // Start FlowLayout Support
         x: layout.xs[i];
         y: layout.ys[i];
         width: layout.widths[i];
         height: layout.heights[i];
-        clicked => { Navigator.navigate(genres[i].url); }
+        clicked => { Navigator.navigate(tags[i].url); }
         changed preferred-width => {
             preferred-widths[i] = self.preferred-width;
         }
@@ -54,25 +63,98 @@ export component GenreList inherits Rectangle {
     }
 
     // Start FlowLayout Support
-    in-out property <[length]> preferred-widths: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-    in-out property <[length]> preferred-heights: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    in-out property <[length]> preferred-widths: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    in-out property <[length]> preferred-heights: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
     in-out property <FlowLayoutResults> layout;
     height: layout.height;
 
     init => {
-        layout = FlowLayoutLogic.calculate-positions(self.width, self.genres.length, 
+        layout = FlowLayoutLogic.calculate-positions(self.width, self.tags.length, 
             self.spacing, self.preferred-widths, self.preferred-heights);
     }
 
     changed width => { 
-        layout = FlowLayoutLogic.calculate-positions(self.width, self.genres.length, 
+        layout = FlowLayoutLogic.calculate-positions(self.width, self.tags.length, 
             self.spacing, self.preferred-widths, self.preferred-heights);
     }
 
-    changed genres => {
-        layout = FlowLayoutLogic.calculate-positions(self.width, self.genres.length, 
+    changed tags => {
+        layout = FlowLayoutLogic.calculate-positions(self.width, self.tags.length, 
             self.spacing, self.preferred-widths, self.preferred-heights);
     }
     // End FlowLayout Support
 }
 
+component LinkButton inherits TouchArea {
+    in property <image> source: @image-url("../../icons/phosphor/SVGs/regular/spotify-logo.svg");
+    Rectangle {
+        preferred-width: image.width + 4px;
+        preferred-height: image.height + 4px;
+        // background: Palette.control-background;
+        background: root.has-hover 
+            ? Palette.accent-background
+            :Palette.control-background;
+        border-radius: self.width;
+        border-width: 1px;
+        border-color: Palette.border;
+
+        image := Image {
+            source: root.source;
+            preferred-width: 24px;
+            preferred-height: 24px;
+            colorize: root.has-hover 
+                ? Palette.accent-foreground
+                : Palette.control-foreground;
+        }
+    }
+}
+
+export component LinkButtons inherits Rectangle {
+    in-out property <[LinkAdapter]> links;
+    property <length> spacing: 8px;
+    
+    for i in layout.widths.length: LinkButton {
+        source: @image-url("../../icons/phosphor/SVGs/regular/spotify-logo.svg");
+
+        clicked => { Navigator.navigate(links[i].url); }
+
+        // Start FlowLayout Support
+        x: layout.xs[i];
+        y: layout.ys[i];
+        width: layout.widths[i];
+        height: layout.heights[i];
+        changed preferred-width => {
+            preferred-widths[i] = self.preferred-width;
+        }
+        changed preferred-height => {
+            preferred-heights[i] = self.preferred-height;
+        }
+        init => {
+            preferred-widths[i] = self.preferred-width;
+            preferred-heights[i] = self.preferred-height;
+        }
+        // End FlowLayout Support
+    }
+
+    // Start FlowLayout Support
+    in-out property <[length]> preferred-widths: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    in-out property <[length]> preferred-heights: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    in-out property <FlowLayoutResults> layout;
+    height: layout.height;
+
+    init => {
+        layout = FlowLayoutLogic.calculate-positions(self.width, self.links.length, 
+            self.spacing, self.preferred-widths, self.preferred-heights);
+    }
+
+    changed width => { 
+        layout = FlowLayoutLogic.calculate-positions(self.width, self.links.length, 
+            self.spacing, self.preferred-widths, self.preferred-heights);
+    }
+
+    changed links => {
+        layout = FlowLayoutLogic.calculate-positions(self.width, self.links.length, 
+            self.spacing, self.preferred-widths, self.preferred-heights);
+    }
+    // End FlowLayout Support
+}

@@ -3,6 +3,7 @@ import { CardAdapter } from "../components/card.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { Styles, Texxt, PageTitle, SectionTitle, SectionSubtitle } from "../common.slint";
 import { LinkAdapter } from "../components/link.slint";
+import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
 export struct HomeSectionAdapter {
     title: string,
@@ -69,8 +70,40 @@ export global HomeAdapter {
     ];
 }
 
+component CardMenu inherits PopupMenu {
+    PopupMenuButton {
+        text: "Play Later";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+        // clicked => { ReleaseDetailsAdapter.play_track_later(ReleaseDetailsAdapter.row_keys[popup-row]); }
+    }
+    PopupMenuButton {
+        text: "Play Next";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+        // clicked => { ReleaseDetailsAdapter.play_track_next(ReleaseDetailsAdapter.row_keys[popup-row]); }
+    }
+    PopupMenuButton {
+        text: "Play Now";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+        // clicked => { ReleaseDetailsAdapter.play_track_now(ReleaseDetailsAdapter.row_keys[popup-row]); }
+    }
+    PopupMenuButton {
+        text: "Details";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
+        // clicked => { Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[root.popup-row]); }
+    }
+}    
+
 export component Home inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
+
+    in-out property <length> card-menu-x;
+    in-out property <length> card-menu-y;
+    card-menu := CardMenu {
+        x: card-menu-x;
+        y: card-menu-y;
+        width: self.preferred-width;
+        height: self.preferred-height;
+    }
 
     VerticalBox {
         width: 100%;
@@ -96,6 +129,13 @@ export component Home inherits ScrollView {
             CardGrid {
                 cards: section.cards;
                 max-rows: 1;
+                pointer-event(event, x, y) => {
+                    if event.kind == PointerEventKind.up && event.button == PointerEventButton.right {
+                        root.card-menu-x = x;
+                        root.card-menu-y = y;
+                        card-menu.show();
+                    }
+                }
             }
         }
     }

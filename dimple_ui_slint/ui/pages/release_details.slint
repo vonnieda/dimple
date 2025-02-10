@@ -9,9 +9,9 @@ import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
-import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
+// import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
-import { Tag, GenreList } from "../components/tag.slint";
+import { Tag, TagList, LinkButtons } from "../components/tag.slint";
 import { FlowLayoutResults, FlowLayoutLogic } from "../components/flow_layout.slint";
 import { BorderImage } from "../components/border_image.slint";
 
@@ -127,6 +127,10 @@ export component ReleaseDetails inherits ScrollView {
                     }
                 }
 
+                LinkButtons {
+                    links: ReleaseDetailsAdapter.links;
+                }
+
                 if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
                     alignment: start;
                     if ReleaseDetailsAdapter.release-type != "": Texxt {
@@ -137,8 +141,8 @@ export component ReleaseDetails inherits ScrollView {
                     }
                 }
 
-                GenreList {
-                    genres: ReleaseDetailsAdapter.genres;
+                TagList {
+                    tags: ReleaseDetailsAdapter.genres;
                     min-width: 64px;
                     min-height: 8px;
                     preferred-width: 5000px;
@@ -179,16 +183,16 @@ export component ReleaseDetails inherits ScrollView {
             // }
         }
 
-        if ReleaseDetailsAdapter.links.length > 0: VerticalBox {
-            alignment: start;
-            padding: 0;
-            SectionTitle {
-                text: "Links";
-            }
-            for link in ReleaseDetailsAdapter.links: Link {
-                url: link.url;
-                name: link.name;
-            }
-        }
+        // if ReleaseDetailsAdapter.links.length > 0: VerticalBox {
+        //     alignment: start;
+        //     padding: 0;
+        //     SectionTitle {
+        //         text: "Links";
+        //     }
+        //     for link in ReleaseDetailsAdapter.links: Link {
+        //         url: link.url;
+        //         name: link.name;
+        //     }
+        // }
     }
 }

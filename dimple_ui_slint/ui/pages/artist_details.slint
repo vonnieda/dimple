@@ -4,9 +4,9 @@ import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, Button, Palette} from "std-widgets.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
-import { Tag, GenreList } from "../components/tag.slint";
+import { Tag, TagList, LinkButtons } from "../components/tag.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
-import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
+// import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 import { BorderImage } from "../components/border_image.slint";
 
 export global ArtistDetailsAdapter {
@@ -89,8 +89,11 @@ export component ArtistDetails inherits ScrollView {
                         text: ArtistDetailsAdapter.disambiguation;
                     }
                 }
-                GenreList {
-                    genres: ArtistDetailsAdapter.genres;
+                LinkButtons {
+                    links: ArtistDetailsAdapter.links;
+                }
+                TagList {
+                    tags: ArtistDetailsAdapter.genres;
                     min-width: 64px;
                     min-height: 8px;
                     preferred-width: 5000px;
@@ -113,17 +116,17 @@ export component ArtistDetails inherits ScrollView {
             }
         }
 
-        if ArtistDetailsAdapter.links.length > 0: VerticalBox {
-            alignment: start;
-            padding: 0;
-            SectionTitle {
-                text: "Links";
-            }
-            for link in ArtistDetailsAdapter.links: Link {
-                url: link.url;
-                name: link.name;
-            }
-        }
+        // if ArtistDetailsAdapter.links.length > 0: VerticalBox {
+        //     alignment: start;
+        //     padding: 0;
+        //     SectionTitle {
+        //         text: "Links";
+        //     }
+        //     for link in ArtistDetailsAdapter.links: Link {
+        //         url: link.url;
+        //         name: link.name;
+        //     }
+        // }
     }
 }
 
