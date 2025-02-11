@@ -6,15 +6,11 @@ component NavBarButton inherits TouchArea {
     in property <image> source;
     width: image.width;
     Rectangle {
-        background: root.has-hover 
-            ? Palette.accent-background
-            : transparent;
+        background: root.has-hover ? Palette.accent-background : Palette.background;
         border-radius: Styles.thumbnail-border-radius;
         image := Image {
             source: root.source;
-            colorize: root.has-hover 
-                ? Palette.accent-foreground
-                : Palette.foreground;
+            colorize: root.has-hover ? Palette.accent-foreground : Palette.foreground;
             width: 24px;
             height: 24px;
         }

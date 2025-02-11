@@ -94,13 +94,13 @@ export global ReleaseDetailsAdapter {
 
 export component ReleaseDetails inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
+    viewport-height: v.preferred-height;
 
     in-out property <length> popup-x;
     in-out property <length> popup-y;
     in-out property <int> popup-row;
 
-    VerticalBox {
-        width: 100%;
+    v := VerticalBox {
         alignment: start;
         padding: 0;
 
@@ -126,28 +126,29 @@ export component ReleaseDetails inherits ScrollView {
                         text: ReleaseDetailsAdapter.disambiguation;
                     }
                 }
-
                 LinkButtons {
                     links: ReleaseDetailsAdapter.links;
+                    height: self.preferred-height;
                 }
-
-                if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
-                    alignment: start;
-                    if ReleaseDetailsAdapter.release-type != "": Texxt {
-                        text: "\{ReleaseDetailsAdapter.release-type} by ";
-                    }
-                    Links {
-                        links: ReleaseDetailsAdapter.artists;
-                    }
+                // if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
+                //     alignment: start;
+                //     if ReleaseDetailsAdapter.release-type != "": Texxt {
+                //         text: "\{ReleaseDetailsAdapter.release-type} by ";
+                //     }
+                //     // TODO this blows up
+                //     Links {
+                //         links: ReleaseDetailsAdapter.artists;
+                //         height: self.preferred-height;
+                //     }
+                // }
+                Links {
+                    links: ReleaseDetailsAdapter.artists;
+                    height: self.preferred-height;
                 }
-
                 TagList {
                     tags: ReleaseDetailsAdapter.genres;
-                    min-width: 64px;
-                    min-height: 8px;
-                    preferred-width: 5000px;
+                    height: self.preferred-height;
                 }
-        
                 if ReleaseDetailsAdapter.summary != "": Texxt {
                     text: ReleaseDetailsAdapter.summary;
                     wrap: word-wrap;

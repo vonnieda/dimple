@@ -1,3 +1,4 @@
+// v1
 export struct FlowLayoutParams {
     width: length, 
     num_elements: int, 
@@ -20,3 +21,92 @@ export global FlowLayoutLogic {
         preferred-widths: [length], preferred-heights: [length]) -> FlowLayoutResults;
 }
 
+// v2
+struct FlowLayoutItemInfo {
+    x: length,
+    y: length,
+    width: length,
+    height: length,
+}
+
+export component FlowLayout {
+    in-out property <[FlowLayoutItemInfo]> item-infos: [{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},];
+    in-out property <length> spacing: 8px;
+    in-out property <length> calculated-height: 8px;
+    preferred-height: self.calculated-height;
+
+    changed width => {
+        self.do-layout(0);
+        self.do-layout(1);
+        self.do-layout(2);
+        self.do-layout(3);
+        self.do-layout(4);
+        self.do-layout(5);
+        self.do-layout(6);
+        self.do-layout(7);
+        self.do-layout(8);
+        self.do-layout(9);
+        self.do-layout(10);
+        self.do-layout(11);
+        self.do-layout(12);
+        self.do-layout(13);
+        self.do-layout(14);
+        self.do-layout(15);
+        self.do-layout(16);
+        self.do-layout(17);
+        self.do-layout(18);
+        self.do-layout(19);
+        self.do-layout(20);
+        self.do-layout(21);
+        self.do-layout(22);
+        self.do-layout(23);
+        self.do-layout(24);
+        self.do-layout(25);
+    }
+
+    function do-layout(index: int) {
+        if item-infos[index].width == 0 || item-infos[index].height == 0 {
+            return;
+        }
+        if index == 0 {
+            item-infos[index].x = 0;
+            item-infos[index].y = 0;
+        }
+        else if item-infos[index - 1].x + item-infos[index - 1].width + spacing + item-infos[index].width >= self.width {
+            item-infos[index].x = 0;
+            item-infos[index].y = item-infos[index - 1].y + item-infos[index - 1].height + spacing;
+        }
+        else {
+            item-infos[index].x = item-infos[index - 1].x + item-infos[index - 1].width + spacing;
+            item-infos[index].y = item-infos[index - 1].y;
+        }
+        self.calculated-height = item-infos[index].y + item-infos[index].height;
+    }
+
+    @children
+}
+
+export component FlowLayoutItem {
+    in-out property <[FlowLayoutItemInfo]> item-infos;
+    in-out property <int> index;
+    x: item-infos[index].x;
+    y: item-infos[index].y;
+    width: self.preferred-width;
+
+    init => {
+        item-infos[index].width = self.width;
+        item-infos[index].height = self.height;
+    }
+
+    changed preferred-width => {
+        item-infos[index].width = self.width;
+        item-infos[index].height = self.height;
+    }
+
+    changed preferred-height => {
+        item-infos[index].width = self.width;
+        item-infos[index].height = self.height;
+    }
+
+    @children
+}

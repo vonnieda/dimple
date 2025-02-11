@@ -1,5 +1,6 @@
 import { Styles, Navigator, Texxt } from "../common.slint";
 import {StyleMetrics, Palette} from "std-widgets.slint";
+import { FlowLayout, FlowLayoutItem } from "flow_layout.slint";
 
 export struct LinkAdapter {
     name: string,
@@ -20,7 +21,12 @@ export component Link inherits TouchArea {
     in property <TextVerticalAlignment> vertical-alignment: bottom;
 
     mouse-cursor: pointer;
+
     clicked => { Navigator.navigate(url); }
+
+    preferred-width: title.preferred-width;
+    preferred-height: title.preferred-height;
+
     title := Texxt {
         vertical-alignment: vertical-alignment;
         width: root.width;
@@ -29,13 +35,12 @@ export component Link inherits TouchArea {
         // overflow: TextOverflow.clip;
         font-weight: font-weight;
         font-size: font-size;
-        color: parent.has-hover 
-            ? Palette.accent-foreground
-            : Palette.foreground;
-    }
+        color: parent.has-hover ? Palette.accent-foreground : Palette.foreground;
+    }    
 }
+    
 
-export component Links inherits HorizontalLayout {
+export component Links1 inherits HorizontalLayout {
     in property <[LinkAdapter]> links;
     in property <length> font-size: Styles.default-font-size;
     alignment: start;
@@ -68,3 +73,17 @@ export component Links inherits HorizontalLayout {
     }
 }
 
+export component Links inherits FlowLayout {
+    in-out property <[LinkAdapter]> links: [{name: "heavy metal"},{name: "heavy metal thing cup stuff"},{name: "hard rock"},{name: "acid rock"}];
+    in-out property <length> font-size: Styles.default-font-size;
+    
+    for i in links.length: FlowLayoutItem {
+        item-infos: parent.item-infos;
+        index: i;
+        Link {
+            name: links[i].name;
+            url: links[i].url;
+            font-size: font-size;
+        }
+    }
+}

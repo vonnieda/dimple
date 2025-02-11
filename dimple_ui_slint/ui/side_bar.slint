@@ -1,6 +1,6 @@
 import { Button , LineEdit, HorizontalBox, GroupBox} from "std-widgets.slint";
 import { Navigator } from "common.slint";
-import { Styles, Navigator, AppState } from "common.slint";
+import { Styles, Navigator, AppState, Texxt } from "common.slint";
 import {StyleMetrics, VerticalBox, TextEdit, Spinner, Slider, CheckBox, Palette} from "std-widgets.slint";
 import {Link, LinkAdapter, ImageLinkAdapter} from "./components/link.slint";
 import {CardAdapter} from "./components/card.slint";
@@ -57,34 +57,33 @@ component SideBarImageItem inherits Rectangle {
     }
 }
 
-component SideBarMenuItem inherits HorizontalBox {
+component SideBarMenuItem inherits TouchArea {
     in property <image> image: @image-url("../icons/phosphor/SVGs/regular/house.svg");
     in property <string> url: "dimple://home";
     in property <string> text: "Home";
 
-    alignment: start;
-    padding: 0;
-    spacing: 4px;
+    clicked => { Navigator.navigate(url); }
 
-    TouchArea {
-        width: Styles.icon-width-sidebar;
-        height: Styles.icon-width-sidebar;
-        clicked => { Navigator.navigate(url); }
-        Image {
-            source: image;
-            width: Styles.icon-width-sidebar;
-            height: Styles.icon-width-sidebar;
-            colorize: parent.has-hover 
-                ? Palette.accent-foreground
-                : Palette.foreground;
-
+    Rectangle {
+        background: root.has-hover ? Palette.selection-background : Palette.background;
+        HorizontalBox {
+            alignment: start;
+            padding: 0;
+            spacing: 4px;        
+            Image {
+                source: root.image;
+                width: Styles.icon-width-sidebar;
+                height: Styles.icon-width-sidebar;
+                colorize: root.has-hover ? Palette.selection-foreground : Palette.foreground;
+            }
+            Texxt {
+                vertical-alignment: center;
+                text: text;
+                font-size: Styles.default-font-size * 1.2;
+                font-weight: Styles.font-weight-bold;
+                color: Palette.foreground;
+            }
         }
-    }
-    Link {
-        name: text;
-        url: url;
-        font-size: Styles.default-font-size * 1.2;
-        font-weight: Styles.font-weight-bold;
     }
 }
 
@@ -133,21 +132,5 @@ export component SideBar inherits VerticalBox {
     Rectangle {
         
     }
-
-    // SideBarMenuItem {
-    //     image: @image-url("../icons/phosphor/SVGs/regular/arrow-left.svg");
-    //     text: "Back";
-    //     url: "dimple://back";
-    // }
-    // SideBarMenuItem {
-    //     image: @image-url("../icons/phosphor/SVGs/regular/arrow-clockwise.svg");
-    //     text: "Refresh";
-    //     url: "dimple://refresh";
-    // }
-    // SideBarMenuItem {
-    //     image: @image-url("../icons/phosphor/SVGs/regular/gear.svg");
-    //     text: "Settings";
-    //     url: "dimple://settings";
-    // }
 }
 

@@ -63,56 +63,42 @@ component InfoAreaLabel inherits HorizontalLayout {
     }
 }
 
+component PlayerButton inherits TouchArea {
+    width: 46px;
+    height: 46px;
+    in property <image> icon: @image-url("../icons/phosphor/SVGs/fill/skip-back-circle-fill.svg");
+
+    Rectangle {
+        width: root.width;
+        height: root.height;
+        border-radius: root.width;
+
+        Image {
+            source: root.icon;
+            width: root.width;
+            height: root.height;
+            colorize: root.has-hover ? Palette.accent-background : Palette.foreground;
+        }                
+    }
+}
+
 component PlayerButtons inherits HorizontalLayout {
     alignment: LayoutAlignment.end;
     in property <bool> playing: false;
-    TouchArea {
-        width: 46px;
-        height: 46px;
+    PlayerButton {
         clicked => { AppState.player_previous(); }
-        Image {
-            source: @image-url("../icons/phosphor/SVGs/fill/skip-back-circle-fill.svg");
-            width: 46px;
-            height: 46px;
-            colorize: parent.has-hover 
-                ? Palette.foreground.brighter(0.25)
-                : Palette.foreground;
-        }                
+        icon: @image-url("../icons/phosphor/SVGs/fill/skip-back-circle-fill.svg");
     }
-    TouchArea {
-        width: 46px;
-        height: 46px;
+    PlayerButton {
         clicked => { AppState.player_play_pause(); }
-        if playing: Image {
-            source: @image-url("../icons/phosphor/SVGs/fill/pause-circle-fill.svg");
-            width: 46px;
-            height: 46px;
-            colorize: parent.has-hover 
-                ? Palette.accent-foreground
-                : Palette.foreground;
-        }                
-        if !playing: Image {
-            source: @image-url("../icons/phosphor/SVGs/fill/play-circle-fill.svg");
-            width: 46px;
-            height: 46px;
-            colorize: parent.has-hover 
-                ? Palette.accent-foreground
-                : Palette.foreground;
-        }                
+        icon: playing 
+            ? @image-url("../icons/phosphor/SVGs/fill/pause-circle-fill.svg")
+            : @image-url("../icons/phosphor/SVGs/fill/play-circle-fill.svg");
     }
-    TouchArea {
-        width: 46px;
-        height: 46px;
+    PlayerButton {
         clicked => { AppState.player_next(); }
-        Image {
-            source: @image-url("../icons/phosphor/SVGs/fill/skip-forward-circle-fill.svg");
-            width: 46px;
-            height: 46px;
-            colorize: parent.has-hover 
-                ? Palette.accent-foreground
-                : Palette.foreground;
-        }                
-    }                        
+        icon: @image-url("../icons/phosphor/SVGs/fill/skip-forward-circle-fill.svg");
+    }
 }
 
 component Scrubber inherits VerticalLayout {
@@ -158,55 +144,7 @@ component TrackInfo inherits VerticalLayout {
     }
 }
 
-export component PlayerBar {
-    HorizontalLayout {
-        VerticalLayout {
-            alignment: space-around;
-            BorderImage {
-                width: Styles.thumbnail-width-medium;
-                height: Styles.thumbnail-width-medium;
-                source: PlayerBarAdapter.now-playing-track.image.image;
-                clicked => { Navigator.navigate("dimple://queue") }
-            }
-        }
-        VerticalLayout {
-            horizontal-stretch: 1;
-            padding-left: 8px;
-            HorizontalLayout {
-                TrackInfo {
-                    horizontal-stretch: 0;
-                    artist: PlayerBarAdapter.now-playing-artist.title;
-                    release: PlayerBarAdapter.now-playing-release.title;
-                    track: PlayerBarAdapter.now-playing-track.title;
-                }
-                Rectangle {
-                    horizontal-stretch: 1;
-                }
-                PlayerButtons {
-                    playing: PlayerBarAdapter.player-state == PlayerState.Playing;
-                }
-            }
-            VerticalLayout {
-                padding-top: 2px;
-                padding-bottom: 2px;
-                horizontal-stretch: 1;
-                image := Image {
-                    source: PlayerBarAdapter.waveform;
-                    image-fit: ImageFit.fill;
-                    height: 24px;
-                }
-            }
-            Scrubber {
-                position-seconds <=> PlayerBarAdapter.position-seconds;
-                position-label: PlayerBarAdapter.position-label;
-                duration-seconds: PlayerBarAdapter.duration-seconds;
-                duration-label: PlayerBarAdapter.duration-label;
-            }
-        }
-    }
-}
-
-export component PlayerBar2 inherits HorizontalBox {
+export component PlayerBar inherits HorizontalBox {
     alignment: stretch;
     padding: 0;
 
