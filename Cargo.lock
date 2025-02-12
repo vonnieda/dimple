@@ -1677,7 +1677,6 @@ dependencies = [
  "dimple_core_macro",
  "directories",
  "env_logger 0.11.6",
- "fakeit",
  "fast_image_resize 5.1.1",
  "fractional_index",
  "image 0.25.5",
@@ -1711,7 +1710,6 @@ dependencies = [
 name = "dimple_core_macro"
 version = "0.1.0"
 dependencies = [
- "proc-macro2",
  "quote",
  "syn 2.0.92",
 ]
