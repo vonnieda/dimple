@@ -7,11 +7,10 @@ import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
-import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
 import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
-// import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
-import { Tag, TagList, LinkButtons } from "../components/tag.slint";
+import { Tag, TagList } from "../components/tag.slint";
 import { BorderImage } from "../components/border_image.slint";
 
 export global ReleaseDetailsAdapter {
@@ -24,7 +23,7 @@ export global ReleaseDetailsAdapter {
     in property <string> disambiguation: "Not to be confused with Rain of Fish by Fargo.";
     in property <string> summary: "Fresh Pliers does it again with 'A Reign of Fish'. Ex nostrud culpa id veniam aliqua aliqua ipsum. Velit do id amet labore mollit id cillum commodo Lorem proident labore eu. Incididunt minim irure culpa excepteur officia sit consequat est mollit. Ipsum anim anim sunt dolore. Laborum consequat deserunt laboris ullamco cillum. Ullamco deserunt ut quis dolore aliquip esse consequat velit amet. Nulla tempor veniam dolor amet occaecat adipisicing nulla laboris.\n\nQui non irure anim irure nisi nulla ex aliquip. Sit do irure esse magna sit do eiusmod. Anim commodo velit non enim nulla.\n\nAnim incididunt dolore nulla laboris eu mollit Lorem minim reprehenderit in quis magna mollit. Labore Lorem esse anim ipsum esse irure ipsum proident deserunt officia consequat sunt sit. Ex laborum ipsum laboris nisi proident. Nulla culpa est commodo dolor. Magna sint id et ut esse mollit qui elit voluptate ea.";
     in property <[LinkAdapter]> genres: [{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},];
-    in property <[LinkAdapter]> links: [{name: "https://bandcamp.com/arof",url: "internal://release/1234"}];
+    in property <[LinkAdapter]> links: [{name: "Spotify"},{name: "Bandcamp"},{name: "Spotify"},{name: "Bandcamp"},];
     in property <[LinkAdapter]> artists: [{name: "Fresh Pliers"},{name: "Example Band"},{name: "Teal Cup"},];
     in property <[[StandardListViewItem]]> row_data: [
         [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" } ],
@@ -93,13 +92,12 @@ export global ReleaseDetailsAdapter {
 
 export component ReleaseDetails inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
-    viewport-height: v.preferred-height;
 
     in-out property <length> popup-x;
     in-out property <length> popup-y;
     in-out property <int> popup-row;
 
-    v := VerticalBox {
+    VerticalBox {
         alignment: start;
         padding: 0;
 
@@ -107,10 +105,15 @@ export component ReleaseDetails inherits ScrollView {
             alignment: start;
             padding: 0;
 
-            BorderImage {
-                width: Styles.thumbnail-width-extra-large;
-                height: Styles.thumbnail-width-extra-large;
-                source: ReleaseDetailsAdapter.card.image.image;
+            VerticalBox {
+                padding: 0;
+                alignment: start;
+
+                BorderImage {
+                    width: Styles.thumbnail-width-extra-large;
+                    height: Styles.thumbnail-width-extra-large;
+                    source: ReleaseDetailsAdapter.card.image.image;
+                }
             }
             VerticalBox {
                 alignment: start;
@@ -125,10 +128,6 @@ export component ReleaseDetails inherits ScrollView {
                         text: ReleaseDetailsAdapter.disambiguation;
                     }
                 }
-                LinkButtons {
-                    links: ReleaseDetailsAdapter.links;
-                    height: self.preferred-height;
-                }
                 // if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
                 //     alignment: start;
                 //     if ReleaseDetailsAdapter.release-type != "": Texxt {
@@ -140,6 +139,10 @@ export component ReleaseDetails inherits ScrollView {
                 //         height: self.preferred-height;
                 //     }
                 // }
+                LinkButtons {
+                    links: ReleaseDetailsAdapter.links;
+                    height: self.preferred-height;
+                }
                 Links {
                     links: ReleaseDetailsAdapter.artists;
                     height: self.preferred-height;

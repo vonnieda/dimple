@@ -2,10 +2,9 @@ import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBox, LineEdit, TextEdit, Palette} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
-import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
 import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
-// import { ActionButton, ActionButtons } from "../components/action_buttons.slint";
-import { TagList, LinkButtons } from "../components/tag.slint";
+import { TagList } from "../components/tag.slint";
 import { BorderImage } from "../components/border_image.slint";
 
 export global TrackDetailsAdapter {
@@ -101,30 +100,18 @@ export component TrackDetails inherits ScrollView {
                         text: TrackDetailsAdapter.disambiguation;
                     }
                 }
-
-                LinkButtons {
-                    links: TrackDetailsAdapter.links;
+                Links {
+                    links: TrackDetailsAdapter.artists;
+                    height: self.preferred-height;
                 }
-
-                TagList {
-                    colors: [#6d6371];
-                    tags: TrackDetailsAdapter.artists;
-                    min-width: 64px;
-                    min-height: 8px;
-                    preferred-width: 5000px;
-                }
-
-                // Texxt {
-                //     text: "\{TrackDetailsAdapter.release-date}";
-                // }
-
                 TagList {
                     tags: TrackDetailsAdapter.genres;
-                    min-width: 64px;
-                    min-height: 8px;
-                    preferred-width: 5000px;
+                    height: self.preferred-height;
+                }                
+                LinkButtons {
+                    links: TrackDetailsAdapter.links;
+                    height: self.preferred-height;
                 }
-                
                 if TrackDetailsAdapter.summary != "": Texxt {
                     text: TrackDetailsAdapter.summary;
                     wrap: word-wrap;
@@ -132,16 +119,16 @@ export component TrackDetails inherits ScrollView {
             }
         }
 
-        if TrackDetailsAdapter.releases.length > 0: VerticalBox {
-            alignment: start;
-            padding: 0;
-            SectionTitle {
-                text: "Releases";
-            }
-            CardGrid {
-                cards: TrackDetailsAdapter.releases;
-            }
-        }
+        // if TrackDetailsAdapter.releases.length > 0: VerticalBox {
+        //     alignment: start;
+        //     padding: 0;
+        //     SectionTitle {
+        //         text: "Releases";
+        //     }
+        //     CardGrid {
+        //         cards: TrackDetailsAdapter.releases;
+        //     }
+        // }
         
         VerticalBox {
             alignment: start;
@@ -154,16 +141,16 @@ export component TrackDetails inherits ScrollView {
             }
         }
 
-        if TrackDetailsAdapter.links.length > 0: VerticalBox {
-            alignment: start;
-            padding: 0;
-            SectionTitle {
-                text: "Links";
-            }
-            for link in TrackDetailsAdapter.links: Link {
-                url: link.url;
-                name: link.name;
-            }
-        }
+        // if TrackDetailsAdapter.links.length > 0: VerticalBox {
+        //     alignment: start;
+        //     padding: 0;
+        //     SectionTitle {
+        //         text: "Links";
+        //     }
+        //     for link in TrackDetailsAdapter.links: Link {
+        //         url: link.url;
+        //         name: link.name;
+        //     }
+        // }
     }
 }

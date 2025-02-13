@@ -17,9 +17,7 @@ export component Tag inherits TouchArea {
         border-color: Palette.border;
         border-radius: Styles.thumbnail-border-radius;
 
-        background: root.has-hover 
-            ? Palette.accent-background
-            : color;
+        background: root.has-hover ? Palette.selection-background : color;
 
         HorizontalLayout {
             padding: 4px;
@@ -27,35 +25,8 @@ export component Tag inherits TouchArea {
                 text: root.text;
                 wrap: no-wrap;
                 overflow: clip;
-                color: root.has-hover 
-                    ? Palette.accent-foreground
-                    : Palette.control-foreground;
-                
+                color: root.has-hover ? Palette.selection-foreground : Palette.control-foreground;                
             }
-        }
-    }
-}
-
-component LinkButton inherits TouchArea {
-    in property <image> source: @image-url("../../icons/phosphor/SVGs/regular/spotify-logo.svg");
-
-    preferred-width: r.preferred-width;
-    preferred-height: r.preferred-height;
-    
-    r := Rectangle {
-        preferred-width: image.width + 4px;
-        preferred-height: image.height + 4px;
-        // background: Palette.control-background;
-        background: root.has-hover ? Palette.accent-background :Palette.control-background;
-        border-radius: self.width;
-        border-width: 1px;
-        border-color: Palette.border;
-
-        image := Image {
-            source: root.source;
-            preferred-width: 24px;
-            preferred-height: 24px;
-            colorize: root.has-hover ? Palette.accent-foreground : Palette.control-foreground;
         }
     }
 }
@@ -75,15 +46,3 @@ export component TagList inherits FlowLayout {
     }
 }
 
-export component LinkButtons inherits FlowLayout {
-    in-out property <[LinkAdapter]> links: [{name: "heavy metal"},{name: "heavy metal thing cup stuff"},{name: "hard rock"},{name: "acid rock"}];
-    
-    for i in links.length: FlowLayoutItem {
-        item-infos: parent.item-infos;
-        index: i;
-        LinkButton {
-            source: @image-url("../../icons/phosphor/SVGs/regular/spotify-logo.svg");
-            clicked => { Navigator.navigate(links[i].url); }
-        }
-    }
-}

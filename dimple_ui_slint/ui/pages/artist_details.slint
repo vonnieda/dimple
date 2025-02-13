@@ -1,12 +1,11 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, Button, Palette} from "std-widgets.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
-import { Tag, TagList, LinkButtons } from "../components/tag.slint";
+import { Tag, TagList } from "../components/tag.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
-// import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 import { BorderImage } from "../components/border_image.slint";
 
 export global ArtistDetailsAdapter {
@@ -63,9 +62,9 @@ export global ArtistDetailsAdapter {
 
 export component ArtistDetails inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
-    viewport-height: v.preferred-height;
 
-    v := VerticalBox {
+    VerticalBox {
+        width: 100%;
         alignment: start;
         padding: 0;
 
@@ -104,28 +103,16 @@ export component ArtistDetails inherits ScrollView {
             }
         }
 
-        // if ArtistDetailsAdapter.releases.length > 0: VerticalBox {
-        //     alignment: start;
-        //     padding: 0;
-        //     SectionTitle {
-        //         text: "Releases";
-        //     }
-        //     CardGrid {
-        //         cards: ArtistDetailsAdapter.releases;
-        //     }
-        // }
-
-        // if ArtistDetailsAdapter.links.length > 0: VerticalBox {
-        //     alignment: start;
-        //     padding: 0;
-        //     SectionTitle {
-        //         text: "Links";
-        //     }
-        //     for link in ArtistDetailsAdapter.links: Link {
-        //         url: link.url;
-        //         name: link.name;
-        //     }
-        // }
+        if ArtistDetailsAdapter.releases.length > 0: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "Releases";
+            }
+            CardGrid {
+                cards: ArtistDetailsAdapter.releases;
+            }
+        }
     }
 }
 

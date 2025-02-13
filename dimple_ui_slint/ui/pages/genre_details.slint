@@ -1,12 +1,11 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { LinkAdapter, Links, Link} from "../components/link.slint";
+import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, Button} from "std-widgets.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
-import { Tag, LinkButtons } from "../components/tag.slint";
+import { Tag } from "../components/tag.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
-// import { ActionButtons, ActionButton } from "../components/action_buttons.slint";
 import { BorderImage } from "../components/border_image.slint";
 
 export global GenreDetailsAdapter {
@@ -65,6 +64,7 @@ export component GenreDetails inherits ScrollView {
                 }
                 LinkButtons {
                     links: GenreDetailsAdapter.links;
+                    height: self.preferred-height;
                 }
                 if GenreDetailsAdapter.summary != "": Texxt {
                     text: GenreDetailsAdapter.summary;
@@ -83,19 +83,6 @@ export component GenreDetails inherits ScrollView {
                 cards: GenreDetailsAdapter.releases;
             }
         }
-
-        // // Links
-        // if GenreDetailsAdapter.links.length > 0: VerticalBox {
-        //     alignment: start;
-        //     padding: 0;
-        //     SectionTitle {
-        //         text: "Links";
-        //     }
-        //     for link in GenreDetailsAdapter.links: Link {
-        //         url: link.url;
-        //         name: link.name;
-        //     }
-        // }
     }
 }
 
