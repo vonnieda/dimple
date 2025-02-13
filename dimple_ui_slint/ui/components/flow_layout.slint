@@ -1,27 +1,3 @@
-// v1
-export struct FlowLayoutParams {
-    width: length, 
-    num_elements: int, 
-    padding: length, 
-    spacing: length,
-    preferred-widths: [length],
-    preferred-heights: [length],
-}
-
-export struct FlowLayoutResults {
-    xs: [length],
-    ys: [length],
-    height: length,
-    widths: [length],
-    heights: [length],
-}
-
-export global FlowLayoutLogic {
-    callback calculate-positions(width: length, num_elements: int, spacing: length,
-        preferred-widths: [length], preferred-heights: [length]) -> FlowLayoutResults;
-}
-
-// v2
 struct FlowLayoutItemInfo {
     x: length,
     y: length,
@@ -61,10 +37,12 @@ export component FlowLayout {
         self.do-layout(22);
         self.do-layout(23);
         self.do-layout(24);
-        self.do-layout(25);
     }
 
     function do-layout(index: int) {
+        if item-infos.length > 25 {
+            debug("WARNING: FlowLayout item-infos.length must be <= 25");
+        }
         if item-infos[index].width == 0 || item-infos[index].height == 0 {
             return;
         }

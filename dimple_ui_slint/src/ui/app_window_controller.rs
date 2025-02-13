@@ -80,8 +80,6 @@ impl AppWindowController {
         let app = self.app.clone();
         self.ui.global::<Navigator>().on_navigate(move |url| app.navigate(url));
 
-        flow_layout::init(&self.ui);
-
         player_bar::player_bar_init(&self.app);
 
         pages::artist_details::artist_details_init(&self.app);
