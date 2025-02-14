@@ -65,7 +65,8 @@ CREATE TABLE Track (
     media_track_count INT,
     media_position INT,
     media_title TEXT,
-    media_format TEXT
+    media_format TEXT,
+    FOREIGN KEY (release_key) REFERENCES Release(key)
 );
 CREATE INDEX Track_musicbrainz_id ON Track (musicbrainz_id);
 CREATE INDEX Track_release_key ON Track (release_key);

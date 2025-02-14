@@ -9,19 +9,19 @@ pub trait Storage: Send + Sync {
 mod tests {
     use crate::sync::{memory_storage::MemoryStorage, s3_storage::S3Storage, storage::Storage};
 
-    // #[test]
-    // fn it_works() {
-    //     let s3 = S3Storage::default();
-    //     let memory = MemoryStorage::default();
-    //     basics(&s3);
-    //     basics(&memory);
-    // }
+    #[test]
+    fn it_works() {
+        // let s3 = S3Storage::default();
+        let memory = MemoryStorage::default();
+        // basics(&s3);
+        basics(&memory);
+    }
 
-    // fn basics(storage: &dyn Storage) {
-    //     storage.put_object("001.db", "faa44c67-92e2-411a-808b-cfd9fc9a263a".as_bytes());
-    //     storage.put_object("001.db/001.db", "faa44c67-92e2-411a-808b-cfd9fc9a263a".as_bytes());
-    //     storage.put_object("001.db/002.db", "dcf51319-0a0d-4d1a-b825-26dea74d861b".as_bytes());
-    //     let objects = storage.list_objects("001.db");
-    //     assert!(objects.len() == 3);
-    // }
+    fn basics(storage: &dyn Storage) {
+        storage.put_object("001.db", "faa44c67-92e2-411a-808b-cfd9fc9a263a".as_bytes());
+        storage.put_object("001.db/001.db", "62e78833-5815-4094-bb55-42cda2fd3c32".as_bytes());
+        storage.put_object("001.db/002.db", "dcf51319-0a0d-4d1a-b825-26dea74d861b".as_bytes());
+        let objects = storage.list_objects("001.db");
+        assert!(objects.len() == 3);
+    }
 }

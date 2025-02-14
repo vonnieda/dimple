@@ -3,7 +3,7 @@ use std::{fmt::Debug, sync::{Arc, Mutex, RwLock}, time::Duration};
 use image::DynamicImage;
 use include_dir::{include_dir, Dir};
 use log::info;
-use r2d2::{Pool, PooledConnection};
+use r2d2::{CustomizeConnection, Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{backup::Backup, Connection, OptionalExtension, Params};
 use rusqlite_migration::Migrations;
@@ -11,7 +11,7 @@ use threadpool::ThreadPool;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::{model::{Artist, Blob, ChangeLog, FromRow, Genre, LibraryModel, MediaFile, Model, ModelBasics as _, Playlist, Release, Track, TrackSource}, notifier::Notifier, sync::Sync};
+use crate::{model::{Artist, Blob, ChangeLog, FromRow, Genre, LibraryModel, MediaFile, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier, sync::Sync};
 
 #[derive(Clone)]
 pub struct Library {
@@ -25,30 +25,25 @@ pub struct Library {
     threadpool: ThreadPool,
 }
 
+#[derive(Debug)]
+struct LibraryConnectionCustomizer;
+impl CustomizeConnection<rusqlite::Connection, rusqlite::Error> for LibraryConnectionCustomizer {
+    fn on_acquire(&self, conn: &mut rusqlite::Connection) -> Result<(), rusqlite::Error> {
+        println!("doing the thing!");
+        conn.pragma_update(None, "journal_mode", "WAL").unwrap();
+        conn.pragma_update(None, "foreign_keys", "ON").unwrap();                
+        Ok(())
+    }
+}
+
 impl Library {
     pub fn open_memory() -> Self {
         let manager = r2d2_sqlite::SqliteConnectionManager::memory();
         let pool = r2d2::Pool::builder()
             .max_size(1)
+            .connection_customizer(Box::new(LibraryConnectionCustomizer{}))
             .build(manager)
             .unwrap();
-
-        let mut conn = pool.get().unwrap();
-
-        static MIGRATION_DIR: Dir = include_dir!("./dimple_core/src/migrations");
-        let migrations = Migrations::from_directory(&MIGRATION_DIR).unwrap();
-
-        migrations.to_latest(&mut conn).unwrap();
-
-        conn.pragma_update(None, "journal_mode", "WAL").unwrap();
-        conn.pragma_update(None, "foreign_keys", "ON").unwrap();        
-
-        conn.execute("
-            INSERT INTO Metadata (key, value) VALUES ('library.uuid', ?1)
-            ON CONFLICT DO NOTHING
-            ",
-            (Uuid::new_v4().to_string(),),
-        ).unwrap();
 
         let library = Library {
             pool,
@@ -57,6 +52,8 @@ impl Library {
             notifier: Notifier::new(),
             threadpool: ThreadPool::new(1),
         };
+
+        library.initialize_db();
 
         library
     }
@@ -69,10 +66,25 @@ impl Library {
         let manager = r2d2_sqlite::SqliteConnectionManager::file(database_path);
         let pool = r2d2::Pool::builder()
             .max_size(24) // probably should be like num_cores * N but 24 feels nice
+            .connection_customizer(Box::new(LibraryConnectionCustomizer{}))
             .build(manager)
             .unwrap();
 
-        let mut conn = pool.get().unwrap();
+        let library = Library {
+            pool,
+            ulids: Arc::new(Mutex::new(Generator::new())),
+            synchronizers: Arc::new(RwLock::new(vec![])),
+            notifier: Notifier::new(),
+            threadpool: ThreadPool::new(1),
+        };
+        
+        library.initialize_db();
+
+        library
+    }
+
+    fn initialize_db(&self) {
+        let mut conn = self.conn();
 
         static MIGRATION_DIR: Dir = include_dir!("./dimple_core/src/migrations");
         let migrations = Migrations::from_directory(&MIGRATION_DIR).unwrap();
@@ -88,16 +100,6 @@ impl Library {
             ",
             (Uuid::new_v4().to_string(),),
         ).unwrap();
-
-        let library = Library {
-            pool,
-            ulids: Arc::new(Mutex::new(Generator::new())),
-            synchronizers: Arc::new(RwLock::new(vec![])),
-            notifier: Notifier::new(),
-            threadpool: ThreadPool::new(1),
-        };
-
-        library
     }
 
     /// Returns the unique, permanent ID of this Library. This is created when
@@ -403,7 +405,7 @@ impl Debug for LibraryEvent {
 mod tests {
     use std::time::Duration;
 
-    use crate::model::{Diff, MediaFile, Model, Track};
+    use crate::model::Track;
 
     use super::Library;
 
@@ -425,7 +427,7 @@ mod tests {
     fn change_notifications() {
         let library = Library::open_memory();
         let (tx, rx) = std::sync::mpsc::channel();
-        library.on_change(Box::new(move |event| {
+        library.on_change(Box::new(move |_event| {
             tx.send(()).unwrap();
         }));
         library.save(&Track::default());
