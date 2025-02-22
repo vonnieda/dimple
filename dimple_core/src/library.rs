@@ -29,9 +29,8 @@ pub struct Library {
 struct LibraryConnectionCustomizer;
 impl CustomizeConnection<rusqlite::Connection, rusqlite::Error> for LibraryConnectionCustomizer {
     fn on_acquire(&self, conn: &mut rusqlite::Connection) -> Result<(), rusqlite::Error> {
-        println!("doing the thing!");
-        conn.pragma_update(None, "journal_mode", "WAL").unwrap();
-        conn.pragma_update(None, "foreign_keys", "ON").unwrap();                
+        conn.pragma_update(None, "journal_mode", "WAL")?;
+        conn.pragma_update(None, "foreign_keys", "ON")?;
         Ok(())
     }
 }
@@ -90,9 +89,6 @@ impl Library {
         let migrations = Migrations::from_directory(&MIGRATION_DIR).unwrap();
 
         migrations.to_latest(&mut conn).unwrap();
-
-        conn.pragma_update(None, "journal_mode", "WAL").unwrap();
-        conn.pragma_update(None, "foreign_keys", "ON").unwrap();        
 
         conn.execute("
             INSERT INTO Metadata (key, value) VALUES ('library.uuid', ?1)
@@ -185,22 +181,6 @@ impl Library {
         };
         self.emit_change(&obj.type_name(), &obj.key().unwrap());
         obj
-    }
-
-    /// TODO I think drop Model and use a trait that excludes Diff and such
-    /// to make this more clear. And then I think I can drop Model.log_changes
-    pub fn save_unlogged<T: LibraryModel>(&self, obj: &T) -> T {
-        // TODO txn
-
-        // get the key or create a new one
-        let key = obj.key().or_else(|| Some(Uuid::new_v4().to_string()));
-        // execute the insert
-        let mut obj = obj.clone();
-        obj.set_key(key.clone());
-        obj.upsert(&self.conn());
-        // load the newly inserted object
-        let new: T = self.get(&key.unwrap()).unwrap();
-        new
     }
 
     pub fn get<T: LibraryModel>(&self, key: &str) -> Option<T> {

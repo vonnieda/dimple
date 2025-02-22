@@ -2,7 +2,8 @@
 members = [
     "dimple_core",
     "dimple_core_macro",
-    "dimple_ui_slint",
+    "dimple_ui_slint", 
+    "dimple_data",
 ]
 resolver="2"
 

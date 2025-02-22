@@ -181,7 +181,7 @@ impl Sync {
                 let mut obj = library.get(&model_key)
                     .or_else(|| Some(Track { key: Some(model_key.clone()), ..Default::default() })).unwrap();
                 obj.apply_diff(&[changelog.clone()]);
-                library.save_unlogged(&obj);
+                library.save(&obj);
             }
         }
         if model == "TrackSource" {
@@ -196,7 +196,7 @@ impl Sync {
                 let mut obj = library.get(&model_key)
                     .or_else(|| Some(TrackSource { key: Some(model_key.clone()), ..Default::default() })).unwrap();
                 obj.apply_diff(&[changelog.clone()]);
-                library.save_unlogged(&obj);
+                library.save(&obj);
             }
         }
         if model == "Blob" {
@@ -211,7 +211,7 @@ impl Sync {
                 let mut obj = library.get(&model_key)
                     .or_else(|| Some(Blob { key: Some(model_key.clone()), ..Default::default() })).unwrap();
                 obj.apply_diff(&[changelog.clone()]);
-                library.save_unlogged(&obj);
+                library.save(&obj);
             }
         }
     }

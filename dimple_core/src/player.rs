@@ -242,7 +242,7 @@ impl Player {
             // TODO quick hack, getting a feel for this, but also want to be
             // storing the history I'm listening to.
             let timestamp = chrono::Utc::now();
-            self.library.save_unlogged(&Event {
+            self.library.save(&Event {
                 key: None,
                 timestamp: timestamp,
                 event_type: event_type.to_string(),

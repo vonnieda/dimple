@@ -37,7 +37,8 @@ fn import_streaming_history_audio(library: &Library, json_file: &DirEntry) {
         }         
         // There is a unique index on (source_type, source) so if we're
         // re-importing the same data we'll just update the existing row.
-        library.save_unlogged(&Event {
+        // TODO no longer true since removing upsert, will blow up
+        library.save(&Event {
             timestamp: DateTime::parse_from_rfc3339(&entry.ts.clone().unwrap()).unwrap().into(),
             event_type: match entry.skipped {
                 Some(true) => "track_skipped",
