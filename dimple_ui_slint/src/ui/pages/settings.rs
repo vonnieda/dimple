@@ -1,3 +1,5 @@
+use std::thread;
+
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::MediaFile;
@@ -89,11 +91,14 @@ fn import_files(app: &App) {
         // .set_directory("/")
         .pick_files();
 
-    if let Some(files) = files {
-        for file in files.iter() {
-            app.library.import(file.to_str().unwrap());
+    let app = app.clone();
+    thread::spawn(move || {
+        if let Some(files) = files {
+            for file in files.iter() {
+                app.library.import(file.to_str().unwrap());
+            }
         }
-    }
+    });
 }
 
 fn import_directories(app: &App) {
@@ -105,11 +110,17 @@ fn import_directories(app: &App) {
         // .set_directory("/")
         .pick_folders();
 
-    if let Some(files) = files {
-        for file in files.iter() {
-            app.library.import(file.to_str().unwrap());
+    // TODO just launching this off into the void for now, will eventually
+    // change import to use plugin api and show status as we import.
+    // Same with the one above.
+    let app = app.clone();
+    thread::spawn(move || {
+        if let Some(files) = files {
+            for file in files.iter() {
+                app.library.import(file.to_str().unwrap());
+            }
         }
-    }
+    });
 }
 
 fn set_online(app: &App, online: bool) {
