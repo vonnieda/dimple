@@ -9,6 +9,7 @@ export struct CardAdapter {
     image: ImageLinkAdapter,
     title: LinkAdapter,
     sub-title: LinkAdapter,
+    key: string,
 }
 
 export component Card inherits VerticalBox {
@@ -18,7 +19,7 @@ export component Card inherits VerticalBox {
         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
     };
 
-    callback pointer-event(event: PointerEvent, x: length, y: length);
+    callback pointer-event(event: PointerEvent, x: length, y: length, model: CardAdapter);
 
     width: Styles.thumbnail-width-large;
     alignment: start;
@@ -30,8 +31,11 @@ export component Card inherits VerticalBox {
         width: root.width;
         height: root.width;
         clicked => { Navigator.navigate(model.image.url); }
-        // pointer-event(event) => { root.pointer-event(event, self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y); }
-        pointer-event(event) => { root.pointer-event(event, self.absolute-position.x + self.mouse-x, self.absolute-position.y); }
+        pointer-event(event) => { root.pointer-event(event, 
+            self.absolute-position.x + self.pressed-x, 
+            self.absolute-position.y + self.pressed-y,
+            model); 
+        }
     }
     Link {
         url: model.title.url;

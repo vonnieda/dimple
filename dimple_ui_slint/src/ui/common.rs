@@ -10,6 +10,7 @@ use crate::ui::LinkAdapter;
 impl From<Artist> for CardAdapter {
     fn from(value: Artist) -> Self {
         CardAdapter {
+            key: value.key.clone().unwrap_or_default().into(),
             image: ImageLinkAdapter {
                 image: Default::default(),
                 name: value.name.clone().unwrap_or_default().into(),
@@ -30,6 +31,7 @@ impl From<Artist> for CardAdapter {
 impl From<Release> for CardAdapter {
     fn from(value: Release) -> Self {
         CardAdapter {
+            key: value.key.clone().unwrap_or_default().into(),
             image: ImageLinkAdapter {
                 image: Default::default(),
                 name: value.title.clone().unwrap_or_default().into(),
@@ -50,6 +52,7 @@ impl From<Release> for CardAdapter {
 impl From<Genre> for CardAdapter {
     fn from(value: Genre) -> Self {
         CardAdapter {
+            key: value.key.clone().unwrap_or_default().into(),
             image: ImageLinkAdapter {
                 image: Default::default(),
                 name: value.name.clone().unwrap_or_default().into(),
@@ -70,6 +73,7 @@ impl From<Genre> for CardAdapter {
 impl From<Playlist> for CardAdapter {
     fn from(value: Playlist) -> Self {
         CardAdapter {
+            key: value.key.clone().unwrap_or_default().into(),
             image: ImageLinkAdapter {
                 image: Default::default(),
                 name: value.name.clone().unwrap_or_default().into(),

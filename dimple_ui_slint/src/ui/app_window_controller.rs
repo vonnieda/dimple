@@ -1,4 +1,4 @@
-use dimple_core::{library::Library, player::Player, plugins::{lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugin_host::PluginHost, wikidata::WikidataPlugin}};
+use dimple_core::{library::Library, player::{PlayWhen, Player}, plugins::{lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugin_host::PluginHost, wikidata::WikidataPlugin}};
 use player_bar;
 use std::{collections::VecDeque, env, sync::{Arc, Mutex}};
 
@@ -79,6 +79,19 @@ impl AppWindowController {
     pub fn run(&self) -> Result<(), slint::PlatformError> {
         let app = self.app.clone();
         self.ui.global::<Navigator>().on_navigate(move |url| app.navigate(url));
+
+        let app = self.app.clone();
+        self.ui.global::<crate::ui::AppState>().on_play_next(move |key| {
+            app.player.enqueue(&key, PlayWhen::Next);
+        });
+        let app = self.app.clone();
+        self.ui.global::<crate::ui::AppState>().on_play_later(move |key| {
+            app.player.enqueue(&key, PlayWhen::Last);
+        });
+        let app = self.app.clone();
+        self.ui.global::<crate::ui::AppState>().on_play_now(move |key| {
+            app.player.enqueue(&key, PlayWhen::Now);
+        });
 
         player_bar::player_bar_init(&self.app);
 

@@ -11,7 +11,7 @@ use threadpool::ThreadPool;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::{model::{Artist, Blob, ChangeLog, FromRow, Genre, LibraryModel, MediaFile, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier, sync::Sync};
+use crate::{model::{Artist, Blob, ChangeLog, FromRow, Genre, LibraryModel, MediaFile, Model, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier, sync::Sync};
 
 #[derive(Clone)]
 pub struct Library {

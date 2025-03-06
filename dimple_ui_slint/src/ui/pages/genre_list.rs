@@ -58,6 +58,7 @@ fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {
 fn genre_card(genre: &Genre) -> CardAdapter {
     let genre = genre.clone();
     CardAdapter {
+        key: genre.key.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: genre.name.clone().unwrap_or_default().into(),

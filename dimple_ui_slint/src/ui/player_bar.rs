@@ -120,6 +120,7 @@ impl From<PlayerState> for crate::ui::PlayerState {
 fn artist_card(artist: &Artist) -> CardAdapter {
     let artist = artist.clone();
     CardAdapter {
+        key: artist.key.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: artist.name.clone().unwrap_or_default().into(),
@@ -139,6 +140,7 @@ fn artist_card(artist: &Artist) -> CardAdapter {
 fn release_card(release: &Release) -> CardAdapter {
     let release = release.clone();
     CardAdapter {
+        key: release.key.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: release.title.clone().unwrap_or_default().into(),
@@ -158,6 +160,7 @@ fn release_card(release: &Release) -> CardAdapter {
 fn track_card(track: &Track) -> CardAdapter {
     let track = track.clone();
     CardAdapter {
+        key: track.key.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: track.title.clone().unwrap_or_default().into(),

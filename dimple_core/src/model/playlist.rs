@@ -59,6 +59,7 @@ impl Playlist {
             model.key(), 
             index, 
             self.len(library));
+        // TODO change to as_any()
         match model.type_name().as_str() {
             "Artist" => {
                 let artist = Artist::get(library, &model.key().unwrap()).unwrap();

@@ -19,6 +19,12 @@ pub struct Player {
     threadpool: ThreadPool,
 }
 
+pub enum PlayWhen {
+    Now,
+    Next,
+    Last,
+}
+
 // TODO volume https://github.com/tramhao/termusic/blob/master/playback/src/rusty_backend/sink.rs
 // https://github.com/10buttons/awedio
 // https://sansan.cat/
@@ -65,6 +71,26 @@ impl Player {
     pub fn play_later(&self, model: &impl LibraryModel) {
         self.queue().append(&self.library, model);
         self.play();
+    }
+
+    pub fn enqueue(&self, key: &str, when: PlayWhen) {
+        if let Some(model) = Artist::get(&self.library, key) {
+            self.enqueue_help(&model, when);
+        }
+        else if let Some(model) = Release::get(&self.library, key) {
+            self.enqueue_help(&model, when);
+        }
+        else if let Some(model) = Track::get(&self.library, key) {
+            self.enqueue_help(&model, when);
+        }
+    }
+
+    fn enqueue_help(&self, model: &impl LibraryModel, when: PlayWhen) {
+        match when {
+            PlayWhen::Now => self.play_now(model),
+            PlayWhen::Next => self.play_next(model),
+            PlayWhen::Last => self.play_later(model),
+        };
     }
 
     pub fn play(&self) {

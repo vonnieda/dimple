@@ -84,6 +84,7 @@ fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
 fn track_card(track: &Track) -> CardAdapter {
     let track = track.clone();
     CardAdapter {
+        key: track.key.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: track.title.clone().unwrap_or_default().into(),

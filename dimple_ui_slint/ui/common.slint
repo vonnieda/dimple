@@ -37,6 +37,10 @@ export global AppState {
     callback player_play_pause();
     callback player_next();
     callback player_seek(int);
+
+    callback play_next(key: string);
+    callback play_now(key: string);
+    callback play_later(key: string);    
 }
 
 export component Texxt inherits Text {
