@@ -1,6 +1,6 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Styles, Navigator } from "../common.slint";
-import {StyleMetrics, Palette} from "std-widgets.slint";
+import {StyleMetrics, Palette, StandardButton} from "std-widgets.slint";
 import {ImageLinkAdapter, LinkAdapter} from "../components/link.slint";
 import { Link } from "link.slint";
 import { BorderImage } from "border_image.slint";
@@ -31,10 +31,55 @@ export component Card inherits VerticalBox {
         width: root.width;
         height: root.width;
         clicked => { Navigator.navigate(model.image.url); }
-        pointer-event(event) => { root.pointer-event(event, 
-            self.absolute-position.x + self.pressed-x, 
-            self.absolute-position.y + self.pressed-y,
-            model); 
+        pointer-event(event) => { root.pointer-event(event, self.mouse-x, self.mouse-y, model); }
+    }
+    Link {
+        url: model.title.url;
+        name: model.title.name;
+    }
+    Link {
+        url: model.sub-title.url;
+        name: model.sub-title.name;
+    }
+}
+
+export component PlayableCard inherits VerticalBox {
+    in property <CardAdapter> model: {
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Fish",url: "internal://release/1234"},
+        title: {name: "A Reign of Fish",url: "internal://release/1234"},
+        sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
+    };
+
+    callback pointer-event(event: PointerEvent, x: length, y: length, model: CardAdapter);
+
+    width: Styles.thumbnail-width-large;
+    alignment: start;
+    padding: 0;
+    spacing: 4px;
+
+    ta := TouchArea {
+        Rectangle {
+            img := BorderImage {
+                source: model.image.image;
+                width: root.width;
+                height: root.width;
+                clicked => { Navigator.navigate(model.image.url); }
+                pointer-event(event) => { root.pointer-event(event, self.mouse-x, self.mouse-y, model); }
+            }
+            Button {
+                x: 4px;
+                y: img.y + img.height - self.height - 4px;
+                visible: ta.has-hover;
+                icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+                colorize-icon: true;                
+            }
+            Button {
+                x: img.width - self.width - 4px;
+                y: img.y + img.height - self.height - 4px;
+                visible: ta.has-hover;
+                icon: @image-url("../../icons/phosphor/SVGs/regular/dots-three.svg");
+                colorize-icon: true;                
+            }
         }
     }
     Link {

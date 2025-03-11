@@ -1,5 +1,5 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
-import { Card, CardAdapter } from "card.slint";
+import { Card, CardAdapter, PlayableCard } from "card.slint";
 import { Styles, Navigator, Label, AppState } from "../common.slint";
 import {StyleMetrics, HorizontalBox} from "std-widgets.slint";
 import { PopupMenu, PopupMenuButton } from "popup_menu.slint";
@@ -71,7 +71,11 @@ export component CardGrid inherits VerticalBox {
         for col in Math.min(cols, cards.length - (row * cols)): Card {
             // width: root.card-width + addl-spacing;
             model: cards[row * cols + col];
-            pointer-event(event, x, y, model) => { root.pointer-event(event, x, y, model); }
+            pointer-event(event, x, y, model) => { root.pointer-event(event, 
+                self.x + x, 
+                self.y + y, 
+                model); 
+            }
         }
     }
 

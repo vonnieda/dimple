@@ -85,6 +85,7 @@ fn made_for_you(library: &Library) -> Vec<Release> {
 }
 
 // Things you listened to recently but didn't finish.
+// TODO query does not actually do that
 fn jump_back_in(library: &Library) -> Vec<Release> {
     library.query("
         SELECT Release.* 

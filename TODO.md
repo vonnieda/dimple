@@ -98,6 +98,7 @@ Dump new things at the bottom, move things to the top to prioritize.
 - playlists should take releases and playlists as items
 - number of plays on artists, tracks, releases, etc.
 - popularity (from your history) on artists, tracks, releases, etc.
+
 - m4a not playing (Built to Spill - You In Reverse)
     thread '<unnamed>' panicked at dimple_core/src/player/track_downloader.rs:41:90:
     called `Result::unwrap()` on an `Err` value: malformed stream: isomp4: overread atom
@@ -120,3 +121,11 @@ Dump new things at the bottom, move things to the top to prioritize.
       6: threadpool::spawn_in_pool::{{closure}}
                 at /Users/jason/.cargo/registry/src/index.crates.io-6f17d22bba15001f/threadpool-1.8.1/src/lib.rs:769:17
     note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+- architecture: the image lazy_get is index based, which has always been a race 
+  condition and also just gross. Should be by key, or callback, or something else.
+- Clicking the play bar image to go to the current song in the queue does not
+  always work. I think this is a Slint issue.
+- Menu positioning is still wrong on grids in a scroller, cause it doesn't
+  take the scroll position into account. Maybe needs to move up and we have
+  like a "card event" or something on card grid.
