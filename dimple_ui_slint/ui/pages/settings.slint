@@ -12,7 +12,7 @@
 
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox, Slider, Switch, LineEdit, GridBox} from "std-widgets.slint";
-import { AppState, Styles, Navigator, Texxt, PageSubtitle, SectionTitle, PageTitle } from "../common.slint";
+import { AppState, Styles, Navigator, Label, PageSubtitle, SectionTitle, PageTitle } from "../common.slint";
 // import { ActionButton } from "../components/action_buttons.slint";
 
 export struct PluginAdapter {
@@ -45,7 +45,7 @@ component General inherits VerticalBox {
     HorizontalBox {
         alignment: start;
         
-        Texxt {
+        Label {
             text: "Offline Mode";
             vertical-alignment: center;
         }
@@ -74,7 +74,7 @@ component Database inherits VerticalBox {
     }
 
     VerticalBox {
-        for stat in SettingsAdapter.database-stats: Texxt {
+        for stat in SettingsAdapter.database-stats: Label {
             text: stat;
             vertical-alignment: center;
         }
@@ -96,7 +96,7 @@ component Cache inherits VerticalBox {
     }
 
     VerticalBox {
-        for stat in SettingsAdapter.cache-stats: Texxt {
+        for stat in SettingsAdapter.cache-stats: Label {
             text: stat;
             vertical-alignment: center;
         }
@@ -109,7 +109,7 @@ component Sync inherits VerticalBox {
     }
 
     GridBox {
-        Texxt {
+        Label {
             row: 0;
             col: 0;
             text: "S3 Endpoint";
@@ -121,7 +121,7 @@ component Sync inherits VerticalBox {
             colspan: 2;
             min-width: 200px;
         }        
-        Texxt {
+        Label {
             row: 1;
             col: 0;
             text: "S3 Region";
@@ -133,7 +133,7 @@ component Sync inherits VerticalBox {
             colspan: 2;
             min-width: 200px;
         }        
-        Texxt {
+        Label {
             row: 2;
             col: 0;
             text: "S3 Bucket";
@@ -145,7 +145,7 @@ component Sync inherits VerticalBox {
             colspan: 2;
             min-width: 200px;
         }        
-        Texxt {
+        Label {
             row: 3;
             col: 0;
             text: "S3 Access Key";
@@ -157,7 +157,7 @@ component Sync inherits VerticalBox {
             colspan: 2;
             min-width: 200px;
         }        
-        Texxt {
+        Label {
             row: 4;
             col: 0;
             text: "S3 Prefix";
@@ -185,13 +185,13 @@ component PluginRow inherits HorizontalBox {
     in property <bool> enabled: true;
 
     VerticalBox {
-        Texxt {
+        Label {
             text: title;
         }
-        Texxt {
+        Label {
             text: sub-title;
         }
-        Texxt {
+        Label {
             text: status;
         }
     }
@@ -251,7 +251,7 @@ component Import inherits VerticalBox {
 
     HorizontalBox {
         alignment: start;
-        Texxt {
+        Label {
             text: @tr("Import music files, listening history, playlists, databases, and more. See [TODO LINK] for a list of supported types. Or just pick a file and try. Dimple never changes any of your files.");
             vertical-alignment: center;
             wrap: word-wrap;

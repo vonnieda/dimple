@@ -1,6 +1,6 @@
 import { ScrollView } from "std-widgets.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
-import { Texxt } from "../common.slint";
+import { Label } from "../common.slint";
 
 export component SearchResults inherits VerticalLayout {
     in-out property <CardGridAdapter> model;
@@ -10,7 +10,7 @@ export component SearchResults inherits VerticalLayout {
         //     cards: model.cards;
         // }
     }
-    Texxt {
+    Label {
         horizontal-alignment: right;
         text: model.cards.length + " items";
     }

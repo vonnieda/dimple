@@ -8,7 +8,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widge
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
-import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
+import { Styles, Navigator, AppState, Label, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 import { Tag, TagList } from "../components/tag.slint";
 import { BorderImage } from "../components/border_image.slint";
@@ -130,7 +130,7 @@ export component ReleaseDetails inherits ScrollView {
                 }
                 // if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
                 //     alignment: start;
-                //     if ReleaseDetailsAdapter.release-type != "": Texxt {
+                //     if ReleaseDetailsAdapter.release-type != "": Label {
                 //         text: "\{ReleaseDetailsAdapter.release-type} by ";
                 //     }
                 //     // TODO this blows up
@@ -151,7 +151,7 @@ export component ReleaseDetails inherits ScrollView {
                     tags: ReleaseDetailsAdapter.genres;
                     height: self.preferred-height;
                 }
-                if ReleaseDetailsAdapter.summary != "": Texxt {
+                if ReleaseDetailsAdapter.summary != "": Label {
                     text: ReleaseDetailsAdapter.summary;
                     wrap: word-wrap;
                 }

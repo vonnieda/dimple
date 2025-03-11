@@ -3,7 +3,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, GroupBo
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
-import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
+import { Styles, Navigator, AppState, Label, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
 import { TagList } from "../components/tag.slint";
 import { BorderImage } from "../components/border_image.slint";
 
@@ -112,7 +112,7 @@ export component TrackDetails inherits ScrollView {
                     links: TrackDetailsAdapter.links;
                     height: self.preferred-height;
                 }
-                if TrackDetailsAdapter.summary != "": Texxt {
+                if TrackDetailsAdapter.summary != "": Label {
                     text: TrackDetailsAdapter.summary;
                     wrap: word-wrap;
                 }
@@ -136,7 +136,7 @@ export component TrackDetails inherits ScrollView {
             SectionTitle {
                 text: "Lyrics";
             }
-            Texxt {
+            Label {
                 text: TrackDetailsAdapter.lyrics;
             }
         }

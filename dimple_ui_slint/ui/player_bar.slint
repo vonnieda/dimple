@@ -2,7 +2,7 @@ import { Slider , GroupBox, HorizontalBox} from "std-widgets.slint";
 import { StyleMetrics, Button, VerticalBox, Palette } from "std-widgets.slint";
 import { CardAdapter } from "components/card.slint";
 import {Link, LinkAdapter} from "./components/link.slint";
-import { Styles, Navigator, AppState, Texxt } from "common.slint";
+import { Styles, Navigator, AppState, Label } from "common.slint";
 import { BorderImage } from "components/border_image.slint";
 
 export enum PlayerState {
@@ -114,11 +114,11 @@ component Scrubber inherits VerticalLayout {
         changed => { AppState.player_seek(self.value) }
     }
     HorizontalLayout {
-        Texxt {
+        Label {
             text: position-label;
             wrap: no-wrap;
         }
-        Texxt {
+        Label {
             horizontal-alignment: right;
             text: duration-label;
         }

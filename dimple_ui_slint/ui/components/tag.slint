@@ -1,5 +1,5 @@
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { Navigator, Texxt, Styles } from "../common.slint";
+import { Navigator, Label, Styles } from "../common.slint";
 import { Palette, VerticalBox, Button } from "std-widgets.slint";
 import { BorderImage } from "border_image.slint";
 import { FlowLayout, FlowLayoutItem } from "flow_layout.slint";
@@ -21,7 +21,7 @@ export component Tag inherits TouchArea {
 
         HorizontalLayout {
             padding: 4px;
-            text := Texxt {
+            text := Label {
                 text: root.text;
                 wrap: no-wrap;
                 overflow: clip;

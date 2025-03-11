@@ -3,7 +3,7 @@ import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, Button} from "std-widgets.slint";
 import { CardGrid } from "../components/card_grid.slint";
-import { Styles, Navigator, AppState, Texxt, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
+import { Styles, Navigator, AppState, Label, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
 import { Tag } from "../components/tag.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 import { BorderImage } from "../components/border_image.slint";
@@ -66,7 +66,7 @@ export component GenreDetails inherits ScrollView {
                     links: GenreDetailsAdapter.links;
                     height: self.preferred-height;
                 }
-                if GenreDetailsAdapter.summary != "": Texxt {
+                if GenreDetailsAdapter.summary != "": Label {
                     text: GenreDetailsAdapter.summary;
                     wrap: word-wrap;
                 }

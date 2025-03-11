@@ -1,4 +1,4 @@
-import { Styles, Navigator, Texxt } from "../common.slint";
+import { Styles, Navigator, Label } from "../common.slint";
 import {StyleMetrics, Palette} from "std-widgets.slint";
 import { FlowLayout, FlowLayoutItem } from "flow_layout.slint";
 
@@ -29,7 +29,7 @@ export component Link inherits TouchArea {
 
     Rectangle {
         background: root.has-hover ? Palette.selection-background : Palette.background;
-        title := Texxt {
+        title := Label {
             vertical-alignment: vertical-alignment;
             width: root.width;
             text: name;

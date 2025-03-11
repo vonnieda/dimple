@@ -1,7 +1,7 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
 import { CardAdapter, Card } from "../components/card.slint";
-import {Styles, Texxt, PageTitle, PageSubtitle} from "../common.slint";
+import {Styles, Label, PageTitle, PageSubtitle} from "../common.slint";
 
 export component ArtistList inherits ScrollView {
     in-out property <CardGridAdapter> model: model_ph;

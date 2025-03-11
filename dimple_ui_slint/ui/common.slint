@@ -43,26 +43,26 @@ export global AppState {
     callback play_later(key: string);    
 }
 
-export component Texxt inherits Text {
+export component Label inherits Text {
     font-size: Styles.default-font-size;
     font-family: Styles.default-font-family;
     font-weight: Styles.default-font-weight;
     wrap: word-wrap;
 }
 
-export component PageTitle inherits Texxt {
+export component PageTitle inherits Label {
     font-size: Styles.default-font-size * 3;
 }
 
-export component PageSubtitle inherits Texxt {
+export component PageSubtitle inherits Label {
     font-italic: true;
 }
 
-export component SectionTitle inherits Texxt {
+export component SectionTitle inherits Label {
     font-size: Styles.default-font-size * 2;
 }
 
-export component SectionSubtitle inherits Texxt {
+export component SectionSubtitle inherits Label {
     font-italic: true;
 }
 
