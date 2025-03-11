@@ -69,7 +69,6 @@ export component ArtistDetails inherits ScrollView {
         padding: 0;
 
         HorizontalBox {
-            alignment: start;
             padding: 0;
 
             BorderImage {
@@ -80,6 +79,7 @@ export component ArtistDetails inherits ScrollView {
             VerticalBox {
                 alignment: start;
                 padding: 0;
+                
                 VerticalLayout {
                     PageTitle {
                         text: ArtistDetailsAdapter.card.title.name;
@@ -88,12 +88,12 @@ export component ArtistDetails inherits ScrollView {
                         text: ArtistDetailsAdapter.disambiguation;
                     }
                 }
-                LinkButtons {
-                    links: ArtistDetailsAdapter.links;
-                    height: self.preferred-height;
-                }
                 TagList {
                     tags: ArtistDetailsAdapter.genres;
+                    height: self.preferred-height;
+                }
+                LinkButtons {
+                    links: ArtistDetailsAdapter.links;
                     height: self.preferred-height;
                 }
                 if ArtistDetailsAdapter.summary != "": Label {

@@ -12,6 +12,14 @@ export component FlowLayout {
     preferred-height: self.calculated-height;
 
     changed width => {
+        do-all-layout();
+    }
+
+    init => {
+        do-all-layout();
+    }
+
+    public function do-all-layout() {
         self.do-layout(0);
         self.do-layout(1);
         self.do-layout(2);

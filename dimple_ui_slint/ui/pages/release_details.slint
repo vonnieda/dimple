@@ -64,56 +64,57 @@ export global ReleaseDetailsAdapter {
     pure callback sort_table(int /* column */, bool /* ascending */);
 }
 
-// popup := PopupMenu {
-//     x: popup-x; 
-//     y: popup-y; 
+component RowMenu inherits PopupMenu {
+    in property <string> key;
 
-//     PopupMenuButton {
-//         text: "Play Later";
-//         icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
-//         clicked => { ReleaseDetailsAdapter.play_track_later(ReleaseDetailsAdapter.row_keys[popup-row]); }
-//     }
-//     PopupMenuButton {
-//         text: "Play Next";
-//         icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
-//         clicked => { ReleaseDetailsAdapter.play_track_next(ReleaseDetailsAdapter.row_keys[popup-row]); }
-//     }
-//     PopupMenuButton {
-//         text: "Play Now";
-//         icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-//         clicked => { ReleaseDetailsAdapter.play_track_now(ReleaseDetailsAdapter.row_keys[popup-row]); }
-//     }
-//     PopupMenuButton {
-//         text: "Track Info";
-//         icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
-//         clicked => { Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[root.popup-row]); }
-//     }
-// }    
+    PopupMenuButton {
+        text: "Play Later";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+        clicked => { AppState.play_later(key); }
+    }
+    PopupMenuButton {
+        text: "Play Next";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+        clicked => { AppState.play_next(key); }
+    }
+    PopupMenuButton {
+        text: "Play Now";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+        clicked => { AppState.play_now(key); }
+    }
+    PopupMenuButton {
+        text: "Details";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
+        clicked => { Navigator.navigate("dimple://track/" + key); }
+    }
+}    
 
 export component ReleaseDetails inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
 
-    in-out property <length> popup-x;
-    in-out property <length> popup-y;
-    in-out property <int> popup-row;
+    in-out property <length> row-menu-x;
+    in-out property <length> row-menu-y;
+    in-out property <string> row-menu-key;
+    row-menu := RowMenu {
+        x: row-menu-x;
+        y: row-menu-y;
+        key: row-menu-key;
+        width: self.preferred-width;
+        height: self.preferred-height;
+    }
 
     VerticalBox {
+        width: 100%;
         alignment: start;
         padding: 0;
 
         HorizontalBox {
-            alignment: start;
             padding: 0;
 
-            VerticalBox {
-                padding: 0;
-                alignment: start;
-
-                BorderImage {
-                    width: Styles.thumbnail-width-extra-large;
-                    height: Styles.thumbnail-width-extra-large;
-                    source: ReleaseDetailsAdapter.card.image.image;
-                }
+            BorderImage {
+                width: Styles.thumbnail-width-extra-large;
+                height: Styles.thumbnail-width-extra-large;
+                source: ReleaseDetailsAdapter.card.image.image;
             }
             VerticalBox {
                 alignment: start;
@@ -122,26 +123,10 @@ export component ReleaseDetails inherits ScrollView {
                 VerticalLayout {
                     PageTitle {
                         text: ReleaseDetailsAdapter.card.title.name;
-                        wrap: word-wrap;
                     }
                     if ReleaseDetailsAdapter.disambiguation != "": PageSubtitle {
                         text: ReleaseDetailsAdapter.disambiguation;
                     }
-                }
-                // if ReleaseDetailsAdapter.artists.length > 0: HorizontalLayout {
-                //     alignment: start;
-                //     if ReleaseDetailsAdapter.release-type != "": Label {
-                //         text: "\{ReleaseDetailsAdapter.release-type} by ";
-                //     }
-                //     // TODO this blows up
-                //     Links {
-                //         links: ReleaseDetailsAdapter.artists;
-                //         height: self.preferred-height;
-                //     }
-                // }
-                LinkButtons {
-                    links: ReleaseDetailsAdapter.links;
-                    height: self.preferred-height;
                 }
                 Links {
                     links: ReleaseDetailsAdapter.artists;
@@ -149,6 +134,10 @@ export component ReleaseDetails inherits ScrollView {
                 }
                 TagList {
                     tags: ReleaseDetailsAdapter.genres;
+                    height: self.preferred-height;
+                }
+                LinkButtons {
+                    links: ReleaseDetailsAdapter.links;
                     height: self.preferred-height;
                 }
                 if ReleaseDetailsAdapter.summary != "": Label {
@@ -169,20 +158,20 @@ export component ReleaseDetails inherits ScrollView {
             rows: ReleaseDetailsAdapter.row_data;
             sort-ascending(index) => { ReleaseDetailsAdapter.sort_table(index, true); }
             sort-descending(index) => { ReleaseDetailsAdapter.sort_table(index, false); }
-            // row-pointer-event(row, event, point) => {
-            //     if event.button == PointerEventButton.right 
-            //             && event.kind == PointerEventKind.down {
-            //         popup-x = table.absolute-position.x + point.x;
-            //         popup-y = table.absolute-position.y + point.y;
-            //         popup-row = row;
-            //         popup.show();
-            //     }
-            //     else if event.button == PointerEventButton.left 
-            //             && row == table.current-row
-            //             && event.kind == PointerEventKind.down {
-            //         Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[row]);
-            //     }
-            // }
+            row-pointer-event(row, event, point) => {
+                if event.button == PointerEventButton.right 
+                        && event.kind == PointerEventKind.down {
+                    row-menu-x = table.absolute-position.x + point.x;
+                    row-menu-y = table.absolute-position.y + point.y;
+                    row-menu-key = ReleaseDetailsAdapter.row_keys[row];
+                    row-menu.show();
+                }
+                else if event.button == PointerEventButton.left 
+                        && row == table.current-row
+                        && event.kind == PointerEventKind.down {
+                    Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[row]);
+                }
+            }
         }
     }
 }

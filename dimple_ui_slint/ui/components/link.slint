@@ -43,6 +43,8 @@ export component Link inherits TouchArea {
 export component Links inherits FlowLayout {
     in-out property <[LinkAdapter]> links: [{name: "heavy metal"},{name: "heavy metal thing cup stuff"},{name: "hard rock"},{name: "acid rock"}];
     in-out property <length> font-size: Styles.default-font-size;
+
+    changed links => { self.do-all-layout(); }
     
     for i in links.length: FlowLayoutItem {
         item-infos: parent.item-infos;
@@ -81,6 +83,8 @@ component LinkButton inherits TouchArea {
 export component LinkButtons inherits FlowLayout {
     in-out property <[LinkAdapter]> links: [{name: "heavy metal"},{name: "heavy metal thing cup stuff"},{name: "hard rock"},{name: "acid rock"}];
     
+    changed links => { self.do-all-layout(); }
+
     for i in links.length: FlowLayoutItem {
         item-infos: parent.item-infos;
         index: i;
