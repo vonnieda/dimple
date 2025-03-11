@@ -1,11 +1,10 @@
 pub mod track_downloader;
 
-use std::{sync::{mpsc::{Receiver, Sender}, Arc, Mutex, RwLock}, time::{Duration, Instant}};
+use std::{sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, time::{Duration, Instant}};
 
-use threadpool::ThreadPool;
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
-use crate::{library::Library, model::{Artist, Event, LibraryModel, Model, ModelBasics as _, Playlist, Release, Track}, notifier::{self, Notifier}};
+use crate::{library::Library, model::{Artist, Event, LibraryModel, ModelBasics as _, Playlist, Release, Track}, notifier::Notifier};
 
 pub use playback_rs::Song;
 
@@ -15,8 +14,17 @@ pub struct Player {
     sender: Sender<PlayerCommand>,
     shared_state: Arc<RwLock<SharedState>>,
     downloader: TrackDownloader,
-    notifier: Notifier<String>,
-    threadpool: ThreadPool,
+    pub notifier: Notifier<PlayerEvent>,
+}
+
+#[derive(Clone)]
+pub enum PlayerEvent {
+    State(PlayerState),
+    CurrentSong(Song),
+    Position(Duration),
+    Duration(Duration),
+    LastLoadedQueueIndex(Option<usize>),
+    QueueIndex(usize),
 }
 
 pub enum PlayWhen {
@@ -37,7 +45,6 @@ impl Player {
             shared_state: Arc::new(RwLock::new(SharedState::default())),
             downloader: TrackDownloader::default(),
             notifier: Notifier::new(),
-            threadpool: ThreadPool::new(1),
         };
         // TODO library.on_change() and watch for changes to the playlist, which
         // will cause us to need to reevaulate if the right song is loaded.
@@ -75,22 +82,14 @@ impl Player {
 
     pub fn enqueue(&self, key: &str, when: PlayWhen) {
         if let Some(model) = Artist::get(&self.library, key) {
-            self.enqueue_help(&model, when);
+            self.enqueue_helper(&model, when);
         }
         else if let Some(model) = Release::get(&self.library, key) {
-            self.enqueue_help(&model, when);
+            self.enqueue_helper(&model, when);
         }
         else if let Some(model) = Track::get(&self.library, key) {
-            self.enqueue_help(&model, when);
+            self.enqueue_helper(&model, when);
         }
-    }
-
-    fn enqueue_help(&self, model: &impl LibraryModel, when: PlayWhen) {
-        match when {
-            PlayWhen::Now => self.play_now(model),
-            PlayWhen::Next => self.play_next(model),
-            PlayWhen::Last => self.play_later(model),
-        };
     }
 
     pub fn play(&self) {
@@ -103,41 +102,28 @@ impl Player {
 
     pub fn next(&self) {
         self.scrobble("track_skipped");
-        if let Ok(mut shared_state) = self.shared_state.write() {
-            shared_state.queue_index = (shared_state.queue_index + 1).min(self.queue().len(&self.library) - 1);
-            // TODO change to skip and check if current is playing to use gapless prebuffer
-            self.sender.send(PlayerCommand::Stop).unwrap();
-        }
+        self.set_current_queue_index((self.current_queue_index() + 1).min(self.queue().len(&self.library) - 1));
+        self.sender.send(PlayerCommand::Stop).unwrap();
     }
 
     pub fn previous(&self) {
-        let mut restarted: bool = false;
-        if let Ok(mut shared_state) = self.shared_state.write() {
-            const REWIND_SECONDS: u64 = 3;
-            if shared_state.track_position.as_secs() >= REWIND_SECONDS {
-                restarted = true;
-                self.sender.send(PlayerCommand::Seek(Duration::ZERO)).unwrap();
-            }
-            else {
-                let queue_index = shared_state.queue_index;
-                if queue_index > 0 {
-                    shared_state.queue_index = queue_index - 1;
-                    self.sender.send(PlayerCommand::Stop).unwrap();
-                }
-            }
-        }
-        // TODO note this is done outside of the logic above because the above
-        // is inside the lock. Should be refactored.
-        if restarted {
+        const REWIND_SECONDS: u64 = 3;
+        if self.shared_state.read().unwrap().track_position.as_secs() >= REWIND_SECONDS {
             self.scrobble("track_restarted");
+            self.sender.send(PlayerCommand::Seek(Duration::ZERO)).unwrap();
         }
         else {
+            let queue_index = self.current_queue_index();
+            if queue_index > 0 {
+                self.set_current_queue_index(queue_index - 1);
+                self.sender.send(PlayerCommand::Stop).unwrap();
+            }
             self.scrobble("previous_track");
         }
     }
 
     pub fn set_queue_index(&self, index: usize) {
-        self.shared_state.write().unwrap().queue_index = index;
+        self.set_current_queue_index(index);
         self.sender.send(PlayerCommand::Stop).unwrap();
     }
 
@@ -183,7 +169,7 @@ impl Player {
     }
 
     pub fn current_queue_index(&self) -> usize {
-        self.shared_state.read().unwrap().queue_index
+        self.shared_state.read().unwrap()._queue_index
     }
 
     pub fn current_queue_track(&self) -> Option<Track> {
@@ -194,16 +180,12 @@ impl Player {
         self.queue().tracks(&self.library).get(self.current_queue_index() + 1).cloned()
     }
 
-    pub fn on_change(&self, l: Box<dyn Fn(&String) + Send>) {
-        self.notifier.on_notify(l);
-    }
-
-    fn emit_change(&self, event: &str) {
-        let notifier = self.notifier.clone();
-        let event = event.to_string();
-        self.threadpool.execute(move || {
-            notifier.notify(&event);
-        });
+    fn enqueue_helper(&self, model: &impl LibraryModel, when: PlayWhen) {
+        match when {
+            PlayWhen::Now => self.play_now(model),
+            PlayWhen::Next => self.play_next(model),
+            PlayWhen::Last => self.play_later(model),
+        };
     }
 
     fn player_worker(&self, receiver: Receiver<PlayerCommand>) {
@@ -234,16 +216,16 @@ impl Player {
             if !inner.has_next_song() {
                 self.load_next_song(&inner);
             }
-
+            
             let (position, duration) = inner.get_playback_position().unwrap_or_default();
             if let Ok(mut shared_state) = self.shared_state.write() {
                 if shared_state.track_position != position {
                     shared_state.track_position = position;
-                    self.emit_change("position");
+                    self.notifier.notify(PlayerEvent::Position(position));
                 }
                 if shared_state.track_duration != duration {
                     shared_state.track_duration = duration;
-                    self.emit_change("duration");
+                    self.notifier.notify(PlayerEvent::Duration(duration));
                 }
                 let new_state = match (inner.is_playing(), inner.has_current_song()) {
                     (true, true) => PlayerState::Playing,                    
@@ -253,7 +235,7 @@ impl Player {
                 };
                 if shared_state.inner_player_state != new_state {
                     shared_state.inner_player_state = new_state.clone();
-                    self.emit_change("state");
+                    self.notifier.notify(PlayerEvent::State(new_state));
                 }
             }
         }
@@ -316,13 +298,14 @@ impl Player {
                 Some(track) => {
                     match self.downloader.get(&track, &self.library) {
                         TrackDownloadStatus::Downloading => {
-                            return
                         },
                         TrackDownloadStatus::Ready(song) => { 
                             inner.play_song_next(&song, None).unwrap();
                             self.set_last_loaded_queue_index(Some(queue_index));
                             if queue_index == self.current_queue_index() {
                                 self.shared_state.write().unwrap().current_song = Some(song.clone());
+                                self.notifier.notify(PlayerEvent::CurrentSong(song.clone()));
+                                return
                             }
                             return
                         },
@@ -346,9 +329,8 @@ impl Player {
 
     /// Advances the queue, stopping at queue_len
     fn advance_queue(&self) {
-        let queue_index = self.shared_state.read().unwrap().queue_index;
         let queue_len = self.queue().tracks(&self.library).len();
-        self.shared_state.write().unwrap().queue_index = (queue_index + 1).min(queue_len);
+        self.set_current_queue_index((self.current_queue_index() + 1).min(queue_len));
     }
 
     fn last_loaded_queue_index(&self) -> Option<usize> {
@@ -357,7 +339,12 @@ impl Player {
 
     fn set_last_loaded_queue_index(&self, last_loaded_queue_index: Option<usize>) {
         self.shared_state.write().unwrap()._last_loaded_queue_index = last_loaded_queue_index;
-        self.emit_change("last_loaded_queue_index");
+        self.notifier.notify(PlayerEvent::LastLoadedQueueIndex(last_loaded_queue_index));
+    }
+
+    fn set_current_queue_index(&self, index: usize) {
+        self.shared_state.write().unwrap()._queue_index = index;
+        self.notifier.notify(PlayerEvent::QueueIndex(index));
     }
 }
 
@@ -371,7 +358,7 @@ pub enum PlayerState {
 
 #[derive(Default)]
 struct SharedState {
-    queue_index: usize,
+    _queue_index: usize,
     _last_loaded_queue_index: Option<usize>,
     track_duration: Duration,
     track_position: Duration,

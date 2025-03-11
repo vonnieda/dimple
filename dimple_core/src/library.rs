@@ -21,8 +21,7 @@ pub struct Library {
     // higher level. Note: Yea, it's going into Plugins and we're deleting
     // sync from Library entirely.
     synchronizers: Arc<RwLock<Vec<Sync>>>,
-    notifier: Notifier<LibraryEvent>,
-    threadpool: ThreadPool,
+    pub notifier: Notifier<LibraryEvent>,
 }
 
 #[derive(Debug)]
@@ -49,7 +48,6 @@ impl Library {
             ulids: Arc::new(Mutex::new(Generator::new())),
             synchronizers: Arc::new(RwLock::new(vec![])),
             notifier: Notifier::new(),
-            threadpool: ThreadPool::new(1),
         };
 
         library.initialize_db();
@@ -74,7 +72,6 @@ impl Library {
             ulids: Arc::new(Mutex::new(Generator::new())),
             synchronizers: Arc::new(RwLock::new(vec![])),
             notifier: Notifier::new(),
-            threadpool: ThreadPool::new(1),
         };
         
         library.initialize_db();
@@ -137,22 +134,6 @@ impl Library {
         }
     }
 
-    pub fn on_change(&self, l: Box<dyn Fn(&LibraryEvent) + Send>) {
-        self.notifier.on_notify(l);
-    }
-
-    fn emit_change(&self, type_name: &str, key: &str) {
-        let notifier = self.notifier.clone();
-        let event = LibraryEvent {
-            library: self.clone(),
-            type_name: type_name.to_string(),
-            key: key.to_string(),
-        };
-        self.threadpool.execute(move || {
-            notifier.notify(&event);
-        });
-    }
-
     /// Generates a ulid that is guaranteed to be monotonic.
     pub fn ulid(&self) -> String {
         self.ulids.lock().unwrap().generate().unwrap().to_string()
@@ -165,7 +146,11 @@ impl Library {
             obj.set_key(Some(uuid::Uuid::new_v4().to_string()));
         }
         obj.insert(&conn);
-        self.emit_change(&obj.type_name(), &obj.key().unwrap());
+        self.notifier.notify(LibraryEvent {
+            type_name: obj.type_name(),
+            key: obj.key().unwrap(),
+            library: self.clone(),
+        });
         obj
     }
 
@@ -179,7 +164,11 @@ impl Library {
         else {
             obj.update(&conn);
         };
-        self.emit_change(&obj.type_name(), &obj.key().unwrap());
+        self.notifier.notify(LibraryEvent {
+            type_name: obj.type_name(),
+            key: obj.key().unwrap(),
+            library: self.clone(),
+        });
         obj
     }
 
@@ -407,9 +396,9 @@ mod tests {
     fn change_notifications() {
         let library = Library::open_memory();
         let (tx, rx) = std::sync::mpsc::channel();
-        library.on_change(Box::new(move |_event| {
+        library.notifier.observe(move |_event| {
             tx.send(()).unwrap();
-        }));
+        });
         library.save(&Track::default());
         assert!(rx.recv_timeout(Duration::from_secs(1)).is_ok());
     }

@@ -6,6 +6,7 @@ use crate::ui::PlayerBarAdapter;
 
 use dimple_core::model::Artist;
 use dimple_core::model::Release;
+use dimple_core::player::PlayerEvent;
 use dimple_core::player::Song;
 use dimple_core::{model::Track, player::PlayerState};
 
@@ -41,10 +42,18 @@ pub fn player_bar_init(app: &App) {
     }).unwrap();
 
     let app1 = app.clone();
-    app.player.on_change(Box::new(move |_event| update_model(&app1)));
-
-    let app1 = app.clone();
-    app.player.on_change(Box::new(move |event| if event == "last_loaded_queue_index" || event == "duration" { update_waveform(&app1) }));
+    // TODO this is probably a source of a lot of CPU load, since this is gonna
+    // get called every 100ms. Break up the update_model into pieces, but
+    // especially only load the images and such on queue index.
+    app.player.notifier.observe(move |event| {
+        match event {
+            PlayerEvent::QueueIndex(_index) => {
+                update_waveform(&app1);
+                update_model(&app1);
+            },
+            _ => update_model(&app1),
+        }
+    });
 }
 
 fn update_model(app: &App) {

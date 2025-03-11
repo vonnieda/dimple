@@ -8,6 +8,7 @@ use dimple_core::library;
 use dimple_core::library::Library;
 use dimple_core::model::Playlist;
 use dimple_core::model::Track;
+use dimple_core::player::PlayerEvent;
 use slint::ModelRc;
 use slint::SharedString;
 use slint::StandardListViewItem;
@@ -37,6 +38,18 @@ pub fn queue_details_init(app: &App) {
             app.ui.upgrade_in_event_loop(|ui| ui.global::<Navigator>().invoke_navigate("dimple://refresh".into())).unwrap();
         });
     }).unwrap();
+
+    let app1 = app.clone();
+    app.player.notifier.observe(move |event| {
+        match event {
+            PlayerEvent::QueueIndex(index) => {
+                app1.ui.upgrade_in_event_loop(move |ui| {
+                    ui.global::<QueueDetailsAdapter>().set_current_row(index as i32);
+                }).unwrap();
+            },
+            _ => (),
+        }
+    });
 }
 
 pub fn queue_details(url: &str, app: &App) {
@@ -45,9 +58,11 @@ pub fn queue_details(url: &str, app: &App) {
         let playlist: Playlist = app.player.queue();
         let tracks = playlist.tracks(&app.library);
         let library = app.library.clone();
+        let player = app.player.clone();
         app.ui.upgrade_in_event_loop(move |ui| {
             ui.global::<QueueDetailsAdapter>().set_row_data(row_data(&library, &tracks));
             ui.global::<QueueDetailsAdapter>().set_row_keys(row_keys(&tracks));
+            ui.global::<QueueDetailsAdapter>().set_current_row(player.current_queue_index() as i32);
             ui.set_page(Page::QueueDetails);
         })
         .unwrap();

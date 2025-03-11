@@ -32,11 +32,12 @@ export global QueueDetailsAdapter {
         [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
         [ { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, { text: "hi" }, ],
     ];
-    in property <[string]> row_keys;
+    in property <[string]> row-keys;
     pure callback sort_table(int /* column */, bool /* ascending */);
     pure callback play_now(int);
     pure callback remove_row(int);
     pure callback remove_all();
+    in property <int> current-row: -1;
 }
 
 
@@ -89,6 +90,8 @@ export component QueueDetails inherits VerticalBox {
         }
     }
   
+    in property <int> current-row: QueueDetailsAdapter.current-row;
+    changed current-row => { table.set-current-row(current-row); }
     table := StandardTableView {
         preferred-height: root.height;
         columns: [

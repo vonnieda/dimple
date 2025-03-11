@@ -70,44 +70,8 @@ export global HomeAdapter {
     ];
 }
 
-component CardMenu inherits PopupMenu {
-    in property <CardAdapter> model;
-
-    PopupMenuButton {
-        text: "Play Later";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
-        clicked => { AppState.play_later(model.key); }
-    }
-    PopupMenuButton {
-        text: "Play Next";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
-        clicked => { AppState.play_next(model.key); }
-    }
-    PopupMenuButton {
-        text: "Play Now";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-        clicked => { AppState.play_now(model.key); }
-    }
-    PopupMenuButton {
-        text: "Details";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
-        clicked => { Navigator.navigate(model.title.url); }
-    }
-}    
-
 export component Home inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
-
-    in-out property <length> card-menu-x;
-    in-out property <length> card-menu-y;
-    in-out property <CardAdapter> card-menu-model;
-    card-menu := CardMenu {
-        x: card-menu-x;
-        y: card-menu-y;
-        model: card-menu-model;
-        width: self.preferred-width;
-        height: self.preferred-height;
-    }
 
     VerticalBox {
         width: 100%;
@@ -133,14 +97,6 @@ export component Home inherits ScrollView {
             CardGrid {
                 cards: section.cards;
                 max-rows: 1;
-                pointer-event(event, x, y, model) => {
-                    if event.kind == PointerEventKind.up && event.button == PointerEventButton.right {
-                        root.card-menu-x = x;
-                        root.card-menu-y = y;
-                        root.card-menu-model = model;
-                        card-menu.show();
-                    }
-                }
             }
         }
     }

@@ -1,4 +1,4 @@
-use dimple_core::{library::Library, player::{PlayWhen, Player}, plugins::{lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugin_host::PluginHost, wikidata::WikidataPlugin}};
+use dimple_core::{library::Library, player::{PlayWhen, Player, PlayerEvent}, plugins::{lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugin_host::PluginHost, wikidata::WikidataPlugin}};
 use player_bar;
 use std::{collections::VecDeque, env, sync::{Arc, Mutex}};
 
@@ -295,7 +295,7 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
     {
         let app = app.clone();
         let player = app.player.clone();
-        app.player.on_change(Box::new(move |event| {
+        app.player.notifier.observe(move |event| {
             let track_position = player.track_position();
             let track_duration = player.track_duration();
             let current_track = player.current_queue_track();
@@ -317,7 +317,7 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
             };
             if let Ok(mut controls) = app.media_controls.lock() {
                 if let Some(controls) = controls.as_mut() {
-                    if event == "position" {
+                    if let PlayerEvent::Position(p) = event {
                         controls.set_playback(playback).unwrap();
                     }
                     else {
@@ -326,7 +326,7 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
                     }
                 }
             }
-        }));
+        });
     }
 
     controls

@@ -1,6 +1,3 @@
-use std::thread;
-use std::time::Duration;
-
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
@@ -32,7 +29,7 @@ pub fn artist_details_init(app: &App) {
     // TODO filter events by key - but we can't get the key without the
     // UI, so rethink the whole mess.
     let app1 = app.clone();
-    app.library.on_change(Box::new(move |event| if event.type_name == "Artist" { update_model(&app1) }));
+    app.library.notifier.observe(move |event| if event.type_name == "Artist" { update_model(&app1) });
 }
 
 pub fn artist_details(url: &str, app: &App) {
@@ -142,6 +139,7 @@ fn release_cards(images: &ImageMangler, releases: &[Release]) -> Vec<CardAdapter
 fn release_card(release: &Release) -> CardAdapter {
     let release = release.clone();
     CardAdapter {
+        key: release.key.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: release.title.clone().unwrap_or_default().into(),

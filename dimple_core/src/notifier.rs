@@ -1,27 +1,32 @@
 use std::sync::{Arc, Mutex};
 
+use threadpool::ThreadPool;
+
 #[derive(Clone)]
-pub struct Notifier<T: Send> {
-    subs: Arc<Mutex<Vec<Box<dyn Fn(&T) + Send>>>>,
+pub struct Notifier<Event: Send + Sync + Clone + 'static> {
+    subscribers: Arc<Mutex<Vec<Box<dyn FnMut(Event) -> () + Send + 'static>>>>,
+    threadpool: ThreadPool,
 }
 
-impl <T: Send> Notifier<T> {
+impl <Event: Send + Sync + Clone + 'static> Notifier<Event> {
     pub fn new() -> Self {
         Self {
-            subs: Default::default(),
+            subscribers: Default::default(),
+            threadpool: ThreadPool::new(1),
         }
     }
 
-    // TODO I know/think this should not need to take a Box and that it
-    // probably has something to do with lifetimes, but here we are.
-    pub fn on_notify(&self, l: Box<dyn Fn(&T) + Send>) {
-        self.subs.lock().unwrap().push(l);
+    pub fn notify(&self, event: Event) {
+        let subs = self.subscribers.clone();
+        self.threadpool.execute(move || {
+            for sub in subs.lock().unwrap().iter_mut() {
+                sub(event.clone());
+            }
+        });
     }
 
-    pub fn notify(&self, arg: &T) {
-        for sub in self.subs.lock().unwrap().iter() {
-            sub(arg);
-        }
+    pub fn observe(&self, callback: impl FnMut(Event) -> () + Send + 'static) {
+        self.subscribers.lock().unwrap().push(Box::new(callback));
     }
 }
 
@@ -35,15 +40,15 @@ mod tests {
     fn test() {
         let notifier = Notifier::<String>::new();
         static COUNT: AtomicU8 = AtomicU8::new(0);
-        notifier.on_notify(Box::new(move |lie| {
-            println!("{} moof", lie);
+        notifier.observe(move |event| {
+            println!("{} moof", event);
             COUNT.fetch_add(1, atomic::Ordering::Relaxed);
-        }));
+        });
         let notifier1 = notifier.clone();
         let t = std::thread::spawn(move || {
-            notifier.notify(&"dear rosemark".to_string());
+            notifier.notify("dear rosemark".to_string());
         });
-        notifier1.notify(&"hurk hurk hurk".to_string());
+        notifier1.notify("hurk hurk hurk".to_string());
         t.join().unwrap();
         assert!(COUNT.load(atomic::Ordering::Relaxed) == 2);
     }

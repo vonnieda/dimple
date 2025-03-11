@@ -29,7 +29,7 @@ pub fn genre_details_init(app: &App) {
     // TODO filter events by key - but we can't get the key without the
     // UI, so rethink the whole mess.
     let app1 = app.clone();
-    app.library.on_change(Box::new(move |event| if event.type_name == "Genre" { update_model(&app1) }));
+    app.library.notifier.observe(move |event| if event.type_name == "Genre" { update_model(&app1) });
 }
 
 pub fn genre_details(url: &str, app: &App) {
