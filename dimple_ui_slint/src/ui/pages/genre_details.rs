@@ -118,6 +118,7 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
 fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
     let release = release.clone();
     CardAdapter {
+        key: release.key.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: release.title.clone().unwrap_or_default().into(),

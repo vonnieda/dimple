@@ -58,6 +58,7 @@ fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {
 fn artist_card(artist: &Artist) -> CardAdapter {
     let artist = artist.clone();
     CardAdapter {
+        key: artist.key.clone().unwrap_or_default().into(),        
         image: ImageLinkAdapter {
             image: Default::default(),
             name: artist.name.clone().unwrap_or_default().into(),
