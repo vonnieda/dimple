@@ -4,6 +4,12 @@ import { Styles, Navigator, Label, AppState } from "../common.slint";
 import {StyleMetrics, HorizontalBox} from "std-widgets.slint";
 import { PopupMenu, PopupMenuButton } from "popup_menu.slint";
 
+export struct CardSectionAdapter {
+    title: string,
+    sub-title: string,
+    cards: [CardAdapter],    
+}
+
 export struct CardGridAdapter {
     cards: [CardAdapter],
 }
@@ -12,7 +18,7 @@ component CardMenu inherits PopupMenu {
     in property <CardAdapter> model;
 
     PopupMenuButton {
-        text: "Play Later";
+        text: "Play Last";
         icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
         clicked => { AppState.play_later(model.key); }
     }

@@ -3,7 +3,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widge
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, StandardTableView, GroupBox, LineEdit, Palette} from "std-widgets.slint";
 import { CardAdapter } from "./components/card.slint";
-import { CardGrid, CardGridAdapter } from "./components/card_grid.slint";
+import { CardGrid, CardGridAdapter, CardSectionAdapter } from "./components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "./components/link.slint";
 import { Styles, Navigator, AppState } from "./common.slint";
 import { ImageLinkAdapter, LinkAdapter, Links, Link} from "./components/link.slint";
@@ -23,7 +23,7 @@ import { SideBar, SideBarAdapter } from "side_bar.slint";
 import { ArtistList } from "pages/artist_list.slint";
 import { ReleaseList, ReleaseListAdapter } from "pages/release_list.slint";
 import { TrackList } from "pages/track_list.slint";
-import { SearchResults } from "pages/search_results.slint";
+import { SearchResults, SearchResultsAdapter } from "pages/search_results.slint";
 import { GenreList } from "pages/genre_list.slint";
 import { GenreDetailsAdapter, GenreDetails } from "pages/genre_details.slint";
 import { PlaylistList, PlaylistListAdapter } from "pages/playlist_list.slint";
@@ -42,7 +42,7 @@ export { Navigator, Styles, AppState, TrackListAdapter,
     SettingsAdapter, TrackDetailsAdapter, QueueDetailsAdapter,
     PlaylistListAdapter, PluginAdapter, PlayerBarAdapter, 
     ReleaseDetailsAdapter, ArtistDetailsAdapter, GenreDetailsAdapter, 
-    ReleaseListAdapter, HomeAdapter }
+    ReleaseListAdapter, HomeAdapter, SearchResultsAdapter, CardSectionAdapter }
 
 export enum Page { Home, SearchResults,
     ArtistList, ArtistDetails,
@@ -90,9 +90,7 @@ export component AppWindow inherits Window {
             }
             Rectangle {
                 if page == Page.Home: Home {}
-                if page == Page.SearchResults: SearchResults {
-                    model: root.search;
-                }
+                if page == Page.SearchResults: SearchResults {}
                 if page == Page.ArtistList: ArtistList {
                     model: root.artist-list;
                 }

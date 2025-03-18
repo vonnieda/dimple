@@ -1,18 +1,12 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
+import { CardGrid, CardGridAdapter, CardSectionAdapter } from "../components/card_grid.slint";
 import { Styles, Label, PageTitle, SectionTitle, SectionSubtitle, AppState, Navigator } from "../common.slint";
 import { LinkAdapter } from "../components/link.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
-export struct HomeSectionAdapter {
-    title: string,
-    sub-title: string,
-    cards: [CardAdapter],    
-}
-
 export global HomeAdapter {
-    in-out property <[HomeSectionAdapter]> sections: [
+    in-out property <[CardSectionAdapter]> sections: [
         { title: "For You", sub-title: "From your listens.", cards: [
             { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
             title: {name: "A Reign of Fish"},

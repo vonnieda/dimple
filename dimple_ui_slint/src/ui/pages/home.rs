@@ -4,7 +4,7 @@ use slint::{ComponentHandle as _, ModelRc};
 
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
-use crate::ui::{AppWindow, CardAdapter, HomeAdapter, HomeSectionAdapter, ImageLinkAdapter, LinkAdapter, Page};
+use crate::ui::{AppWindow, CardAdapter, HomeAdapter, CardSectionAdapter, ImageLinkAdapter, LinkAdapter, Page};
 
 pub fn home_init(app: &App) {
     let app1 = app.clone();
@@ -38,27 +38,27 @@ fn update_model(app: &App) {
 
         let app = app.clone();
         app.ui.upgrade_in_event_loop(move |ui| {
-            let mut sections: Vec<HomeSectionAdapter> = vec![];
+            let mut sections: Vec<CardSectionAdapter> = vec![];
 
-            sections.push(HomeSectionAdapter {
+            sections.push(CardSectionAdapter {
                 title: "New Releases".into(),
                 sub_title: Default::default(),
                 cards: release_cards(&app.images, &new_releases, &app.library).as_slice().into(),
             });
 
-            sections.push(HomeSectionAdapter {
+            sections.push(CardSectionAdapter {
                 title: "Made For You".into(),
                 sub_title: Default::default(),
                 cards: release_cards(&app.images, &made_for_you, &app.library).as_slice().into(),
             });
 
-            sections.push(HomeSectionAdapter {
+            sections.push(CardSectionAdapter {
                 title: "Jump Back In".into(),
                 sub_title: Default::default(),
                 cards: release_cards(&app.images, &jump_back_in, &app.library).as_slice().into(),
             });
 
-            sections.push(HomeSectionAdapter {
+            sections.push(CardSectionAdapter {
                 title: "Most Played".into(),
                 sub_title: Default::default(),
                 cards: release_cards(&app.images, &most_played, &app.library).as_slice().into(),

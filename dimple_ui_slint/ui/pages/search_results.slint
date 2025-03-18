@@ -1,17 +1,97 @@
-import { ScrollView } from "std-widgets.slint";
-import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
-import { Label } from "../common.slint";
+import { ScrollView, VerticalBox } from "std-widgets.slint";
+import { CardAdapter } from "../components/card.slint";
+import { CardGrid, CardGridAdapter, CardSectionAdapter } from "../components/card_grid.slint";
+import { Styles, Label, PageTitle, SectionTitle, SectionSubtitle, AppState, Navigator } from "../common.slint";
+import { LinkAdapter } from "../components/link.slint";
+import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
-export component SearchResults inherits VerticalLayout {
-    in-out property <CardGridAdapter> model;
+export global SearchResultsAdapter {
+    in-out property <[CardSectionAdapter]> sections: [
+        { title: "For You", sub-title: "From your listens.", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+        { title: "Recents", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+        { title: "New Releases", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+        { title: "Popular", sub-title: "With other MusicBrainz listeners.", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+        { title: "Old Favorites", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+    ];
+}
 
-    ScrollView {                        
-        // CardGrid {
-        //     cards: model.cards;
-        // }
-    }
-    Label {
-        horizontal-alignment: right;
-        text: model.cards.length + " items";
+export component SearchResults inherits ScrollView {
+    horizontal-scrollbar-policy: always-off;
+
+    VerticalBox {
+        width: 100%;
+        alignment: start;
+        padding: 0;
+
+        PageTitle {
+            text: "Search";
+        }
+
+        for section in SearchResultsAdapter.sections: VerticalBox {
+            alignment: start;
+            padding: 0;
+            padding-bottom: 16px;
+            VerticalLayout {
+                SectionTitle {
+                    text: section.title;
+                }
+                if section.sub-title != "": SectionSubtitle {
+                    text: section.sub-title;
+                }
+            }
+            CardGrid {
+                cards: section.cards;
+                max-rows: 1;
+            }
+        }
     }
 }
