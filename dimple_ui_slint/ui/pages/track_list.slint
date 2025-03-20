@@ -24,17 +24,17 @@ component RowPopupMenu inherits PopupMenu {
     PopupMenuButton {
         text: "Play Last";
         icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
-        clicked => { TrackListAdapter.play_later(TrackListAdapter.row_keys[popup-row]); }
+        clicked => { AppState.play_later(TrackListAdapter.row_keys[popup-row]); }
     }
     PopupMenuButton {
         text: "Play Next";
         icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
-        clicked => { TrackListAdapter.play_next(TrackListAdapter.row_keys[popup-row]); }
+        clicked => { AppState.play_next(TrackListAdapter.row_keys[popup-row]); }
     }
     PopupMenuButton {
         text: "Play Now";
         icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-        clicked => { TrackListAdapter.play_now(TrackListAdapter.row_keys[popup-row]); }
+        clicked => { AppState.play_now(TrackListAdapter.row_keys[popup-row]); }
     }
     PopupMenuButton {
         text: "Track Info";
@@ -47,8 +47,6 @@ export component TrackList inherits VerticalBox {
     alignment: start;
     padding: 0;
 
-    popup := RowPopupMenu {}
-
     VerticalLayout {
         PageTitle {
             text: "Tracks";
@@ -56,6 +54,17 @@ export component TrackList inherits VerticalBox {
         PageSubtitle {
             text: TrackListAdapter.row_data.length + " items";
         }
+    }
+
+    in-out property <length> row-menu-x;
+    in-out property <length> row-menu-y;
+    in-out property <int> row-menu-row;
+    row-menu := RowPopupMenu {
+        x: row-menu-x;
+        y: row-menu-y;
+        popup-row: row-menu-row;
+        width: self.preferred-width;
+        height: self.preferred-height;
     }
 
     table := StandardTableView {
@@ -72,20 +81,20 @@ export component TrackList inherits VerticalBox {
         rows: TrackListAdapter.row_data;
         sort-ascending(index) => { TrackListAdapter.sort_table(index, true); }
         sort-descending(index) => { TrackListAdapter.sort_table(index, false); }
-        // row-pointer-event(row, event, point) => {
-        //     if event.button == PointerEventButton.right 
-        //             && event.kind == PointerEventKind.down {
-        //         popup-x = point.x;
-        //         popup-y = point.y;
-        //         popup-row = row;
-        //         popup.show();
-        //     }
-        //     else if event.button == PointerEventButton.left 
-        //             && row == table.current-row
-        //             && event.kind == PointerEventKind.down {
-        //         Navigator.navigate("dimple://track/" + TrackListAdapter.row_keys[row]);
-        //     }
-        // }
+        row-pointer-event(row, event, point) => {
+            if event.button == PointerEventButton.right 
+                    && event.kind == PointerEventKind.down {
+                row-menu-x = table.x + table.viewport-x + point.x;
+                row-menu-y = table.y + table.viewport-y + point.y;
+                row-menu-row = row;
+                row-menu.show();
+            }
+            else if event.button == PointerEventButton.left 
+                    && row == table.current-row
+                    && event.kind == PointerEventKind.down {
+                Navigator.navigate("dimple://track/" + TrackListAdapter.row_keys[row]);
+            }
+        }
     }    
 }
 

@@ -19,12 +19,6 @@ pub fn track_list_init(app: &App) {
     app.ui.upgrade_in_event_loop(move |ui| {
         let app = app_.clone();
         ui.global::<TrackListAdapter>().on_sort_table(move |col, ascending| sort_table(&app, col, ascending));
-        let app = app_.clone();
-        ui.global::<TrackListAdapter>().on_play_later(move |key| play_later(&app, &key));
-        let app = app_.clone();
-        ui.global::<TrackListAdapter>().on_play_now(move |key| play_now(&app, &key));
-        let app = app_.clone();
-        ui.global::<TrackListAdapter>().on_play_next(move |key| play_next(&app, &key));
     }).unwrap();
 }
 
@@ -80,18 +74,6 @@ fn sort_table(app: &App, col: i32, ascending: bool) {
         ui.global::<TrackListAdapter>().set_row_keys(row_keys(&tracks));
     })
     .unwrap();
-}
-
-fn play_now(app: &App, key: &str) {
-    app.player.play_now(&Track::get(&app.library, key).unwrap());
-}
-
-fn play_next(app: &App, key: &str) {
-    app.player.play_next(&Track::get(&app.library, key).unwrap());
-}
-
-fn play_later(app: &App, key: &str) {
-    app.player.play_later(&Track::get(&app.library, key).unwrap());
 }
 
 fn format_length(length: Duration) -> String {
