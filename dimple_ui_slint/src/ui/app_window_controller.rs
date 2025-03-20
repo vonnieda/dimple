@@ -12,6 +12,8 @@ use self::images::ImageMangler;
 
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 
+use super::player_bar::PlayerBar;
+
 #[derive(Clone)]
 pub struct App {
     pub config: Config,
@@ -93,7 +95,7 @@ impl AppWindowController {
             app.player.enqueue(&key, PlayWhen::Now);
         });
 
-        player_bar::player_bar_init(&self.app);
+        let _player_bar = PlayerBar::new(&self.app);
 
         pages::artist_details::artist_details_init(&self.app);
         pages::artist_list::artist_list_init(&self.app);

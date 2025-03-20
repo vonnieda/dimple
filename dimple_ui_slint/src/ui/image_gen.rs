@@ -166,11 +166,3 @@ pub fn gen_song_spectrogram(song: &Song, width: u32, height: u32) -> DynamicImag
     DynamicImage::ImageRgba8(image)
 }
 
-#[test]
-fn test_gen_song_waveform() {
-    let song = Song::from_file(
-        "/Users/jason/Music/My Music/Sufjan Stevens/America (2020)/Sufjan Stevens - America - 02 - My Rajneesh.mp3", 
-        None).unwrap();
-    let waveform = gen_song_waveform(&song, 800, 24);
-    waveform.save("test.png").unwrap();
-}

@@ -22,8 +22,8 @@ pub struct TrackDownloader {
 impl Default for TrackDownloader {
     fn default() -> Self {
         Self { 
-            // TODO magic, just felt right, needs to handle multiple downloads in
-            // progress. Probably should be related to threadpool len.
+            // TODO get rid of this and just use central disk cache. This is soaking
+            // up gigs of memory cause it's raw samples.
             cache: Arc::new(RwLock::new(LruCache::new(NonZeroUsize::new(5).unwrap()))), 
             threadpool: Default::default() 
         }

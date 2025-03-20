@@ -17,13 +17,13 @@ pub struct Player {
     pub notifier: Notifier<PlayerEvent>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum PlayerEvent {
     State(PlayerState),
+    // TODO I think I want this to be something like SongStartedPlaying(Song)
     CurrentSong(Song),
     Position(Duration),
     Duration(Duration),
-    LastLoadedQueueIndex(Option<usize>),
     QueueIndex(usize),
 }
 
@@ -145,10 +145,6 @@ impl Player {
 
     pub fn is_playing(&self) -> bool {
         self.state() == PlayerState::Playing
-    }
-
-    pub fn current_song(&self) -> Option<Song> {
-        self.shared_state.read().unwrap().current_song.clone()
     }
 
     /// TODO magic. maybe this is a metadata item?
@@ -303,7 +299,6 @@ impl Player {
                             inner.play_song_next(&song, None).unwrap();
                             self.set_last_loaded_queue_index(Some(queue_index));
                             if queue_index == self.current_queue_index() {
-                                self.shared_state.write().unwrap().current_song = Some(song.clone());
                                 self.notifier.notify(PlayerEvent::CurrentSong(song.clone()));
                                 return
                             }
@@ -339,7 +334,6 @@ impl Player {
 
     fn set_last_loaded_queue_index(&self, last_loaded_queue_index: Option<usize>) {
         self.shared_state.write().unwrap()._last_loaded_queue_index = last_loaded_queue_index;
-        self.notifier.notify(PlayerEvent::LastLoadedQueueIndex(last_loaded_queue_index));
     }
 
     fn set_current_queue_index(&self, index: usize) {
@@ -363,7 +357,6 @@ struct SharedState {
     track_duration: Duration,
     track_position: Duration,
     inner_player_state: PlayerState,
-    current_song: Option<Song>,
 }
 
 #[derive(Clone, Debug)]

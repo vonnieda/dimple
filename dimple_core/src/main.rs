@@ -21,6 +21,9 @@ fn main() {
     // [2024-01-24T21:06:24.917Z INFO  symphonia_format_isomp4::demuxer] stream is seekable with len=3037538 bytes.
     builder.filter(Some("symphonia_format_isomp4"), log::LevelFilter::Off);
 
+    // [2025-03-20T14:35:24.952Z WARN  tiny_skia::painter] empty paths and horizontal/vertical lines cannot be filled
+    builder.filter(Some("tiny_skia::painter"), log::LevelFilter::Off);
+
     builder.init();
 
 
