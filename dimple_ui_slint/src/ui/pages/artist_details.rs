@@ -18,12 +18,6 @@ use slint::Model as _;
 pub fn artist_details_init(app: &App) {
     let app1 = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
-        let app = app1.clone();
-        ui.global::<ArtistDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
-        let app = app1.clone();
-        ui.global::<ArtistDetailsAdapter>().on_play_next(move |key| play_next(&app, &key));
-        let app = app1.clone();
-        ui.global::<ArtistDetailsAdapter>().on_play_later(move |key| play_later(&app, &key));
     }).unwrap();
 
     // TODO filter events by key - but we can't get the key without the
@@ -51,18 +45,6 @@ pub fn artist_details(url: &str, app: &App) {
             }
         });    
     }).unwrap();
-}
-
-fn play_now(app: &App, key: &str) {
-    app.player.play_now(&Artist::get(&app.library, key).unwrap());
-}
-
-fn play_next(app: &App, key: &str) {
-    app.player.play_next(&Artist::get(&app.library, key).unwrap());
-}
-
-fn play_later(app: &App, key: &str) {
-    app.player.play_later(&Artist::get(&app.library, key).unwrap());
 }
 
 fn update_model(app: &App) {

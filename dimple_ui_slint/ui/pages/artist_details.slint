@@ -28,37 +28,7 @@ export global ArtistDetailsAdapter {
     pure callback set_save(bool);
     pure callback set_love(bool);
     pure callback set_download(bool);
-
-    pure callback play_now(string /* key */);
-    pure callback play_next(string /* key */);
-    pure callback play_later(string /* key */);
 }
-
-// Little test of having a header bar that appears as the user scrolls down the
-// page. Needs to be outside the ScrollView, but then I had problems sizing the
-// ScrollView.
-// Rectangle {
-//     x: 0;
-//     y: scroll.viewport-y <= -self.height ? 0 : -self.height;
-//     z: 1;
-//     height: Styles.thumbnail-width-small;
-//     width: root.width;
-//     background: Palette.background;
-//     animate y {
-//         duration: 50ms;             
-//     }
-//     HorizontalBox {
-//         padding: 0;
-//         BorderImage {
-//             width: Styles.thumbnail-width-small;
-//             height: Styles.thumbnail-width-small;
-//             source: ArtistDetailsAdapter.card.image.image;
-//         }
-//         PageTitle {
-//             text: ArtistDetailsAdapter.card.title.name;
-//         }
-//     }    
-// }
 
 export component ArtistDetails inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
@@ -92,10 +62,10 @@ export component ArtistDetails inherits ScrollView {
                     tags: ArtistDetailsAdapter.genres;
                     height: self.preferred-height;
                 }
-                LinkButtons {
-                    links: ArtistDetailsAdapter.links;
-                    height: self.preferred-height;
-                }
+                // LinkButtons {
+                //     links: ArtistDetailsAdapter.links;
+                //     height: self.preferred-height;
+                // }
                 if ArtistDetailsAdapter.summary != "": Label {
                     text: ArtistDetailsAdapter.summary;
                     wrap: word-wrap;
@@ -111,6 +81,18 @@ export component ArtistDetails inherits ScrollView {
             }
             CardGrid {
                 cards: ArtistDetailsAdapter.releases;
+            }
+        }
+
+        if ArtistDetailsAdapter.links.length > 0: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "Links";
+            }
+            for link in ArtistDetailsAdapter.links: Link {
+                url: link.url;
+                name: link.name;
             }
         }
     }

@@ -18,12 +18,6 @@ pub fn track_details_init(app: &App) {
     let app1 = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
         let app = app1.clone();
-        ui.global::<TrackDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
-        let app = app1.clone();
-        ui.global::<TrackDetailsAdapter>().on_play_next(move |key| play_next(&app, &key));
-        let app = app1.clone();
-        ui.global::<TrackDetailsAdapter>().on_play_later(move |key| play_later(&app, &key));
-        let app = app1.clone();
         ui.global::<TrackDetailsAdapter>().on_set_lyrics(move |key, lyrics| set_lyrics(&app, &key, &lyrics));
     }).unwrap();
 
@@ -93,7 +87,7 @@ fn update_model(app: &App) {
                 let lyrics = track.lyrics.clone()
                     .map(|s| s.trim().replace("\r", ""))
                     .filter(|s| !s.is_empty())
-                    .unwrap_or("(No lyrics, click to edit.)".to_string());
+                    .unwrap_or("(No lyrics, click title to edit.)".to_string());
                 ui.global::<TrackDetailsAdapter>().set_lyrics(lyrics.into());
                 ui.global::<TrackDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
                 ui.global::<TrackDetailsAdapter>().set_dump(format!("{:?}", track).into());
@@ -102,18 +96,6 @@ fn update_model(app: &App) {
             }).unwrap();
         });
     }).unwrap();
-}
-
-fn play_now(app: &App, key: &str) {
-    app.player.play_now(&Track::get(&app.library, key).unwrap());
-}
-
-fn play_next(app: &App, key: &str) {
-    app.player.play_next(&Track::get(&app.library, key).unwrap());
-}
-
-fn play_later(app: &App, key: &str) {
-    app.player.play_later(&Track::get(&app.library, key).unwrap());
 }
 
 fn set_lyrics(app: &App, key: &str, lyrics: &str) {

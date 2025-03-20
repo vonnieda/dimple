@@ -105,10 +105,10 @@ export component GenreDetails inherits ScrollView {
                         text: GenreDetailsAdapter.disambiguation;
                     }
                 }
-                LinkButtons {
-                    links: GenreDetailsAdapter.links;
-                    height: self.preferred-height;
-                }
+                // LinkButtons {
+                //     links: GenreDetailsAdapter.links;
+                //     height: self.preferred-height;
+                // }
                 if GenreDetailsAdapter.summary != "": Label {
                     text: GenreDetailsAdapter.summary;
                     wrap: word-wrap;
@@ -144,6 +144,18 @@ export component GenreDetails inherits ScrollView {
                 max-rows: 1;
             }
         }
+
+        if GenreDetailsAdapter.links.length > 0: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "Links";
+            }
+            for link in GenreDetailsAdapter.links: Link {
+                url: link.url;
+                name: link.name;
+            }
+        }        
     }
 }
 

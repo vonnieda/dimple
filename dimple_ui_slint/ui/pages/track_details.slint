@@ -33,43 +33,8 @@ export global TrackDetailsAdapter {
     pure callback set_download(bool);
     pure callback set_love(bool);
 
-    pure callback play_now(string /* key */);
-    pure callback play_next(string /* key */);
-    pure callback play_later(string /* key */);
-
     pure callback set_lyrics(string, string);
 }
-
-// component PlayButtons inherits ActionButtons {
-//     ActionButton {
-//         icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-//         label: @tr("Play Now");
-//         clicked => { TrackDetailsAdapter.play_now(TrackDetailsAdapter.key); }
-//     }
-//     ActionButton {
-//         icon: @image-url("../../icons/phosphor/SVGs/regular/plus.svg");
-//         label: @tr("Play Last");
-//         clicked => { TrackDetailsAdapter.play_later(TrackDetailsAdapter.key); }
-//     }
-//     ActionButton {
-//         icon: self.checked 
-//             ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg") 
-//             : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
-//         label: @tr("Love");
-//         checkable: true;
-//         checked: TrackDetailsAdapter.love;
-//         clicked => { TrackDetailsAdapter.set_love(self.checked); }
-//     }
-//     ActionButton {
-//         icon: self.checked 
-//             ? @image-url("../../icons/phosphor/SVGs/fill/download-fill.svg") 
-//             : @image-url("../../icons/phosphor/SVGs/regular/download.svg");
-//         label: @tr("Download");
-//         checkable: true;
-//         checked: TrackDetailsAdapter.download;
-//         clicked => { TrackDetailsAdapter.set_download(self.checked); }
-//     }
-// }
 
 export component TrackDetails inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
@@ -107,10 +72,10 @@ export component TrackDetails inherits ScrollView {
                     tags: TrackDetailsAdapter.genres;
                     height: self.preferred-height;
                 }                
-                LinkButtons {
-                    links: TrackDetailsAdapter.links;
-                    height: self.preferred-height;
-                }
+                // LinkButtons {
+                //     links: TrackDetailsAdapter.links;
+                //     height: self.preferred-height;
+                // }
                 if TrackDetailsAdapter.summary != "": Label {
                     text: TrackDetailsAdapter.summary;
                     wrap: word-wrap;
@@ -132,24 +97,58 @@ export component TrackDetails inherits ScrollView {
         VerticalBox {
             alignment: start;
             padding: 0;
-            SectionTitle {
-                text: "Lyrics";
+
+            in-out property <bool> lyrics_editing: false;
+
+            TouchArea {
+                width: title.width;
+                height: title.height;
+                title := SectionTitle {
+                    text: "Lyrics";
+                }
+                clicked => { lyrics_editing = !lyrics_editing; }
             }
-            Label {
+            if !lyrics_editing: Label {
                 text: TrackDetailsAdapter.lyrics;
             }
+            if lyrics_editing: VerticalBox {
+                text_edit := TextEdit {
+                    text: TrackDetailsAdapter.lyrics;
+                    min-height: 200px;
+                    font-size: Styles.default-font-size;
+                }
+                HorizontalBox {
+                    Button {
+                        text: "Save";
+                        clicked => {
+                            lyrics_editing = false;                
+                            TrackDetailsAdapter.set_lyrics(TrackDetailsAdapter.key, text_edit.text);
+                        }
+                    }
+                    Button {
+                        text: "Cancel";
+                        clicked => {
+                            // TODO reset if changed
+                            lyrics_editing = false;                
+                        }
+                    }
+                }
+            }
+    
+
+
         }
 
-        // if TrackDetailsAdapter.links.length > 0: VerticalBox {
-        //     alignment: start;
-        //     padding: 0;
-        //     SectionTitle {
-        //         text: "Links";
-        //     }
-        //     for link in TrackDetailsAdapter.links: Link {
-        //         url: link.url;
-        //         name: link.name;
-        //     }
-        // }
+        if TrackDetailsAdapter.links.length > 0: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "Links";
+            }
+            for link in TrackDetailsAdapter.links: Link {
+                url: link.url;
+                name: link.name;
+            }
+        }
     }
 }

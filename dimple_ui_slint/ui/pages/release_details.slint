@@ -129,10 +129,10 @@ export component ReleaseDetails inherits ScrollView {
                     tags: ReleaseDetailsAdapter.genres;
                     height: self.preferred-height;
                 }
-                LinkButtons {
-                    links: ReleaseDetailsAdapter.links;
-                    height: self.preferred-height;
-                }
+                // LinkButtons {
+                //     links: ReleaseDetailsAdapter.links;
+                //     height: self.preferred-height;
+                // }
                 if ReleaseDetailsAdapter.summary != "": Label {
                     text: ReleaseDetailsAdapter.summary;
                     wrap: word-wrap;
@@ -173,5 +173,17 @@ export component ReleaseDetails inherits ScrollView {
                 }
             }
         }
+
+        if ReleaseDetailsAdapter.links.length > 0: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "Links";
+            }
+            for link in ReleaseDetailsAdapter.links: Link {
+                url: link.url;
+                name: link.name;
+            }
+        }        
     }
 }
