@@ -161,8 +161,8 @@ export component ReleaseDetails inherits ScrollView {
             row-pointer-event(row, event, point) => {
                 if event.button == PointerEventButton.right 
                         && event.kind == PointerEventKind.down {
-                    row-menu-x = table.x + point.x;
-                    row-menu-y = table.y + point.y;
+                    row-menu-x = table.viewport-x + table.x + point.x;
+                    row-menu-y = table.viewport-y + table.y + point.y;
                     row-menu-key = ReleaseDetailsAdapter.row_keys[row];
                     row-menu.show();
                 }
