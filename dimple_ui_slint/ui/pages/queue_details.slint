@@ -70,6 +70,15 @@ export component QueueDetails inherits VerticalBox {
     alignment: start;
     padding: 0;
 
+    VerticalLayout {
+        PageTitle {
+            text: "Play Queue";
+        }
+        PageSubtitle {
+            text: QueueDetailsAdapter.row_data.length + " items";
+        }
+    }  
+
     in-out property <length> row-menu-x;
     in-out property <length> row-menu-y;
     in-out property <int> row-menu-row;
@@ -81,15 +90,6 @@ export component QueueDetails inherits VerticalBox {
         height: self.preferred-height;
     }
 
-    VerticalLayout {
-        PageTitle {
-            text: "Play Queue";
-        }
-        PageSubtitle {
-            text: QueueDetailsAdapter.row_data.length + " items";
-        }
-    }
-  
     in property <int> current-row: QueueDetailsAdapter.current-row;
     changed current-row => { table.set-current-row(current-row); }
     table := StandardTableView {
@@ -107,8 +107,8 @@ export component QueueDetails inherits VerticalBox {
         row-pointer-event(row, event, point) => {
             if event.button == PointerEventButton.right 
                     && event.kind == PointerEventKind.down {
-                row-menu-x = point.x;
-                row-menu-y = point.y;
+                row-menu-x = table.x + point.x;
+                row-menu-y = table.y + point.y;
                 row-menu-row = row;
                 row-menu.show();
             }

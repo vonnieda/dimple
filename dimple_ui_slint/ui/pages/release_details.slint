@@ -92,16 +92,9 @@ component RowMenu inherits PopupMenu {
 export component ReleaseDetails inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
 
-    in-out property <length> row-menu-x;
-    in-out property <length> row-menu-y;
+    in-out property <length> row-menu-x: 0;
+    in-out property <length> row-menu-y: 0;
     in-out property <string> row-menu-key;
-    row-menu := RowMenu {
-        x: row-menu-x;
-        y: row-menu-y;
-        key: row-menu-key;
-        width: self.preferred-width;
-        height: self.preferred-height;
-    }
 
     VerticalBox {
         width: 100%;
@@ -148,6 +141,13 @@ export component ReleaseDetails inherits ScrollView {
         }
 
         // Tracks
+        row-menu := RowMenu {
+            x: row-menu-x;
+            y: row-menu-y;
+            key: row-menu-key;
+            width: self.preferred-width;
+            height: self.preferred-height;
+        }
         table := StandardTableView {
             columns: [
                 { title: "#", horizontal_stretch: 0.10 },
@@ -161,8 +161,8 @@ export component ReleaseDetails inherits ScrollView {
             row-pointer-event(row, event, point) => {
                 if event.button == PointerEventButton.right 
                         && event.kind == PointerEventKind.down {
-                    row-menu-x = table.absolute-position.x + point.x;
-                    row-menu-y = table.absolute-position.y + point.y;
+                    row-menu-x = table.x + point.x;
+                    row-menu-y = table.y + point.y;
                     row-menu-key = ReleaseDetailsAdapter.row_keys[row];
                     row-menu.show();
                 }
