@@ -60,6 +60,10 @@ impl Playlist {
             index, 
             self.len(library));
         // TODO change to as_any()
+        // TODO I just had an idea for managing the positioning of albums in
+        // the queue. When queueing something, just queue all the tracks but 
+        // give each one a "grouping_id" and then when we encounter an item, 
+        // we can treat items with the same grouping_id as equivalent.
         match model.type_name().as_str() {
             "Artist" => {
                 let artist = Artist::get(library, &model.key().unwrap()).unwrap();
