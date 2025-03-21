@@ -135,8 +135,8 @@ impl PlayerBar {
         let app = self.app.clone();
         let song = song.clone();
         std::thread::spawn(move || {
-            // let waveform = image_gen::gen_song_waveform(&song, 800, 32);
-            let waveform = image_gen::gen_song_spectrogram(&song, 800, 32);
+            let waveform = image_gen::gen_song_waveform(&song, 800, 32);
+            // let waveform = image_gen::gen_song_spectrogram(&song, 800, 32);
             app.ui.upgrade_in_event_loop(move |ui| {
                 let adapter: crate::ui::PlayerBarAdapter = ui.global::<PlayerBarAdapter>();
                 adapter.set_waveform(images::dynamic_to_slint(&waveform));
