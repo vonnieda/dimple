@@ -8,6 +8,9 @@ use crate::{library::Library, model::{Artist, Event, LibraryModel, ModelBasics a
 
 pub use playback_rs::Song;
 
+// TODO STOPSHIP okay heading to bed. I really thought I had it below, but I didn't. Doesn't work for auto-next.
+// I think time to refactor this fuck to Rodio.
+
 #[derive(Clone)]
 pub struct Player {
     library: Arc<Library>,
@@ -209,10 +212,22 @@ impl Player {
                 }
             }
 
-            if !inner.has_next_song() {
+            // // We need to detect when the next song becomes the current song.
+            // if had_current_song && had_next_song && inner.has_current_song() && !inner.has_next_song() {
+            //     self.set_current_song(self.next_song());
+            //     self.set_next_song(None);
+            // }
+            // had_current_song = self.current_song().is_some();
+            // had_next_song = self.next_song().is_some();
+            if self.next_song().is_some() && !inner.has_next_song() {
+                self.set_current_song(self.next_song());
+                self.set_next_song(None);
+            }
+    
+            if !inner.has_current_song() || !inner.has_next_song() {
                 self.load_next_song(&inner);
             }
-            
+
             let (position, duration) = inner.get_playback_position().unwrap_or_default();
             if let Ok(mut shared_state) = self.shared_state.write() {
                 if shared_state.track_position != position {
@@ -296,12 +311,17 @@ impl Player {
                         TrackDownloadStatus::Downloading => {
                         },
                         TrackDownloadStatus::Ready(song) => { 
-                            inner.play_song_next(&song, None).unwrap();
-                            self.set_last_loaded_queue_index(Some(queue_index));
-                            if queue_index == self.current_queue_index() {
-                                self.notifier.notify(PlayerEvent::CurrentSong(song.clone()));
-                                return
+                            if !inner.has_current_song() {
+                                self.set_current_song(Some(song.clone()));
+                                self.set_next_song(None);
+                                inner.play_song_now(&song, None).unwrap();
                             }
+                            else {
+                                inner.play_song_next(&song, None).unwrap();
+                                self.set_next_song(Some(song.clone()));
+                            }
+
+                            self.set_last_loaded_queue_index(Some(queue_index));
                             return
                         },
                         TrackDownloadStatus::Error(e) => {
@@ -340,6 +360,27 @@ impl Player {
         self.shared_state.write().unwrap()._queue_index = index;
         self.notifier.notify(PlayerEvent::QueueIndex(index));
     }
+
+    fn current_song(&self) -> Option<Song> {
+        self.shared_state.read().unwrap().current_song1.clone()
+    }
+
+    fn next_song(&self) -> Option<Song> {
+        self.shared_state.read().unwrap().current_song1.clone()
+    }
+
+    fn set_current_song(&self, song: Option<Song>) {
+        log::info!("set_current_song {}", song.is_some());
+        self.shared_state.write().unwrap().current_song1 = song.clone();
+        if let Some(song) = song {
+            self.notifier.notify(PlayerEvent::CurrentSong(song));
+        }
+    }
+
+    fn set_next_song(&self, song: Option<Song>) {
+        log::info!("set_next_song {}", song.is_some());
+        self.shared_state.write().unwrap().next_song1 = song;
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -357,6 +398,8 @@ struct SharedState {
     track_duration: Duration,
     track_position: Duration,
     inner_player_state: PlayerState,
+    current_song1: Option<Song>,
+    next_song1: Option<Song>,
 }
 
 #[derive(Clone, Debug)]
