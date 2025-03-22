@@ -12,6 +12,7 @@ import { Styles, Navigator, AppState, Label, PageTitle, PageSubtitle, SectionTit
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 import { Tag, TagList } from "../components/tag.slint";
 import { BorderImage } from "../components/border_image.slint";
+import { BasicTableView } from "../components/basic_table_view.slint";
 
 export global ReleaseDetailsAdapter {
     in property <string> key;
@@ -141,35 +142,42 @@ export component ReleaseDetails inherits ScrollView {
         }
 
         // Tracks
-        row-menu := RowMenu {
-            x: row-menu-x;
-            y: row-menu-y;
-            key: row-menu-key;
-            width: self.preferred-width;
-            height: self.preferred-height;
-        }
-        table := StandardTableView {
-            columns: [
-                { title: "#", horizontal_stretch: 0.10 },
-                { title: "Title", horizontal_stretch: 0.50 },
-                { title: "Artist", horizontal_stretch: 0.30 },
-                { title: "Length", horizontal_stretch: 0.10 },
-                ];
-            rows: ReleaseDetailsAdapter.row_data;
-            sort-ascending(index) => { ReleaseDetailsAdapter.sort_table(index, true); }
-            sort-descending(index) => { ReleaseDetailsAdapter.sort_table(index, false); }
-            row-pointer-event(row, event, point) => {
-                if event.button == PointerEventButton.right 
-                        && event.kind == PointerEventKind.down {
-                    row-menu-x = table.viewport-x + table.x + point.x;
-                    row-menu-y = table.viewport-y + table.y + point.y;
-                    row-menu-key = ReleaseDetailsAdapter.row_keys[row];
-                    row-menu.show();
-                }
-                else if event.button == PointerEventButton.left 
-                        && row == table.current-row
-                        && event.kind == PointerEventKind.down {
-                    Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[row]);
+        VerticalBox {
+            alignment: start;
+            padding: 0;
+            row-menu := RowMenu {
+                x: row-menu-x;
+                y: row-menu-y;
+                key: row-menu-key;
+                width: self.preferred-width;
+                height: self.preferred-height;
+            }
+            SectionTitle {
+                text: "Tracks";
+            }
+            table := BasicTableView {
+                columns: [
+                    { title: "#", horizontal_stretch: 0.10 },
+                    { title: "Title", horizontal_stretch: 0.50 },
+                    { title: "Artist", horizontal_stretch: 0.30 },
+                    { title: "Length", horizontal_stretch: 0.10 },
+                    ];
+                rows: ReleaseDetailsAdapter.row_data;
+                sort-ascending(index) => { ReleaseDetailsAdapter.sort_table(index, true); }
+                sort-descending(index) => { ReleaseDetailsAdapter.sort_table(index, false); }
+                row-pointer-event(row, event, point) => {
+                    if event.button == PointerEventButton.right 
+                            && event.kind == PointerEventKind.down {
+                        row-menu-x = point.x;
+                        row-menu-y = point.y;
+                        row-menu-key = ReleaseDetailsAdapter.row_keys[row];
+                        row-menu.show();
+                    }
+                    else if event.button == PointerEventButton.left 
+                            && row == table.current-row
+                            && event.kind == PointerEventKind.down {
+                        Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.row_keys[row]);
+                    }
                 }
             }
         }

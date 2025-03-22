@@ -1,0 +1,108 @@
+import { VerticalBox, HorizontalBox, ScrollView, StandardTableView, Palette, GridBox } from "std-widgets.slint";
+import { HorizontalRule } from "hrule.slint";
+import { Styles, Label } from "../common.slint";
+
+struct BasicTableViewColumnModel {
+    title: string,
+    horizontal_stretch: float,
+}
+
+struct BasicTableViewRowModel {
+    
+}
+
+component BasicTableViewHeaderCell inherits TouchArea {
+    in property <BasicTableViewColumnModel> column;
+    Rectangle {
+        background: root.has-hover ? Palette.control-background : Palette.background;
+        animate background {
+            duration: 50ms;
+       }
+       HorizontalBox {
+            Text {
+                text: column.title;
+                font-size: Styles.default-font-size;
+                font-family: Styles.default-font-family;    
+                font-weight: Styles.font-weight-bold;
+            }
+        }
+    }   
+}
+component BasicTableViewHeader {
+    in property <[BasicTableViewColumnModel]> columns;
+    HorizontalLayout {
+        alignment: start;
+        for column in columns: BasicTableViewHeaderCell {
+            width: root.width * column.horizontal-stretch;
+            column: column;
+        }
+    }
+}
+
+component BasicTableViewCell {
+    in property <BasicTableViewColumnModel> column;
+    in property <StandardListViewItem> cell;
+    HorizontalBox {
+        Text {
+            text: cell.text;
+            font-size: Styles.default-font-size;
+            font-family: Styles.default-font-family;
+            font-weight: Styles.default-font-weight;        
+        }
+    }
+}
+
+component BasicTableViewRow inherits TouchArea {
+    in property <[BasicTableViewColumnModel]> columns;
+    in property <[StandardListViewItem]> roww; // roww because row is a keyword
+    in-out property <bool> selected;
+
+    Rectangle {
+        background: selected ? Palette.selection-background : root.has-hover ? Palette.control-background : Palette.background;
+        animate background {
+             duration: 50ms;
+        }
+        HorizontalLayout {
+            for column[column-index] in columns: BasicTableViewCell {
+                width: root.width * column.horizontal-stretch;
+                column: column;
+                cell: roww[column-index];
+            }
+        }
+    }
+}
+
+export component BasicTableView inherits VerticalLayout {
+    spacing: 0;
+    in property <[BasicTableViewColumnModel]> columns;
+    in property <[[StandardListViewItem]]> rows;
+    in-out property <int> current-row: -1;
+
+    callback sort-ascending(int);
+    callback sort-descending(int);
+    callback row-pointer-event(int, PointerEvent, Point);
+
+    alignment: start;
+
+    BasicTableViewHeader {
+        columns: columns;
+    }
+
+    HorizontalRule {}
+
+    for row[row-index] in rows: v := VerticalLayout {
+        r := BasicTableViewRow {
+            columns: columns;
+            roww: row;
+            selected: row-index == current-row;
+            clicked => { current-row = row-index; }
+            pointer-event(event) => {                 
+                row-pointer-event(row-index, event, { 
+                    x: root.x + v.x + self.mouse-x,
+                    y: root.y + v.y + self.mouse-y,
+                }); 
+            }
+        }
+        HorizontalRule {}
+    }
+}
