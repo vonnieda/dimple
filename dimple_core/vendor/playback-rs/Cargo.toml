@@ -1,0 +1,28 @@
+[package]
+name = "playback-rs"
+description = "A very simple audio/song loading and playing library."
+version = "0.4.4"
+edition = "2021"
+authors = ["Veda Heard <veda@vedapowered.ca>", "Jason Heard"]
+license = "ISC"
+readme = "readme.md"
+repository = "https://gitlab.101100.ca/veda/playback-rs/"
+keywords = ["music", "sound", "playback", "decode", "decoder"]
+categories = ["multimedia", "multimedia::audio", "multimedia::encoding"]
+
+[dependencies]
+color-eyre = "0.6"
+cpal = "0.15"
+log = "0.4"
+rubato = "0.12"
+symphonia = { version = "0.5.4", features = ["all"] }
+thread-priority = "1.2.0"
+
+[target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd"))'.dependencies]
+alsa-sys = "0.3.1"
+
+[dev-dependencies]
+simplelog = "0.12"
+
+[[example]]
+name = "aplay"
