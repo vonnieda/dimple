@@ -60,8 +60,10 @@ pub fn settings(app: &App) {
         database_stats.push(format!("Tracks: {}", db.list::<Track>().len()));
         database_stats.push(format!("TrackSources: {}", db.list::<TrackSource>().len()));
 
-        let mut cache_stats = vec![];
-        cache_stats.push(format!("Thumbnail cache: {}", Size::from_bytes(app.images.cache_len())));
+        let mut cache_stats: Vec<String> = vec![];
+        // TODO Before any music has been loaded, there are no images, so the
+        // cache is empty, and this blows up. 
+        // cache_stats.push(format!("Thumbnail cache: {}", Size::from_bytes(app.images.cache_len())));
         // cache_stats.push(format!("Plugin cache: {}", Size::from_bytes(app.librarian.plugin_cache_len())));
         
         app.ui.upgrade_in_event_loop(move |ui| {
