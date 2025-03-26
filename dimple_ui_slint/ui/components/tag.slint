@@ -6,7 +6,6 @@ import { FlowLayout, FlowLayoutItem } from "flow_layout.slint";
 
 export component Tag inherits TouchArea {
     in-out property <string> text: "heavy metal";
-    in-out property <color> color: #638d5d;
 
     preferred-width: r.preferred-width;
     preferred-height: r.preferred-height;
@@ -17,10 +16,12 @@ export component Tag inherits TouchArea {
         border-color: Palette.border;
         border-radius: Styles.thumbnail-border-radius;
 
-        background: root.has-hover ? Palette.selection-background : color;
+        background: root.has-hover ? Palette.selection-background : Palette.control-background;
 
         HorizontalLayout {
             padding: 4px;
+            padding-left: 6px;
+            padding-right: 6px;
             text := Label {
                 text: root.text;
                 wrap: no-wrap;
@@ -33,7 +34,6 @@ export component Tag inherits TouchArea {
 
 export component TagList inherits FlowLayout {
     in-out property <[LinkAdapter]> tags: [{name: "heavy metal"},{name: "heavy metal thing cup stuff"},{name: "hard rock"},{name: "acid rock"}];
-    in-out property <[color]> colors: [#638d5d, #838d5d, #5d8a8d, #7f5d8d, #8d6b5d, #5d648d, #8d825d];
 
     changed tags => { self.do-all-layout(); }
     
@@ -41,7 +41,6 @@ export component TagList inherits FlowLayout {
         item-infos: parent.item-infos;
         index: i;
         Tag {
-            color: colors[Math.mod(i, colors.length)];
             text: tags[i].name;
             clicked => { Navigator.navigate(tags[i].url); }
         }
