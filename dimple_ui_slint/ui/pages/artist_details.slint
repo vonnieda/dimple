@@ -41,10 +41,30 @@ export component ArtistDetails inherits ScrollView {
         HorizontalBox {
             padding: 0;
 
-            BorderImage {
-                width: Styles.thumbnail-width-extra-large;
-                height: Styles.thumbnail-width-extra-large;
-                source: ArtistDetailsAdapter.card.image.image;
+            VerticalLayout {
+                BorderImage {
+                    width: Styles.thumbnail-width-extra-large;
+                    height: Styles.thumbnail-width-extra-large;
+                    source: ArtistDetailsAdapter.card.image.image;
+                }
+                HorizontalBox {
+                    alignment: space-between;
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+                        colorize-icon: true;                
+                        clicked => { AppState.play_later(ArtistDetailsAdapter.key); }
+                    }
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+                        colorize-icon: true;
+                        clicked => { AppState.play_next(ArtistDetailsAdapter.key); }
+                    }
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+                        colorize-icon: true;                
+                        clicked => { AppState.play_now(ArtistDetailsAdapter.key); }
+                    }
+                }
             }
             VerticalBox {
                 alignment: start;

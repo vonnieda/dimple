@@ -4,7 +4,7 @@ import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widge
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, Button} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid } from "../components/card_grid.slint";
 import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
@@ -105,11 +105,32 @@ export component ReleaseDetails inherits ScrollView {
         HorizontalBox {
             padding: 0;
 
-            BorderImage {
-                width: Styles.thumbnail-width-extra-large;
-                height: Styles.thumbnail-width-extra-large;
-                source: ReleaseDetailsAdapter.card.image.image;
+            VerticalLayout {
+                BorderImage {
+                    width: Styles.thumbnail-width-extra-large;
+                    height: Styles.thumbnail-width-extra-large;
+                    source: ReleaseDetailsAdapter.card.image.image;
+                }
+                HorizontalBox {
+                    alignment: space-between;
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+                        colorize-icon: true;                
+                        clicked => { AppState.play_later(ReleaseDetailsAdapter.key); }
+                    }
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+                        colorize-icon: true;                
+                        clicked => { AppState.play_next(ReleaseDetailsAdapter.key); }
+                    }
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+                        colorize-icon: true;                
+                        clicked => { AppState.play_now(ReleaseDetailsAdapter.key); }
+                    }
+                }
             }
+        
             VerticalBox {
                 alignment: start;
                 padding: 0;

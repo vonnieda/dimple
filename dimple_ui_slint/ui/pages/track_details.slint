@@ -47,10 +47,30 @@ export component TrackDetails inherits ScrollView {
         HorizontalBox {
             padding: 0;
 
-            BorderImage {
-                width: Styles.thumbnail-width-extra-large;
-                height: Styles.thumbnail-width-extra-large;
-                source: TrackDetailsAdapter.card.image.image;
+            VerticalLayout {
+                BorderImage {
+                    width: Styles.thumbnail-width-extra-large;
+                    height: Styles.thumbnail-width-extra-large;
+                    source: TrackDetailsAdapter.card.image.image;
+                }
+                HorizontalBox {
+                    alignment: space-between;
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+                        colorize-icon: true;                
+                        clicked => { AppState.play_later(TrackDetailsAdapter.key); }
+                    }
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+                        colorize-icon: true;                
+                        clicked => { AppState.play_next(TrackDetailsAdapter.key); }
+                    }
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+                        colorize-icon: true;                
+                        clicked => { AppState.play_now(TrackDetailsAdapter.key); }
+                    }
+                }
             }
             VerticalBox {
                 alignment: start;

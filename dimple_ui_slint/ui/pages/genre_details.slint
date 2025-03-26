@@ -88,10 +88,30 @@ export component GenreDetails inherits ScrollView {
             alignment: start;
             padding: 0;
 
-            BorderImage {
-                width: Styles.thumbnail-width-extra-large;
-                height: Styles.thumbnail-width-extra-large;
-                source: GenreDetailsAdapter.card.image.image;
+            VerticalLayout {
+                BorderImage {
+                    width: Styles.thumbnail-width-extra-large;
+                    height: Styles.thumbnail-width-extra-large;
+                    source: GenreDetailsAdapter.card.image.image;
+                }
+                HorizontalBox {
+                    alignment: space-between;
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+                        colorize-icon: true;                
+                        clicked => { AppState.play_later(GenreDetailsAdapter.key); }
+                    }
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+                        colorize-icon: true;                
+                        clicked => { AppState.play_next(GenreDetailsAdapter.key); }
+                    }
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+                        colorize-icon: true;                
+                        clicked => { AppState.play_now(GenreDetailsAdapter.key); }
+                    }
+                }
             }
             VerticalBox {
                 alignment: start;
