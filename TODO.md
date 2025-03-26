@@ -3,7 +3,6 @@ Dump new things at the bottom, move things to the top to prioritize.
 - [x] List sorting.
 - [x] Track detail musicbrainz info, first pass.
 - [x] Lyrics.
-- Tantivy search.
 - [x] Change player bar to use player.on_change.
 - [x] Figure out how I'm going to implement queueing controls on table rows.
 - Show currently playing track as playing in queue.

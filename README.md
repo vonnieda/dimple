@@ -7,7 +7,7 @@ music and playlists every day, and a lot more!
 
 If you like Dimple, and would like to help me keep working on it, please
 consider purchasing from one of the links below. Dimple is my full time job
-and source of income, and every dollar helps me working on open source
+and source of income, and every bit helps me keep working on open source
 software full time:
 
 - Merch: https://dimple.lol/store
@@ -44,13 +44,11 @@ software full time:
 - Works offline with your downloaded music.
 
 ## Sync
-- Sync, stream, and download your music on any supported device, with any S3
-  compatible storage service.
-- Dimple Cloud is a cheap and built in storage option that helps pay for 
-  development, or use any [S3 compatible storage you like](https://www.s3compare.io/). 
-  You can even self-host!
-- Keep your likes, listens, playlists, metadata and more synchronized between
-  your devices.
+- Sync, stream, and download your music on any supported device, with any [S3
+  compatible storage service](https://www.s3compare.io/), including self-hosted
+  ones.
+- Keeps your music, likes, listens, playlists, metadata and more synchronized
+  between your devices.
 
 ## Rich Metadata
 - Metadata from MusicBrainz, Wikipedia, ListenBrainz, Last.fm, Discogs, etc.
@@ -94,49 +92,15 @@ software full time:
   - https://crates.io/crates/projectm
   - https://crates.io/crates/projectm-sys
 
-## DRM-Free
-- Dimple does not use or support DRM. See https://www.defectivebydesign.org/guide/audio
-- Support artists by buying and streaming their music from Bandcamp, Soundcloud,
-  iTunes Music, and more, all within Dimple.
-
-## Ethical
-- Uses only public and authorized sources of data and music.
-- Attribution is captured and displayed with all relevant data.
-- Supports artists by givers users access to artist preferred downloads,
-  streaming, and merch.
-- Respects caching and rate limits wherever requested. 
-- TBD% of revenue goes to MetaBrainz, Wikimedia, and other public resources.
-
-## Fast
-- Written in Rust using Slint.
-- Async network and file I/O.
-- Extensive local caching for fast browsing, even offline.
-
-## Dimple Cloud (Optional)
-- One click S3 compatible storage.
-- Privately and securely synchronize all your devices.
-- End-to-end encryption means your library is private and safe.
-- Fast, reliable, and worldwide. Based on Backblaze B2 Cloud Storage.
-- $0.99 for 100GB per month, or a year for $8.99. Pay only for what you use.
-  100GB stores roughly 30,000 songs.
-- All features above are also available for free using any S3 compatible storage
-  provider.
-
-# Mantras
-- If a song has an outro that runs into the intro of the next song, don't play
-  it without playing the next one!
-- Shuffle should never go from Megadeth to They Might Be Giants.
-
 # Notes
 - I'm writing Dimple as a way to learn Rust. If you see weird things in the code
   it's probably because I didn't know a better way. Please feel free to
   open a PR or Issue and let me know! I'm still learning, and I appreciate the
   help!
 
-# Acknowledgements
+# Greetings and Thanks
 - Slint UI
 - Phosphor Icons
-- Tantivy Search
 - [Tools Fairy](https://toolsfairy.com/image-test/sample-jpg-files)
 - https://github.com/freestrings/waveform
 - https://github.com/jamsocket/fractional_index

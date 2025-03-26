@@ -4,6 +4,7 @@ use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::ModelBasics;
 use dimple_core::model::Release;
+use dimple_core::model::Track;
 use url::Url;
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
@@ -40,10 +41,20 @@ fn update_model(app: &App, query: &str) {
             "SELECT * FROM Release WHERE title LIKE ?1 LIMIT 25", (&query,));
         let genres = Genre::query(&app.library, 
             "SELECT * FROM Genre WHERE name LIKE ?1 LIMIT 25", (&query,));
-                        
+        let tracks = Track::query(&app.library, 
+            "SELECT * FROM Track WHERE title LIKE ?1 LIMIT 25", (&query,));
+                                    
         let app = app.clone();
         app.ui.upgrade_in_event_loop(move |ui| {
             let mut sections: Vec<CardSectionAdapter> = vec![];
+
+            if !tracks.is_empty() {
+                sections.push(CardSectionAdapter {
+                    title: "Tracks".into(),
+                    sub_title: Default::default(),
+                    cards: track_cards(&app.images, &tracks, &app.library).as_slice().into(),
+                });
+            }
 
             if !artists.is_empty() {
                 sections.push(CardSectionAdapter {
@@ -179,6 +190,44 @@ fn genre_card(genre: &Genre) -> CardAdapter {
             name: genre.disambiguation.clone().unwrap_or_default().into(),
             url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
         },
+    }
+}
+
+fn track_cards(images: &ImageMangler, tracks: &[Track], library: &Library) -> Vec<CardAdapter> {
+    tracks.iter().cloned().enumerate()
+        .map(|(index, track)| {
+            let mut card: CardAdapter = track_card(&track, &track.artist(library).unwrap_or_default());
+            card.image.image = images.lazy_get(track.clone(), 200, 200, move |ui, image| {
+                // let adapter = ui.global::<HomeAdapter>();
+                // let mut card = adapter.get_releases().row_data(index).unwrap();
+                // card.image.image = image;
+                // adapter.get_releases().set_row_data(index, card);
+            });
+            card
+        })
+        .collect()
+}
+
+fn track_card(track: &Track, artist: &Artist) -> CardAdapter {
+    let track = track.clone();
+    CardAdapter {
+        key: track.key.clone().unwrap_or_default().into(),
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: track.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            ..Default::default()
+        },
+        title: LinkAdapter {
+            name: track.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            ..Default::default()
+        },
+        sub_title: LinkAdapter {
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+        },
+        ..Default::default()
     }
 }
 
