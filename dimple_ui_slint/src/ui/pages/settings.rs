@@ -42,7 +42,12 @@ pub fn settings_init(app: &App) {
         let app = app_.clone();
         ui.global::<SettingsAdapter>().on_import_directories(
             move || import_directories(&app));
-        }).unwrap();
+
+        let app = app_.clone();
+        ui.global::<SettingsAdapter>().on_quit(move || {
+            slint::quit_event_loop().unwrap();
+        });
+    }).unwrap();
 }
 
 pub fn settings(app: &App) {

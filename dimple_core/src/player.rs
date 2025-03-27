@@ -370,7 +370,6 @@ impl Player {
     }
 
     fn set_current_song(&self, song: Option<Song>) {
-        log::info!("set_current_song {}", song.is_some());
         self.shared_state.write().unwrap().current_song1 = song.clone();
         if let Some(song) = song {
             self.notifier.notify(PlayerEvent::CurrentSong(song));
@@ -378,7 +377,6 @@ impl Player {
     }
 
     fn set_next_song(&self, song: Option<Song>) {
-        log::info!("set_next_song {}", song.is_some());
         self.shared_state.write().unwrap().next_song1 = song;
     }
 }

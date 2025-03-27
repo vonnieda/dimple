@@ -48,6 +48,7 @@ impl AppWindowController {
         std::fs::create_dir_all(&config_dir).unwrap();
         std::fs::create_dir_all(&image_cache_dir).unwrap();
 
+        // TODO Document
         let library = if let Some(path) = env::var("DIMPLE_LIBRARY_PATH").ok() {
             Library::open(&path)
         }

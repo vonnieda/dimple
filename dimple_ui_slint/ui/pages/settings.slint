@@ -31,6 +31,7 @@ export global SettingsAdapter {
     pure callback set_font_size(float);
     pure callback import_files();
     pure callback import_directories();
+    pure callback quit();
 }
 
 component ActionButton inherits Button {
@@ -55,6 +56,14 @@ component General inherits VerticalBox {
             toggled => {
                 SettingsAdapter.set_online(!self.checked);
             }
+        }
+    }
+
+    HorizontalBox {
+        alignment: start;
+        Button {
+            text: "Quit Dimple";
+            clicked => { SettingsAdapter.quit(); }
         }
     }
 }
