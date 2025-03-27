@@ -20,7 +20,6 @@ export global TrackDetailsAdapter {
     in property <string> lyrics: "Hurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk\n\nHurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk\n\nHurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk\nHurk hurk hurk hurk hurk\n";
     in property <[LinkAdapter]> artists: [{name: "Fresh Pliers"},{name: "Example Band"},{name: "Teal Cup"},];
     in property <[LinkAdapter]> isrcs;
-    in property <LinkAdapter> release: {name: "Fan Speed",url: "internal://release/1234"};
     in property <[CardAdapter]> releases: [card, card, card];
     in property <string> release-date: "2024-03-19";
     
@@ -84,9 +83,16 @@ export component TrackDetails inherits ScrollView {
                         text: TrackDetailsAdapter.disambiguation;
                     }
                 }
-                Links {
-                    links: TrackDetailsAdapter.artists;
-                    height: self.preferred-height;
+                HorizontalLayout {
+                    Label {
+                        text: "By ";
+                        font-size: Styles.default-font-size * 1.1;
+                    }
+                    Links {
+                        links: TrackDetailsAdapter.artists;
+                        height: self.preferred-height;
+                        font-size: Styles.default-font-size * 1.1;
+                    }
                 }
                 TagList {
                     tags: TrackDetailsAdapter.genres;
@@ -103,16 +109,17 @@ export component TrackDetails inherits ScrollView {
             }
         }
 
-        // if TrackDetailsAdapter.releases.length > 0: VerticalBox {
-        //     alignment: start;
-        //     padding: 0;
-        //     SectionTitle {
-        //         text: "Releases";
-        //     }
-        //     CardGrid {
-        //         cards: TrackDetailsAdapter.releases;
-        //     }
-        // }
+        if TrackDetailsAdapter.releases.length > 0: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "Released On";
+            }
+            CardGrid {
+                cards: TrackDetailsAdapter.releases;
+                max-rows: 1;
+            }
+        }
         
         VerticalBox {
             alignment: start;

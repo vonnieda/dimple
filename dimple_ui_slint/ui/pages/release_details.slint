@@ -143,10 +143,18 @@ export component ReleaseDetails inherits ScrollView {
                         text: ReleaseDetailsAdapter.disambiguation;
                     }
                 }
-                Links {
-                    links: ReleaseDetailsAdapter.artists;
-                    height: self.preferred-height;
+                HorizontalLayout {
+                    Label {
+                        text: "By ";
+                        font-size: Styles.default-font-size * 1.1;
+                    }
+                    Links {
+                        links: ReleaseDetailsAdapter.artists;
+                        height: self.preferred-height;
+                        font-size: Styles.default-font-size * 1.1;
+                    }
                 }
+
                 TagList {
                     tags: ReleaseDetailsAdapter.genres;
                     height: self.preferred-height;

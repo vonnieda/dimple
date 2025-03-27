@@ -1,4 +1,5 @@
 use dimple_core::librarian;
+use dimple_core::library::Library;
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Link;
@@ -8,6 +9,8 @@ use dimple_core::model::Track;
 use slint::ModelRc;
 use url::Url;
 use crate::ui::app_window_controller::App;
+use crate::ui::images::ImageMangler;
+use crate::ui::ImageLinkAdapter;
 use crate::ui::Page;
 use crate::ui::TrackDetailsAdapter;
 use crate::ui::LinkAdapter;
@@ -80,8 +83,8 @@ fn update_model(app: &App) {
                 ui.global::<TrackDetailsAdapter>().set_artists(ModelRc::from(artists.as_slice()));
                 ui.global::<TrackDetailsAdapter>().set_summary(track.summary.clone().unwrap_or_default().into());
                 ui.global::<TrackDetailsAdapter>().set_disambiguation(track.disambiguation.clone().unwrap_or_default().into());
-                ui.global::<TrackDetailsAdapter>().set_release(release.clone().into());
                 ui.global::<TrackDetailsAdapter>().set_release_date(release.date.clone().unwrap_or_default().into());
+                ui.global::<TrackDetailsAdapter>().set_releases(release_cards(&app.images, &[release], &app.library).as_slice().into());
                 ui.global::<TrackDetailsAdapter>().set_disambiguation(track.disambiguation.clone().unwrap_or_default().into());            
                 ui.global::<TrackDetailsAdapter>().set_genres(ModelRc::from(genres.as_slice()));
                 let lyrics = track.lyrics.clone()
@@ -137,5 +140,43 @@ impl From<Release> for LinkAdapter {
             name: value.title.clone().unwrap_or_default().into(),
             url: format!("dimple://release/{}", value.key.clone().unwrap_or_default()).into(),
         }
+    }
+}
+
+fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library) -> Vec<CardAdapter> {
+    releases.iter().cloned().enumerate()
+        .map(|(index, release)| {
+            let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
+            card.image.image = images.lazy_get(release.clone(), 200, 200, move |ui, image| {
+                // let adapter = ui.global::<HomeAdapter>();
+                // let mut card = adapter.get_releases().row_data(index).unwrap();
+                // card.image.image = image;
+                // adapter.get_releases().set_row_data(index, card);
+            });
+            card
+        })
+        .collect()
+}
+
+fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
+    let release = release.clone();
+    CardAdapter {
+        key: release.key.clone().unwrap_or_default().into(),
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: release.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            ..Default::default()
+        },
+        title: LinkAdapter {
+            name: release.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            ..Default::default()
+        },
+        sub_title: LinkAdapter {
+            name: release.date.clone().unwrap_or_default().into(),
+            url: format!("dimple://release/{}", artist.key.clone().unwrap_or_default()).into(),
+        },
+        ..Default::default()
     }
 }
