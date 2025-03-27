@@ -69,6 +69,16 @@ export component AppWindow inherits Window {
     in-out property <CardGridAdapter> genre-list;
     in-out property <SideBarAdapter> sidebar;
 
+    MenuBar {
+        Menu {
+            title: @tr("File");
+            MenuItem {
+                title: @tr("Exit");
+                activated => { SettingsAdapter.quit(); }
+            }
+        }
+    }
+
     VerticalBox {
         NavBar {}
         HorizontalRule {}
