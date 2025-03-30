@@ -66,10 +66,17 @@ to extend Dimple and add new functionality.
 
 Dimple is currently under heavy development and is **ALPHA QUALITY SOFTWARE**.
 Everything is subject to change, and you should back up your database regularly
-if you use it.
+if you use it. There are several known issues, and you should expect to run
+into bugs and crashes.
 
 I am working towards a 1.0 release after which the data model will be stable
 and only modified through migrations. 
+
+If you would like to try Dimple now you can download the source and run it
+with `cargo run --release --bin dimple_ui_slint`.
+
+Prebuilt binaries for macOS and Windows are available in 
+[Actions](https://github.com/vonnieda/dimple/actions) under assets.
 
 # Platform Roadmap
 
