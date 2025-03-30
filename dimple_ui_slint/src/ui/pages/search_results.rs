@@ -53,6 +53,7 @@ fn update_model(app: &App, query: &str) {
                     title: "Tracks".into(),
                     sub_title: Default::default(),
                     cards: track_cards(&app.images, &tracks, &app.library).as_slice().into(),
+                    ..Default::default()
                 });
             }
 
@@ -61,6 +62,7 @@ fn update_model(app: &App, query: &str) {
                     title: "Artists".into(),
                     sub_title: Default::default(),
                     cards: artist_cards(&app.images, &artists).as_slice().into(),
+                    ..Default::default()
                 });
             }
 
@@ -69,6 +71,7 @@ fn update_model(app: &App, query: &str) {
                     title: "Releases".into(),
                     sub_title: Default::default(),
                     cards: release_cards(&app.images, &releases, &app.library).as_slice().into(),
+                    ..Default::default()
                 });
             }
 
@@ -77,6 +80,7 @@ fn update_model(app: &App, query: &str) {
                     title: "Genres".into(),
                     sub_title: Default::default(),
                     cards: genre_cards(&app.images, &genres).as_slice().into(),
+                    ..Default::default()
                 });
             }
 

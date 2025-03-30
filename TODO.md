@@ -1,19 +1,5 @@
 Dump new things at the bottom, move things to the top to prioritize.
 
-- [x] List sorting.
-- [x] Track detail musicbrainz info, first pass.
-- [x] Lyrics.
-- [x] Change player bar to use player.on_change.
-- [x] Figure out how I'm going to implement queueing controls on table rows.
-- Show currently playing track as playing in queue.
-- Clicking on a playbar item should take you to the item in the queue, from
-  there you can click the item to go to details if you want.
-- [x] Bug: Music skips when switching from the Dimple window to another app, maybe
-  other times too. https://docs.rs/thread-priority/latest/thread_priority/
-  I think it's due to thread priority.
-  Okay, looks like this is fixed by cloning playback-rs, adding the thread
-  priority crate and setting the playback thread to max. Haven't heard a skip
-  since.
 - After starting the app, if there is music in the queue, pressing play on the
   keyboard should start playing. Right now it seems macos doesn't forward the
   play event until we've actually played at least once.
@@ -23,15 +9,6 @@ Dump new things at the bottom, move things to the top to prioritize.
   history, Apple Music history, etc.
 - Double click in queue to start playing, inclusing starting the player. Single
   click is just for select.
-- [x] comment: not enough space between search and home.
-- [x] OTCH: Text is too small.
-  I did a short pass on this sort of. I had previously disabled the font
-  settings somehow so I got those back and that made the text larger and
-  more clear. I also increased the text side of the sidebar items, and
-  spaced them out further.
-- [x] Bug: Dragging the seek slider breaks the binding, so it stops updating
-  after the first drag. 
-  https://github.com/slint-ui/slint/discussions/7120
 - Bug: Sorting by ordinal is lex not numeric. 
 - TODO an indicator in a playlist (or queue) that is dynamic and shows the
   delta between two songs based on a sum of stats. So like, you could tell
@@ -71,15 +48,13 @@ Dump new things at the bottom, move things to the top to prioritize.
 - Bug: Empty queue shows placeholder text. Probably should just be empty.
 - Need like, download, etc. buttons ont he player bar. Probably over near the
   play buttons.
-- Per song EQ. ReplayGain is cool, but give the user *everything*.
+- ReplayGain.
+- Per song EQ.
 - Bug: Clicking on a track in tracks with no title (or artist album) crashes.
 - Bug: Margot and the Nuclear So and So's Vampires and Blue Dresses doesn't play
   and player just sits there.
 - Bug: Moving a file on the filesystem leaves an orphaned and incorrect
   MediaFile behind.
-- [x] Make playlsit item ordinal real.
-- [x] Bug: Seeing a lot of lyrics with double newlines. 
-  Ex: Blue Oyster Cult - Heavy Metal: The Black and Silver.
 - Re-combine all the grid pages into one relatively smart "results list", 
   that also has tags, sorting, filtering, etc.
 - Each image on a page should be a slideshow, and the user can drop new images,

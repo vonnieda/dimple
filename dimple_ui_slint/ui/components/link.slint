@@ -29,6 +29,11 @@ export component Link inherits TouchArea {
 
     Rectangle {
         background: root.has-hover ? Palette.selection-background : Palette.background;
+        animate background {
+            duration: 50ms;
+        }
+        drop-shadow-color: root.has-hover ? Palette.selection-background : Palette.foreground;
+
         title := Label {
             vertical-alignment: vertical-alignment;
             width: root.width;
@@ -36,6 +41,9 @@ export component Link inherits TouchArea {
             font-weight: font-weight;
             font-size: font-size;
             color: root.has-hover ? Palette.selection-foreground : Palette.foreground;
+            animate color {
+                duration: 50ms;
+            }
         }    
     }
 }

@@ -31,7 +31,7 @@ pub fn home(app: &App) {
 fn update_model(app: &App) {
     let app = app.clone();
     std::thread::spawn(move || { 
-        let new_releases = app.library.query("
+        let newest_releases = app.library.query("
             SELECT * FROM Release ORDER BY date DESC LIMIT 10 
         ", ());
 
@@ -68,18 +68,21 @@ fn update_model(app: &App) {
             sections.push(CardSectionAdapter {
                 title: "Newest Releases".into(),
                 sub_title: Default::default(),
-                cards: release_cards(&app.images, &new_releases, &app.library).as_slice().into(),
+                url: format!("dimple://home/newest-releases").into(),
+                cards: release_cards(&app.images, &newest_releases, &app.library).as_slice().into(),
             });
 
             sections.push(CardSectionAdapter {
                 title: "Favorite Releases".into(),
                 sub_title: Default::default(),
+                url: format!("dimple://home/favorite-releases").into(),
                 cards: release_cards(&app.images, &favorite_releases, &app.library).as_slice().into(),
             });
 
             sections.push(CardSectionAdapter {
                 title: "Favorite Artists".into(),
                 sub_title: Default::default(),
+                url: format!("dimple://home/favorite-artists").into(),
                 cards: artist_cards(&app.images, &favorite_artists).as_slice().into(),
             });
 

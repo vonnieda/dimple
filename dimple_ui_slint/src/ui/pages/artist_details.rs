@@ -23,7 +23,12 @@ pub fn artist_details_init(app: &App) {
     // TODO filter events by key - but we can't get the key without the
     // UI, so rethink the whole mess.
     let app1 = app.clone();
-    app.library.notifier.observe(move |event| if event.type_name == "Artist" { update_model(&app1) });
+    app.library.notifier.observe(move |event| {
+        // TODO so gross.
+        if event.type_name == "Artist" || event.type_name == "Release" || event.type_name == "Link" || event.type_name == "Genre" { 
+            update_model(&app1);
+        }
+    });
 }
 
 pub fn artist_details(url: &str, app: &App) {

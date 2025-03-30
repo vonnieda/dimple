@@ -76,7 +76,7 @@ component SideBarMenuItem inherits TouchArea {
                 height: Styles.icon-width-sidebar;
                 colorize: root.has-hover ? Palette.selection-foreground : Palette.foreground;
             }
-            Label {
+            if AppState.sidebar_open: Label {
                 vertical-alignment: center;
                 text: text;
                 font-size: Styles.default-font-size * 1.2;

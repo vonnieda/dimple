@@ -2,7 +2,7 @@ import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
 import { CardGrid, CardGridAdapter, CardSectionAdapter } from "../components/card_grid.slint";
 import { Styles, Label, PageTitle, SectionTitle, SectionSubtitle, AppState, Navigator } from "../common.slint";
-import { LinkAdapter } from "../components/link.slint";
+import { LinkAdapter, Link } from "../components/link.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
 export global HomeAdapter {
@@ -81,8 +81,14 @@ export component Home inherits ScrollView {
             padding: 0;
             padding-bottom: 16px;
             VerticalLayout {
-                SectionTitle {
-                    text: section.title;
+                HorizontalLayout {
+                    alignment: start;
+                    Link {
+                        horizontal-stretch: 0;
+                        name: section.title;
+                        url: section.url;
+                        font-size: Styles.default-font-size * 2;
+                    }
                 }
                 if section.sub-title != "": SectionSubtitle {
                     text: section.sub-title;

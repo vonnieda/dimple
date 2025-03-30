@@ -86,12 +86,12 @@ export component AppWindow inherits Window {
             HorizontalBox {
                 min-height: 0;
                 padding: 0;
-                width: AppState.sidebar_open ? self.preferred-width.max(250px) : 0px;
-                visible: AppState.sidebar_open;
-                opacity: AppState.sidebar_open ? 1.0 : 0.0;
-                animate width, opacity {
-                    duration: 100ms;
-                }
+                width: self.preferred-width;
+                // visible: AppState.sidebar_open;
+                // opacity: AppState.sidebar_open ? 1.0 : 0.0;
+                // animate width, opacity {
+                //     duration: 50ms;
+                // }
                 SideBar {
                     model: root.sidebar;
                 }

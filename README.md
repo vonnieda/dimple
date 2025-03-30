@@ -1,16 +1,18 @@
 # Dimple Music Player
 
-Dimple is a music streaming platform in an app. It is local first, open source,
-private, and cross-platform. With Dimple you can listen to your music and
-playlists on every supported device, follow favorite artists, discover new
-music and playlists every day, and a lot more! 
+Dimple is a local-first, cross-platform music player for people who want the
+convenience of a music streaming service without all the 
+[ick](https://en.wikipedia.org/wiki/Enshittification). I'm writing Dimple to
+replace music streaming services in my life with privacy respecting software
+that is built to last.
+
+<a href="./assets/images/"><img src="assets/images/Screenshot%202025-03-30%20at%204.41.04 PM.png" width="80%"></a>
 
 If you like Dimple, and would like to help me keep working on it, please
-consider purchasing from one of the links below. Dimple is my full time job
-and source of income, and every bit helps me keep working on open source
-software full time:
+consider helping with one of the methods below. Dimple is my full time job
+and only source of income, and every single bit helps me keep working on 
+open source software full time:
 
-- Merch: https://dimple.lol/store
 - BTC: 3FMNgdEjbVcxVoAUtgFFpzsuccnU9KMuhx
 - ETH: 0xf1CE557bE8645dC70e78Cbb601bAF2b3649169A0
 - DOGE: DGNKBH3AN4pUnHs9ZNQpC42ABzJG4mVF3t
@@ -20,87 +22,86 @@ software full time:
 - Ko-Fi: https://ko-fi.com/vonnieda
 - Buy Me a Coffee: https://www.buymeacoffee.com/vonnieda
 - Patreon: (Pending)
+- Merch: (Pending)
 - Something missing or wrong? <a href="mailto:jason@vonnieda.org">Let me know!</a>
 - Want to sponsor me? <a href="mailto:jason@vonnieda.org">Get in touch!</a>
 
+# How Does It Work?
+
+Dimple plays your local music files, and can stream from online and self-hosted
+music services using plugins.
+
+It keeps your music, images, metadata, and listening history in a local SQLite
+database called a Library. Dimple can sync your Library between all your
+devices with end-to-end encryption.
+
+As you use Dimple it searches public music databases and sites for new
+information like events, lyrics, artwork, new releases, etc. and adds
+it to your Library. 
+
+Dimple uses plugins to perform many tasks, and you can write your own plugins
+to extend Dimple and add new functionality.
+
 # Features
-- Open Source: https://github.com/vonnieda/Dimple
 
-## Cross Platform
-- [x] macOS
-- [x] Linux
-- [x] Windows
-- [ ] iOS
-- [ ] Android
-- [ ] CarPlay
-- [ ] Android Auto
-- [ ] Apple tvOS
-
-## Privacy
-- No ads, no accounts, no data collection, no tracking, no DRM, no telemetry,
-  no bullshit.
-- Everything is stored locally by default.
-- Synchronized data is end-to-end encrypted.
-- Works offline with your downloaded music.
-
-## Sync
-- Sync, stream, and download your music on any supported device, with any [S3
+- [x] Cross-platform desktop music player for macOS, Linux, and Windows. Mobile
+  coming later.
+- [x] Stores music, artwork, and metadata locally so it always works offline.
+- [ ] Sync, stream, and download your music on any supported device, with any [S3
   compatible storage service](https://www.s3compare.io/), including self-hosted
   ones.
-- Keeps your music, likes, listens, playlists, metadata and more synchronized
-  between your devices.
+- [x] Personalized recommendations based on your listening history, stored and
+  processed locally.
+- [x] Artwork and metadata from popular public music databases like MusicBrainz,
+  fanart.tv, and TheAudioDB. More being added via plugins!
+- [x] Fast and responsive UI built with Rust and Slint.
+- [x] Waveform and spectrograph scrubbers.
+- [ ] Playlist management.
+- [ ] Timestamp reactions, notes, and emoji.
+- [x] Lyrics.
+- [ ] Synchronized lyrics.
+- [ ] ReplayGain.
 
-## Rich Metadata
-- Metadata from MusicBrainz, Wikipedia, ListenBrainz, Last.fm, Discogs, etc.
-- Artwork from Cover Art Archive, fanart.tv, Wiki Commons, etc.
-- Lyrics from Genius, Musixmatch, Muzikum, etc.
-- Scrobble to Last.fm, Listenbrainz, Maloja, etc.
+# Status
 
-## "Smart"
+Dimple is currently under heavy development and is **ALPHA QUALITY SOFTWARE**.
+Everything is subject to change, and you should back up your database regularly
+if you use it.
 
-*Ed: explain the feature, drop the silly names.*
+I am working towards a 1.0 release after which the data model will be stable
+and only modified through migrations. 
 
-- "Deep Scrobbling" keeps track of your volume adjustments, repeats, skips,
-  scrubs, likes, dislikes, and dozens of other interactive data points. This
-  powers features like Current Obsessions, Mood Radio, AI DJ, ReplayGain,
-  Instant Mixes, and more.
-- Instant Mixes are infinite playlists based on Artists, Albums, Tracks,
-  Genres, Playlists, and more. Everything is clickable and everything can
-  start an Instant Mix.
-- AI DJ uses text to speech and a small, fine-tuned AI brain to give you your
-  own personal DJ. It announces songs and mixes, and adjusts to your
-  reactions.
-- Current Obsessions lets you jump right back into your recent favorites.
-- Mood Radio instantly matches your mood with an infinite playlist of whatever
-  you're feeling right now.
-- ReplayGain automatically adjusts audio volume based on community feedback
-  and your own adjustments.
-- Sing Along shows and syncs the lyrics of whatever music is playing around
-  you. Share your screen with your friends and sing along!
+# Platform Roadmap
 
-## Modern and Beautiful
-- Based on Google's Material Design, with customizable themes.
-- Artwork forward with abstract generated defaults when none is available.
-- Responsive on any screen size.
-- Light and Dark Mode, optionally follows your OS choice.
-- Interactive waveform scrubbers let you "see" the music.
-  - Moodbar: https://en.wikipedia.org/wiki/Moodbar
-  - Sparkline: https://simonrepp.com/faircamp/#release
-  - Spectrogram: https://en.wikipedia.org/wiki/Spectrogram
-  - Wave
-- Visualizations from projectM?: https://github.com/projectM-visualizer/projectm
-  - https://crates.io/crates/projectm
-  - https://crates.io/crates/projectm-sys
+- Desktop App (In Progress)
+  - [ ] macOS
+  - [ ] Linux
+  - [ ] Windows
+- Mobile App
+  - [ ] iOS
+  - [ ] Android
+- Car App
+  - [ ] CarPlay
+  - [ ] Android Auto
+- Home App
+  - [ ] Apple tvOS
 
-# Notes
-- I'm writing Dimple as a way to learn Rust. If you see weird things in the code
-  it's probably because I didn't know a better way. Please feel free to
-  open a PR or Issue and let me know! I'm still learning, and I appreciate the
-  help!
+See [TODO.md](TODO.md) for additional backlog and wish list items.
+
+# Development
+
+I'm writing Dimple as a way to learn Rust. If you see weird things in the code
+it's probably because I didn't know a better way. Please feel free to
+open a PR or Issue and let me know! I'm still learning, and I appreciate the
+help!
+
+See [HACKING.md](HACKING.md) for more.
 
 # Greetings and Thanks
-- Slint UI
-- Phosphor Icons
+
+- [MusicBrainz](https://musicbrainz.org/)
+- [Slint UI](https://slint.dev/)
+- [Phosphor Icons](https://phosphoricons.com/)
 - [Tools Fairy](https://toolsfairy.com/image-test/sample-jpg-files)
 - https://github.com/freestrings/waveform
 - https://github.com/jamsocket/fractional_index
