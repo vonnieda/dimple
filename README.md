@@ -33,7 +33,7 @@ open source software full time:
 Dimple is currently under heavy development and is **ALPHA QUALITY SOFTWARE**.
 Everything is subject to change, and you should back up your database regularly
 if you use it. There are several known issues, and you should expect to run
-into bugs and crashes.
+into bugs and crashes. Many features that are shown in the UI do not work yet.
 
 I am working towards a 1.0 release after which the data model will be stable
 and only modified through migrations. 
