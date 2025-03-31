@@ -6,7 +6,9 @@ convenience of a music streaming service without all the
 replace music streaming services in my life with privacy respecting software
 that is built to last.
 
-<a href="./assets/images/"><img src="assets/images/Screenshot%202025-03-30%20at%204.41.04 PM.png" width="80%"></a>
+<div align="center">
+  <a href="./assets/images/"><img src="assets/images/Screenshot%202025-03-30%20at%204.41.04 PM.png" width="80%"></a>
+</div>
 
 If you like Dimple, and would like to help me keep working on it, please
 consider helping with one of the methods below. Dimple is my full time job
