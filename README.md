@@ -46,12 +46,12 @@ Prebuilt binaries for macOS and Windows are available in
 
 # How Does It Work?
 
-Dimple plays your local music files, and can stream from online and self-hosted
+Dimple plays your local music files and can stream from online and self-hosted
 music services using plugins.
 
-It keeps your music, images, metadata, and listening history in a local SQLite
-database called a Library. Dimple can sync your Library between all your
-devices with end-to-end encryption.
+It keeps your music, images, metadata, and listening history in a Library, which
+is a SQLite database. Dimple can sync your Library between all your devices
+with end-to-end encryption.
 
 As you use Dimple it searches public music databases and sites for new
 information like events, lyrics, artwork, new releases, etc. and adds
