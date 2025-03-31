@@ -101,10 +101,12 @@ See [TODO.md](TODO.md) for additional backlog and wish list items.
 
 I'm writing Dimple as a way to learn Rust. If you see weird things in the code
 it's probably because I didn't know a better way. Please feel free to
-open a PR or Issue and let me know! I'm still learning, and I appreciate the
-help!
+<a href="mailto:jason@vonnieda.org">email me</a> and let me know! I'm still
+learning, and I appreciate the help!
 
-See [HACKING.md](HACKING.md) for more.
+I'm not currently accepting PRs or new Issues while I focus on getting a v1.0
+finished. Much of the architecture of the app is still in flux and I want to
+focus on the app for now.
 
 # Greetings and Thanks
 
