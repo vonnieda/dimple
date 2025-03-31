@@ -26,6 +26,22 @@ open source software full time:
 - Something missing or wrong? <a href="mailto:jason@vonnieda.org">Let me know!</a>
 - Want to sponsor me? <a href="mailto:jason@vonnieda.org">Get in touch!</a>
 
+# Status
+
+Dimple is currently under heavy development and is **ALPHA QUALITY SOFTWARE**.
+Everything is subject to change, and you should back up your database regularly
+if you use it. There are several known issues, and you should expect to run
+into bugs and crashes.
+
+I am working towards a 1.0 release after which the data model will be stable
+and only modified through migrations. 
+
+If you would like to try Dimple now you can download the source and run it
+with `cargo run --release --bin dimple_ui_slint`.
+
+Prebuilt binaries for macOS and Windows are available in 
+[Actions](https://github.com/vonnieda/dimple/actions) under assets.
+
 # How Does It Work?
 
 Dimple plays your local music files, and can stream from online and self-hosted
@@ -61,22 +77,6 @@ to extend Dimple and add new functionality.
 - [x] Lyrics.
 - [ ] Synchronized lyrics.
 - [ ] ReplayGain.
-
-# Status
-
-Dimple is currently under heavy development and is **ALPHA QUALITY SOFTWARE**.
-Everything is subject to change, and you should back up your database regularly
-if you use it. There are several known issues, and you should expect to run
-into bugs and crashes.
-
-I am working towards a 1.0 release after which the data model will be stable
-and only modified through migrations. 
-
-If you would like to try Dimple now you can download the source and run it
-with `cargo run --release --bin dimple_ui_slint`.
-
-Prebuilt binaries for macOS and Windows are available in 
-[Actions](https://github.com/vonnieda/dimple/actions) under assets.
 
 # Platform Roadmap
 
