@@ -105,6 +105,7 @@ export component TrackDetails inherits ScrollView {
                 if TrackDetailsAdapter.summary != "": Label {
                     text: TrackDetailsAdapter.summary;
                     wrap: word-wrap;
+                    font-family: Styles.text-block-font-family;
                 }
             }
         }
@@ -137,6 +138,7 @@ export component TrackDetails inherits ScrollView {
             }
             if !lyrics_editing: Label {
                 text: TrackDetailsAdapter.lyrics;
+                font-family: Styles.text-block-font-family;
             }
             if lyrics_editing: VerticalBox {
                 text_edit := TextEdit {
