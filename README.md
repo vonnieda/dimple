@@ -7,7 +7,7 @@ replace music streaming services in my life with privacy respecting software
 that is built to last.
 
 <div align="center">
-  <a href="./assets/images/"><img src="assets/images/Screenshot%202025-03-30%20at%204.41.04 PM.png" width="80%"></a>
+  <a href="./assets/images/"><img src="assets/images/Screenshot%202025-03-30%20at%204.41.04 PM.png" width="100%"></a>
 </div>
 
 If you like Dimple, and would like to help me keep working on it, please
