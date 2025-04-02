@@ -1,6 +1,6 @@
 use dimple_core::{library::Library, player::{PlayWhen, Player, PlayerEvent}, plugins::{lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugin_host::PluginHost, wikidata::WikidataPlugin}};
 use player_bar;
-use std::{collections::VecDeque, env, sync::{Arc, Mutex}};
+use std::{collections::VecDeque, env, path::Path, sync::{Arc, Mutex}};
 
 use slint::{ComponentHandle, SharedString, Weak};
 
@@ -37,25 +37,22 @@ impl AppWindowController {
         // TODO This and library should happen once the UI is up so that we
         // can show errors if needed. 
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
-        let data_dir = dirs.data_dir();
-        let cache_dir = dirs.cache_dir();
-        let config_dir = dirs.config_dir();
+        let mut data_dir = dirs.data_dir().to_path_buf();
+        let mut cache_dir = dirs.cache_dir().to_path_buf();
+
+        if let Some(root) = env::var("DIMPLE_ROOT").ok() {
+            data_dir = Path::new(&root.to_string()).to_path_buf();
+            cache_dir = data_dir.join("cache").to_path_buf();
+        }
+
         let image_cache_dir = cache_dir.join("image_cache");
         let library_path = data_dir.join("library.db");
-        dbg!(&data_dir, &cache_dir, &config_dir, &library_path, &image_cache_dir);
+        dbg!(&data_dir, &cache_dir, &library_path, &image_cache_dir);
         std::fs::create_dir_all(&data_dir).unwrap();
         std::fs::create_dir_all(&cache_dir).unwrap();
-        std::fs::create_dir_all(&config_dir).unwrap();
         std::fs::create_dir_all(&image_cache_dir).unwrap();
 
-        // TODO Document
-        let library = if let Some(path) = env::var("DIMPLE_LIBRARY_PATH").ok() {
-            Library::open(&path)
-        }
-        else {
-            Library::open(library_path.to_str().unwrap()) 
-        };
-    
+        let library = Library::open(library_path.to_str().unwrap());
 
         let images = ImageMangler::new(library.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         let player = Player::new(Arc::new(library.clone()));
