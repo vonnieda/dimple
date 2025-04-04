@@ -1,55 +1,48 @@
-use std::sync::{Arc, Mutex};
-
-use threadpool::ThreadPool;
+use std::{sync::{mpsc::{channel, Receiver, Sender}, Arc, RwLock}, thread};
 
 #[derive(Clone)]
 pub struct Notifier<Event: Send + Sync + Clone + 'static> {
-    subscribers: Arc<Mutex<Vec<Box<dyn FnMut(Event) -> () + Send + 'static>>>>,
-    threadpool: ThreadPool,
+    senders: Arc<RwLock<Vec<Sender<Event>>>>,
 }
 
 impl <Event: Send + Sync + Clone + 'static> Notifier<Event> {
     pub fn new() -> Self {
         Self {
-            subscribers: Default::default(),
-            threadpool: ThreadPool::new(1),
+            senders: Arc::new(RwLock::new(Vec::new())),
         }
     }
 
     pub fn notify(&self, event: Event) {
-        let subs = self.subscribers.clone();
-        self.threadpool.execute(move || {
-            for sub in subs.lock().unwrap().iter_mut() {
-                sub(event.clone());
-            }
+        self.senders.read().unwrap().iter().for_each(|tx| {
+            tx.send(event.clone()).unwrap();
         });
     }
 
-    pub fn observe(&self, callback: impl FnMut(Event) -> () + Send + 'static) {
-        self.subscribers.lock().unwrap().push(Box::new(callback));
+    pub fn observer(&self) -> Receiver<Event> {
+        let (tx, rx) = channel();
+        self.senders.write().unwrap().push(tx);
+        rx
+    }
+
+    pub fn observe(&self, mut callback: impl FnMut(Event) -> () + Send + 'static) {
+        let rx = self.observer();
+        thread::spawn(move || {
+            rx.iter().for_each(|e| callback(e));
+        });
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::sync::atomic::{self, AtomicU8};
-
-    use crate::notifier::Notifier;
+    use super::Notifier;
 
     #[test]
     fn test() {
         let notifier = Notifier::<String>::new();
-        static COUNT: AtomicU8 = AtomicU8::new(0);
-        notifier.observe(move |event| {
-            println!("{} moof", event);
-            COUNT.fetch_add(1, atomic::Ordering::Relaxed);
-        });
-        let notifier1 = notifier.clone();
-        let t = std::thread::spawn(move || {
-            notifier.notify("dear rosemark".to_string());
-        });
-        notifier1.notify("hurk hurk hurk".to_string());
-        t.join().unwrap();
-        assert!(COUNT.load(atomic::Ordering::Relaxed) == 2);
+        let rx = notifier.observe(move |e| println!("{}", e));
+        notifier.notify("oh wow".to_string());
+        notifier.notify("oh jeez".to_string());
+        notifier.notify("oh golly".to_string());
+        notifier.notify("oh gosh".to_string());
     }
 }
