@@ -35,6 +35,44 @@ pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &impl Li
     }
 }
 
+/// Okay, so the way I /want/ search to work is the library search happens realtime
+/// and then no more than once per second, we do the plugin search. All the results
+/// are merged together and then we continuously see the updated results.
+pub fn search(library: &Library, plugins: &PluginHost, query: &str) -> SearchResults {
+    // here we go again, but joyfully
+    let plugin_results = plugins.search(library, query);
+
+    for result in plugin_results {
+        for artist in result.artists {
+            librarian::merge_artist(library, &artist);
+        }
+    }
+
+    let query = format!("%{}%", query);
+    let artists = Artist::query(library, 
+        "SELECT * FROM Artist WHERE name LIKE ?1 LIMIT 25", (&query,));
+    let releases = Release::query(library, 
+        "SELECT * FROM Release WHERE title LIKE ?1 LIMIT 25", (&query,));
+    let genres = Genre::query(library, 
+        "SELECT * FROM Genre WHERE name LIKE ?1 LIMIT 25", (&query,));
+    let tracks = Track::query(library, 
+        "SELECT * FROM Track WHERE title LIKE ?1 LIMIT 25", (&query,));    
+
+    SearchResults { 
+        artists, 
+        releases, 
+        genres, 
+        tracks, 
+        ..Default::default()
+    }
+}
+
+pub fn merge_artist(library: &Library, artist: &Artist) -> Artist {
+    let matched = match_artist(library, artist).unwrap_or_default();
+    let merged = CrdtRules::merge(matched, artist.clone());
+    merged.save(library)
+}
+
 pub fn merge_artist_metadata(library: &Library, artist: &ArtistMetadata, pre_match: Option<Artist>) -> Artist {
     let matched = pre_match.or_else(|| match_artist(library, &artist.artist)).unwrap_or_default();
     let merged = CrdtRules::merge(matched, artist.artist.clone());
@@ -201,7 +239,7 @@ pub fn match_genre(library: &Library, genre: &Genre) -> Option<Genre> {
         SELECT Genre.* 
         FROM Genre 
         WHERE (Genre.musicbrainz_id IS NOT NULL AND Genre.musicbrainz_id = ?1)
-        OR (Genre.name IS NOT NULL AND Genre.name = ?2 AND ((Genre.disambiguation IS NULL AND ?3 IS NULL) OR (Genre.disambiguation = ?3)))
+        OR (Genre.name IS NOT NULL AND Genre.name = ?2 COLLATE NOCASE AND ((Genre.disambiguation IS NULL AND ?3 IS NULL) OR (Genre.disambiguation = ?3 COLLATE NOCASE)))
         ", (&genre.musicbrainz_id, &genre.name, &genre.disambiguation))
 }
 
@@ -247,6 +285,14 @@ pub struct TrackMetadata {
     pub links: Vec<Link>,
     pub release: Option<ReleaseMetadata>,
     pub images: Vec<Dimage>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
+pub struct SearchResults {
+    pub tracks: Vec<Track>,
+    pub artists: Vec<Artist>,
+    pub releases: Vec<Release>,
+    pub genres: Vec<Genre>,
 }
 
 mod tests {

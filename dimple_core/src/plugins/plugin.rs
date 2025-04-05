@@ -1,7 +1,4 @@
-use anyhow::Error;
-use image::DynamicImage;
-
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, library::Library, model::{Artist, Dimage, Genre, Model, Release, Track}};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Release, Track}};
 
 use super::plugin_host::PluginHost;
 
@@ -18,14 +15,6 @@ pub trait Plugin: Send + Sync {
     
     fn set_configuration(&mut self, _config: &str) { 
 
-    }
-
-    fn status(&self) -> Option<String> { 
-        None 
-    }
-
-    fn progress(&self) -> Option<f32> { 
-        None 
     }
 
     // fn metadata(&self, _host: &PluginHost, _library: &Library, _model: &dyn Model) 
@@ -47,5 +36,9 @@ pub trait Plugin: Send + Sync {
 
     // fn image(&self, _host: &PluginHost, _library: &Library, _track: &Track, _model: &PluginModel) -> Result<Option<DynamicImage>, anyhow::Error> {
     //     Ok(None)
-    // }
+    // }    
+
+    fn search(&self, _host: &PluginHost, _library: &Library, _query: &str) -> Result<SearchResults, anyhow::Error> {
+        Ok(SearchResults::default())
+    }
 }

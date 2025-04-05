@@ -1,10 +1,10 @@
-use std::sync::{Arc, Mutex, RwLock};
+use std::{num::NonZero, sync::{Arc, Mutex, RwLock}};
 
 use lru::LruCache;
 use reqwest::blocking::Client;
 use serde::de::DeserializeOwned;
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, library::Library, merge::CrdtRules, model::{Artist, Model, Release, Track}};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, merge::CrdtRules, model::{Artist, Model, Release, Track}};
 
 use super::{plugin::Plugin, USER_AGENT};
 
@@ -25,7 +25,8 @@ impl Default for PluginHost {
     fn default() -> Self {
         PluginHost {
             plugins: Default::default(),
-            cache: Arc::new(Mutex::new(LruCache::unbounded())),
+            // TODO get rid of this and use the disk cache
+            cache: Arc::new(Mutex::new(LruCache::new(NonZero::new(32).unwrap()))),
         }
     }
 }
@@ -85,6 +86,16 @@ impl PluginHost {
         //     .par_iter()
         //     .filter_map(|plugin| plugin.metadata(library, track))
         //     .reduce(Track::default, Track::merge))
+    }
+
+    pub fn search(&self, library: &Library, query: &str) -> Vec<SearchResults> {
+        let mut results = vec![];
+        for plugin in self.plugins.read().unwrap().iter() {
+            if let Ok(sr) = plugin.search(self, library, query) {
+                results.push(sr);
+            }
+        }
+        results
     }
 
     pub fn client(&self) -> Result<Client, anyhow::Error> {
@@ -206,5 +217,18 @@ mod tests {
         // assert!(metadata.artist.name == Some("Blonde Redhead".to_string()));
         dbg!(metadata);
     }
+
+    #[test]
+    fn search() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let plugins = PluginHost::default();
+        plugins.add_plugin(Arc::new(ExamplePlugin::default()));
+        plugins.add_plugin(Arc::new(LrclibPlugin::default()));
+        plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
+        plugins.add_plugin(Arc::new(WikidataPlugin::default()));
+        let results = plugins.search(&library, "dethklok");
+        dbg!(results);
+    }    
 }
 

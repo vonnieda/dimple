@@ -16,10 +16,6 @@ use crate::ui::ImageLinkAdapter;
 use slint::Model as _;
 
 pub fn artist_details_init(app: &App) {
-    let app1 = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
-    }).unwrap();
-
     // TODO filter events by key - but we can't get the key without the
     // UI, so rethink the whole mess.
     let app1 = app.clone();

@@ -1,4 +1,5 @@
 
+use dimple_core::librarian;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
@@ -24,7 +25,6 @@ pub fn search_results(url: &str, app: &App) {
     let url = Url::parse(&url).unwrap();
     let query = url.path_segments().unwrap().next().unwrap();
     let query = percent_encoding::percent_decode_str(query).decode_utf8_lossy().to_string();
-    let query = format!("%{}%", query);
     update_model(&app, &query);
     app.ui.upgrade_in_event_loop(move |ui| {
         ui.set_page(Page::SearchResults);
@@ -35,14 +35,11 @@ fn update_model(app: &App, query: &str) {
     let app = app.clone();
     let query = query.to_string();
     std::thread::spawn(move || {
-        let artists = Artist::query(&app.library, 
-            "SELECT * FROM Artist WHERE name LIKE ?1 LIMIT 25", (&query,));
-        let releases = Release::query(&app.library, 
-            "SELECT * FROM Release WHERE title LIKE ?1 LIMIT 25", (&query,));
-        let genres = Genre::query(&app.library, 
-            "SELECT * FROM Genre WHERE name LIKE ?1 LIMIT 25", (&query,));
-        let tracks = Track::query(&app.library, 
-            "SELECT * FROM Track WHERE title LIKE ?1 LIMIT 25", (&query,));
+        let results = librarian::search(&app.library, &app.plugins, &query);
+        let artists = results.artists;
+        let tracks = results.tracks;
+        let genres = results.genres;
+        let releases = results.releases;
                                     
         let app = app.clone();
         app.ui.upgrade_in_event_loop(move |ui| {

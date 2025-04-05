@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, library::Library, model::{Artist, Model, Release, Track}, plugins::converters::ReleaseConverter};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Model, Release, Track}, plugins::converters::ReleaseConverter};
 
 use super::{converters::{ArtistConverter, TrackConverter}, plugin::Plugin, plugin_host::PluginHost};
 
@@ -74,6 +74,27 @@ impl Plugin for MusicBrainzPlugin {
         // }
         Ok(None)
     }
+    
+    fn search(&self, host: &PluginHost, library: &Library, query: &str) 
+        -> Result<crate::librarian::SearchResults, anyhow::Error> {
+        
+        // http://musicbrainz.org/ws/2/artist/?query=artist:klok
+        let url = format!("https://musicbrainz.org/ws/2/artist/?fmt=json&query={}", query);
+        let response = host.get(&url)?;
+        let mb_results = response.json::<musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::artist::Artist>>()?;
+        let artists: Vec<ArtistMetadata> = mb_results.entities.into_iter().map(|e| ArtistConverter::from(e).into()).collect();
+
+        // let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={}", query);
+        // let response = host.get(&url)?;
+        // let mb_results = response.json::<musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release>>()?;
+        // let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
+
+        Ok(SearchResults {
+            artists: artists.into_iter().map(|e| e.artist).collect(),
+            // releases: releases.into_iter().map(|e| e.release).collect(),
+            ..Default::default()
+        })
+    }
 }
 
 fn nempty(s: String) -> Option<String> {
@@ -123,7 +144,19 @@ mod tests {
         }).unwrap().unwrap();
         assert!(metadata.artist.name == Some("Blonde Redhead".to_string()));
     }
+
+    
+    #[test]
+    fn search() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let plugin_host = PluginHost::default();
+        let plugin = MusicBrainzPlugin::default();
+        let results = plugin.search(&plugin_host, &library, "death clock").unwrap();
+        dbg!(results);
+    }    
 }
+
 // // https://musicbrainz.org/doc/MusicBrainz_Entity
 // #[derive(Debug)]
 // pub struct MusicBrainzClient {
