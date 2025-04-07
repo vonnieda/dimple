@@ -1731,18 +1731,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dimple_data"
-version = "0.1.0"
-dependencies = [
- "r2d2",
- "r2d2_sqlite",
- "rusqlite",
- "rusqlite_migration",
- "ulid",
- "uuid 1.15.1",
-]
-
-[[package]]
 name = "dimple_ui_slint"
 version = "0.1.0"
 dependencies = [
