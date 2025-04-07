@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{fmt::Debug, io::Cursor};
 
 use dimple_core_macro::ModelSupport;
 use image::imageops::FilterType;
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
 /// A model for storing an image in Dimple. Not Image because too overloaded.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, ModelSupport)]
+#[derive(Clone, Default, PartialEq, Eq, Hash, ModelSupport)]
 pub struct Dimage {
     pub key: Option<String>,
 
@@ -21,6 +21,20 @@ pub struct Dimage {
     pub png_thumbnail: Vec<u8>,
     pub png_data: Vec<u8>,
     pub sha256: String,
+}
+
+impl Debug for Dimage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Dimage")
+            .field("key", &self.key)
+            .field("kind", &self.kind)
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .field("png_thumbnail.len()", &self.png_thumbnail.len())
+            .field("png_data.len()", &self.png_data.len())
+            .field("sha256", &self.sha256)
+            .finish()
+    }
 }
 
 impl Dimage {

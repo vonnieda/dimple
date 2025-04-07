@@ -1,39 +1,43 @@
 use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Dimage, DimageRef, Genre, GenreRef, LibraryModel, Link, LinkRef, Model, ModelBasics as _, Release, Track}, plugins::plugin_host::PluginHost};
 
-pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &impl LibraryModel) {
+pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &dyn Model) {
     log::info!("refresh_metadata {:?} {:?}", model.type_name(), model.key());
-    match model.type_name().as_str() {
-        "Track" => {
-            if let Some(track) = Track::get(library, &model.key().clone().unwrap()) {
-                for metadata in plugins.track_metadata(library, &track) {
-                    librarian::merge_track_metadata(library, &metadata, Some(track.clone()));
-                }
+    if let Some(track) = model.as_any().downcast_ref::<Track>() {
+        if let Some(track) = Track::get(library, &track.key().clone().unwrap()) {
+            for metadata in plugins.track_metadata(library, &track) {
+                librarian::merge_track_metadata(library, &metadata, Some(track.clone()));
             }
         }
-        "Artist" => {
-            if let Some(artist) = Artist::get(library, &model.key().clone().unwrap()) {
-                for metadata in plugins.artist_metadata(library, &artist) {
-                    librarian::merge_artist_metadata(library, &metadata, Some(artist.clone()));
-                }
+    }
+    else if let Some(artist) = model.as_any().downcast_ref::<Artist>() {
+        if let Some(artist) = Artist::get(library, &artist.key().clone().unwrap()) {
+            for metadata in plugins.artist_metadata(library, &artist) {
+                librarian::merge_artist_metadata(library, &metadata, Some(artist.clone()));
             }
         }
-        "Release" => {
-            if let Some(release) = Release::get(library, &model.key().clone().unwrap()) {
-                for metadata in plugins.release_metadata(library, &release) {
-                    librarian::merge_release_metadata(library, &metadata, Some(release.clone()));
-                }
+    }
+    else if let Some(release) = model.as_any().downcast_ref::<Release>() {
+        if let Some(release) = Release::get(library, &release.key().clone().unwrap()) {
+            for metadata in plugins.release_metadata(library, &release) {
+                librarian::merge_release_metadata(library, &metadata, Some(release.clone()));
             }
         }
-        // "Genre" => {
-        //     if let Some(genre) = Genre::get(library, &model.key().clone().unwrap()) {
-        //         if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
-        //             library.save(&CrdtRules::merge(genre, metadata));
-        //         }
-        //     }
-        // }
-        _ => todo!()
+    }
+    // else if let Some(genre) = model.as_any().downcast_ref::<Genre>() {
+    //     if let Some(genre) = Genre::get(library, &genre.key().clone().unwrap()) {
+    //         if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
+    //             library.save(&CrdtRules::merge(genre, metadata));
+    //         }
+    //     }
+    // }
+    else {
+        todo!()
     }
 }
+
+
+
+
 
 /// Okay, so the way I /want/ search to work is the library search happens realtime
 /// and then no more than once per second, we do the plugin search. All the results

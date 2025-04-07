@@ -40,6 +40,14 @@ impl Diff for ChangeLog {
 }
 
 impl Model for ChangeLog {
+    fn key(&self) -> Option<String> {
+        self.key.clone()
+    }
+    
+    fn set_key(&mut self, key: Option<String>) {
+        self.key = key.clone();
+    }
+    
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
@@ -50,24 +58,12 @@ impl Model for ChangeLog {
 }
 
 impl LibraryModel for ChangeLog {
-    fn key(&self) -> Option<String> {
-        self.key.clone()
-    }
-    
     fn upsert(&self, conn: &rusqlite::Connection) {
         conn.execute("INSERT OR REPLACE INTO ChangeLog 
             (key, actor, timestamp, model, model_key, op, field, value) 
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             (&self.key, &self.actor, &self.timestamp, &self.model, 
                 &self.model_key, &self.op, &self.field, &self.value)).unwrap();
-    }
-    
-    fn set_key(&mut self, key: Option<String>) {
-        self.key = key.clone();
-    }
-    
-    fn log_changes(&self) -> bool {
-        false
     }
     
     fn insert(&self, conn: &rusqlite::Connection) {

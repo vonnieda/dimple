@@ -4,7 +4,7 @@ use lru::LruCache;
 use reqwest::blocking::Client;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, merge::CrdtRules, model::{Artist, Model, Release, Track}};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, merge::CrdtRules, model::{Artist, Dimage, Model, Release, Track}};
 
 use super::{plugin::Plugin, USER_AGENT};
 
@@ -42,6 +42,16 @@ impl PluginHost {
         results
     }
 
+    pub fn image(&self, library: &Library, model: &dyn Model) -> Vec<Dimage> {
+        let mut results = vec![];
+        for plugin in self.plugins.read().unwrap().iter() {
+            if let Ok(Some(image)) = plugin.image(self, library, model) {
+                results.push(image);
+            }
+        }
+        results
+    }
+
     pub fn release_metadata(&self, library: &Library, release: &Release) -> Vec<ReleaseMetadata> {
         let mut results = vec![];
         for plugin in self.plugins.read().unwrap().iter() {
@@ -60,16 +70,6 @@ impl PluginHost {
             }
         }
         results
-    }
-
-    pub fn image<T: Model>(&self, _library: &Library, _model: &T) -> Option<T> {
-        todo!()
-        // Some(self.plugins
-        //     .read()
-        //     .unwrap()
-        //     .par_iter()
-        //     .filter_map(|plugin| plugin.metadata(library, track))
-        //     .reduce(Track::default, Track::merge))
     }
 
     pub fn search(&self, library: &Library, query: &str) -> Vec<SearchResults> {
@@ -165,7 +165,7 @@ mod tests {
 
     use crate::{
         library::Library,
-        model::{Artist, ArtistRef, Track}, plugins::{example::ExamplePlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, wikidata::WikidataPlugin},
+        model::{Artist, ArtistRef, Track}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, wikidata::WikidataPlugin},
     };
 
     use super::PluginHost;
@@ -206,6 +206,24 @@ mod tests {
         let metadata = plugins.artist_metadata(&library, &artist);
         // assert!(metadata.artist.name == Some("Blonde Redhead".to_string()));
         dbg!(metadata);
+    }
+
+    #[test]
+    fn image() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let artist = library.save(&Artist {
+            musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
+            ..Default::default()
+        });
+        let plugins = PluginHost::default();
+        plugins.add_plugin(Arc::new(ExamplePlugin::default()));
+        plugins.add_plugin(Arc::new(LrclibPlugin::default()));
+        plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
+        plugins.add_plugin(Arc::new(WikidataPlugin::default()));
+        plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
+        let images = plugins.image(&library, &artist);
+        dbg!(images);
     }
 
     #[test]

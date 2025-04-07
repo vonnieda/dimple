@@ -1,10 +1,10 @@
 use std::env;
 
-use anyhow::{Error, Result};
+use anyhow::{anyhow, Error, Result};
 use image::DynamicImage;
 use serde::Deserialize;
 
-use crate::{library::Library, model::Artist};
+use crate::{library::Library, model::{dimage::DimageKind, Artist, Dimage, Model}};
 
 use super::{plugin::Plugin, plugin_host::PluginHost};
 // TODO consider using https://crates.io/crates/fuzzy-matcher to try to find
@@ -47,17 +47,20 @@ impl Plugin for FanartTvPlugin {
         "FanartTvPlugin".to_string()
     }
 
-    fn artist_image(&self, host: &PluginHost, _library: &Library, artist: &Artist) -> Result<Option<DynamicImage>, anyhow::Error> {
-        if let Some(mbid) = artist.musicbrainz_id.clone() {
+    fn image(&self, host: &PluginHost, _library: &Library, model: &dyn Model) -> Result<Option<Dimage>, anyhow::Error> {
+        if let Some(artist) = model.as_any().downcast_ref::<Artist>() {
+            let mbid = artist.musicbrainz_id.clone().ok_or_else(|| Error::msg("mbid is required"))?;
             let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", mbid, self.api_key);
             let response = host.get(&url)?;
             let artist_resp = response.json::<ArtistResponse>()?;
-            let thumb = artist_resp.artistthumb.first().ok_or_else(|| Error::msg("No images"))?;
+            let thumb = artist_resp.artistthumb.first().ok_or_else(|| Error::msg("no artistthumbs"))?;
                 
             let thumb_resp = host.get(&thumb.url)?;
             let bytes = thumb_resp.bytes()?;
             let image = image::load_from_memory(&bytes)?;
-            return Ok(Some(image))
+            let mut dimage = Dimage::new(&image);
+            dimage.kind = Some(DimageKind::MusicArtistThumb);
+            return Ok(Some(dimage))
         }
         Ok(None)
     }
@@ -83,3 +86,22 @@ struct ImageResponse {
     likes: String,
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::{library::Library, model::Artist, plugins::{plugin::Plugin, plugin_host::PluginHost}};
+
+    use super::FanartTvPlugin;
+
+    #[test]
+    fn it_works() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let plugin_host = PluginHost::default();
+        let plugin = FanartTvPlugin::default();
+        let image = plugin.image(&plugin_host, &library, &Artist {
+            musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
+            ..Default::default()
+        }).unwrap().unwrap();
+        assert!(image.width == 1000);
+    }
+}

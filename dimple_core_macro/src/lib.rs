@@ -124,22 +124,10 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                         }
 
                         impl LibraryModel for #name {
-                            fn key(&self) -> Option<String> {
-                                self.key.clone()
-                            }
-                            
                             fn upsert(&self, conn: &rusqlite::Connection) {
                                 #upsert
                             }
                             
-                            fn set_key(&mut self, key: Option<String>) {
-                                self.key = key.clone();
-                            }
-                            
-                            fn log_changes(&self) -> bool {
-                                true
-                            }
-
                             fn insert(&self, conn: &rusqlite::Connection) {
                                 #insert
                             }
@@ -150,6 +138,14 @@ pub fn derive_model_support(input: TokenStream) -> TokenStream {
                         }
 
                         impl Model for #name {
+                            fn key(&self) -> Option<String> {
+                                self.key.clone()
+                            }
+                            
+                            fn set_key(&mut self, key: Option<String>) {
+                                self.key = key.clone();
+                            }
+                            
                             fn type_name(&self) -> String {
                                 #name_str.to_string()
                             }

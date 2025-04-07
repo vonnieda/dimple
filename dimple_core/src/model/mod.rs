@@ -68,14 +68,13 @@ pub trait Diff {
 }
 
 pub trait Model: Send {
+    fn key(&self) -> Option<String>;
+    fn set_key(&mut self, key: Option<String>);
     fn type_name(&self) -> String;
     fn as_any(&self) -> &dyn Any;
 }
 
 pub trait LibraryModel: Clone + Default + FromRow + Diff + Model {
-    fn key(&self) -> Option<String>;
-    fn set_key(&mut self, key: Option<String>);
-    fn log_changes(&self) -> bool;
     fn insert(&self, conn: &Connection);
     fn update(&self, conn: &Connection);
     fn upsert(&self, conn: &Connection);
