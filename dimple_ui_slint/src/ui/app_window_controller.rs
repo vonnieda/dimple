@@ -1,4 +1,4 @@
-use dimple_core::{library::Library, player::{PlayWhen, Player, PlayerEvent}, plugins::{lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugin_host::PluginHost, wikidata::WikidataPlugin}};
+use dimple_core::{library::Library, player::{PlayWhen, Player, PlayerEvent}, plugins::{fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugin_host::PluginHost, wikidata::WikidataPlugin}};
 use player_bar;
 use std::{collections::VecDeque, env, path::Path, sync::{Arc, Mutex}};
 
@@ -56,10 +56,11 @@ impl AppWindowController {
 
         let images = ImageMangler::new(library.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         let player = Player::new(Arc::new(library.clone()));
-        let plugins = PluginHost::default();
-        plugins.add_plugin(Arc::new(LrclibPlugin::default()));
+        let plugins = PluginHost::new(cache_dir.to_str().unwrap());
         plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
         plugins.add_plugin(Arc::new(WikidataPlugin::default()));
+        plugins.add_plugin(Arc::new(LrclibPlugin::default()));
+        plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
         let ui_weak = ui.as_weak();
         Self {
             ui,

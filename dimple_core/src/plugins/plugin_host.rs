@@ -2,7 +2,7 @@ use std::{num::NonZero, sync::{Arc, Mutex, RwLock}};
 
 use lru::LruCache;
 use reqwest::blocking::Client;
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, merge::CrdtRules, model::{Artist, Model, Release, Track}};
 
@@ -11,42 +11,26 @@ use super::{plugin::Plugin, USER_AGENT};
 #[derive(Clone)]
 pub struct PluginHost {
     plugins: Arc<RwLock<Vec<Arc<dyn Plugin>>>>,
-    cache: Arc<Mutex<LruCache<String, CachedResponse>>>,
+    cache_dir: String,
 }
 
-/// Right away, I need:
-/// - lrclib lyrics (already have, fit API)
-/// - musicbrainz links (needed for summary)
-/// - wikidata summary
-/// - tadb artist artwork
-/// - fanart artist artwork
-/// - caa release artwork
 impl Default for PluginHost {
     fn default() -> Self {
-        PluginHost {
-            plugins: Default::default(),
-            // TODO get rid of this and use the disk cache
-            cache: Arc::new(Mutex::new(LruCache::new(NonZero::new(32).unwrap()))),
-        }
+        Self { plugins: Default::default(), cache_dir: Default::default() }
     }
 }
 
 impl PluginHost {
+    pub fn new(cache_dir: &str) -> Self {
+        Self {
+            plugins: Arc::new(RwLock::new(Vec::new())),
+            cache_dir: cache_dir.to_string(),
+        }
+    }
+
     pub fn add_plugin(&self, plugin: Arc<dyn Plugin>) {
         self.plugins.write().unwrap().push(plugin);
     }
-
-    // // TODO Right now never returns None, make it so.
-    // pub fn metadata<T: Model + Clone + CrdtRules + 'static>(&self, library: &Library, model: &T) -> Option<T> {
-    //     let mut model = model.clone();
-    //     for plugin in self.plugins.read().unwrap().iter() {
-    //         if let Ok(Some(plugin_metadata)) = plugin.metadata(self, library, &model) {
-    //             let metadata = plugin_metadata.as_any().downcast_ref::<T>().unwrap().clone();
-    //             model = CrdtRules::merge(model.clone(), metadata.clone());
-    //         }
-    //     }
-    //     Some(model)
-    // }
 
     pub fn artist_metadata(&self, library: &Library, artist: &Artist) -> Vec<ArtistMetadata> {
         let mut results = vec![];
@@ -105,8 +89,9 @@ impl PluginHost {
     }
 
     pub fn get(&self, url: &str) -> Result<CachedResponse, anyhow::Error> {
-        if let Some(cached) = self.cache_get(url) {
+        if let Some(mut cached) = self.cache_get(url) {
             log::info!("CACHED  [{:?}] {:?} {}", cached.status, cached.response.len(), url);
+            cached.cached = true;
             return Ok(cached)
         }
         let client = self.client()?;
@@ -115,19 +100,24 @@ impl PluginHost {
             response.status().as_u16(), 
             response.content_length().unwrap_or_default(),
             url);
+        let success = response.status().is_success();
         let status = response.status().as_u16();
         let bytes = response.bytes()?;
         let cached = CachedResponse::new(bytes.to_vec(), false, status);
-        self.cache_put(url, &cached);
+        if success {
+            self.cache_put(url, &cached);
+        }
         Ok(cached)
     }
 
     pub fn cache_get(&self, url: &str) -> Option<CachedResponse> {
-        self.cache.lock().unwrap().get(url).cloned()
+        let bytes = cacache::read_sync(self.cache_dir.clone(), url).ok()?;
+        Some(serde_json::from_slice(&bytes).ok()?)
     }
 
     pub fn cache_put(&self, url: &str, response: &CachedResponse) {
-        self.cache.lock().unwrap().put(url.to_owned(), response.clone());
+        let bytes = serde_json::to_vec(response).unwrap();
+        cacache::write_sync(self.cache_dir.clone(), url, &bytes).unwrap();
     }
 }
 
@@ -140,7 +130,7 @@ pub fn nempty(s: &String) -> Option<String> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct CachedResponse {
     response: Vec<u8>,
     cached: bool,

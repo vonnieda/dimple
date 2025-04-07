@@ -42,6 +42,7 @@ impl Plugin for MusicBrainzPlugin {
 
         if let Some(mbid) = artist.musicbrainz_id.clone() {
             let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
+            self.enforce_rate_limit();
             let response = host.get(&url)?;
             let mb_artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
             let artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
@@ -55,6 +56,7 @@ impl Plugin for MusicBrainzPlugin {
 
         if let Some(mbid) = release.musicbrainz_id.clone() {
             let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels", mbid);
+            self.enforce_rate_limit();
             let response = host.get(&url)?;
             let mb_release = response.json::<musicbrainz_rs::entity::release::Release>()?;
             let release_metadata: ReleaseMetadata = ReleaseConverter::from(mb_release).into();
@@ -86,7 +88,9 @@ impl Plugin for MusicBrainzPlugin {
         let artists: Vec<ArtistMetadata> = mb_results.entities.into_iter().map(|e| ArtistConverter::from(e).into()).collect();
 
         let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={}", query);
-        self.enforce_rate_limit();
+        if !response.cached() {
+            self.enforce_rate_limit();
+        }
         let response = host.get(&url)?;
         let mb_results = response.json::<musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release>>()?;
         let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
@@ -97,6 +101,34 @@ impl Plugin for MusicBrainzPlugin {
             ..Default::default()
         })
     }
+
+    // fn artist_releases() {
+    //     let mut offset: u32 = 0;
+    //     let releases: Vec<ReleaseMetadata>
+    //     loop {
+    //         let url = format!("https://musicbrainz.org/ws/2/release?fmt=json&offset={}&limit=100&artist={}&inc=artist-credits", 
+    //             offset, mbid);
+    //         if !response.cached() {
+    //             self.enforce_rate_limit();
+    //         }
+    //         let response = host.get(&url)?;
+    //         let mb_artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
+    //         let artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
+    //     }
+
+
+    // //                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
+    // //                 let url = format!("https://musicbrainz.org/ws/2/release-group?fmt=json&offset=0&limit=100&artist={}&inc=artist-credits", mbid);
+    // //                 let response = ctx.get(self, &url)?;
+    // //                 if !response.cached() {
+    // //                     self.enforce_rate_limit();
+    // //                 }        
+    // //                 let release_groups = response.json::<ReleaseGroups>()?;
+    // //                 let iter = release_groups.release_groups.into_iter()
+    // //                     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
+    // //                     .map(|src| src.model());
+    // //                 Ok(Box::new(iter))
+    // }
 }
 
 fn nempty(s: String) -> Option<String> {

@@ -1,3 +1,5 @@
+use image::DynamicImage;
+
 use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Release, Track}};
 
 use super::plugin_host::PluginHost;
@@ -40,5 +42,9 @@ pub trait Plugin: Send + Sync {
 
     fn search(&self, _host: &PluginHost, _library: &Library, _query: &str) -> Result<SearchResults, anyhow::Error> {
         Ok(SearchResults::default())
+    }
+
+    fn artist_image(&self, _host: &PluginHost, _library: &Library, _artist: &Artist) -> Result<Option<DynamicImage>, anyhow::Error> {
+        Ok(None)
     }
 }

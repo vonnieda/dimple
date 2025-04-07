@@ -1,9 +1,12 @@
-use std::{env};
+use std::env;
 
 use anyhow::{Error, Result};
-use dimple_core::model::{Entity, Model, Dimage};
-use dimple_librarian::plugin::{NetworkMode, Plugin, PluginContext, PluginSupport};
+use image::DynamicImage;
 use serde::Deserialize;
+
+use crate::{library::Library, model::Artist};
+
+use super::{plugin::Plugin, plugin_host::PluginHost};
 // TODO consider using https://crates.io/crates/fuzzy-matcher to try to find
 // albums that might match the name of the artist to use as a back up for
 // artist artwork.
@@ -35,6 +38,30 @@ impl FanartTvPlugin {
     }
 }
 
+impl Plugin for FanartTvPlugin {
+    fn display_name(&self) -> String {
+        "fanart.tv".to_string()
+    }
+    
+    fn type_name(&self) -> String {
+        "FanartTvPlugin".to_string()
+    }
+
+    fn artist_image(&self, host: &PluginHost, _library: &Library, artist: &Artist) -> Result<Option<DynamicImage>, anyhow::Error> {
+        if let Some(mbid) = artist.musicbrainz_id.clone() {
+            let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", mbid, self.api_key);
+            let response = host.get(&url)?;
+            let artist_resp = response.json::<ArtistResponse>()?;
+            let thumb = artist_resp.artistthumb.first().ok_or_else(|| Error::msg("No images"))?;
+                
+            let thumb_resp = host.get(&thumb.url)?;
+            let bytes = thumb_resp.bytes()?;
+            let image = image::load_from_memory(&bytes)?;
+            return Ok(Some(image))
+        }
+        Ok(None)
+    }
+}
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(default)]
@@ -56,42 +83,3 @@ struct ImageResponse {
     likes: String,
 }
 
-impl Plugin for FanartTvPlugin {
-    fn name(&self) -> String {
-        "fanart.tv".to_string()
-    }
-    
-    fn list(
-        &self,
-        list_of: &dimple_core::model::Model,
-        related_to: &Option<dimple_core::model::Model>,
-        network_mode: dimple_librarian::plugin::NetworkMode,
-        ctx: &PluginContext,
-    ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
-        if network_mode != NetworkMode::Online {
-            return Err(Error::msg("Offline."))
-        }
-
-        match (list_of, related_to) {
-            (Model::Dimage(_), Some(Model::Artist(artist))) => {
-                let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
-
-                let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", 
-                    mbid, self.api_key);
-                let response = ctx.get(self, &url)?;
-                let artist_resp = response.json::<ArtistResponse>()?;
-                let thumb = artist_resp.artistthumb.first().ok_or_else(|| Error::msg("No images"))?;
-                
-                let thumb_resp = ctx.get(self, &thumb.url)?;
-                let bytes = thumb_resp.bytes()?;
-                let image = image::load_from_memory(&bytes)?;
-
-                let mut dimage = Dimage::default();
-                dimage.set_image(&image);
-                
-                Ok(Box::new(std::iter::once(dimage.model())))
-            },
-            _ => Ok(Box::new(std::iter::empty())),
-        }
-    }
-}
