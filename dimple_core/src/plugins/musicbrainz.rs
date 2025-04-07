@@ -80,18 +80,20 @@ impl Plugin for MusicBrainzPlugin {
         
         // http://musicbrainz.org/ws/2/artist/?query=artist:klok
         let url = format!("https://musicbrainz.org/ws/2/artist/?fmt=json&query={}", query);
+        self.enforce_rate_limit();
         let response = host.get(&url)?;
         let mb_results = response.json::<musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::artist::Artist>>()?;
         let artists: Vec<ArtistMetadata> = mb_results.entities.into_iter().map(|e| ArtistConverter::from(e).into()).collect();
 
-        // let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={}", query);
-        // let response = host.get(&url)?;
-        // let mb_results = response.json::<musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release>>()?;
-        // let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
+        let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={}", query);
+        self.enforce_rate_limit();
+        let response = host.get(&url)?;
+        let mb_results = response.json::<musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release>>()?;
+        let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
 
         Ok(SearchResults {
             artists: artists.into_iter().map(|e| e.artist).collect(),
-            // releases: releases.into_iter().map(|e| e.release).collect(),
+            releases: releases.into_iter().map(|e| e.release).collect(),
             ..Default::default()
         })
     }

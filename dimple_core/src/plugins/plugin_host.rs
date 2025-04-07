@@ -106,12 +106,12 @@ impl PluginHost {
 
     pub fn get(&self, url: &str) -> Result<CachedResponse, anyhow::Error> {
         if let Some(cached) = self.cache_get(url) {
-            log::debug!("CACHED  [{:?}] {:?} {}", cached.status, cached.response.len(), url);
+            log::info!("CACHED  [{:?}] {:?} {}", cached.status, cached.response.len(), url);
             return Ok(cached)
         }
         let client = self.client()?;
         let response = client.get(url).send()?;
-        log::debug!("FETCHED [{:?}] {:?} {}", 
+        log::info!("FETCHED [{:?}] {:?} {}", 
             response.status().as_u16(), 
             response.content_length().unwrap_or_default(),
             url);

@@ -48,7 +48,7 @@ export component NavBar inherits HorizontalBox {
     }
     LineEdit {
         placeholder-text: "Search for songs, artists, genres, playlists, URLs...";
-        edited(query) => { Navigator.navigate("dimple://search/" + query); }
+        // edited(query) => { Navigator.navigate("dimple://search/" + query); }
         accepted(query) => { Navigator.navigate("dimple://search/" + query); }
         font-size: Styles.default-font-size;
         height: self.font-size * 2;
