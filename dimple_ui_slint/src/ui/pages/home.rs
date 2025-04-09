@@ -7,12 +7,6 @@ use crate::ui::images::ImageMangler;
 use crate::ui::{AppWindow, CardAdapter, HomeAdapter, CardSectionAdapter, ImageLinkAdapter, LinkAdapter, Page};
 
 pub fn home_init(app: &App) {
-    let app1 = app.clone();
-    // app.library.on_change(Box::new(|event| {
-    //     if event.type_name == "Release" {
-
-    //     }
-    // }));
 }
 
 // For You (From your listens.)

@@ -6,6 +6,7 @@ use dimple_core::model::Link;
 use dimple_core::model::ModelBasics as _;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
+use slint::Model as _;
 use slint::ModelRc;
 use url::Url;
 use crate::ui::app_window_controller::App;
@@ -148,10 +149,10 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
             card.image.image = images.lazy_get(release.clone(), 200, 200, move |ui, image| {
-                // let adapter = ui.global::<HomeAdapter>();
-                // let mut card = adapter.get_releases().row_data(index).unwrap();
-                // card.image.image = image;
-                // adapter.get_releases().set_row_data(index, card);
+                let adapter = ui.global::<TrackDetailsAdapter>();
+                let mut card = adapter.get_releases().row_data(index).unwrap();
+                card.image.image = image;
+                adapter.get_releases().set_row_data(index, card);
             });
             card
         })

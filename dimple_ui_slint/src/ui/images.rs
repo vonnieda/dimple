@@ -57,23 +57,21 @@ impl ImageMangler {
             let buffer = dynamic_to_buffer(&dyn_image);
             return Image::from_rgba8_premultiplied(buffer.clone())
         }
-        {
-            let images = self.clone();
-            let model1 = model.clone();
-            let ui = self.ui.clone();
-            self.threadpool.execute(move || {
-                if let Some(dyn_image) = images.library.image(&model1) {
-                    let dyn_image = resize(dyn_image, width, height);
-                    images.cache_set(&cache_key, &dyn_image);
-                    let buffer = dynamic_to_buffer(&dyn_image);
-                    ui.upgrade_in_event_loop(move |ui| {
-                        let image = Image::from_rgba8_premultiplied(buffer);
-                        set_image(ui, image);
-                    }).unwrap();                    
-                }
-            });
-            Image::from_rgba8_premultiplied(self.get_model_placeholder(model))
-        }
+        let images = self.clone();
+        let model1 = model.clone();
+        let ui = self.ui.clone();
+        self.threadpool.execute(move || {
+            if let Some(dyn_image) = images.library.image(&model1) {
+                let dyn_image = resize(dyn_image, width, height);
+                images.cache_set(&cache_key, &dyn_image);
+                let buffer = dynamic_to_buffer(&dyn_image);
+                ui.upgrade_in_event_loop(move |ui| {
+                    let image = Image::from_rgba8_premultiplied(buffer);
+                    set_image(ui, image);
+                }).unwrap();                    
+            }
+        });
+        Image::from_rgba8_premultiplied(self.get_model_placeholder(model))
     }
 
     pub fn get_model_placeholder(&self, model: impl Model) -> SharedPixelBuffer<Rgba8Pixel> {
@@ -85,10 +83,6 @@ impl ImageMangler {
             "Playlist" => return self.playlist_placeholder.lock().unwrap().clone(),
             _ => return self.other_placeholder.lock().unwrap().clone(),
         }
-    }
-
-    pub fn cancel_all_pending(&self) {
-        todo!()
     }
 
     fn cache_get(&self, key: &str) -> Option<DynamicImage> {
@@ -122,6 +116,7 @@ impl ImageMangler {
 }
 
 pub fn dynamic_to_buffer(dynamic_image: &DynamicImage) -> SharedPixelBuffer<Rgba8Pixel> {
+    // TODO this might be cloning twice.
     let rgba8_image = dynamic_image.clone().into_rgba8();
     SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
         rgba8_image.as_raw(),

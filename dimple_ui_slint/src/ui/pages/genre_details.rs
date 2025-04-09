@@ -18,14 +18,6 @@ use slint::Model as _;
 
 pub fn genre_details_init(app: &App) {
     let app1 = app.clone();
-    // app.ui.upgrade_in_event_loop(move |ui| {
-    //     let app = app1.clone();
-    //     ui.global::<GenreDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
-    //     let app = app1.clone();
-    //     ui.global::<GenreDetailsAdapter>().on_play_next(move |key| play_next(&app, &key));
-    //     let app = app1.clone();
-    //     ui.global::<GenreDetailsAdapter>().on_play_later(move |key| play_later(&app, &key));
-    // }).unwrap();
 
     // TODO filter events by key - but we can't get the key without the
     // UI, so rethink the whole mess.
@@ -43,18 +35,6 @@ pub fn genre_details(url: &str, app: &App) {
         update_model(&app);
         ui.set_page(Page::GenreDetails);
     }).unwrap();
-}
-
-fn play_now(app: &App, key: &str) {
-    app.player.play_now(&Genre::get(&app.library, key).unwrap());
-}
-
-fn play_next(app: &App, key: &str) {
-    app.player.play_next(&Genre::get(&app.library, key).unwrap());
-}
-
-fn play_later(app: &App, key: &str) {
-    app.player.play_later(&Genre::get(&app.library, key).unwrap());
 }
 
 fn update_model(app: &App) {
@@ -119,10 +99,8 @@ fn update_model(app: &App) {
                     });
                 }
     
-                // let releases = release_cards(&images, &releases, &library);
                 ui.global::<GenreDetailsAdapter>().set_card(card.into());
                 ui.global::<GenreDetailsAdapter>().set_key(genre.key.clone().unwrap_or_default().into());
-                // ui.global::<GenreDetailsAdapter>().set_releases(ModelRc::from(releases.as_slice()));
                 ui.global::<GenreDetailsAdapter>().set_summary(genre.summary.clone().unwrap_or_default().into());
                 ui.global::<GenreDetailsAdapter>().set_disambiguation(genre.disambiguation.clone().unwrap_or_default().into());
                 ui.global::<GenreDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
