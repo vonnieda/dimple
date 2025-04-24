@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use crate::{library::Library, model::{dimage::DimageKind, Artist, Dimage, Model}};
 
-use super::{plugin::Plugin, plugin_host::PluginHost};
+use super::{plugin::Plugin, plugins::Plugins};
 // TODO consider using https://crates.io/crates/fuzzy-matcher to try to find
 // albums that might match the name of the artist to use as a back up for
 // artist artwork.
@@ -47,7 +47,7 @@ impl Plugin for FanartTvPlugin {
         "FanartTvPlugin".to_string()
     }
 
-    fn image(&self, host: &PluginHost, _library: &Library, model: &dyn Model) -> Result<Option<Dimage>, anyhow::Error> {
+    fn image(&self, host: &Plugins, _library: &Library, model: &dyn Model) -> Result<Option<Dimage>, anyhow::Error> {
         if let Some(artist) = model.as_any().downcast_ref::<Artist>() {
             let mbid = artist.musicbrainz_id.clone().ok_or_else(|| Error::msg("mbid is required"))?;
             let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", mbid, self.api_key);
@@ -88,7 +88,7 @@ struct ImageResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::Artist, plugins::{plugin::Plugin, plugin_host::PluginHost}};
+    use crate::{library::Library, model::Artist, plugins::{plugin::Plugin, plugins::Plugins}};
 
     use super::FanartTvPlugin;
 
@@ -96,9 +96,9 @@ mod tests {
     fn it_works() {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
-        let plugin_host = PluginHost::default();
+        let plugins = Plugins::default();
         let plugin = FanartTvPlugin::default();
-        let image = plugin.image(&plugin_host, &library, &Artist {
+        let image = plugin.image(&plugins, &library, &Artist {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
         }).unwrap().unwrap();

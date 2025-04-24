@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Model, Release, Track}, plugins::converters::ReleaseConverter};
 
-use super::{converters::{ArtistConverter, TrackConverter}, plugin::Plugin, plugin_host::PluginHost};
+use super::{converters::{ArtistConverter, TrackConverter}, plugin::Plugin, plugins::Plugins};
 
 pub struct MusicBrainzPlugin {
     config: MusicBrainzPluginConfig,
@@ -37,7 +37,7 @@ impl Plugin for MusicBrainzPlugin {
         serde_json::to_string(&self.config).unwrap()
     }
 
-    fn artist_metadata(&self, host: &PluginHost, _library: &Library, artist: &Artist) 
+    fn artist_metadata(&self, host: &Plugins, _library: &Library, artist: &Artist) 
         -> Result<Option<ArtistMetadata>, anyhow::Error> {
 
         if let Some(mbid) = artist.musicbrainz_id.clone() {
@@ -51,7 +51,7 @@ impl Plugin for MusicBrainzPlugin {
         Ok(None)
     }
 
-    fn release_metadata(&self, host: &PluginHost, _library: &Library, release: &Release) 
+    fn release_metadata(&self, host: &Plugins, _library: &Library, release: &Release) 
         -> Result<Option<ReleaseMetadata>, anyhow::Error> {
 
         if let Some(mbid) = release.musicbrainz_id.clone() {
@@ -65,7 +65,7 @@ impl Plugin for MusicBrainzPlugin {
         Ok(None)
     }
 
-    fn track_metadata(&self, host: &PluginHost, _library: &Library, track: &Track) 
+    fn track_metadata(&self, host: &Plugins, _library: &Library, track: &Track) 
         -> Result<Option<TrackMetadata>, anyhow::Error> {
         // if let Some(mbid) = track.musicbrainz_id.clone() {
         //     let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
@@ -77,7 +77,7 @@ impl Plugin for MusicBrainzPlugin {
         Ok(None)
     }
     
-    fn search(&self, host: &PluginHost, library: &Library, query: &str) 
+    fn search(&self, host: &Plugins, library: &Library, query: &str) 
         -> Result<crate::librarian::SearchResults, anyhow::Error> {
         
         // http://musicbrainz.org/ws/2/artist/?query=artist:klok
@@ -162,7 +162,7 @@ struct MusicBrainzPluginConfig {
 }
 
 mod tests {
-    use crate::{library::Library, model::Artist, plugins::{plugin::Plugin, plugin_host::PluginHost}};
+    use crate::{library::Library, model::Artist, plugins::{plugin::Plugin, plugins::Plugins}};
 
     use super::MusicBrainzPlugin;
 
@@ -170,9 +170,9 @@ mod tests {
     fn it_works() {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
-        let plugin_host = PluginHost::default();
+        let plugins = Plugins::default();
         let plugin = MusicBrainzPlugin::default();
-        let metadata = plugin.artist_metadata(&plugin_host, &library, &Artist {
+        let metadata = plugin.artist_metadata(&plugins, &library, &Artist {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
         }).unwrap().unwrap();
@@ -184,9 +184,9 @@ mod tests {
     fn search() {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
-        let plugin_host = PluginHost::default();
+        let plugins = Plugins::default();
         let plugin = MusicBrainzPlugin::default();
-        let results = plugin.search(&plugin_host, &library, "death clock").unwrap();
+        let results = plugin.search(&plugins, &library, "death clock").unwrap();
         dbg!(results);
     }    
 }

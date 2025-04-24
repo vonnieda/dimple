@@ -9,18 +9,18 @@ use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMet
 use super::{plugin::Plugin, USER_AGENT};
 
 #[derive(Clone)]
-pub struct PluginHost {
+pub struct Plugins {
     plugins: Arc<RwLock<Vec<Arc<dyn Plugin>>>>,
     cache_dir: String,
 }
 
-impl Default for PluginHost {
+impl Default for Plugins {
     fn default() -> Self {
         Self { plugins: Default::default(), cache_dir: Default::default() }
     }
 }
 
-impl PluginHost {
+impl Plugins {
     pub fn new(cache_dir: &str) -> Self {
         Self {
             plugins: Arc::new(RwLock::new(Vec::new())),
@@ -168,11 +168,11 @@ mod tests {
         model::{Artist, ArtistRef, Track}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, wikidata::WikidataPlugin},
     };
 
-    use super::PluginHost;
+    use super::Plugins;
 
     #[test]
     fn it_works() {
-        let plugins = PluginHost::default();
+        let plugins = Plugins::default();
         plugins.add_plugin(Arc::new(ExamplePlugin::default()));
         plugins.add_plugin(Arc::new(LrclibPlugin::default()));
 
@@ -198,7 +198,7 @@ mod tests {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
         });
-        let plugins = PluginHost::default();
+        let plugins = Plugins::default();
         plugins.add_plugin(Arc::new(ExamplePlugin::default()));
         plugins.add_plugin(Arc::new(LrclibPlugin::default()));
         plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
@@ -216,7 +216,7 @@ mod tests {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
         });
-        let plugins = PluginHost::default();
+        let plugins = Plugins::default();
         plugins.add_plugin(Arc::new(ExamplePlugin::default()));
         plugins.add_plugin(Arc::new(LrclibPlugin::default()));
         plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
@@ -230,7 +230,7 @@ mod tests {
     fn search() {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
-        let plugins = PluginHost::default();
+        let plugins = Plugins::default();
         plugins.add_plugin(Arc::new(ExamplePlugin::default()));
         plugins.add_plugin(Arc::new(LrclibPlugin::default()));
         plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));

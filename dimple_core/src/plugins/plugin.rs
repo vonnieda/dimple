@@ -2,7 +2,7 @@ use image::DynamicImage;
 
 use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, Model, Release, Track}};
 
-use super::plugin_host::PluginHost;
+use super::plugins::Plugins;
 
 pub trait Plugin: Send + Sync {
     fn display_name(&self) -> String { 
@@ -24,15 +24,15 @@ pub trait Plugin: Send + Sync {
     //     Ok(None)
     // }
 
-    fn artist_metadata(&self, _host: &PluginHost, _library: &Library, _artist: &Artist) -> Result<Option<ArtistMetadata>, anyhow::Error> {
+    fn artist_metadata(&self, _host: &Plugins, _library: &Library, _artist: &Artist) -> Result<Option<ArtistMetadata>, anyhow::Error> {
         Ok(None)
     }
 
-    fn track_metadata(&self, _host: &PluginHost, _library: &Library, _track: &Track) -> Result<Option<TrackMetadata>, anyhow::Error> {
+    fn track_metadata(&self, _host: &Plugins, _library: &Library, _track: &Track) -> Result<Option<TrackMetadata>, anyhow::Error> {
         Ok(None)
     }
 
-    fn release_metadata(&self, _host: &PluginHost, _library: &Library, _release: &Release) -> Result<Option<ReleaseMetadata>, anyhow::Error> {
+    fn release_metadata(&self, _host: &Plugins, _library: &Library, _release: &Release) -> Result<Option<ReleaseMetadata>, anyhow::Error> {
         Ok(None)
     }
 
@@ -40,11 +40,11 @@ pub trait Plugin: Send + Sync {
     //     Ok(None)
     // }    
 
-    fn search(&self, _host: &PluginHost, _library: &Library, _query: &str) -> Result<SearchResults, anyhow::Error> {
+    fn search(&self, _host: &Plugins, _library: &Library, _query: &str) -> Result<SearchResults, anyhow::Error> {
         Ok(SearchResults::default())
     }
 
-    fn image(&self, _host: &PluginHost, _library: &Library, _model: &dyn Model) -> Result<Option<Dimage>, anyhow::Error> {
+    fn image(&self, _host: &Plugins, _library: &Library, _model: &dyn Model) -> Result<Option<Dimage>, anyhow::Error> {
         Ok(None)
     }
 }

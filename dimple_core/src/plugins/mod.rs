@@ -1,6 +1,6 @@
 pub mod example;
 pub mod plugin;
-pub mod plugin_host;
+pub mod plugins;
 pub mod converters;
 
 pub mod lrclib;

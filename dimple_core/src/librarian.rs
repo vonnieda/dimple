@@ -1,15 +1,15 @@
 use image::DynamicImage;
 
-use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Dimage, DimageRef, Genre, GenreRef, LibraryModel, Link, LinkRef, Model, ModelBasics as _, Release, Track}, plugins::{plugin::Plugin, plugin_host::PluginHost}};
+use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Dimage, DimageRef, Genre, GenreRef, LibraryModel, Link, LinkRef, Model, ModelBasics as _, Release, Track}, plugins::{plugin::Plugin, plugins::Plugins}};
 
 #[derive(Clone)]
 pub struct Librarian {
     library: Library,
-    plugins: PluginHost,
+    plugins: Plugins,
 }
 
 impl Librarian {
-    pub fn new(library: &Library, plugins: &PluginHost) -> Self {
+    pub fn new(library: &Library, plugins: &Plugins) -> Self {
         Self {
             library: library.clone(),
             plugins: plugins.clone(),
@@ -30,7 +30,7 @@ impl Librarian {
     }    
 }
 
-pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &dyn Model) {
+pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &dyn Model) {
     log::info!("refresh_metadata {:?} {:?}", model.type_name(), model.key());
     if let Some(track) = model.as_any().downcast_ref::<Track>() {
         if let Some(track) = Track::get(library, &track.key().clone().unwrap()) {
@@ -65,7 +65,7 @@ pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &dyn Mod
     }
 }
 
-pub fn search(library: &Library, plugins: &PluginHost, query: &str) -> SearchResults {
+pub fn search(library: &Library, plugins: &Plugins, query: &str) -> SearchResults {
     // here we go again, but joyfully
     let plugin_results = plugins.search(library, query);
 
@@ -325,7 +325,7 @@ pub struct SearchResults {
 mod tests {
     use std::sync::Arc;
 
-    use crate::{librarian::{self, ArtistMetadata, Librarian}, library::Library, model::Artist, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugin_host::PluginHost, wikidata::WikidataPlugin}};
+    use crate::{librarian::{self, ArtistMetadata, Librarian}, library::Library, model::Artist, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugins::Plugins, wikidata::WikidataPlugin}};
 
     #[test]
     fn merge_artist_metadata() {
@@ -377,7 +377,7 @@ mod tests {
         library.notifier.observe(|e| {
             dbg!(e.type_name, e.key);
         });
-        let plugins = PluginHost::default();
+        let plugins = Plugins::default();
         plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
         plugins.add_plugin(Arc::new(WikidataPlugin::default()));
         plugins.add_plugin(Arc::new(LrclibPlugin::default()));

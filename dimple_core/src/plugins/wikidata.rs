@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{librarian::ArtistMetadata, library::Library, model::Artist};
 
-use super::{plugin::Plugin, plugin_host::{nempty, PluginHost}};
+use super::{plugin::Plugin, plugins::{nempty, Plugins}};
 
 impl Plugin for WikidataPlugin {
     fn type_name(&self) -> String {
@@ -16,7 +16,7 @@ impl Plugin for WikidataPlugin {
         "Wikidata".to_string()
     }
     
-    fn artist_metadata(&self, host: &PluginHost, library: &Library, artist: &crate::model::Artist) -> Result<Option<crate::librarian::ArtistMetadata>, anyhow::Error> {
+    fn artist_metadata(&self, host: &Plugins, library: &Library, artist: &crate::model::Artist) -> Result<Option<crate::librarian::ArtistMetadata>, anyhow::Error> {
         let client = WikidataClient::default();
         let links = artist.links(library).iter().map(|l| l.url.to_string()).collect::<Vec<_>>();
         if let Some(summary) = client.get_summary(&links, host) {
@@ -31,11 +31,11 @@ impl Plugin for WikidataPlugin {
         Ok(None)
     }
     
-    fn track_metadata(&self, _host: &PluginHost, _library: &crate::library::Library, _track: &crate::model::Track) -> Result<Option<crate::librarian::TrackMetadata>, anyhow::Error> {
+    fn track_metadata(&self, _host: &Plugins, _library: &crate::library::Library, _track: &crate::model::Track) -> Result<Option<crate::librarian::TrackMetadata>, anyhow::Error> {
         Ok(None)
     }
     
-    fn release_metadata(&self, _host: &PluginHost, _library: &crate::library::Library, _release: &crate::model::Release) -> Result<Option<crate::librarian::ReleaseMetadata>, anyhow::Error> {
+    fn release_metadata(&self, _host: &Plugins, _library: &crate::library::Library, _release: &crate::model::Release) -> Result<Option<crate::librarian::ReleaseMetadata>, anyhow::Error> {
         Ok(None)
     }    
 }
@@ -59,7 +59,7 @@ struct WikidataClient {
 // https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles=Stack%20Overflow                
 // TODO can also get images here and wiki commons? or via here to wiki commons?
 impl WikidataClient {
-    fn get_summary(&self, links: &[String], host: &PluginHost) -> Option<String> {
+    fn get_summary(&self, links: &[String], host: &Plugins) -> Option<String> {
         // Find a Wikidata link if one exists.
         let wikidata_url = links.iter()
             .find_map(|link| {

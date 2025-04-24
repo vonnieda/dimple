@@ -6,7 +6,7 @@ use serde::{Deserialize};
 
 use crate::{librarian::TrackMetadata, library::Library, model::{Model, Track}};
 
-use super::{plugin::{Plugin}, plugin_host::PluginHost, USER_AGENT};
+use super::{plugin::{Plugin}, plugins::Plugins, USER_AGENT};
 
 #[derive(Default)]
 pub struct LrclibPlugin {
@@ -27,7 +27,7 @@ impl Plugin for LrclibPlugin {
     // //     track.title.clone().unwrap_or_default(),
     // //     track.album.clone().unwrap_or_default(),
     // // );
-    fn track_metadata(&self, host: &PluginHost, library: &Library, track: &Track) 
+    fn track_metadata(&self, host: &Plugins, library: &Library, track: &Track) 
         -> Result<Option<crate::librarian::TrackMetadata>, anyhow::Error> {
 
         let artist = track.artist(library).ok_or(anyhow!("artist is required"))?;
@@ -80,7 +80,7 @@ struct GetResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Artist, ArtistRef, Track}, plugins::{plugin::Plugin, plugin_host::PluginHost}};
+    use crate::{library::Library, model::{Artist, ArtistRef, Track}, plugins::{plugin::Plugin, plugins::Plugins}};
 
     use super::LrclibPlugin;
 
@@ -101,7 +101,7 @@ mod tests {
         ArtistRef::attach(&library, &artist, &track);
 
         let lrclib = LrclibPlugin::default();
-        let host = PluginHost::default();
+        let host = Plugins::default();
         let track_metadata = lrclib.track_metadata(&host, &library, &track).unwrap().unwrap();
         assert!(track_metadata.track.lyrics.unwrap().to_lowercase().contains("pulling your strings"));
     }

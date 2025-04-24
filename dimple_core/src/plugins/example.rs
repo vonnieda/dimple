@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{librarian::{TrackMetadata}, library::Library, model::{Model, Track}};
 
-use super::{plugin::Plugin, plugin_host::PluginHost};
+use super::{plugin::Plugin, plugins::Plugins};
 
 #[derive(Default)]
 pub struct ExamplePlugin {
@@ -34,7 +34,7 @@ impl Plugin for ExamplePlugin {
         serde_json::to_string(&self.config).unwrap()
     }
 
-    fn track_metadata(&self, _host: &PluginHost, _library: &Library, _artist: &Track) -> Result<Option<TrackMetadata>, anyhow::Error> {
+    fn track_metadata(&self, _host: &Plugins, _library: &Library, _artist: &Track) -> Result<Option<TrackMetadata>, anyhow::Error> {
         Ok(Some(TrackMetadata {
             track: Track {
                 lyrics: Some(format!("(unrecognizable shrieking)")),
