@@ -104,7 +104,7 @@ impl PluginHost {
         let status = response.status().as_u16();
         let bytes = response.bytes()?;
         let cached = CachedResponse::new(bytes.to_vec(), false, status);
-        if success {
+        if success || status == 404 {
             self.cache_put(url, &cached);
         }
         Ok(cached)

@@ -21,6 +21,8 @@ pub fn artist_details_init(app: &App) {
     let app1 = app.clone();
     app.library.notifier.observe(move |event| {
         // TODO so gross.
+        // TODO actually need to make the event include the model so that here
+        // we actually check for DimageRef with our key, GenreRef with our key, etc.
         if event.type_name == "Artist" || event.type_name == "Release" || event.type_name == "Link" || event.type_name == "Genre" { 
             update_model(&app1);
         }

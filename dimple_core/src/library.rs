@@ -7,7 +7,6 @@ use r2d2::{CustomizeConnection, Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{backup::Backup, Connection, OptionalExtension, Params};
 use rusqlite_migration::Migrations;
-use threadpool::ThreadPool;
 use ulid::Generator;
 use uuid::Uuid;
 
@@ -111,6 +110,8 @@ impl Library {
         let mut dst = Connection::open(output_path).unwrap();
         let src = self.conn();
         let backup = Backup::new(&src, &mut dst).unwrap();
+        // TODO maybe return a stream of events for progress or something
+        // TODO magic
         backup.run_to_completion(250, Duration::from_millis(10), None).unwrap();
     }
 
@@ -203,10 +204,9 @@ impl Library {
     // Mik's album images are a good test for huge files
     // TODO I think all this fallback stuff actually belongs in the 
     // UI / ImageMangler
-    pub fn image<T: LibraryModel>(&self, model: &T) -> Option<DynamicImage> {
-        if model.type_name() == "Release" {
-            return Release::get(self, &model.key().clone().unwrap()).unwrap()
-                .images(self)
+    pub fn image(&self, model: &dyn Model) -> Option<DynamicImage> {
+        if let Some(release) = model.as_any().downcast_ref::<Release>() {
+            return release.images(self)
                 .get(0)
                 .and_then(|i| Some(i.get_image()))
         }

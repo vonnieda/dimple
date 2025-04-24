@@ -2,6 +2,7 @@ use std::io::Cursor;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use dimple_core::librarian::Librarian;
 use dimple_core::library::Library;
 use dimple_core::model::LibraryModel;
 use dimple_core::model::Model;
@@ -19,7 +20,7 @@ use crate::ui::AppWindow;
 /// notify the view when a better one is available.
 #[derive(Clone)]
 pub struct ImageMangler {
-    library: Library,
+    librarian: Librarian,
     artist_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     release_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
     genre_placeholder: Arc<Mutex<SharedPixelBuffer<Rgba8Pixel>>>,
@@ -32,9 +33,9 @@ pub struct ImageMangler {
 }
 
 impl ImageMangler {
-    pub fn new(library: Library, ui: Weak<AppWindow>, cache_path: &str) -> Self {
+    pub fn new(librarian: Librarian, ui: Weak<AppWindow>, cache_path: &str) -> Self {
         let images = Self {
-            library: library.clone(),
+            librarian: librarian.clone(),
             artist_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/users-three.png")),
             release_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/vinyl-record.png")),
             track_placeholder: Self::load_default_image(include_bytes!("../../icons/phosphor/PNGs/regular/music-notes.png")),
@@ -61,7 +62,7 @@ impl ImageMangler {
         let model1 = model.clone();
         let ui = self.ui.clone();
         self.threadpool.execute(move || {
-            if let Some(dyn_image) = images.library.image(&model1) {
+            if let Some(dyn_image) = images.librarian.image(&model1) {
                 let dyn_image = resize(dyn_image, width, height);
                 images.cache_set(&cache_key, &dyn_image);
                 let buffer = dynamic_to_buffer(&dyn_image);

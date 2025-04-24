@@ -1,4 +1,34 @@
-use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Dimage, DimageRef, Genre, GenreRef, LibraryModel, Link, LinkRef, Model, ModelBasics as _, Release, Track}, plugins::plugin_host::PluginHost};
+use image::DynamicImage;
+
+use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Dimage, DimageRef, Genre, GenreRef, LibraryModel, Link, LinkRef, Model, ModelBasics as _, Release, Track}, plugins::{plugin::Plugin, plugin_host::PluginHost}};
+
+#[derive(Clone)]
+pub struct Librarian {
+    library: Library,
+    plugins: PluginHost,
+}
+
+impl Librarian {
+    pub fn new(library: &Library, plugins: &PluginHost) -> Self {
+        Self {
+            library: library.clone(),
+            plugins: plugins.clone(),
+        }
+    }
+
+    pub fn image(&self, model: &dyn Model) -> Option<DynamicImage> {
+        if let Some(image) = self.library.image(model) {
+            return Some(image)
+        }
+    
+        for dimage in self.plugins.image(&self.library, model) {
+            let dimage = merge_image(&self.library, &dimage);
+            DimageRef::attach(&self.library, &dimage, model);
+        }
+    
+        self.library.image(model)
+    }    
+}
 
 pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &dyn Model) {
     log::info!("refresh_metadata {:?} {:?}", model.type_name(), model.key());
@@ -35,13 +65,6 @@ pub fn refresh_metadata(library: &Library, plugins: &PluginHost, model: &dyn Mod
     }
 }
 
-
-
-
-
-/// Okay, so the way I /want/ search to work is the library search happens realtime
-/// and then no more than once per second, we do the plugin search. All the results
-/// are merged together and then we continuously see the updated results.
 pub fn search(library: &Library, plugins: &PluginHost, query: &str) -> SearchResults {
     // here we go again, but joyfully
     let plugin_results = plugins.search(library, query);
@@ -300,7 +323,9 @@ pub struct SearchResults {
 }
 
 mod tests {
-    use crate::{librarian::{self, ArtistMetadata}, library::Library, model::Artist};
+    use std::sync::Arc;
+
+    use crate::{librarian::{self, ArtistMetadata, Librarian}, library::Library, model::Artist, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugin_host::PluginHost, wikidata::WikidataPlugin}};
 
     #[test]
     fn merge_artist_metadata() {
@@ -343,5 +368,29 @@ mod tests {
         assert!(artist1.key != artist3.key);
         assert!(artist1.key == artist2.key);
         assert!(artist3.key == artist4.key);
+    }
+
+    #[test]
+    fn image() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        library.notifier.observe(|e| {
+            dbg!(e.type_name, e.key);
+        });
+        let plugins = PluginHost::default();
+        plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
+        plugins.add_plugin(Arc::new(WikidataPlugin::default()));
+        plugins.add_plugin(Arc::new(LrclibPlugin::default()));
+        plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
+        plugins.add_plugin(Arc::new(ExamplePlugin::default()));
+        let librarian = Librarian::new(&library, &plugins);
+        let artist = library.save(&Artist {
+            musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
+            ..Default::default()
+        });
+        let image = librarian.image(&artist).unwrap();
+        dbg!(image.width(), image.height());
+        let image = librarian.image(&artist).unwrap();
+        dbg!(image.width(), image.height());
     }
 }
