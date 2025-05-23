@@ -28,6 +28,34 @@ impl Librarian {
     
         self.library.image(model)
     }    
+
+    pub fn search(&self, query: &str) -> SearchResults {
+        let plugin_results = self.plugins.search(&self.library, query);
+    
+        for result in plugin_results {
+            for artist in result.artists {
+                librarian::merge_artist(&self.library, &artist);
+            }
+        }
+    
+        let query = format!("%{}%", query);
+        let artists = Artist::query(&self.library, 
+            "SELECT * FROM Artist WHERE name LIKE ?1 LIMIT 25", (&query,));
+        let releases = Release::query(&self.library, 
+            "SELECT * FROM Release WHERE title LIKE ?1 LIMIT 25", (&query,));
+        let genres = Genre::query(&self.library, 
+            "SELECT * FROM Genre WHERE name LIKE ?1 LIMIT 25", (&query,));
+        let tracks = Track::query(&self.library, 
+            "SELECT * FROM Track WHERE title LIKE ?1 LIMIT 25", (&query,));    
+    
+        SearchResults { 
+            artists, 
+            releases, 
+            genres, 
+            tracks, 
+            ..Default::default()
+        }
+    }    
 }
 
 pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &dyn Model) {
@@ -62,35 +90,6 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &dyn Model)
     // }
     else {
         todo!()
-    }
-}
-
-pub fn search(library: &Library, plugins: &Plugins, query: &str) -> SearchResults {
-    // here we go again, but joyfully
-    let plugin_results = plugins.search(library, query);
-
-    for result in plugin_results {
-        for artist in result.artists {
-            librarian::merge_artist(library, &artist);
-        }
-    }
-
-    let query = format!("%{}%", query);
-    let artists = Artist::query(library, 
-        "SELECT * FROM Artist WHERE name LIKE ?1 LIMIT 25", (&query,));
-    let releases = Release::query(library, 
-        "SELECT * FROM Release WHERE title LIKE ?1 LIMIT 25", (&query,));
-    let genres = Genre::query(library, 
-        "SELECT * FROM Genre WHERE name LIKE ?1 LIMIT 25", (&query,));
-    let tracks = Track::query(library, 
-        "SELECT * FROM Track WHERE title LIKE ?1 LIMIT 25", (&query,));    
-
-    SearchResults { 
-        artists, 
-        releases, 
-        genres, 
-        tracks, 
-        ..Default::default()
     }
 }
 
@@ -325,7 +324,7 @@ pub struct SearchResults {
 mod tests {
     use std::sync::Arc;
 
-    use crate::{librarian::{self, ArtistMetadata, Librarian}, library::Library, model::Artist, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugins::Plugins, wikidata::WikidataPlugin}};
+    use crate::{librarian::{self, ArtistMetadata, Librarian}, library::Library, model::{Artist, ModelBasics}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugins::Plugins, wikidata::WikidataPlugin}};
 
     #[test]
     fn merge_artist_metadata() {
@@ -392,5 +391,24 @@ mod tests {
         dbg!(image.width(), image.height());
         let image = librarian.image(&artist).unwrap();
         dbg!(image.width(), image.height());
+    }
+
+    #[test]
+    fn basics() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let plugins = Plugins::default();
+        plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
+        plugins.add_plugin(Arc::new(WikidataPlugin::default()));
+        plugins.add_plugin(Arc::new(LrclibPlugin::default()));
+        plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
+        plugins.add_plugin(Arc::new(ExamplePlugin::default()));
+        let librarian = Librarian::new(&library, &plugins);
+
+        let results = librarian.search("Black Sabbath");
+        let artist = results.artists.get(0).unwrap().clone();
+        assert!(artist.musicbrainz_id == Some("5182c1d9-c7d2-4dad-afa0-ccfeada921a8".to_string()));
+
+        let releases = artist.releases(&library)
     }
 }

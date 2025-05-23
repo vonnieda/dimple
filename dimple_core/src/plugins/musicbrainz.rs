@@ -1,6 +1,7 @@
 use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
-use serde::{Deserialize, Serialize};
+use anyhow::Error;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Model, Release, Track}, plugins::converters::ReleaseConverter};
 
@@ -42,9 +43,7 @@ impl Plugin for MusicBrainzPlugin {
 
         if let Some(mbid) = artist.musicbrainz_id.clone() {
             let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
-            self.enforce_rate_limit();
-            let response = host.get(&url)?;
-            let mb_artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
+            let mb_artist: musicbrainz_rs::entity::artist::Artist = self.get(host, &url)?;
             let artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
             return Ok(Some(artist_metadata))
         }
@@ -56,9 +55,7 @@ impl Plugin for MusicBrainzPlugin {
 
         if let Some(mbid) = release.musicbrainz_id.clone() {
             let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels", mbid);
-            self.enforce_rate_limit();
-            let response = host.get(&url)?;
-            let mb_release = response.json::<musicbrainz_rs::entity::release::Release>()?;
+            let mb_release: musicbrainz_rs::entity::release::Release = self.get(host, &url)?;
             let release_metadata: ReleaseMetadata = ReleaseConverter::from(mb_release).into();
             return Ok(Some(release_metadata))
         }
@@ -82,17 +79,11 @@ impl Plugin for MusicBrainzPlugin {
         
         // http://musicbrainz.org/ws/2/artist/?query=artist:klok
         let url = format!("https://musicbrainz.org/ws/2/artist/?fmt=json&query={}", query);
-        self.enforce_rate_limit();
-        let response = host.get(&url)?;
-        let mb_results = response.json::<musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::artist::Artist>>()?;
+        let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::artist::Artist> = self.get(host, &url)?;
         let artists: Vec<ArtistMetadata> = mb_results.entities.into_iter().map(|e| ArtistConverter::from(e).into()).collect();
 
         let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={}", query);
-        if !response.cached() {
-            self.enforce_rate_limit();
-        }
-        let response = host.get(&url)?;
-        let mb_results = response.json::<musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release>>()?;
+        let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release> = self.get(host, &url)?;
         let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
 
         Ok(SearchResults {
@@ -111,7 +102,6 @@ impl Plugin for MusicBrainzPlugin {
     //         if !response.cached() {
     //             self.enforce_rate_limit();
     //         }
-    //         let response = host.get(&url)?;
     //         let mb_artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
     //         let artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
     //     }
@@ -131,13 +121,6 @@ impl Plugin for MusicBrainzPlugin {
     // }
 }
 
-fn nempty(s: String) -> Option<String> {
-    if s.is_empty() {
-        return None
-    }
-    Some(s)
-}
-
 impl MusicBrainzPlugin {
     fn enforce_rate_limit(&self) {
         let mut last_request_time = self.rate_limit_lock.lock().unwrap();
@@ -151,6 +134,14 @@ impl MusicBrainzPlugin {
 
         // Update the last request time
         *last_request_time = Instant::now();
+    }
+
+    fn get<T: DeserializeOwned>(&self, host: &Plugins, url: &str) -> Result<T, anyhow::Error> {
+        let response = host.get(url)?;
+        if !response.cached() {
+            self.enforce_rate_limit();
+        }
+        response.json()
     }
 }
 
