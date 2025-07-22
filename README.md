@@ -11,7 +11,7 @@ that is built to last.
 </div>
 
 If you like Dimple, and would like to help me keep working on it, please
-consider helping with one of the methods below. Dimple is my full time job
+consider helping with one of the methods below. Open Source is my full time job
 and only source of income, and every single bit helps me keep working on 
 open source software full time:
 
