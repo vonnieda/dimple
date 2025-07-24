@@ -11,7 +11,7 @@ that is built to last.
 </div>
 
 If you like Dimple, and would like to help me keep working on it, please
-consider helping with one of the methods below. Dimple is my full time job
+consider helping with one of the methods below. Open Source is my full time job
 and only source of income, and every single bit helps me keep working on 
 open source software full time:
 
@@ -30,7 +30,7 @@ open source software full time:
 
 # Status
 
-Dimple is currently under heavy development and is **ALPHA QUALITY SOFTWARE**.
+Dimple is currently being developed and is not yet ready for use.
 Everything is subject to change, and you should back up your database regularly
 if you use it. There are several known issues, and you should expect to run
 into bugs and crashes. Many features that are shown in the UI do not work yet.
