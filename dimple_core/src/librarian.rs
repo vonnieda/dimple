@@ -409,6 +409,6 @@ mod tests {
         let artist = results.artists.get(0).unwrap().clone();
         assert!(artist.musicbrainz_id == Some("5182c1d9-c7d2-4dad-afa0-ccfeada921a8".to_string()));
 
-        let releases = artist.releases(&library)
+        // let releases = artist.releases(&library)
     }
 }

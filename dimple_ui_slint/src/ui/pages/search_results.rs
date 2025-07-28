@@ -35,7 +35,7 @@ fn update_model(app: &App, query: &str) {
     let app = app.clone();
     let query = query.to_string();
     std::thread::spawn(move || {
-        let results = librarian::search(&app.library, &app.plugins, &query);
+        let results = app.librarian.search(&query);
         let artists = results.artists;
         let tracks = results.tracks;
         let genres = results.genres;

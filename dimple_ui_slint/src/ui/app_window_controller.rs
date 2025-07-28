@@ -24,6 +24,7 @@ pub struct App {
     pub ui: Weak<AppWindow>,
     pub media_controls: Arc<Mutex<Option<MediaControls>>>,
     pub plugins: Plugins,
+    pub librarian: Librarian,
 }
 
 pub struct AppWindowController {
@@ -60,7 +61,7 @@ impl AppWindowController {
         plugins.add_plugin(Arc::new(LrclibPlugin::default()));
         plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
         let librarian = Librarian::new(&library, &plugins);
-        let images = ImageMangler::new(librarian, ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
+        let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         let ui_weak = ui.as_weak();
         Self {
             ui,
@@ -73,6 +74,7 @@ impl AppWindowController {
                 ui: ui_weak,
                 media_controls: Arc::new(Mutex::new(None)),
                 plugins,
+                librarian,
             },
         }
     }

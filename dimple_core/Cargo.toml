@@ -6,10 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dimple_core_macro = { path = "../dimple_core_macro" }
-rust-s3 = { version = "0.33.0", features = ["sync-native-tls"], default-features = false }
 playback-rs = { path = "./vendor/playback-rs" }
-rusqlite = { version = "0.32.1", features = ["bundled", "backup", "chrono"] }
 symphonia = { version = "0.5.4", features = ["all"] }
 # symphonia = { git = "https://github.com/pdeljanov/Symphonia.git", branch = "dev-0.6", features = ["all"] }
 uuid = { version = "1.10.0", features = ["v4"] }
@@ -27,13 +24,10 @@ serde_json = "1.0.133"
 serde = { version = "1.0.215", features = ["derive"] }
 chrono = "0.4.38"
 reqwest = { version = "0.12.9", features = ["blocking", "json"] }
-rusqlite_migration = { version = "1.3.1", features = ["from-directory"] }
 include_dir = "0.7.4"
 lru = "0.12.5"
 anyhow = "1.0.95"
 lazy_static = "1.5.0"
-r2d2 = "0.8.10"
-r2d2_sqlite = "0.25.0"
 fast_image_resize = { version = "5.1.1", features = ["rayon"] }
 fractional_index = "2.0.2"
 musicbrainz_rs = { version = "0.9.0", features = ["blocking"], default-features = false }

@@ -10,16 +10,12 @@ use rusqlite_migration::Migrations;
 use ulid::Generator;
 use uuid::Uuid;
 
-use crate::{model::{Artist, Blob, ChangeLog, FromRow, Genre, LibraryModel, MediaFile, Model, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier, sync::Sync};
+use crate::{model::{Artist, Blob, ChangeLog, FromRow, Genre, LibraryModel, MediaFile, Model, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier};
 
 #[derive(Clone)]
 pub struct Library {
     pool: Pool<SqliteConnectionManager>,
     ulids: Arc<Mutex<Generator>>,
-    // TODO I really think I want to get rid of this and put it somewhere
-    // higher level. Note: Yea, it's going into Plugins and we're deleting
-    // sync from Library entirely.
-    synchronizers: Arc<RwLock<Vec<Sync>>>,
     pub notifier: Notifier<LibraryEvent>,
 }
 
@@ -45,7 +41,6 @@ impl Library {
         let library = Library {
             pool,
             ulids: Arc::new(Mutex::new(Generator::new())),
-            synchronizers: Arc::new(RwLock::new(vec![])),
             notifier: Notifier::new(),
         };
 
@@ -69,7 +64,6 @@ impl Library {
         let library = Library {
             pool,
             ulids: Arc::new(Mutex::new(Generator::new())),
-            synchronizers: Arc::new(RwLock::new(vec![])),
             notifier: Notifier::new(),
         };
         
@@ -123,16 +117,13 @@ impl Library {
         crate::import::import(self, path);
     }
 
-    pub fn add_sync(&self, sync: Sync) {
-        self.synchronizers.write().unwrap().push(sync);
-    }
-
     pub fn sync(&self) {
-        if let Ok(syncs) = self.synchronizers.read() {
-            for sync in syncs.iter() {
-                sync.sync(self);
-            }
-        }
+        todo!()
+        // if let Ok(syncs) = self.synchronizers.read() {
+        //     for sync in syncs.iter() {
+        //         sync.sync(self);
+        //     }
+        // }
     }
 
     /// Generates a ulid that is guaranteed to be monotonic.
@@ -314,12 +305,14 @@ impl Library {
                 return Some(content)
             }
         }
-        for sync in self.synchronizers.read().unwrap().iter() {
-            if let Some(content) = sync.load_blob_content(blob) {
-                info!("Found blob sha256 {} in sync", blob.sha256);
-                return Some(content)
-            }
-        }
+        todo!();
+        // This will go to Db
+        // for sync in self.synchronizers.read().unwrap().iter() {
+        //     if let Some(content) = sync.load_blob_content(blob) {
+        //         info!("Found blob sha256 {} in sync", blob.sha256);
+        //         return Some(content)
+        //     }
+        // }
         None
     }
 

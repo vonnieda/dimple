@@ -1,6 +1,6 @@
 use std::{env, sync::Arc, time::Duration};
 
-use dimple_core::{import::spotify, library::Library, model::{Artist, Blob, ChangeLog, ModelBasics as _, Release, Track}, player::Player, sync::{s3_storage::S3Storage, Sync}};
+use dimple_core::{import::spotify, library::Library, model::{Artist, Blob, ChangeLog, ModelBasics as _, Release, Track}, player::Player};
 use directories::ProjectDirs;
 
 fn main() {
@@ -62,16 +62,16 @@ fn main() {
         Arc::new(Library::open(library_path.to_str().unwrap()))    
     };
 
-    let access_key = env::var("DIMPLE_TEST_S3_ACCESS_KEY").unwrap();
-    let secret_key = env::var("DIMPLE_TEST_S3_SECRET_KEY").unwrap();
-    let region = env::var("DIMPLE_TEST_S3_REGION").unwrap();
-    let endpoint = env::var("DIMPLE_TEST_S3_ENDPOINT").unwrap();
-    let bucket = env::var("DIMPLE_TEST_S3_BUCKET").unwrap();
-    let prefix = env::var("DIMPLE_TEST_S3_PREFIX").unwrap();
-    let storage = S3Storage::new(&access_key, &secret_key, &region, &endpoint, &bucket, &prefix);
-    // let storage = MemoryStorage::default();
-    let sync = Sync::new(Box::new(storage), &prefix);
-    library.add_sync(sync);
+    // let access_key = env::var("DIMPLE_TEST_S3_ACCESS_KEY").unwrap();
+    // let secret_key = env::var("DIMPLE_TEST_S3_SECRET_KEY").unwrap();
+    // let region = env::var("DIMPLE_TEST_S3_REGION").unwrap();
+    // let endpoint = env::var("DIMPLE_TEST_S3_ENDPOINT").unwrap();
+    // let bucket = env::var("DIMPLE_TEST_S3_BUCKET").unwrap();
+    // let prefix = env::var("DIMPLE_TEST_S3_PREFIX").unwrap();
+    // let storage = S3Storage::new(&access_key, &secret_key, &region, &endpoint, &bucket, &prefix);
+    // // let storage = MemoryStorage::default();
+    // let sync = Sync::new(Box::new(storage), &prefix);
+    // library.add_sync(sync);
 
     let player = Player::new(library.clone());
     let command = &args[1];
