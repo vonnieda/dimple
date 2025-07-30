@@ -1,10 +1,10 @@
 
-use dimple_core_macro::ModelSupport;
+use serde::{Deserialize, Serialize};
 use sha2::{Sha256, Digest};
 
-#[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Blob {
-    pub key: Option<String>,
+    pub id: Option<String>,
     // echo "Hello and Welcome to Dimple" | sha256sum 
     // 319b0878313c131df1382eaac03be8ef59d466f81d16717c751368da578051ca  -
     // echo "Hello and Welcome to Dimple" | b3sum
@@ -22,7 +22,7 @@ impl Blob {
         let content = std::fs::read(&path).unwrap();
         let sha256 = Self::calculate_sha256(&content);
         Self {
-            key: None,
+            id: None,
             sha256: sha256,
             length: content.len() as u64,
         }
@@ -38,7 +38,7 @@ impl Blob {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::Diff};
+    use crate::{library::Library};
 
     use super::Blob;
 
@@ -46,41 +46,11 @@ mod tests {
     fn library_crud() {
         let library = Library::open_memory();
         let mut model = library.save(&Blob::default());
-        assert!(model.key.is_some());
+        assert!(model.id.is_some());
         model.sha256 = "sha256".to_string();
         let model = library.save(&model);
-        let model: Blob = library.get(&model.key.unwrap()).unwrap();
+        let model: Blob = library.get(&model.id.unwrap()).unwrap();
         assert!(model.sha256 == "sha256".to_string());
-    }
-
-    #[test]
-    fn diff() {
-        let a = Blob::default();
-        let b = Blob {
-            key: Some("key".to_string()),
-            sha256: "sha256".to_string(),
-            length: 100,
-        };
-        let diff = a.diff(&b);
-        assert!(diff.len() == 3);
-        assert!(diff[0].model == "Blob".to_string());
-        assert!(diff[0].field == Some("key".to_string()));
-        assert!(diff[1].field == Some("sha256".to_string()));
-        assert!(diff[2].field == Some("length".to_string()));
-    }
-
-    #[test]
-    fn apply_diff() {
-        let a = Blob::default();
-        let b = Blob {
-            key: Some("key".to_string()),
-            sha256: "sha256".to_string(),
-            length: 100,
-        };
-        let diff = a.diff(&b);
-        let mut c = Blob::default();
-        c.apply_diff(&diff);
-        assert!(c == b);
     }
 
     // TODO temp commented out cause windows.

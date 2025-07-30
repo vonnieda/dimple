@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use reqwest::blocking::Client;
 use serde::{Deserialize};
 
-use crate::{librarian::TrackMetadata, library::Library, model::{Model, Track}};
+use crate::{librarian::TrackMetadata, library::Library, model::{Track}};
 
 use super::{plugin::{Plugin}, plugins::Plugins, USER_AGENT};
 

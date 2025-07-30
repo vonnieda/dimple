@@ -3,7 +3,7 @@ use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 use anyhow::Error;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Model, Release, Track}, plugins::converters::ReleaseConverter};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Release, Track}, plugins::converters::ReleaseConverter};
 
 use super::{converters::{ArtistConverter, TrackConverter}, plugin::Plugin, plugins::Plugins};
 

@@ -54,7 +54,7 @@ impl <T> CrdtRules for Option<T> where T: CrdtRules {
 impl CrdtRules for Artist {
     fn merge(l: Self, r: Self) -> Self {
         Self {
-            key: CrdtRules::merge(l.key, r.key),
+            id: CrdtRules::merge(l.id, r.id),
             name: CrdtRules::merge(l.name, r.name),
             disambiguation: CrdtRules::merge(l.disambiguation, r.disambiguation),
             summary: CrdtRules::merge(l.summary, r.summary),
@@ -75,7 +75,7 @@ impl CrdtRules for Artist {
 impl CrdtRules for Release {
     fn merge(l: Self, r: Self) -> Self {
         Self {
-            key: CrdtRules::merge(l.key, r.key),
+            id: CrdtRules::merge(l.id, r.id),
             title: CrdtRules::merge(l.title, r.title),
             disambiguation: CrdtRules::merge(l.disambiguation, r.disambiguation),
             summary: CrdtRules::merge(l.summary, r.summary),
@@ -102,14 +102,14 @@ impl CrdtRules for Release {
 impl CrdtRules for Track {
     fn merge(l: Self, r: Self) -> Self {
         Self {
-            key: CrdtRules::merge(l.key, r.key),
+            id: CrdtRules::merge(l.id, r.id),
             title: CrdtRules::merge(l.title, r.title),
             disambiguation: CrdtRules::merge(l.disambiguation, r.disambiguation),
             summary: CrdtRules::merge(l.summary, r.summary),
             save: CrdtRules::merge(l.save, r.save),
             download: CrdtRules::merge(l.download, r.download),
             
-            release_key: CrdtRules::merge(l.release_key, r.release_key),
+            release_id: CrdtRules::merge(l.release_id, r.release_id),
             position: CrdtRules::merge(l.position, r.position),
             length_ms: CrdtRules::merge(l.length_ms, r.length_ms),
             lyrics: CrdtRules::merge(l.lyrics, r.lyrics),
@@ -134,7 +134,7 @@ impl CrdtRules for Dimage {
         Self {
             width: CrdtRules::merge(l.width, r.width),
             height: CrdtRules::merge(l.height, r.height),
-            key: CrdtRules::merge(l.key, r.key),
+            id: CrdtRules::merge(l.id, r.id),
             kind: r.kind,
             png_data: CrdtRules::merge(l.png_data, r.png_data),
             png_thumbnail: CrdtRules::merge(l.png_thumbnail, r.png_thumbnail),
@@ -157,7 +157,7 @@ impl CrdtRules for Vec<u8> {
 impl CrdtRules for Link {
     fn merge(l: Self, r: Self) -> Self {
         Self {
-            key: CrdtRules::merge(l.key, r.key),
+            id: CrdtRules::merge(l.id, r.id),
             name: CrdtRules::merge(l.name, r.name),
             url: CrdtRules::merge(l.url, r.url),
         }
@@ -168,7 +168,7 @@ impl CrdtRules for MediaFile {
     fn merge(l: Self, r: Self) -> Self {
         Self {
             file_path: CrdtRules::merge(l.file_path, r.file_path),
-            key: CrdtRules::merge(l.key, r.key),
+            id: CrdtRules::merge(l.id, r.id),
             last_imported: CrdtRules::merge(l.last_imported, r.last_imported),
             last_modified: CrdtRules::merge(l.last_modified, r.last_modified),
             sha256: CrdtRules::merge(l.sha256, r.sha256),
@@ -179,7 +179,7 @@ impl CrdtRules for MediaFile {
 impl CrdtRules for Genre {
     fn merge(l: Self, r: Self) -> Self {
         Self {
-            key: CrdtRules::merge(l.key, r.key),
+            id: CrdtRules::merge(l.id, r.id),
             name: CrdtRules::merge(l.name, r.name),
             disambiguation: CrdtRules::merge(l.disambiguation, r.disambiguation),
             summary: CrdtRules::merge(l.summary, r.summary),
@@ -216,7 +216,7 @@ mod test {
         let a = Track {
             disambiguation: None,
             download: false,
-            key: Some("1140b370-dccd-4087-854f-926d8798b552".to_string()),
+            id: Some("1140b370-dccd-4087-854f-926d8798b552".to_string()),
             length_ms: Some(1000 * 60 * 3),
             lyrics: Some("You gotta ride that lightning. I'm telling you.".to_string()),
             musicbrainz_id: Some("454adf09-f92b-4e57-b099-dba4420823a8".to_string()),
@@ -231,7 +231,7 @@ mod test {
         let b = Track {
             disambiguation: None,
             download: false,
-            key: Some("1140b370-dccd-4087-854f-926d8798b552".to_string()),
+            id: Some("1140b370-dccd-4087-854f-926d8798b552".to_string()),
             length_ms: Some(1000 * 60 * 3),
             lyrics: Some("You gotta ride that lightning. I'm telling you.".to_string()),
             musicbrainz_id: Some("454adf09-f92b-4e57-b099-dba4420823a8".to_string()),
@@ -246,7 +246,7 @@ mod test {
         let c = Track {
             disambiguation: Some("Totally cool".to_string()),
             download: true,
-            key: Some("1140b370-dccd-4087-854f-926d8798b552".to_string()),
+            id: Some("1140b370-dccd-4087-854f-926d8798b552".to_string()),
             length_ms: Some(1000 * 60 * 3),
             lyrics: Some("You gotta ride that lightning. I'm telling you. Welcome to the Lightning, baby.".to_string()),
             musicbrainz_id: Some("454adf09-f92b-4e57-b099-dba4420823a8".to_string()),
