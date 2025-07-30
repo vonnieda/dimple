@@ -94,3 +94,13 @@ pub enum DimpleEntity<'a> {
     Release(&'a Release),
 }
 
+impl DimpleEntity<'_> {
+    pub fn id(&self) -> String {
+        match self {
+            &DimpleEntity::Artist(a) => a.id.clone().unwrap(),
+            &DimpleEntity::Track(t) => t.id.clone().unwrap(),
+            &DimpleEntity::Genre(g) => g.id.clone().unwrap(),
+            &DimpleEntity::Release(r) => r.id.clone().unwrap(),
+        }
+    }
+}

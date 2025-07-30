@@ -4,7 +4,7 @@ use anyhow::{anyhow, Error, Result};
 use image::DynamicImage;
 use serde::Deserialize;
 
-use crate::{library::Library, model::{dimage::DimageKind, Artist, Dimage, Model}};
+use crate::{library::Library, model::{dimage::DimageKind, Artist, Dimage, DimpleEntity}};
 
 use super::{plugin::Plugin, plugins::Plugins};
 // TODO consider using https://crates.io/crates/fuzzy-matcher to try to find
@@ -47,22 +47,24 @@ impl Plugin for FanartTvPlugin {
         "FanartTvPlugin".to_string()
     }
 
-    fn image(&self, host: &Plugins, _library: &Library, model: &dyn Model) -> Result<Option<Dimage>, anyhow::Error> {
-        if let Some(artist) = model.as_any().downcast_ref::<Artist>() {
-            let mbid = artist.musicbrainz_id.clone().ok_or_else(|| Error::msg("mbid is required"))?;
-            let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", mbid, self.api_key);
-            let response = host.get(&url)?;
-            let artist_resp = response.json::<ArtistResponse>()?;
-            let thumb = artist_resp.artistthumb.first().ok_or_else(|| Error::msg("no artistthumbs"))?;
-                
-            let thumb_resp = host.get(&thumb.url)?;
-            let bytes = thumb_resp.bytes()?;
-            let image = image::load_from_memory(&bytes)?;
-            let mut dimage = Dimage::new(&image);
-            dimage.kind = Some(DimageKind::MusicArtistThumb);
-            return Ok(Some(dimage))
+    fn image(&self, host: &Plugins, _library: &Library, model: &DimpleEntity) -> Result<Option<Dimage>, anyhow::Error> {
+        match model {
+            &DimpleEntity::Artist(artist) => {
+                let mbid = artist.musicbrainz_id.clone().ok_or_else(|| Error::msg("mbid is required"))?;
+                let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", mbid, self.api_key);
+                let response = host.get(&url)?;
+                let artist_resp = response.json::<ArtistResponse>()?;
+                let thumb = artist_resp.artistthumb.first().ok_or_else(|| Error::msg("no artistthumbs"))?;
+                    
+                let thumb_resp = host.get(&thumb.url)?;
+                let bytes = thumb_resp.bytes()?;
+                let image = image::load_from_memory(&bytes)?;
+                let mut dimage = Dimage::new(&image);
+                dimage.kind = Some(DimageKind::MusicArtistThumb);
+                return Ok(Some(dimage))
+            },
+            _ => Ok(None)
         }
-        Ok(None)
     }
 }
 
@@ -88,7 +90,7 @@ struct ImageResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::Artist, plugins::{plugin::Plugin, plugins::Plugins}};
+    use crate::{library::Library, model::{Artist, DimpleEntity}, plugins::{plugin::Plugin, plugins::Plugins}};
 
     use super::FanartTvPlugin;
 
@@ -98,10 +100,11 @@ mod tests {
         let library = Library::open_memory();
         let plugins = Plugins::default();
         let plugin = FanartTvPlugin::default();
-        let image = plugin.image(&plugins, &library, &Artist {
+        let artist = library.save(&Artist {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
-        }).unwrap().unwrap();
+        });
+        let image = plugin.image(&plugins, &library, &DimpleEntity::Artist(&artist)).unwrap().unwrap();
         assert!(image.width == 1000);
     }
 }

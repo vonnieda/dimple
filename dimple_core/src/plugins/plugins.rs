@@ -4,7 +4,7 @@ use lru::LruCache;
 use reqwest::blocking::Client;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, merge::CrdtRules, model::{Artist, Dimage, Model, Release, Track}};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, merge::CrdtRules, model::{Artist, Dimage, DimpleEntity, Release, Track}};
 
 use super::{plugin::Plugin, USER_AGENT};
 
@@ -42,7 +42,7 @@ impl Plugins {
         results
     }
 
-    pub fn image(&self, library: &Library, model: &dyn Model) -> Vec<Dimage> {
+    pub fn image(&self, library: &Library, model: &DimpleEntity) -> Vec<Dimage> {
         let mut results = vec![];
         for plugin in self.plugins.read().unwrap().iter() {
             if let Ok(Some(image)) = plugin.image(self, library, model) {
@@ -165,7 +165,7 @@ mod tests {
 
     use crate::{
         library::Library,
-        model::{Artist, ArtistRef, Track}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, wikidata::WikidataPlugin},
+        model::{Artist, ArtistRef, DimpleEntity, Track}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, wikidata::WikidataPlugin},
     };
 
     use super::Plugins;
@@ -185,7 +185,7 @@ mod tests {
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
         });
-        ArtistRef::attach(&library, &artist, &track);
+        ArtistRef::attach(&library, &artist, &track.id);
 
         // assert!(plugins.track_metadata(&library, &track).is_some());
     }
@@ -222,7 +222,7 @@ mod tests {
         plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
         plugins.add_plugin(Arc::new(WikidataPlugin::default()));
         plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
-        let images = plugins.image(&library, &artist);
+        let images = plugins.image(&library, &DimpleEntity::Artist(&artist));
         dbg!(images);
     }
 
