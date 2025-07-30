@@ -90,6 +90,7 @@ impl <T: Entity> ModelBasics<T> for T {
 pub enum DimpleEntity<'a> {
     Artist(&'a Artist),
     Track(&'a Track),
+    Genre(&'a Genre),
     Release(&'a Release),
 }
 

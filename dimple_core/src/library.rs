@@ -93,83 +93,33 @@ impl Library {
         // }
     }
 
-    /// Generates a ulid that is guaranteed to be monotonic.
-    pub fn ulid(&self) -> String {
-        self.ulids.lock().unwrap().generate().unwrap().to_string()
+    pub fn save<T: Entity>(&self, obj: &T) -> T {
+        self.db.save(obj).unwrap()
     }
 
-    pub fn insert<T: LibraryModel>(&self, obj: &T) -> T {
-        let conn = self.conn();
-        let mut obj = obj.clone();
-        if obj.key().is_none() {
-            obj.set_key(Some(uuid::Uuid::new_v4().to_string()));
-        }
-        obj.insert(&conn);
-        self.notifier.notify(LibraryEvent {
-            type_name: obj.type_name(),
-            key: obj.key().unwrap(),
-            library: self.clone(),
-        });
-        obj
+    pub fn get<T: Entity>(&self, key: &str) -> Option<T> {
+        self.db.get(key).unwrap()
     }
 
-    pub fn save<T: LibraryModel>(&self, obj: &T) -> T {
-        let conn = self.conn();
-        let mut obj = obj.clone();
-        if obj.key().is_none() {
-            obj.set_key(Some(uuid::Uuid::new_v4().to_string()));
-            obj.insert(&conn);
-        }
-        else {
-            obj.update(&conn);
-        };
-        self.notifier.notify(LibraryEvent {
-            type_name: obj.type_name(),
-            key: obj.key().unwrap(),
-            library: self.clone(),
-        });
-        obj
+    pub fn list<T: Entity>(&self) -> Vec<T> {
+        let sql = format!("SELECT * FROM {}", self.db.table_name_for_type::<T>().unwrap());
+        self.db.query(&sql, ()).unwrap()
     }
 
-    pub fn get<T: LibraryModel>(&self, key: &str) -> Option<T> {
-        let sql = format!("SELECT * FROM {} WHERE key = ?1", T::default().type_name());
-        self.conn().query_row(&sql, (key,), 
-            |row| Ok(T::from_row(row))).optional().unwrap()
+    pub fn query<T: Entity, P: Params>(&self, sql: &str, params: P) -> Vec<T> {
+        self.db.query(sql, params).unwrap()
     }
 
-    pub fn list<T: LibraryModel>(&self) -> Vec<T> {
-        let sql = format!("SELECT * FROM {}", T::default().type_name());
-        self.conn().prepare(&sql).unwrap()
-            .query_map((), |row| Ok(T::from_row(row))).unwrap()
-            .map(|m| m.unwrap())
-            .collect()
-    }
-
-    pub fn query<T: LibraryModel, P: Params>(&self, sql: &str, params: P) -> Vec<T> {
-        let conn = self.conn();
-        let result = conn.prepare(&sql).unwrap()
-            .query_map(params, |row| Ok(T::from_row(row))).unwrap()
-            .map(|m| m.unwrap())
-            .collect();
-        result
-    }
-
-    pub fn find<T: LibraryModel, P: Params>(&self, sql: &str, params: P) -> Option<T> {
-        self.conn().query_row(&sql, params, |row| Ok(T::from_row(row))).
-            optional().unwrap()
+    pub fn find<T: Entity, P: Params>(&self, sql: &str, params: P) -> Option<T> {
+        self.query(sql, params).into_iter().next()
     }
 
     // Mik's album images are a good test for huge files
     // TODO I think all this fallback stuff actually belongs in the 
     // UI / ImageMangler
-    pub fn image(&self, model: &dyn Model) -> Option<DynamicImage> {
-        if let Some(release) = model.as_any().downcast_ref::<Release>() {
-            return release.images(self)
-                .get(0)
-                .and_then(|i| Some(i.get_image()))
-        }
-        else if model.type_name() == "Artist" {
-            let artist = Artist::get(self, &model.key().clone().unwrap()).unwrap();
+    pub fn image(&self, model: &DimpleEntity) -> Option<DynamicImage> {
+        match model {
+            DimpleEntity::Artist(artist) => {
             if let Some(image) = artist.images(self).get(0) {
                 return Some(image.get_image())
             }
@@ -178,9 +128,8 @@ impl Library {
                     return Some(image.get_image())
                 }
             }
-        }
-        else if model.type_name() == "Track" {
-            let track = Track::get(self, &model.key().clone().unwrap()).unwrap();
+            },
+            DimpleEntity::Track(track) => {
             if let Some(image) = track.images(self).get(0) {
                 return Some(image.get_image())
             }
@@ -194,9 +143,13 @@ impl Library {
                     return Some(image.get_image())
                 }
             }
-        }
-        else if model.type_name() == "Genre" {
-            let genre = Genre::get(self, &model.key().clone().unwrap()).unwrap();
+            },
+            DimpleEntity::Release(release) => {
+                return release.images(self)
+                    .get(0)
+                    .and_then(|i| Some(i.get_image()))
+            },
+            DimpleEntity::Genre(genre) => {
             if let Some(image) = genre.images(self).get(0) {
                 return Some(image.get_image())
             }
@@ -211,58 +164,28 @@ impl Library {
                 }
             }
         }
+    }
         None
     }
 
-    pub fn find_newest_changelog_by_field(&self, model: &str, model_key: &str, field: &str) -> Option<ChangeLog> {
-        self.conn().query_row_and_then("SELECT * FROM ChangeLog 
-            WHERE model = ?1 AND model_key = ?2 AND field = ?3
-            ORDER BY timestamp DESC", 
-            (model, model_key, field), |row| Ok(ChangeLog::from_row(row))).optional().unwrap()
-    }
-
     pub fn find_media_file_by_file_path(&self, file_path: &str) -> Option<MediaFile> {
-        self.conn().query_row_and_then("SELECT * FROM MediaFile
-            WHERE file_path = ?1", 
-            (file_path,), |row| Ok(MediaFile::from_row(row)))
-            .optional().unwrap()
+        self.find("SELECT * FROM MediaFile WHERE file_path = ?", (file_path,))
     }
 
     pub fn find_blob_by_sha256(&self, sha256: &str) -> Option<Blob> {
-        self.conn().query_row_and_then("SELECT * FROM Blob
-            WHERE sha256 = ?1", 
-            (sha256,), |row| Ok(Blob::from_row(row)))
-            .optional().unwrap()
+        self.find("SELECT * FROM Blob WHERE sha256 = ?", (sha256,))
     }
 
     pub fn track_sources_for_track(&self, track: &Track) -> Vec<TrackSource> {
-        let conn = self.conn();
-        let mut stmt = conn.prepare("SELECT * FROM TrackSource
-            WHERE track_key = ?1").unwrap();
-        stmt.query_map([track.key.clone()], |row| Ok(TrackSource::from_row(row)))
-            .unwrap()
-            .map(|result| result.unwrap())
-            .collect()
+        self.query("SELECT * FROM TrackSource WHERE track_id = ?", (&track.id,))
     }
         
     pub fn track_sources_by_blob(&self, blob: &Blob) -> Vec<TrackSource> {
-        let conn = self.conn();
-        let mut stmt = conn.prepare("SELECT * FROM TrackSource
-            WHERE blob_key = ?1").unwrap();
-        stmt.query_map([blob.key.clone()], |row| Ok(TrackSource::from_row(row)))
-            .unwrap()
-            .map(|result| result.unwrap())
-            .collect()
+        self.query("SELECT * FROM TrackSource WHERE blob_id = ?", (&blob.id,))
     }
 
     pub fn media_files_by_sha256(&self, sha256: &str) -> Vec<MediaFile> {
-        let conn = self.conn();
-        let mut stmt = conn.prepare("SELECT * FROM MediaFile
-            WHERE sha256 = ?1").unwrap();
-        stmt.query_map([sha256], |row| Ok(MediaFile::from_row(row)))
-            .unwrap()
-            .map(|result| result.unwrap())
-            .collect()
+        self.query("SELECT * FROM TrackSource WHERE sha256 = ?", (sha256,))
     }
 
     pub fn load_blob_content(&self, blob: &Blob) -> Option<Vec<u8>> {
@@ -294,15 +217,15 @@ impl Library {
 
     pub fn load_track_content(&self, track: &Track) -> Option<Vec<u8>> {
         for source in self.track_sources_for_track(track) {
-            if let Some(blob_key) = source.blob_key {
-                if let Some(blob) = self.get::<Blob>(&blob_key) {
+            if let Some(blob_id) = source.blob_id {
+                if let Some(blob) = self.get::<Blob>(&blob_id) {
                     if let Some(content) = self.load_blob_content(&blob) {
                         return Some(content)
                     }
                 }
             }
-            if let Some(media_file_key) = source.media_file_key {
-                if let Some(media_file) = self.get::<MediaFile>(&media_file_key) {
+            if let Some(media_file_id) = source.media_file_id {
+                if let Some(media_file) = self.get::<MediaFile>(&media_file_id) {
                     if let Ok(content) = std::fs::read(media_file.file_path) {
                         return Some(content)
                     }
@@ -310,10 +233,6 @@ impl Library {
             }
         }
         None
-    }
-
-    pub fn conn(&self) -> PooledConnection<SqliteConnectionManager> {
-        self.pool.get().unwrap()
     }
 }
 
@@ -360,6 +279,6 @@ mod tests {
             tx.send(()).unwrap();
         });
         library.save(&Track::default());
-        assert!(rx.recv_timeout(Duration::from_secs(1)).is_ok());
+        assert!(rx.recv_timeout(Duration::from_millis(100)).is_ok());
     }
 }
