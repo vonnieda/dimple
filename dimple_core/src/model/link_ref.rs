@@ -7,6 +7,7 @@ use super::{Link};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct LinkRef {
+    pub id: Option<String>,
     pub model_id: String,
     pub link_id: String,
 }

@@ -1,46 +1,23 @@
 use std::{fmt::Debug, sync::{Arc, Mutex, RwLock}, time::Duration};
 
+use dimple_db::{db::{Entity, Migrations}, rusqlite::Params, Db};
 use image::DynamicImage;
 use include_dir::{include_dir, Dir};
 use log::info;
-use r2d2::{CustomizeConnection, Pool, PooledConnection};
-use r2d2_sqlite::SqliteConnectionManager;
-use rusqlite::{backup::Backup, Connection, OptionalExtension, Params};
-use rusqlite_migration::Migrations;
-use ulid::Generator;
 use uuid::Uuid;
 
-use crate::{model::{Artist, Blob, ChangeLog, FromRow, Genre, LibraryModel, MediaFile, Model, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier};
+use crate::{model::{Artist, Blob, Genre, MediaFile, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier};
 
 #[derive(Clone)]
 pub struct Library {
-    pool: Pool<SqliteConnectionManager>,
-    ulids: Arc<Mutex<Generator>>,
     pub notifier: Notifier<LibraryEvent>,
-}
-
-#[derive(Debug)]
-struct LibraryConnectionCustomizer;
-impl CustomizeConnection<rusqlite::Connection, rusqlite::Error> for LibraryConnectionCustomizer {
-    fn on_acquire(&self, conn: &mut rusqlite::Connection) -> Result<(), rusqlite::Error> {
-        conn.pragma_update(None, "journal_mode", "WAL")?;
-        conn.pragma_update(None, "foreign_keys", "ON")?;
-        Ok(())
-    }
+    db: Db,
 }
 
 impl Library {
     pub fn open_memory() -> Self {
-        let manager = r2d2_sqlite::SqliteConnectionManager::memory();
-        let pool = r2d2::Pool::builder()
-            .max_size(1)
-            .connection_customizer(Box::new(LibraryConnectionCustomizer{}))
-            .build(manager)
-            .unwrap();
-
-        let library = Library {
-            pool,
-            ulids: Arc::new(Mutex::new(Generator::new())),
+        let library = Self {
+            db: Db::open_memory().unwrap(),
             notifier: Notifier::new(),
         };
 
@@ -73,19 +50,9 @@ impl Library {
     }
 
     fn initialize_db(&self) {
-        let mut conn = self.conn();
-
         static MIGRATION_DIR: Dir = include_dir!("./dimple_core/src/migrations");
         let migrations = Migrations::from_directory(&MIGRATION_DIR).unwrap();
-
-        migrations.to_latest(&mut conn).unwrap();
-
-        conn.execute("
-            INSERT INTO Metadata (key, value) VALUES ('library.uuid', ?1)
-            ON CONFLICT DO NOTHING
-            ",
-            (Uuid::new_v4().to_string(),),
-        ).unwrap();
+        self.db.migrate(&migrations).unwrap()
     }
 
     /// Returns the unique, permanent ID of this Library. This is created when

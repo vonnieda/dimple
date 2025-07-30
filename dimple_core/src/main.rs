@@ -1,6 +1,6 @@
 use std::{env, sync::Arc, time::Duration};
 
-use dimple_core::{import::spotify, library::Library, model::{Artist, Blob, ModelBasics as _, Release, Track}, player::Player};
+use dimple_core::{import::spotify, library::Library, model::{Artist, Blob, DimpleEntity, ModelBasics as _, Release, Track}, player::Player};
 use directories::ProjectDirs;
 
 fn main() {
@@ -109,7 +109,8 @@ fn main() {
     }
     else if command == "add" {
         let track_key = &args[2];
-        player.queue().append(&library, &Track::get(&library, &track_key).unwrap());
+        let track = Track::get(&library, &track_key).unwrap();
+        player.queue().append(&library, &DimpleEntity::Track(&track));
         for track in player.queue().tracks(&library) {
             print_track(&library, &track);
         }

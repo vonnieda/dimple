@@ -85,24 +85,11 @@ impl <T: Entity> ModelBasics<T> for T {
     }
 }
 
-// impl <T: LibraryModel> ModelBasics<T> for T  {
-//     fn get(library: &Library, key: &str) -> Option<T> {
-//         library.get::<T>(key)
-//     }
+// TODO okay, instead of this, try making a trait like CanBeInPlaylist and THAT
+// can just return whatever it needs?
+pub enum DimpleEntity<'a> {
+    Artist(&'a Artist),
+    Track(&'a Track),
+    Release(&'a Release),
+}
 
-//     fn save(&self, library: &Library) -> T {
-//         library.save(self)
-//     }
-    
-//     fn list(library: &Library) -> Vec<T> {
-//         library.list()
-//     }
-
-//     fn query(library: &Library, sql: &str, params: impl Params) -> Vec<T> {
-//         library.query(sql, params)
-//     }
-
-//     fn find(library: &Library, sql: &str, params: impl Params) -> Option<T> {
-//         library.find(sql, params)
-//     }
-// }

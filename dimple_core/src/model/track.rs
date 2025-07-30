@@ -125,13 +125,13 @@ mod tests {
             name: Some("Metallica".to_string()),
             ..Default::default()
         });
-        ArtistRef::attach(&library, &artist, &track);
+        ArtistRef::attach(&library, &artist, &track.id);
         let artist = library.save(&Artist {
 
             name: Some("Lou Reed".to_string()),
             ..Default::default()
         });
-        ArtistRef::attach(&library, &artist, &track);
+        ArtistRef::attach(&library, &artist, &track.id);
 
         // dbg!(track.artists(&library));
     }
@@ -164,16 +164,16 @@ mod tests {
             title: Some("Lucy".to_string()),
             ..Default::default()
         });
-        GenreRef::attach(&library, &heavy_metal, &track);
-        GenreRef::attach(&library, &rock, &track);
+        GenreRef::attach(&library, &heavy_metal, &track.id);
+        GenreRef::attach(&library, &rock, &track.id);
 
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()
         });
-        GenreRef::attach(&library, &rock, &artist);
-        GenreRef::attach(&library, &heavy_metal, &artist);
-        GenreRef::attach(&library, &death_metal, &artist);
+        GenreRef::attach(&library, &rock, &artist.id);
+        GenreRef::attach(&library, &heavy_metal, &artist.id);
+        GenreRef::attach(&library, &death_metal, &artist.id);
 
         assert!(artist.genres(&library).len() == 3);
         assert!(track.genres(&library).len() == 2);

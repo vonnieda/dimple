@@ -98,7 +98,7 @@ mod tests {
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
         });
-        ArtistRef::attach(&library, &artist, &track);
+        ArtistRef::attach(&library, &artist, &track.id);
 
         let lrclib = LrclibPlugin::default();
         let host = Plugins::default();

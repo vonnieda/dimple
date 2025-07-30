@@ -5,7 +5,7 @@ use std::{sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, time::{Duration, Instan
 use dimple_db::db::Entity;
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
-use crate::{library::Library, model::{Artist, Event, ModelBasics as _, Playlist, Release, Track}, notifier::Notifier};
+use crate::{library::Library, model::{Artist, DimpleEntity, Event, ModelBasics as _, Playlist, Release, Track}, notifier::Notifier};
 
 pub use playback_rs::Song;
 
@@ -65,7 +65,7 @@ impl Player {
     /// to the newly added item. If the item currently playing is a Release,
     /// for instance, then the rest of the release will be skipped, not just
     /// the current track.
-    pub fn play_now(&self, model: &impl Entity) {
+    pub fn play_now(&self, model: &DimpleEntity) {
         let index = self.current_queue_index() + 1;
         self.queue().insert(&self.library, model, index);
         self.set_queue_index(index);
@@ -73,26 +73,26 @@ impl Player {
     }
 
     /// Insert into the queue after the current item.
-    pub fn play_next(&self, model: &impl Entity) {
+    pub fn play_next(&self, model: &DimpleEntity) {
         self.queue().insert(&self.library, model, self.current_queue_index() + 1);
         self.play();
     }
 
     /// Append to the end of the queue.
-    pub fn play_later(&self, model: &impl Entity) {
+    pub fn play_later(&self, model: &DimpleEntity) {
         self.queue().append(&self.library, model);
         self.play();
     }
 
     pub fn enqueue(&self, key: &str, when: PlayWhen) {
         if let Some(model) = Artist::get(&self.library, key) {
-            self.enqueue_helper(&model, when);
+            self.enqueue_helper(&DimpleEntity::Artist(&model), when);
         }
         else if let Some(model) = Release::get(&self.library, key) {
-            self.enqueue_helper(&model, when);
+            self.enqueue_helper(&DimpleEntity::Release(&model), when);
         }
         else if let Some(model) = Track::get(&self.library, key) {
-            self.enqueue_helper(&model, when);
+            self.enqueue_helper(&DimpleEntity::Track(&model), when);
         }
     }
 
@@ -180,7 +180,7 @@ impl Player {
         self.queue().tracks(&self.library).get(self.current_queue_index() + 1).cloned()
     }
 
-    fn enqueue_helper(&self, model: &impl Entity, when: PlayWhen) {
+    fn enqueue_helper(&self, model: &DimpleEntity, when: PlayWhen) {
         match when {
             PlayWhen::Now => self.play_now(model),
             PlayWhen::Next => self.play_next(model),
@@ -414,7 +414,7 @@ enum PlayerCommand {
 mod tests {
     use std::{sync::Arc, time::Instant};
 
-    use crate::{library::Library, model::{ModelBasics as _, Track}};
+    use crate::{library::Library, model::{DimpleEntity, ModelBasics as _, Track}};
 
     use super::Player;
 
@@ -428,7 +428,7 @@ mod tests {
         library.import("tests/data/media_files");
         let tracks = Track::list(&library);
         for track in &tracks[0..3] {
-            player.play_later(track);
+            player.play_later(&DimpleEntity::Track(&track));
         }
         assert!(!player.is_playing());
         player.play();
