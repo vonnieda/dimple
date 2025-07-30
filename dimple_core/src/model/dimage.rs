@@ -1,19 +1,16 @@
 use std::{fmt::Debug, io::Cursor};
 
-use dimple_core_macro::ModelSupport;
 use image::imageops::FilterType;
 use image::DynamicImage;
-use rusqlite::types::FromSql;
-use rusqlite::ToSql;
 use image::ImageFormat;
 use fast_image_resize::Resizer;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 
 /// A model for storing an image in Dimple. Not Image because too overloaded.
-#[derive(Clone, Default, PartialEq, Eq, Hash, ModelSupport)]
+#[derive(Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Dimage {
-    pub key: Option<String>,
+    pub id: Option<String>,
 
     pub kind: Option<DimageKind>,
     pub width: u32,
@@ -26,7 +23,7 @@ pub struct Dimage {
 impl Debug for Dimage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Dimage")
-            .field("key", &self.key)
+            .field("id", &self.id)
             .field("kind", &self.kind)
             .field("width", &self.width)
             .field("height", &self.height)
@@ -90,7 +87,7 @@ pub fn resize(image: &DynamicImage, width: u32, height: u32) -> DynamicImage {
 /// This list is based on and gives thanks to:
 // https://wiki.fanart.tv/ImageTypes/Music/hdmusiclogo/
 // https://fanart.tv/music-fanart/
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Default)]
 pub enum DimageKind {
     #[default]
     MusicArtistThumb, // 1000x1000
@@ -102,38 +99,6 @@ pub enum DimageKind {
     MusicRecordLabel, // 400x270
 }
 
-impl FromSql for DimageKind {
-    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
-        Ok(DimageKind::MusicAlbumCover)
-    }
-}
-
-impl ToSql for DimageKind {
-    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-        match self {
-            DimageKind::MusicArtistThumb => Ok("MusicArtistThumb".into()),
-            DimageKind::MusicHdClearLogo => Ok("MusicHdClearLogo".into()),
-            DimageKind::MusicAlbumCover => Ok("MusicAlbumCover".into()),
-            DimageKind::MusicCdArt => Ok("MusicCdArt".into()),
-            DimageKind::MusicArtistBackground => Ok("MusicArtistBackground".into()),
-            DimageKind::MusicBanner => Ok("MusicBanner".into()),
-            DimageKind::MusicRecordLabel => Ok("MusicRecordLabel".into()),
-        }
-    }
-}
-
-impl From<DimageKind> for ChangeLogValue {
-    fn from(value: DimageKind) -> Self {
-        todo!()
-    }
-}
-
-impl From<ChangeLogValue> for DimageKind {
-    fn from(value: ChangeLogValue) -> Self {
-        todo!()
-    }
-}
-
 impl From<&DynamicImage> for Dimage {
     fn from(value: &DynamicImage) -> Self {
         Dimage::new(value)
@@ -142,7 +107,7 @@ impl From<&DynamicImage> for Dimage {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::ModelBasics};
+    use crate::{library::Library};
 
     use super::Dimage;
 
@@ -150,14 +115,14 @@ mod tests {
     fn library_crud() {
         let library = Library::open_memory();
         let mut dimage = Dimage::default();
-        let dymage = image::open("tests/data/sample-jpg-files-sample_5184x3456.jpg").unwrap();
+        let dymage = image::open("tests/data/smol.png").unwrap();
         dimage.set_image(&dymage);
-        let dimage = dimage.save(&library);
-        assert!(dimage.key.is_some());
+        let dimage = library.save(&dimage);
+        assert!(dimage.id.is_some());
         assert!(dimage.png_data.len() > 0);
         assert!(dimage.png_thumbnail.len() > 0);
-        assert!(dimage.width == 5184);
-        assert!(dimage.height == 3456);
+        assert_eq!(dimage.width, 21);
+        assert_eq!(dimage.height, 20);
         assert!(dimage.get_image().width() == dimage.width);
         assert!(dimage.get_image().height() == dimage.height);
         assert!(dimage.get_thumbnail(4, 4).width() == 4);

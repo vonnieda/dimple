@@ -1,4 +1,4 @@
-use dimple_core_macro::ModelSupport;
+use serde::{Deserialize, Serialize};
 
 use crate::library::Library;
 
@@ -7,9 +7,9 @@ use super::{Artist, Dimage, Genre, Link, Track};
 // https://musicbrainz.org/doc/Release
 // https://musicbrainz.org/release/a4864e94-6d75-4ade-bc93-0dabf3521453
 // https://musicbrainz.org/ws/2/release/a4864e94-6d75-4ade-bc93-0dabf3521453?fmt=json
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, ModelSupport)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Release {
-    pub key: Option<String>,
+    pub id: Option<String>,
     pub title: Option<String>,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
@@ -46,49 +46,49 @@ impl Release {
     pub fn artists(&self, library: &Library) -> Vec<Artist> {
         library.query("
             SELECT a.* FROM ArtistRef ar 
-            JOIN Artist a ON (a.key = ar.artist_key) 
-            WHERE ar.model_key = ?1
+            JOIN Artist a ON (a.id = ar.artist_id) 
+            WHERE ar.model_id = ?1
             ORDER BY ar.rowid ASC
-        ", (self.key.clone().unwrap(),))
+        ", (self.id.clone().unwrap(),))
     }
 
     pub fn genres(&self, library: &Library) -> Vec<Genre> {
         library.query("
             SELECT g.* FROM GenreRef gr 
-            JOIN Genre g ON (g.key = gr.genre_key) 
-            WHERE gr.model_key = ?1
-        ", (self.key.clone().unwrap(),))
+            JOIN Genre g ON (g.id = gr.genre_id) 
+            WHERE gr.model_id = ?1
+        ", (self.id.clone().unwrap(),))
     }
 
     pub fn links(&self, library: &Library) -> Vec<Link> {
         library.query("
             SELECT l.* FROM LinkRef lr 
-            JOIN Link l ON (l.key = lr.link_key) 
-            WHERE lr.model_key = ?1
-        ", (self.key.clone().unwrap(),))
+            JOIN Link l ON (l.id = lr.link_id) 
+            WHERE lr.model_id = ?1
+        ", (self.id.clone().unwrap(),))
     }
 
     pub fn tracks(&self, library: &Library) -> Vec<Track> {
         let sql = "
             SELECT Track.* FROM Track
-            WHERE Track.release_key = ?1
+            WHERE Track.release_id = ?1
             ORDER BY media_position ASC, position ASC
         ";
-        library.query(sql, (self.key.clone(),))
+        library.query(sql, (self.id.clone(),))
     }
 
     pub fn images(&self, library: &Library) -> Vec<Dimage> {
         library.query("
             SELECT d.* FROM DimageRef dr 
-            JOIN Dimage d ON (d.key = dr.dimage_key) 
-            WHERE dr.model_key = ?1
-        ", (self.key.clone().unwrap(),))
+            JOIN Dimage d ON (d.id = dr.dimage_id) 
+            WHERE dr.model_id = ?1
+        ", (self.id.clone().unwrap(),))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Artist, Diff}};
+    use crate::{library::Library, model::{Artist}};
 
     use super::Release;
 

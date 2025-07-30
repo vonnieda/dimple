@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{librarian::{TrackMetadata}, library::Library, model::{Model, Track}};
+use crate::{librarian::{TrackMetadata}, library::Library, model::{Track}};
 
 use super::{plugin::Plugin, plugins::Plugins};
 

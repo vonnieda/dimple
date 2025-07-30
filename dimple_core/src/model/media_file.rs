@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use dimple_core_macro::ModelSupport;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct MediaFile {
-    pub key: Option<String>,
+    pub id: Option<String>,
 
     pub file_path: String,
     // TODO I think I'm going to remove this and only use sha256 for sync
@@ -26,6 +26,6 @@ mod tests {
     fn library_crud() {
         let library = Library::open_memory();
         let model = library.save(&MediaFile::default());
-        assert!(model.key.is_some());
+        assert!(model.id.is_some());
     }
 }
