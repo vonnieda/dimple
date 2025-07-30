@@ -1,6 +1,6 @@
 use std::{env, sync::Arc, time::Duration};
 
-use dimple_core::{import::spotify, library::Library, model::{Artist, Blob, ChangeLog, ModelBasics as _, Release, Track}, player::Player};
+use dimple_core::{import::spotify, library::Library, model::{Artist, Blob, ModelBasics as _, Release, Track}, player::Player};
 use directories::ProjectDirs;
 
 fn main() {
@@ -130,14 +130,6 @@ fn main() {
     else if command == "sync" {
         library.sync();
     } 
-    else if command == "changelogs" {
-        let mut i = 0;
-        for changelog in ChangeLog::list(&library) {
-            print_changelog(&changelog);
-            i += 1;
-        }
-        println!("{} changelogs", i);
-    }
     else if command == "blobs" {
         let mut i = 0;
         for blob in library.list::<Blob>() {
@@ -158,26 +150,15 @@ fn print_artist(library: &Library, artist: &Artist) {
 
 fn print_release(library: &Library, release: &Release) {
     println!("{:30} | {:20} | {:40}", 
-        release.key.clone().unwrap_or_default(),
+        release.id.clone().unwrap_or_default(),
         release.title.clone().unwrap_or_default(),
         release.artist_name(library).unwrap_or_default());
 }
 
 fn print_track(library: &Library, track: &Track) {
     println!("{:30} | {:20} | {:40} | {:30}", 
-        track.key.clone().unwrap_or_default(),
+        track.id.clone().unwrap_or_default(),
         track.artist_name(library).unwrap_or_default(),
         track.album_name(library).unwrap_or_default(), 
         track.title.clone().unwrap_or_default());
-}
-
-fn print_changelog(changelog: &ChangeLog) {
-    println!("{:16} | {:16} | {:16} | {:16} | {:16} | {:16} | {:16}", 
-        changelog.timestamp.clone(),
-        changelog.actor.clone(), 
-        changelog.model.clone(),
-        changelog.op.clone(),
-        changelog.model_key.clone(),
-        changelog.field.clone().unwrap_or_default(),
-        changelog.value.clone().unwrap_or_default());
 }

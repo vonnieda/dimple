@@ -2,9 +2,10 @@ pub mod track_downloader;
 
 use std::{sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, time::{Duration, Instant}};
 
+use dimple_db::db::Entity;
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
-use crate::{library::Library, model::{Artist, Event, LibraryModel, ModelBasics as _, Playlist, Release, Track}, notifier::Notifier};
+use crate::{library::Library, model::{Artist, Event, ModelBasics as _, Playlist, Release, Track}, notifier::Notifier};
 
 pub use playback_rs::Song;
 
@@ -64,7 +65,7 @@ impl Player {
     /// to the newly added item. If the item currently playing is a Release,
     /// for instance, then the rest of the release will be skipped, not just
     /// the current track.
-    pub fn play_now(&self, model: &impl LibraryModel) {
+    pub fn play_now(&self, model: &impl Entity) {
         let index = self.current_queue_index() + 1;
         self.queue().insert(&self.library, model, index);
         self.set_queue_index(index);
@@ -72,13 +73,13 @@ impl Player {
     }
 
     /// Insert into the queue after the current item.
-    pub fn play_next(&self, model: &impl LibraryModel) {
+    pub fn play_next(&self, model: &impl Entity) {
         self.queue().insert(&self.library, model, self.current_queue_index() + 1);
         self.play();
     }
 
     /// Append to the end of the queue.
-    pub fn play_later(&self, model: &impl LibraryModel) {
+    pub fn play_later(&self, model: &impl Entity) {
         self.queue().append(&self.library, model);
         self.play();
     }
@@ -156,11 +157,11 @@ impl Player {
     /// such so that that metadata is always available. The play queue
     /// key can live in Library, and I suppose Library::default_play_queue()
     pub fn queue(&self) -> Playlist {
-        let key = format!("__dimple_system_play_queue_{}", self.library.id());
-        let playlist = match self.library.get::<Playlist>(&key) {
+        let id = format!("__dimple_system_play_queue_{}", self.library.id());
+        let playlist = match self.library.get::<Playlist>(&id) {
             Some(play_queue) => play_queue,
-            None => self.library.insert(&Playlist {
-                key: Some(key.to_string()),
+            None => self.library.save(&Playlist {
+                id: Some(id.to_string()),
                 ..Default::default()
             })
         };
@@ -179,7 +180,7 @@ impl Player {
         self.queue().tracks(&self.library).get(self.current_queue_index() + 1).cloned()
     }
 
-    fn enqueue_helper(&self, model: &impl LibraryModel, when: PlayWhen) {
+    fn enqueue_helper(&self, model: &impl Entity, when: PlayWhen) {
         match when {
             PlayWhen::Now => self.play_now(model),
             PlayWhen::Next => self.play_next(model),
@@ -262,7 +263,7 @@ impl Player {
             // storing the history I'm listening to.
             let timestamp = chrono::Utc::now();
             self.library.save(&Event {
-                key: None,
+                id: None,
                 timestamp: timestamp,
                 event_type: event_type.to_string(),
                 artist: current_track.artist_name(&self.library).clone(),

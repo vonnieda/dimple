@@ -1,24 +1,25 @@
-use crate::library::{Library, LibraryEvent};
+use dimple_db::db::Entity;
+use serde::{Deserialize, Serialize};
 
-use super::{Dimage, LibraryModel, Model};
+use crate::library::{Library};
 
-#[derive(Debug, Clone, Default, PartialEq)]
+use super::{Dimage};
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DimageRef {
-    pub model_key: String,
-    pub dimage_key: String,
+    pub id: Option<String>,
+    pub model_id: String,
+    pub dimage_id: String,
 }
 
 impl DimageRef {
-    pub fn attach(library: &Library, dimage: &Dimage, model: &dyn Model) {
-        let _ = library.conn().execute(
-            "INSERT INTO DimageRef (dimage_key, model_key) VALUES (?, ?)", 
-            (dimage.key.clone(), model.key()));
-        library.notifier.notify(LibraryEvent {
-            type_name: "DimageRef".to_string(),
-            key: model.key().clone().unwrap(),
-            library: library.clone(),
+    pub fn attach(library: &Library, dimage: &Dimage, model_id: &Option<String>) {
+        let _ = library.save(&DimageRef {
+            model_id: model_id.clone().unwrap(),
+            dimage_id: dimage.id.clone().unwrap(),
+            ..Default::default()
         });
-    }
+    }    
 }
 
 #[cfg(test)]
@@ -30,7 +31,7 @@ mod tests {
         let library = Library::open_memory();
         let dimage = library.save(&Dimage::default());
         let track = library.save(&Track::default());
-        DimageRef::attach(&library, &dimage, &track);
+        DimageRef::attach(&library, &dimage, &track.id);
         assert!(track.images(&library).len() == 1);
     }
 }
