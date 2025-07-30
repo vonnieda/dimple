@@ -125,7 +125,7 @@ impl Playlist {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::{self, Library}, model::{ModelBasics as _, Playlist, PlaylistItem, Release, Track}};
+    use crate::{library::{self, Library}, model::{playlist::DimpleEntity, ModelBasics as _, Playlist, PlaylistItem, Release, Track}};
 
     #[test]
     fn library_crud() {

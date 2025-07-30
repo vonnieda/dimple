@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::{Arc, Mutex, RwLock}, time::Duration};
+use std::{fmt::Debug, time::Duration};
 
 use dimple_db::{db::{Entity, Migrations}, rusqlite::Params, Db};
 use image::DynamicImage;
@@ -6,7 +6,7 @@ use include_dir::{include_dir, Dir};
 use log::info;
 use uuid::Uuid;
 
-use crate::{model::{Artist, Blob, Genre, MediaFile, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier};
+use crate::{model::{Artist, Blob, DimpleEntity, Genre, MediaFile, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier};
 
 #[derive(Clone)]
 pub struct Library {
@@ -22,6 +22,7 @@ impl Library {
         };
 
         library.initialize_db();
+        library.setup_temporary_notifier();
 
         library
     }
@@ -31,22 +32,41 @@ impl Library {
     /// same directory as the specified file. If the directory does not exist
     /// it (and all parents) will be created.
     pub fn open(database_path: &str) -> Self {
-        let manager = r2d2_sqlite::SqliteConnectionManager::file(database_path);
-        let pool = r2d2::Pool::builder()
-            .max_size(24) // probably should be like num_cores * N but 24 feels nice
-            .connection_customizer(Box::new(LibraryConnectionCustomizer{}))
-            .build(manager)
-            .unwrap();
-
-        let library = Library {
-            pool,
-            ulids: Arc::new(Mutex::new(Generator::new())),
+        let library = Self {
+            db: Db::open(database_path).unwrap(),
             notifier: Notifier::new(),
         };
-        
+
         library.initialize_db();
+        library.setup_temporary_notifier();
 
         library
+    }
+
+    fn setup_temporary_notifier(&self) {
+        let library_clone = self.clone();
+        std::thread::spawn(move || {
+            let rx = library_clone.db.subscribe();
+            while let Ok(event) = rx.recv() {
+                match event {
+                    dimple_db::db::DbEvent::Insert(type_name, id) => library_clone.notifier.notify(LibraryEvent { 
+                        library: library_clone.clone(), 
+                        type_name: type_name, 
+                        key: id, 
+                    }),
+                    dimple_db::db::DbEvent::Update(type_name, id) => library_clone.notifier.notify(LibraryEvent { 
+                        library: library_clone.clone(), 
+                        type_name: type_name, 
+                        key: id, 
+                    }),
+                    dimple_db::db::DbEvent::Delete(type_name, id) => library_clone.notifier.notify(LibraryEvent { 
+                        library: library_clone.clone(), 
+                        type_name: type_name, 
+                        key: id, 
+                    }),
+                }
+            }
+        });
     }
 
     fn initialize_db(&self) {
@@ -58,22 +78,20 @@ impl Library {
     /// Returns the unique, permanent ID of this Library. This is created when
     /// the Library is created and doesn't change.
     pub fn id(&self) -> String {
-        self.conn().query_row("SELECT value FROM Metadata WHERE key = 'library.uuid'", 
-            (), 
-            |row| {
-                let s: String = row.get(0).unwrap();
-                Ok(s)
-            }).unwrap()
+        self.db.get_database_uuid().unwrap()
     }
 
     /// Backup this library to the specified path.
     pub fn backup(&self, output_path: &str) {
-        let mut dst = Connection::open(output_path).unwrap();
-        let src = self.conn();
-        let backup = Backup::new(&src, &mut dst).unwrap();
-        // TODO maybe return a stream of events for progress or something
-        // TODO magic
-        backup.run_to_completion(250, Duration::from_millis(10), None).unwrap();
+        // TODO pass through to db.
+        todo!()
+        // let mut dst = Connection::open(output_path).unwrap();
+        // let src = self.conn();
+        // let backup = Backup::new(&src, &mut dst).unwrap();
+        // // TODO maybe return a stream of events for progress or something
+        // // TODO magic
+        // backup.run_to_completion(250, Duration::from_millis(10), None).unwrap();
+        // self.db.get_database_uuid().unwrap()
     }
 
     /// Import MediaFiles into the Library, creating or updating Tracks,
@@ -82,7 +100,7 @@ impl Library {
     /// TODO this goes away and into plugins too, I think.
     pub fn import(&self, path: &str) {
         crate::import::import(self, path);
-    }
+     }
 
     pub fn sync(&self) {
         todo!()
@@ -120,29 +138,29 @@ impl Library {
     pub fn image(&self, model: &DimpleEntity) -> Option<DynamicImage> {
         match model {
             DimpleEntity::Artist(artist) => {
-            if let Some(image) = artist.images(self).get(0) {
-                return Some(image.get_image())
-            }
-            for release in artist.releases(self).iter() {
-                if let Some(image) = release.images(self).get(0) {
-                    return Some(image.get_image())
-                }
-            }
-            },
-            DimpleEntity::Track(track) => {
-            if let Some(image) = track.images(self).get(0) {
-                return Some(image.get_image())
-            }
-            if let Some(release) = track.release(self) {
-                if let Some(image) = release.images(self).get(0) {
-                    return Some(image.get_image())
-                }
-            }
-            for artist in track.artists(self).iter() {
                 if let Some(image) = artist.images(self).get(0) {
                     return Some(image.get_image())
                 }
-            }
+                for release in artist.releases(self).iter() {
+                    if let Some(image) = release.images(self).get(0) {
+                        return Some(image.get_image())
+                    }
+                }
+            },
+            DimpleEntity::Track(track) => {
+                if let Some(image) = track.images(self).get(0) {
+                    return Some(image.get_image())
+                }
+                if let Some(release) = track.release(self) {
+                    if let Some(image) = release.images(self).get(0) {
+                        return Some(image.get_image())
+                    }
+                }
+                for artist in track.artists(self).iter() {
+                    if let Some(image) = artist.images(self).get(0) {
+                        return Some(image.get_image())
+                    }
+                }
             },
             DimpleEntity::Release(release) => {
                 return release.images(self)
@@ -150,21 +168,21 @@ impl Library {
                     .and_then(|i| Some(i.get_image()))
             },
             DimpleEntity::Genre(genre) => {
-            if let Some(image) = genre.images(self).get(0) {
-                return Some(image.get_image())
-            }
-            for artist in genre.artists(self).iter() {
-                if let Some(image) = artist.images(self).get(0) {
+                if let Some(image) = genre.images(self).get(0) {
                     return Some(image.get_image())
                 }
-            }
-            for release in genre.releases(self).iter() {
-                if let Some(image) = release.images(self).get(0) {
-                    return Some(image.get_image())
+                for artist in genre.artists(self).iter() {
+                    if let Some(image) = artist.images(self).get(0) {
+                        return Some(image.get_image())
+                    }
+                }
+                for release in genre.releases(self).iter() {
+                    if let Some(image) = release.images(self).get(0) {
+                        return Some(image.get_image())
+                    }
                 }
             }
         }
-    }
         None
     }
 
@@ -195,8 +213,7 @@ impl Library {
                 return Some(content)
             }
         }
-        todo!();
-        // This will go to Db
+        // TODO This will go to Db
         // for sync in self.synchronizers.read().unwrap().iter() {
         //     if let Some(content) = sync.load_blob_content(blob) {
         //         info!("Found blob sha256 {} in sync", blob.sha256);
