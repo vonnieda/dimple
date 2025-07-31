@@ -32,8 +32,8 @@ fn update_model(app: &App) {
         let favorite_releases = app.library.query("
             SELECT Release.* 
             FROM Release 
-            JOIN ArtistRef ON (ArtistRef.model_key = Release.key)
-            JOIN Artist ON (Artist.key = ArtistRef.artist_key)
+            JOIN ArtistRef ON (ArtistRef.model_id = Release.id)
+            JOIN Artist ON (Artist.id = ArtistRef.artist_id)
             JOIN 
                 (SELECT artist,album,count(title) AS cnt 
                     FROM Event 

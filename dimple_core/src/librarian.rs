@@ -211,8 +211,8 @@ pub fn match_release(library: &Library, release: &ReleaseMetadata) -> Option<Rel
     for artist in release.artists.clone() {
         let matched_release: Option<Release> = library.find("
             SELECT r.* FROM Release r
-            LEFT JOIN ArtistRef rar ON (rar.model_key = r.key)
-            LEFT JOIN Artist ra ON (ra.key = rar.artist_key)
+            LEFT JOIN ArtistRef rar ON (rar.model_id = r.id)
+            LEFT JOIN Artist ra ON (ra.id = rar.artist_id)
             WHERE (r.title = ?1 AND ra.name = ?2)
             ", (&release.release.title, artist.artist.name));
         if matched_release.is_some() {
@@ -237,11 +237,11 @@ pub fn match_track(library: &Library, track: &TrackMetadata) -> Option<Track> {
         for artist in release.artists.clone() {
             let matched_track: Option<Track> = library.find("
                 SELECT t.* FROM Track t
-                LEFT JOIN Release r ON (r.key = t.release_key)
-                LEFT JOIN ArtistRef tar ON (tar.model_key = t.key)
-                LEFT JOIN Artist ta ON (ta.key = tar.artist_key)
-                LEFT JOIN ArtistRef rar ON (rar.model_key = r.key)
-                LEFT JOIN Artist ra ON (ra.key = rar.artist_key)
+                LEFT JOIN Release r ON (r.id = t.release_id)
+                LEFT JOIN ArtistRef tar ON (tar.model_id = t.id)
+                LEFT JOIN Artist ta ON (ta.id = tar.artist_id)
+                LEFT JOIN ArtistRef rar ON (rar.model_id = r.id)
+                LEFT JOIN Artist ra ON (ra.id = rar.artist_id)
                 WHERE (t.title = ?1 AND r.title = ?2 AND (ta.name = ?3 OR ra.name = ?3))
                 ", (&track.track.title, &release.release.title, artist.artist.name));
             if matched_track.is_some() {
