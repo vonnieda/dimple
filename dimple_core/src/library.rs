@@ -70,7 +70,7 @@ impl Library {
     }
 
     fn initialize_db(&self) {
-        static MIGRATION_DIR: Dir = include_dir!("./dimple_core/src/migrations");
+        static MIGRATION_DIR: Dir = include_dir!("./src/migrations");
         let migrations = Migrations::from_directory(&MIGRATION_DIR).unwrap();
         self.db.migrate(&migrations).unwrap()
     }
@@ -111,6 +111,7 @@ impl Library {
         // }
     }
 
+    // TODO need to change these wrappers to return Results
     pub fn save<T: Entity>(&self, obj: &T) -> T {
         self.db.save(obj).unwrap()
     }
