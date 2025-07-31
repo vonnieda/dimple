@@ -115,7 +115,7 @@ fn update_model(app: &App) {
 fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
-            let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
+            let card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
             // card.image.image = images.lazy_get(release.clone(), 200, 200, move |ui, image| {
                 // let adapter = ui.global::<HomeAdapter>();
                 // let mut card = adapter.get_releases().row_data(index).unwrap();
@@ -153,7 +153,7 @@ fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
 fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {
     artists.iter().cloned().enumerate()
         .map(|(index, artist)| {
-            let mut card: CardAdapter = artist_card(&artist);
+            let card: CardAdapter = artist_card(&artist);
             // card.image.image = images.lazy_get(artist.clone(), 200, 200, move |ui, image| {
                 // let mut card = ui.get_artist_list().cards.row_data(index).unwrap();
                 // card.image.image = image;
@@ -188,7 +188,7 @@ fn artist_card(artist: &Artist) -> CardAdapter {
 fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {
     genres.iter().cloned().enumerate()
         .map(|(index, genre)| {
-            let mut card: CardAdapter = genre_card(&genre);
+            let card: CardAdapter = genre_card(&genre);
             // card.image.image = images.lazy_get(genre.clone(), 200, 200, move |ui, image| {
                 // let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
                 // card.image.image = image;

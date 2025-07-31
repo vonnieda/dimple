@@ -1,11 +1,9 @@
 use crate::ui::app_window_controller::App;
 use crate::ui::CardAdapter;
-use crate::ui::CardGridAdapter;
 use crate::ui::Page;
 use dimple_core::model::DimpleEntity;
 use dimple_core::model::Playlist;
 use slint::Model as _;
-use slint::ModelRc;
 use crate::ui::PlaylistListAdapter;
 use slint::ComponentHandle;
 

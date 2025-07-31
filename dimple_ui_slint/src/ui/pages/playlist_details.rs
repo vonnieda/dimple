@@ -4,7 +4,6 @@ use std::time::Duration;
 
 use crate::ui::app_window_controller::App;
 use crate::ui::Page;
-use crate::ui::Navigator;
 use dimple_core::library::Library;
 use dimple_core::model::DimpleEntity;
 use dimple_core::model::Playlist;

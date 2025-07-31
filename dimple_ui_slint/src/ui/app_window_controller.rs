@@ -1,5 +1,4 @@
 use dimple_core::{librarian::Librarian, library::Library, player::{PlayWhen, Player, PlayerEvent}, plugins::{fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugins::Plugins, wikidata::WikidataPlugin}};
-use player_bar;
 use std::{collections::VecDeque, env, path::Path, sync::{Arc, Mutex}};
 
 use slint::{ComponentHandle, SharedString, Weak};

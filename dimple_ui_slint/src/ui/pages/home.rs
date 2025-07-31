@@ -1,10 +1,10 @@
 use dimple_core::library::Library;
-use dimple_core::model::{Artist, DimpleEntity, Playlist, Release};
-use slint::{ComponentHandle as _, ModelRc};
+use dimple_core::model::{Artist, DimpleEntity, Release};
+use slint::ComponentHandle as _;
 
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
-use crate::ui::{AppWindow, CardAdapter, HomeAdapter, CardSectionAdapter, ImageLinkAdapter, LinkAdapter, Page};
+use crate::ui::{CardAdapter, HomeAdapter, CardSectionAdapter, ImageLinkAdapter, LinkAdapter, Page};
 
 pub fn home_init(app: &App) {
 }

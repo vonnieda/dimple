@@ -1,7 +1,6 @@
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
-use crate::ui::CardGridAdapter;
 use crate::ui::Page;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;

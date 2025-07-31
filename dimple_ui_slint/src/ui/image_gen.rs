@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use dimple_core::player::Song;
 use image::{DynamicImage, ImageBuffer};
-use sonogram::{ColourGradient, FrequencyScale, RGBAColour, SpecOptionsBuilder};
+use sonogram::{ColourGradient, FrequencyScale, SpecOptionsBuilder};
 use tiny_skia::*;
 
 pub fn gen_fuzzy_circles(width: u32, height: u32) -> DynamicImage {

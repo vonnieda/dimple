@@ -3,7 +3,6 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use dimple_core::librarian::Librarian;
-use dimple_core::library::Library;
 use dimple_core::model::DimpleEntity;
 use fast_image_resize::Resizer;
 use image::DynamicImage;
@@ -57,7 +56,7 @@ impl ImageMangler {
             return Image::from_rgba8_premultiplied(buffer.clone())
         }
         let images = self.clone();
-        let model1 = model.clone();
+        let model1 = model;
         let ui = self.ui.clone();
         // self.threadpool.execute(move || {
         //     if let Some(dyn_image) = images.librarian.image(&model1) {
