@@ -48,7 +48,7 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            card.image.image = images.lazy_get(&DimpleEntity::Release(&release), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&DimpleEntity::from(&release), 200, 200, move |ui, image| {
                 let adapter = ui.global::<ReleaseListAdapter>();
                 let mut card = adapter.get_cards().row_data(index).unwrap();
                 card.image.image = image;

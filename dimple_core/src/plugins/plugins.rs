@@ -222,7 +222,7 @@ mod tests {
         plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
         plugins.add_plugin(Arc::new(WikidataPlugin::default()));
         plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
-        let images = plugins.image(&library, &DimpleEntity::Artist(&artist));
+        let images = plugins.image(&library, &artist.into());
         dbg!(images);
     }
 

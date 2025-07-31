@@ -46,7 +46,7 @@ fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {
     genres.iter().cloned().enumerate()
         .map(|(index, genre)| {
             let mut card: CardAdapter = genre_card(&genre);
-            card.image.image = images.lazy_get(&DimpleEntity::Genre(&genre), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&DimpleEntity::from(&genre), 200, 200, move |ui, image| {
                 let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
                 card.image.image = image;
                 ui.get_genre_list().cards.set_row_data(index, card);

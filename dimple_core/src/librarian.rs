@@ -61,22 +61,22 @@ impl Librarian {
 
 pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEntity) {
     match model {
-        &DimpleEntity::Artist(artist) => {
+        DimpleEntity::Artist(artist) => {
             for metadata in plugins.artist_metadata(library, &artist) {
                 librarian::merge_artist_metadata(library, &metadata, Some(artist.clone()));
             }
         },
-        &DimpleEntity::Track(track) => {
+        DimpleEntity::Track(track) => {
             for metadata in plugins.track_metadata(library, &track) {
                 librarian::merge_track_metadata(library, &metadata, Some(track.clone()));
             }
         },
-        &DimpleEntity::Genre(genre) => {
+        DimpleEntity::Genre(genre) => {
             // if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
             //     library.save(&CrdtRules::merge(genre, metadata));
             // }
         },
-        &DimpleEntity::Release(release) => {
+        DimpleEntity::Release(release) => {
             for metadata in plugins.release_metadata(library, &release) {
                 librarian::merge_release_metadata(library, &metadata, Some(release.clone()));
             }
@@ -379,9 +379,9 @@ mod tests {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
         });
-        let image = librarian.image(&DimpleEntity::Artist(&artist)).unwrap();
+        let image = librarian.image(&artist.into()).unwrap();
         dbg!(image.width(), image.height());
-        let image = librarian.image(&DimpleEntity::Artist(&artist)).unwrap();
+        let image = librarian.image(&artist.into()).unwrap();
         dbg!(image.width(), image.height());
     }
 

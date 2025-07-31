@@ -62,12 +62,12 @@ impl Playlist {
         match &model {
             &DimpleEntity::Artist(artist) => {
                 for (i, release) in artist.releases(library).iter().enumerate() {
-                    self.insert(library, &DimpleEntity::Release(release), index + i);
+                    self.insert(library, &release.into(), index + i);
                 }
             },
             &DimpleEntity::Release(release) => {
                 for (i, track) in release.tracks(library).iter().enumerate() {
-                    self.insert(library, &DimpleEntity::Track(track), index + i);
+                    self.insert(library, &track.into(), index + i);
                 }
             },
             &DimpleEntity::Track(track) => {
@@ -145,7 +145,7 @@ mod tests {
         let playlist = library.save(&Playlist::default());
         for _ in 0..20 {
             let track = library.save(&Track::default());
-            playlist.append(&library, &DimpleEntity::Track(&track));
+            playlist.append(&library, &track.into());
         }
         let playlist = Playlist::get(&library, &playlist.id.unwrap()).unwrap();
         assert!(playlist.len(&library) == 20);
@@ -186,12 +186,12 @@ mod tests {
             title: Some("track5".to_string()),
             ..Default::default()
         }.save(&library);
-        playlist.append(&library, &DimpleEntity::Track(&track1));
-        playlist.append(&library, &DimpleEntity::Track(&track2));
-        playlist.append(&library, &DimpleEntity::Track(&track3));
-        playlist.insert(&library, &DimpleEntity::Track(&track4), 1);
-        playlist.insert(&library, &DimpleEntity::Track(&track5), 0);
-        playlist.append(&library, &DimpleEntity::Track(&track1));
+        playlist.append(&library, &DimpleEntity::from(&track1));
+        playlist.append(&library, &DimpleEntity::from(&track2));
+        playlist.append(&library, &DimpleEntity::from(&track3));
+        playlist.insert(&library, &track4.into(), 1);
+        playlist.insert(&library, &track5.into(), 0);
+        playlist.append(&library, &DimpleEntity::from(&track1));
         // TODO finish these tests
         // dbg!(PlaylistItem::list(&library));
         // dbg!(playlist.tracks(&library).iter().map(|t| t.title.clone()).collect::<Vec<_>>());
@@ -212,7 +212,7 @@ mod tests {
             }.save(&library);
         }
         let playlist = Playlist::default().save(&library);
-        playlist.insert(&library, &DimpleEntity::Release(&release), 1);
+        playlist.insert(&library, &release.into(), 1);
         // TODO finish these tests
         // dbg!(PlaylistItem::list(&library));
         // dbg!(playlist.tracks(&library).iter().map(|t| t.title.clone()).collect::<Vec<_>>());

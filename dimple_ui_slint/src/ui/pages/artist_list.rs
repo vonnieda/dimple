@@ -43,7 +43,7 @@ fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {
     artists.iter().cloned().enumerate()
         .map(|(index, artist)| {
             let mut card: CardAdapter = artist_card(&artist);
-            card.image.image = images.lazy_get(&DimpleEntity::Artist(&artist), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&DimpleEntity::from(&artist), 200, 200, move |ui, image| {
                 let mut card = ui.get_artist_list().cards.row_data(index).unwrap();
                 card.image.image = image;
                 ui.get_artist_list().cards.set_row_data(index, card);

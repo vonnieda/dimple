@@ -57,7 +57,7 @@ fn update_model(app: &App) {
             let images = app.images.clone();
             ui.upgrade_in_event_loop(move |ui| {
                 let mut card: CardAdapter = genre.clone().into();                
-                card.image.image = app.images.lazy_get(&DimpleEntity::Genre(&genre), 275, 275, |ui, image| {
+                card.image.image = app.images.lazy_get(&DimpleEntity::from(&genre), 275, 275, |ui, image| {
                     let mut card = ui.global::<GenreDetailsAdapter>().get_card();
                     card.image.image = image;
                     ui.global::<GenreDetailsAdapter>().set_card(card);

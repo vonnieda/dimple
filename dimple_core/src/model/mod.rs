@@ -55,6 +55,8 @@ pub use playlist_item::PlaylistItem;
 
 use crate::library::Library;
 
+// TODO rename EntityBasics, or maybe get rid of. library interface is fine
+// and it's annoying doing it two ways
 pub trait ModelBasics<T> {
     fn get(library: &Library, key: &str) -> Option<T>;
     fn list(library: &Library) -> Vec<T>;
@@ -85,17 +87,16 @@ impl <T: Entity> ModelBasics<T> for T {
     }
 }
 
-// TODO okay, instead of this, try making a trait like CanBeInPlaylist and THAT
-// can just return whatever it needs?
-pub enum DimpleEntity<'a> {
-    Artist(&'a Artist),
-    Track(&'a Track),
-    Genre(&'a Genre),
-    Release(&'a Release),
-    Playlist(&'a Playlist),
+#[derive(Clone, Debug, PartialEq)]
+pub enum DimpleEntity {
+    Artist(Artist),
+    Track(Track),
+    Genre(Genre),
+    Release(Release),
+    Playlist(Playlist),
 }
 
-impl DimpleEntity<'_> {
+impl DimpleEntity {
     pub fn id(&self) -> String {
         match self {
             DimpleEntity::Artist(a) => a.id.clone().unwrap(),
@@ -105,6 +106,41 @@ impl DimpleEntity<'_> {
             DimpleEntity::Playlist(playlist) => playlist.id.clone().unwrap(),
         }
     }
+
+    pub fn type_name(&self) -> String {
+        match self {
+            DimpleEntity::Artist(a) => "Artist".to_string(),
+            DimpleEntity::Track(t) => "Track".to_string(),
+            DimpleEntity::Genre(t) => "Genre".to_string(),
+            DimpleEntity::Release(t) => "Release".to_string(),
+            DimpleEntity::Playlist(t) => "Playlist".to_string(),
+        }
+    }
 }
 
+macro_rules! impl_from_for_dimple_entity {
+      ($($type:ty => $variant:ident),+) => {
+          $(
+              impl From<&$type> for DimpleEntity {
+                  fn from(value: &$type) -> Self {
+                      DimpleEntity::$variant(value.clone())
+                  }
+              }
+
+              impl From<$type> for DimpleEntity {
+                  fn from(value: $type) -> Self {
+                      DimpleEntity::$variant(value)
+                  }
+              }
+          )+
+      };
+  }
+
+impl_from_for_dimple_entity! {
+    Artist => Artist,
+    Track => Track,
+    Genre => Genre,
+    Release => Release,
+    Playlist => Playlist
+}
 

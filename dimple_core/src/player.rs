@@ -86,13 +86,13 @@ impl Player {
 
     pub fn enqueue(&self, key: &str, when: PlayWhen) {
         if let Some(model) = Artist::get(&self.library, key) {
-            self.enqueue_helper(&DimpleEntity::Artist(&model), when);
+            self.enqueue_helper(&model.into(), when);
         }
         else if let Some(model) = Release::get(&self.library, key) {
-            self.enqueue_helper(&DimpleEntity::Release(&model), when);
+            self.enqueue_helper(&model.into(), when);
         }
         else if let Some(model) = Track::get(&self.library, key) {
-            self.enqueue_helper(&DimpleEntity::Track(&model), when);
+            self.enqueue_helper(&model.into(), when);
         }
     }
 
@@ -428,7 +428,7 @@ mod tests {
         library.import("tests/data/media_files");
         let tracks = Track::list(&library);
         for track in &tracks[0..3] {
-            player.play_later(&DimpleEntity::Track(&track));
+            player.play_later(&track.into());
         }
         assert!(!player.is_playing());
         player.play();

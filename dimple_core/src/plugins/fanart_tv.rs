@@ -49,7 +49,7 @@ impl Plugin for FanartTvPlugin {
 
     fn image(&self, host: &Plugins, _library: &Library, model: &DimpleEntity) -> Result<Option<Dimage>, anyhow::Error> {
         match model {
-            &DimpleEntity::Artist(artist) => {
+            DimpleEntity::Artist(artist) => {
                 let mbid = artist.musicbrainz_id.clone().ok_or_else(|| Error::msg("mbid is required"))?;
                 let url = format!("https://webservice.fanart.tv/v3/music/{}?api_key={}", mbid, self.api_key);
                 let response = host.get(&url)?;
@@ -104,7 +104,7 @@ mod tests {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
         });
-        let image = plugin.image(&plugins, &library, &DimpleEntity::Artist(&artist)).unwrap().unwrap();
+        let image = plugin.image(&plugins, &library, &artist.into()).unwrap().unwrap();
         assert!(image.width == 1000);
     }
 }

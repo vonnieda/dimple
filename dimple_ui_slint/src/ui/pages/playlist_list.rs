@@ -25,7 +25,7 @@ pub fn playlist_list(app: &App) {
             let cards: Vec<CardAdapter> = playlists.iter().cloned().enumerate()
                 .map(|(index, playlist)| {
                     let mut card: CardAdapter = playlist.clone().into();
-                    card.image.image = images.lazy_get(&DimpleEntity::Playlist(&playlist), 200, 200, move |ui, image| {
+                    card.image.image = images.lazy_get(&DimpleEntity::from(&playlist), 200, 200, move |ui, image| {
                         let mut card = ui.global::<PlaylistListAdapter>().get_cards().row_data(index).unwrap();
                         card.image.image = image;
                         ui.global::<PlaylistListAdapter>().get_cards().set_row_data(index, card);

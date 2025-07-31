@@ -56,29 +56,29 @@ impl ImageMangler {
             return Image::from_rgba8_premultiplied(buffer.clone())
         }
         let images = self.clone();
-        let model1 = model;
+        let model1 = model.clone();
         let ui = self.ui.clone();
-        // self.threadpool.execute(move || {
-        //     if let Some(dyn_image) = images.librarian.image(&model1) {
-        //         let dyn_image = resize(dyn_image, width, height);
-        //         images.cache_set(&cache_key, &dyn_image);
-        //         let buffer = dynamic_to_buffer(&dyn_image);
-        //         ui.upgrade_in_event_loop(move |ui| {
-        //             let image = Image::from_rgba8_premultiplied(buffer);
-        //             set_image(ui, image);
-        //         }).unwrap();                    
-        //     }
-        // });
+        self.threadpool.execute(move || {
+            if let Some(dyn_image) = images.librarian.image(&model1) {
+                let dyn_image = resize(dyn_image, width, height);
+                images.cache_set(&cache_key, &dyn_image);
+                let buffer = dynamic_to_buffer(&dyn_image);
+                ui.upgrade_in_event_loop(move |ui| {
+                    let image = Image::from_rgba8_premultiplied(buffer);
+                    set_image(ui, image);
+                }).unwrap();                    
+            }
+        });
         Image::from_rgba8_premultiplied(self.get_model_placeholder(model))
     }
 
     pub fn get_model_placeholder(&self, model: &DimpleEntity) -> SharedPixelBuffer<Rgba8Pixel> {
         match model {
-            DimpleEntity::Artist(artist) => self.artist_placeholder.lock().unwrap().clone(),
-            DimpleEntity::Track(track) => self.track_placeholder.lock().unwrap().clone(),
-            DimpleEntity::Genre(genre) => self.genre_placeholder.lock().unwrap().clone(),
-            DimpleEntity::Release(release) => self.release_placeholder.lock().unwrap().clone(),
-            DimpleEntity::Playlist(playlist) => self.playlist_placeholder.lock().unwrap().clone(),
+            DimpleEntity::Artist(_artist) => self.artist_placeholder.lock().unwrap().clone(),
+            DimpleEntity::Track(_track) => self.track_placeholder.lock().unwrap().clone(),
+            DimpleEntity::Genre(_genre) => self.genre_placeholder.lock().unwrap().clone(),
+            DimpleEntity::Release(_release) => self.release_placeholder.lock().unwrap().clone(),
+            DimpleEntity::Playlist(_playlist) => self.playlist_placeholder.lock().unwrap().clone(),
         }
     }
 

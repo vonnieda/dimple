@@ -104,14 +104,14 @@ impl PlayerBar {
         let next_track = player.next_queue_track().unwrap_or_default();
         self.app.ui.upgrade_in_event_loop(move |ui| {
             let mut now_playing_track = track_card(&current_track);
-            now_playing_track.image.image = images.lazy_get(&DimpleEntity::Track(&current_track), 120, 120, |ui, image| {
+            now_playing_track.image.image = images.lazy_get(&DimpleEntity::from(&current_track), 120, 120, |ui, image| {
                 let mut card = ui.global::<PlayerBarAdapter>().get_now_playing_track();
                 card.image.image = image;
                 ui.global::<PlayerBarAdapter>().set_now_playing_track(card);
             });
     
             let mut up_next_track = track_card(&next_track);
-            up_next_track.image.image = images.lazy_get(&DimpleEntity::Track(&current_track), 120, 120, |ui, image| {
+            up_next_track.image.image = images.lazy_get(&DimpleEntity::from(&current_track), 120, 120, |ui, image| {
                 let mut card = ui.global::<PlayerBarAdapter>().get_up_next_track();
                 card.image.image = image;
                 ui.global::<PlayerBarAdapter>().set_up_next_track(card);

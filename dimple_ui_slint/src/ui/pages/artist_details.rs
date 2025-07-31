@@ -45,7 +45,7 @@ pub fn artist_details(url: &str, app: &App) {
         let key2 = key1.clone();
         std::thread::spawn(move || {
             if let Some(artist) = Artist::get(&app2.library, &key2) {
-                librarian::refresh_metadata(&app2.library, &app2.plugins, &DimpleEntity::Artist(&artist));
+                librarian::refresh_metadata(&app2.library, &app2.plugins, &DimpleEntity::from(&artist));
             }
         });    
     }).unwrap();
@@ -69,7 +69,7 @@ fn update_model(app: &App) {
             let images = app.images.clone();
             ui.upgrade_in_event_loop(move |ui| {
                 let mut card: CardAdapter = artist.clone().into();                
-                card.image.image = app.images.lazy_get(&DimpleEntity::Artist(&artist), 275, 275, |ui, image| {
+                card.image.image = app.images.lazy_get(&DimpleEntity::from(&artist), 275, 275, |ui, image| {
                     let mut card = ui.global::<ArtistDetailsAdapter>().get_card();
                     card.image.image = image;
                     ui.global::<ArtistDetailsAdapter>().set_card(card);
@@ -111,7 +111,7 @@ fn release_cards(images: &ImageMangler, releases: &[Release]) -> Vec<CardAdapter
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release);
-            card.image.image = images.lazy_get(&DimpleEntity::Release(&release), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&DimpleEntity::from(&release), 200, 200, move |ui, image| {
                 let adapter = ui.global::<ArtistDetailsAdapter>();
                 let mut card = adapter.get_releases().row_data(index).unwrap();
                 card.image.image = image;

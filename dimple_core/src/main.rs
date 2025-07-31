@@ -110,7 +110,7 @@ fn main() {
     else if command == "add" {
         let track_key = &args[2];
         let track = Track::get(&library, &track_key).unwrap();
-        player.queue().append(&library, &DimpleEntity::Track(&track));
+        player.queue().append(&library, &track.into());
         for track in player.queue().tracks(&library) {
             print_track(&library, &track);
         }
