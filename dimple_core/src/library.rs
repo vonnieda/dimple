@@ -182,6 +182,7 @@ impl Library {
                     }
                 }
             }
+            _ => ()
         }
         None
     }

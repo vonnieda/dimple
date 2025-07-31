@@ -2,6 +2,7 @@ use crate::ui::app_window_controller::App;
 use crate::ui::CardAdapter;
 use crate::ui::CardGridAdapter;
 use crate::ui::Page;
+use dimple_core::model::DimpleEntity;
 use dimple_core::model::Playlist;
 use slint::Model as _;
 use slint::ModelRc;
@@ -26,7 +27,7 @@ pub fn playlist_list(app: &App) {
             let cards: Vec<CardAdapter> = playlists.iter().cloned().enumerate()
                 .map(|(index, playlist)| {
                     let mut card: CardAdapter = playlist.clone().into();
-                    card.image.image = images.lazy_get(playlist, 200, 200, move |ui, image| {
+                    card.image.image = images.lazy_get(&DimpleEntity::Playlist(&playlist), 200, 200, move |ui, image| {
                         let mut card = ui.global::<PlaylistListAdapter>().get_cards().row_data(index).unwrap();
                         card.image.image = image;
                         ui.global::<PlaylistListAdapter>().get_cards().set_row_data(index, card);
@@ -47,6 +48,6 @@ fn new_playlist(_app: &App) {
     });
     let app = _app.clone();
     _app.ui.upgrade_in_event_loop(move |_ui| {
-        app.navigate(format!("dimple://playlist/{}", playlist.key.unwrap()).into());
+        app.navigate(format!("dimple://playlist/{}", playlist.id.unwrap()).into());
     }).unwrap();
 }

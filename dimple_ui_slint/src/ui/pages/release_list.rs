@@ -5,6 +5,7 @@ use crate::ui::CardGridAdapter;
 use crate::ui::Page;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
+use dimple_core::model::DimpleEntity;
 use dimple_core::model::Release;
 use dimple_core::model::ModelBasics;
 use slint::ComponentHandle;
@@ -48,7 +49,7 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            card.image.image = images.lazy_get(release.clone(), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&DimpleEntity::Release(&release), 200, 200, move |ui, image| {
                 let adapter = ui.global::<ReleaseListAdapter>();
                 let mut card = adapter.get_cards().row_data(index).unwrap();
                 card.image.image = image;
@@ -62,21 +63,21 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
 fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
     let release = release.clone();
     CardAdapter {
-        key: release.key.clone().unwrap_or_default().into(),        
+        key: release.id.clone().unwrap_or_default().into(),        
         image: ImageLinkAdapter {
             image: Default::default(),
             name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         title: LinkAdapter {
             name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         sub_title: LinkAdapter {
             name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
     }

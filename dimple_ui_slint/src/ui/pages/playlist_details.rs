@@ -6,6 +6,7 @@ use crate::ui::app_window_controller::App;
 use crate::ui::Page;
 use crate::ui::Navigator;
 use dimple_core::library::Library;
+use dimple_core::model::DimpleEntity;
 use dimple_core::model::Playlist;
 use dimple_core::model::Track;
 use slint::Model as _;
@@ -96,7 +97,7 @@ fn set_name(app: &App, key: &str, name: &str) {
 
 fn play_now(app: &App, key: &str) {
     let playlist = app.library.get::<Playlist>(key).unwrap();
-    app.player.play_now(&playlist);
+    app.player.play_now(&DimpleEntity::Playlist(&playlist));
 }
 
 fn delete(app: &App, key: &str) {

@@ -4,8 +4,7 @@ use std::sync::Mutex;
 
 use dimple_core::librarian::Librarian;
 use dimple_core::library::Library;
-use dimple_core::model::LibraryModel;
-use dimple_core::model::Model;
+use dimple_core::model::DimpleEntity;
 use fast_image_resize::Resizer;
 use image::DynamicImage;
 use image::ImageFormat;
@@ -50,10 +49,9 @@ impl ImageMangler {
         images
     }
 
-    pub fn lazy_get<F>(&self, model: impl LibraryModel + 'static, width: u32, height: u32, set_image: F) -> slint::Image
+    pub fn lazy_get<F>(&self, model: &DimpleEntity, width: u32, height: u32, set_image: F) -> slint::Image
             where F: Fn(AppWindow, Image) + Send + Copy + 'static {
-        let cache_key = format!("{}:{}:{}:{}", 
-            model.type_name(), model.key().unwrap(), width, height);
+        let cache_key = format!("{}:{}:{}", model.id(), width, height);
         if let Some(dyn_image) = self.cache_get(&cache_key) {
             let buffer = dynamic_to_buffer(&dyn_image);
             return Image::from_rgba8_premultiplied(buffer.clone())
@@ -61,28 +59,27 @@ impl ImageMangler {
         let images = self.clone();
         let model1 = model.clone();
         let ui = self.ui.clone();
-        self.threadpool.execute(move || {
-            if let Some(dyn_image) = images.librarian.image(&model1) {
-                let dyn_image = resize(dyn_image, width, height);
-                images.cache_set(&cache_key, &dyn_image);
-                let buffer = dynamic_to_buffer(&dyn_image);
-                ui.upgrade_in_event_loop(move |ui| {
-                    let image = Image::from_rgba8_premultiplied(buffer);
-                    set_image(ui, image);
-                }).unwrap();                    
-            }
-        });
+        // self.threadpool.execute(move || {
+        //     if let Some(dyn_image) = images.librarian.image(&model1) {
+        //         let dyn_image = resize(dyn_image, width, height);
+        //         images.cache_set(&cache_key, &dyn_image);
+        //         let buffer = dynamic_to_buffer(&dyn_image);
+        //         ui.upgrade_in_event_loop(move |ui| {
+        //             let image = Image::from_rgba8_premultiplied(buffer);
+        //             set_image(ui, image);
+        //         }).unwrap();                    
+        //     }
+        // });
         Image::from_rgba8_premultiplied(self.get_model_placeholder(model))
     }
 
-    pub fn get_model_placeholder(&self, model: impl Model) -> SharedPixelBuffer<Rgba8Pixel> {
-        match model.type_name().as_str() {
-            "Artist" => return self.artist_placeholder.lock().unwrap().clone(),
-            "Release" => return self.release_placeholder.lock().unwrap().clone(),
-            "Track" => return self.track_placeholder.lock().unwrap().clone(),
-            "Genre" => return self.genre_placeholder.lock().unwrap().clone(),
-            "Playlist" => return self.playlist_placeholder.lock().unwrap().clone(),
-            _ => return self.other_placeholder.lock().unwrap().clone(),
+    pub fn get_model_placeholder(&self, model: &DimpleEntity) -> SharedPixelBuffer<Rgba8Pixel> {
+        match model {
+            DimpleEntity::Artist(artist) => self.artist_placeholder.lock().unwrap().clone(),
+            DimpleEntity::Track(track) => self.track_placeholder.lock().unwrap().clone(),
+            DimpleEntity::Genre(genre) => self.genre_placeholder.lock().unwrap().clone(),
+            DimpleEntity::Release(release) => self.release_placeholder.lock().unwrap().clone(),
+            DimpleEntity::Playlist(playlist) => self.playlist_placeholder.lock().unwrap().clone(),
         }
     }
 

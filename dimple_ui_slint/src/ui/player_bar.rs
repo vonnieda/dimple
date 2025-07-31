@@ -5,6 +5,7 @@ use crate::ui::LinkAdapter;
 use crate::ui::PlayerBarAdapter;
 
 use dimple_core::model::Artist;
+use dimple_core::model::DimpleEntity;
 use dimple_core::model::Release;
 use dimple_core::player::PlayerEvent;
 use dimple_core::player::Song;
@@ -103,14 +104,14 @@ impl PlayerBar {
         let next_track = player.next_queue_track().unwrap_or_default();
         self.app.ui.upgrade_in_event_loop(move |ui| {
             let mut now_playing_track = track_card(&current_track);
-            now_playing_track.image.image = images.lazy_get(current_track.clone(), 120, 120, |ui, image| {
+            now_playing_track.image.image = images.lazy_get(&DimpleEntity::Track(&current_track), 120, 120, |ui, image| {
                 let mut card = ui.global::<PlayerBarAdapter>().get_now_playing_track();
                 card.image.image = image;
                 ui.global::<PlayerBarAdapter>().set_now_playing_track(card);
             });
     
             let mut up_next_track = track_card(&next_track);
-            up_next_track.image.image = images.lazy_get(current_track.clone(), 120, 120, |ui, image| {
+            up_next_track.image.image = images.lazy_get(&DimpleEntity::Track(&current_track), 120, 120, |ui, image| {
                 let mut card = ui.global::<PlayerBarAdapter>().get_up_next_track();
                 card.image.image = image;
                 ui.global::<PlayerBarAdapter>().set_up_next_track(card);
@@ -165,19 +166,19 @@ impl From<PlayerState> for crate::ui::PlayerState {
 fn artist_card(artist: &Artist) -> CardAdapter {
     let artist = artist.clone();
     CardAdapter {
-        key: artist.key.clone().unwrap_or_default().into(),
+        key: artist.id.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         title: LinkAdapter {
             name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         sub_title: LinkAdapter {
             name: artist.disambiguation.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
     }
 }
@@ -185,19 +186,19 @@ fn artist_card(artist: &Artist) -> CardAdapter {
 fn release_card(release: &Release) -> CardAdapter {
     let release = release.clone();
     CardAdapter {
-        key: release.key.clone().unwrap_or_default().into(),
+        key: release.id.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
         },
         title: LinkAdapter {
             name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
         },
         sub_title: LinkAdapter {
             name: release.date.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
         },
     }
 }
@@ -205,19 +206,19 @@ fn release_card(release: &Release) -> CardAdapter {
 fn track_card(track: &Track) -> CardAdapter {
     let track = track.clone();
     CardAdapter {
-        key: track.key.clone().unwrap_or_default().into(),
+        key: track.id.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: track.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://track/{}", track.id.clone().unwrap_or_default()).into(),
         },
         title: LinkAdapter {
             name: track.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://track/{}", track.id.clone().unwrap_or_default()).into(),
         },
         sub_title: LinkAdapter {
             name: "Track".into(),
-            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://track/{}", track.id.clone().unwrap_or_default()).into(),
         },
     }
 }

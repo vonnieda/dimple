@@ -92,15 +92,19 @@ pub enum DimpleEntity<'a> {
     Track(&'a Track),
     Genre(&'a Genre),
     Release(&'a Release),
+    Playlist(&'a Playlist),
 }
 
 impl DimpleEntity<'_> {
     pub fn id(&self) -> String {
         match self {
-            &DimpleEntity::Artist(a) => a.id.clone().unwrap(),
-            &DimpleEntity::Track(t) => t.id.clone().unwrap(),
-            &DimpleEntity::Genre(g) => g.id.clone().unwrap(),
-            &DimpleEntity::Release(r) => r.id.clone().unwrap(),
+            DimpleEntity::Artist(a) => a.id.clone().unwrap(),
+            DimpleEntity::Track(t) => t.id.clone().unwrap(),
+            DimpleEntity::Genre(g) => g.id.clone().unwrap(),
+            DimpleEntity::Release(r) => r.id.clone().unwrap(),
+            DimpleEntity::Playlist(playlist) => playlist.id.clone().unwrap(),
         }
     }
 }
+
+

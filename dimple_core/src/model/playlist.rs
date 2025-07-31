@@ -54,10 +54,10 @@ impl Playlist {
         self.insert(library, model, self.len(library));
     }
 
-        // TODO I just had an idea for managing the positioning of albums in
-        // the queue. When queueing something, just queue all the tracks but 
-        // give each one a "grouping_id" and then when we encounter an item, 
-        // we can treat items with the same grouping_id as equivalent.
+    // TODO I just had an idea for managing the positioning of albums in
+    // the queue. When queueing something, just queue all the tracks but 
+    // give each one a "grouping_id" and then when we encounter an item, 
+    // we can treat items with the same grouping_id as equivalent.
     pub fn insert(&self, library: &Library, model: &DimpleEntity, index: usize) {
         match &model {
             &DimpleEntity::Artist(artist) => {
@@ -118,8 +118,8 @@ impl Playlist {
     }
 
     pub fn clear(&self, library: &Library) {
-        library.conn().execute("DELETE FROM PlaylistItem
-            WHERE playlist_key = ?1", (self.key.clone().unwrap(),)).unwrap();
+        // library.conn().execute("DELETE FROM PlaylistItem
+        //     WHERE playlist_id = ?1", (self.id.clone().unwrap(),)).unwrap();
     }    
 }
 

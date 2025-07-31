@@ -1826,14 +1826,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dimple_core_macro"
-version = "0.1.0"
-dependencies = [
- "quote",
- "syn 2.0.101",
-]
-
-[[package]]
 name = "dimple_db"
 version = "0.1.0"
 dependencies = [
