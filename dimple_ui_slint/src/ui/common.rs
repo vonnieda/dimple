@@ -10,19 +10,19 @@ use crate::ui::LinkAdapter;
 impl From<Artist> for CardAdapter {
     fn from(value: Artist) -> Self {
         CardAdapter {
-            key: value.key.clone().unwrap_or_default().into(),
+            key: value.id.clone().unwrap_or_default().into(),
             image: ImageLinkAdapter {
                 image: Default::default(),
                 name: value.name.clone().unwrap_or_default().into(),
-                url: format!("dimple://artist/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://artist/{}", value.id.clone().unwrap_or_default()).into(),
             },
             title: LinkAdapter {
                 name: value.name.clone().unwrap_or_default().into(),
-                url: format!("dimple://artist/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://artist/{}", value.id.clone().unwrap_or_default()).into(),
             },
             sub_title: LinkAdapter {
                 name: value.disambiguation.clone().unwrap_or("Artist".to_string()).into(),
-                url: format!("dimple://artist/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://artist/{}", value.id.clone().unwrap_or_default()).into(),
             },
         }
     }
@@ -31,19 +31,19 @@ impl From<Artist> for CardAdapter {
 impl From<Release> for CardAdapter {
     fn from(value: Release) -> Self {
         CardAdapter {
-            key: value.key.clone().unwrap_or_default().into(),
+            key: value.id.clone().unwrap_or_default().into(),
             image: ImageLinkAdapter {
                 image: Default::default(),
                 name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://release/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://release/{}", value.id.clone().unwrap_or_default()).into(),
             },
             title: LinkAdapter {
                 name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://release/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://release/{}", value.id.clone().unwrap_or_default()).into(),
             },
             sub_title: LinkAdapter {
                 name: format!("{} {}", value.date.unwrap_or_default(), value.country.unwrap_or_default()).into(),
-                url: format!("dimple://release/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://release/{}", value.id.clone().unwrap_or_default()).into(),
             },
         }
     }
@@ -52,19 +52,19 @@ impl From<Release> for CardAdapter {
 impl From<Genre> for CardAdapter {
     fn from(value: Genre) -> Self {
         CardAdapter {
-            key: value.key.clone().unwrap_or_default().into(),
+            key: value.id.clone().unwrap_or_default().into(),
             image: ImageLinkAdapter {
                 image: Default::default(),
                 name: value.name.clone().unwrap_or_default().into(),
-                url: format!("dimple://genre/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://genre/{}", value.id.clone().unwrap_or_default()).into(),
             },
             title: LinkAdapter {
                 name: value.name.clone().unwrap_or_default().into(),
-                url: format!("dimple://genre/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://genre/{}", value.id.clone().unwrap_or_default()).into(),
             },
             sub_title: LinkAdapter {
                 name: value.disambiguation.unwrap_or_default().into(),
-                url: format!("dimple://genre/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://genre/{}", value.id.clone().unwrap_or_default()).into(),
             },
         }
     }
@@ -73,20 +73,20 @@ impl From<Genre> for CardAdapter {
 impl From<Playlist> for CardAdapter {
     fn from(value: Playlist) -> Self {
         CardAdapter {
-            key: value.key.clone().unwrap_or_default().into(),
+            key: value.id.clone().unwrap_or_default().into(),
             image: ImageLinkAdapter {
                 image: Default::default(),
                 name: value.name.clone().unwrap_or_default().into(),
-                url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://playlist/{}", value.id.clone().unwrap_or_default()).into(),
             },
             title: LinkAdapter {
                 name: value.name.clone().unwrap_or_default().into(),
-                url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://playlist/{}", value.id.clone().unwrap_or_default()).into(),
             },
             ..Default::default()
             // sub_title: LinkAdapter {
             //     name: value.disambiguation.unwrap_or_default().into(),
-            //     url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
+            //     url: format!("dimple://playlist/{}", value.id.clone().unwrap_or_default()).into(),
             // },
         }
     }
@@ -98,16 +98,16 @@ impl From<Track> for CardAdapter {
             image: ImageLinkAdapter {
                 image: Default::default(),
                 name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://track/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://track/{}", value.id.clone().unwrap_or_default()).into(),
             },
             title: LinkAdapter {
                 name: value.title.clone().unwrap_or_default().into(),
-                url: format!("dimple://track/{}", value.key.clone().unwrap_or_default()).into(),
+                url: format!("dimple://track/{}", value.id.clone().unwrap_or_default()).into(),
             },
             ..Default::default()
             // sub_title: LinkAdapter {
             //     name: value.disambiguation.unwrap_or_default().into(),
-            //     url: format!("dimple://playlist/{}", value.key.clone().unwrap_or_default()).into(),
+            //     url: format!("dimple://playlist/{}", value.id.clone().unwrap_or_default()).into(),
             // },
         }
     }

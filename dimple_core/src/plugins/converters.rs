@@ -32,7 +32,7 @@ impl From<ArtistConverter> for ArtistMetadata {
             artist: Artist {
                 country: value.0.country,
                 disambiguation: none_if_empty(value.0.disambiguation),
-                key: None,
+                id: None,
                 musicbrainz_id: Some(value.0.id.clone()),
                 name: none_if_empty(value.0.name),
                 summary: None,
@@ -59,7 +59,7 @@ impl From<ArtistConverter> for ArtistMetadata {
                         .map(|mbid| format!("https://musicbrainz.org/artist/{}", mbid)),
                 )
                 .map(|s| Link {
-                    key: None,
+                    id: None,
                     name: None,
                     url: s,
                 })
@@ -85,7 +85,7 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                 country: value.0.country,
                 date: value.0.date.map(|f| f.to_string()),
                 disambiguation: value.0.disambiguation,
-                key: None,
+                id: None,
                 musicbrainz_id: Some(value.0.id.clone()),
                 title: none_if_empty(value.0.title),
                 packaging: value.0.packaging.map(|f| format!("{:?}", f)),
@@ -121,7 +121,7 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                         .map(|mbid| format!("https://musicbrainz.org/release/{}", mbid)),
                 )
                 .map(|s| Link {
-                    key: None,
+                    id: None,
                     name: None,
                     url: s,
                 })
@@ -149,7 +149,7 @@ impl From<TrackConverter> for TrackMetadata {
                 // genres: value.0.recording.genres.iter().flatten()
                 //     .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
                 //     .collect(),
-                key: None,
+                id: None,
                 musicbrainz_id: Some(value.0.id),
                 // length: value.0.length,
                 // number: u32::from_str_radix(&value.0.number, 10).ok(),
@@ -184,7 +184,7 @@ impl From<GenreConverter> for crate::model::Genre {
     fn from(value: GenreConverter) -> Self {
         crate::model::Genre {
             disambiguation: None,
-            key: None,
+            id: None,
             musicbrainz_id: value.0.id,
             //     ..Default::default()
             // },

@@ -2,9 +2,11 @@ pub mod track_downloader;
 
 use std::{sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, time::{Duration, Instant}};
 
+use anyhow::Result;
+use dimple_db::db::Entity;
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
-use crate::{library::Library, model::{Artist, Event, LibraryModel, ModelBasics as _, Playlist, Release, Track}, notifier::Notifier};
+use crate::{library::Library, model::{Artist, DimpleEntity, Event, ModelBasics as _, Playlist, Release, Track}, notifier::Notifier};
 
 pub use playback_rs::Song;
 
@@ -64,7 +66,7 @@ impl Player {
     /// to the newly added item. If the item currently playing is a Release,
     /// for instance, then the rest of the release will be skipped, not just
     /// the current track.
-    pub fn play_now(&self, model: &impl LibraryModel) {
+    pub fn play_now(&self, model: &DimpleEntity) {
         let index = self.current_queue_index() + 1;
         self.queue().insert(&self.library, model, index);
         self.set_queue_index(index);
@@ -72,26 +74,26 @@ impl Player {
     }
 
     /// Insert into the queue after the current item.
-    pub fn play_next(&self, model: &impl LibraryModel) {
+    pub fn play_next(&self, model: &DimpleEntity) {
         self.queue().insert(&self.library, model, self.current_queue_index() + 1);
         self.play();
     }
 
     /// Append to the end of the queue.
-    pub fn play_later(&self, model: &impl LibraryModel) {
+    pub fn play_later(&self, model: &DimpleEntity) {
         self.queue().append(&self.library, model);
         self.play();
     }
 
     pub fn enqueue(&self, key: &str, when: PlayWhen) {
         if let Some(model) = Artist::get(&self.library, key) {
-            self.enqueue_helper(&model, when);
+            self.enqueue_helper(&model.into(), when);
         }
         else if let Some(model) = Release::get(&self.library, key) {
-            self.enqueue_helper(&model, when);
+            self.enqueue_helper(&model.into(), when);
         }
         else if let Some(model) = Track::get(&self.library, key) {
-            self.enqueue_helper(&model, when);
+            self.enqueue_helper(&model.into(), when);
         }
     }
 
@@ -156,13 +158,13 @@ impl Player {
     /// such so that that metadata is always available. The play queue
     /// key can live in Library, and I suppose Library::default_play_queue()
     pub fn queue(&self) -> Playlist {
-        let key = format!("__dimple_system_play_queue_{}", self.library.id());
-        let playlist = match self.library.get::<Playlist>(&key) {
+        let id = format!("__dimple_system_play_queue_{}", self.library.id());
+        let playlist = match self.library.get::<Playlist>(&id) {
             Some(play_queue) => play_queue,
-            None => self.library.insert(&Playlist {
-                key: Some(key.to_string()),
+            None => self.library.save(&Playlist {
+                id: Some(id.to_string()),
                 ..Default::default()
-            })
+            }).unwrap()
         };
         playlist
     }
@@ -179,7 +181,7 @@ impl Player {
         self.queue().tracks(&self.library).get(self.current_queue_index() + 1).cloned()
     }
 
-    fn enqueue_helper(&self, model: &impl LibraryModel, when: PlayWhen) {
+    fn enqueue_helper(&self, model: &DimpleEntity, when: PlayWhen) {
         match when {
             PlayWhen::Now => self.play_now(model),
             PlayWhen::Next => self.play_next(model),
@@ -262,7 +264,7 @@ impl Player {
             // storing the history I'm listening to.
             let timestamp = chrono::Utc::now();
             self.library.save(&Event {
-                key: None,
+                id: None,
                 timestamp: timestamp,
                 event_type: event_type.to_string(),
                 artist: current_track.artist_name(&self.library).clone(),
@@ -413,7 +415,7 @@ enum PlayerCommand {
 mod tests {
     use std::{sync::Arc, time::Instant};
 
-    use crate::{library::Library, model::{ModelBasics as _, Track}};
+    use crate::{library::Library, model::{DimpleEntity, ModelBasics as _, Track}};
 
     use super::Player;
 
@@ -427,7 +429,7 @@ mod tests {
         library.import("tests/data/media_files");
         let tracks = Track::list(&library);
         for track in &tracks[0..3] {
-            player.play_later(track);
+            player.play_later(&track.into());
         }
         assert!(!player.is_playing());
         player.play();

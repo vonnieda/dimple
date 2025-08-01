@@ -1,14 +1,15 @@
-use dimple_core_macro::ModelSupport;
+use dimple_db::db::Entity;
 use fractional_index::FractionalIndex;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::library::Library;
+use crate::{library::Library, model::DimpleEntity};
 use crate::model::ModelBasics as _;
 
 use super::{Artist, ModelBasics as _, PlaylistItem, Release, Track};
 
-#[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Playlist {
-    pub key: Option<String>,
+    pub id: Option<String>,
     pub name: Option<String>,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
@@ -32,53 +33,44 @@ impl Playlist {
         let sql = "
             SELECT Track.*
             FROM PlaylistItem
-            JOIN Track ON (Track.key = PlaylistItem.Track_key)
-            WHERE PlaylistItem.playlist_key = ?1
+            JOIN Track ON (Track.id = PlaylistItem.Track_id)
+            WHERE PlaylistItem.playlist_id = ?1
             ORDER BY PlaylistItem.ordinal ASC, PlaylistItem.rowid ASC
         ";
-        library.query(sql, (self.key.clone(),))
+        library.query(sql, (self.id.clone(),))
     }
 
     pub fn items(&self, library: &Library) -> Vec<PlaylistItem> {
         let sql = "
             SELECT PlaylistItem.*
             FROM PlaylistItem
-            WHERE PlaylistItem.playlist_key = ?1
+            WHERE PlaylistItem.playlist_id = ?1
             ORDER BY PlaylistItem.ordinal ASC, PlaylistItem.rowid ASC
         ";
-        library.query(sql, (self.key.clone(),))
+        library.query(sql, (self.id.clone(),))
     }
 
-    pub fn append(&self, library: &Library, model: &impl LibraryModel) {
+    pub fn append(&self, library: &Library, model: &DimpleEntity) {
         self.insert(library, model, self.len(library));
     }
 
-    pub fn insert(&self, library: &Library, model: &impl LibraryModel, index: usize) {
-        log::debug!("insert {} {:?} {} {}", 
-            model.type_name(), 
-            model.key(), 
-            index, 
-            self.len(library));
-        // TODO change to as_any()
-        // TODO I just had an idea for managing the positioning of albums in
-        // the queue. When queueing something, just queue all the tracks but 
-        // give each one a "grouping_id" and then when we encounter an item, 
-        // we can treat items with the same grouping_id as equivalent.
-        match model.type_name().as_str() {
-            "Artist" => {
-                let artist = Artist::get(library, &model.key().unwrap()).unwrap();
+    // TODO I just had an idea for managing the positioning of albums in
+    // the queue. When queueing something, just queue all the tracks but 
+    // give each one a "grouping_id" and then when we encounter an item, 
+    // we can treat items with the same grouping_id as equivalent.
+    pub fn insert(&self, library: &Library, model: &DimpleEntity, index: usize) {
+        match &model {
+            &DimpleEntity::Artist(artist) => {
                 for (i, release) in artist.releases(library).iter().enumerate() {
-                    self.insert(library, release, index + i);
+                    self.insert(library, &release.into(), index + i);
                 }
             },
-            "Release" => {
-                let release = Release::get(library, &model.key().unwrap()).unwrap();
+            &DimpleEntity::Release(release) => {
                 for (i, track) in release.tracks(library).iter().enumerate() {
-                    self.insert(library, track, index + i);
+                    self.insert(library, &track.into(), index + i);
                 }
             },
-            "Track" => {
-                let track = Track::get(library, &model.key().unwrap()).unwrap();
+            &DimpleEntity::Track(track) => {
                 let items = self.items(library);
                 let index = index.min(items.len());
                 let before = if index == 0 { 
@@ -91,10 +83,10 @@ impl Playlist {
                 let ordinal = Self::ordinal_between(&before, &after);
                 log::debug!("{:?} {:?} {}", &before, &after, ordinal);
                 let item = PlaylistItem {
-                    key: None,
+                    id: None,
                     ordinal,
-                    playlist_key: self.key.clone().unwrap(),
-                    track_key: track.key.clone().unwrap(),
+                    playlist_id: self.id.clone().unwrap(),
+                    track_id: track.id.clone().unwrap(),
                 };
                 let _item = library.save(&item);
             },
@@ -126,36 +118,36 @@ impl Playlist {
     }
 
     pub fn clear(&self, library: &Library) {
-        library.conn().execute("DELETE FROM PlaylistItem
-            WHERE playlist_key = ?1", (self.key.clone().unwrap(),)).unwrap();
+        // library.conn().execute("DELETE FROM PlaylistItem
+        //     WHERE playlist_id = ?1", (self.id.clone().unwrap(),)).unwrap();
     }    
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::{self, Library}, model::{Diff, Model, ModelBasics as _, Playlist, PlaylistItem, Release, Track}};
+    use crate::{library::{self, Library}, model::{playlist::DimpleEntity, ModelBasics as _, Playlist, PlaylistItem, Release, Track}};
 
     #[test]
     fn library_crud() {
         let library = Library::open_memory();
-        let mut model = library.save(&Playlist::default());
-        assert!(model.key.is_some());
+        let mut model = library.save(&Playlist::default()).unwrap();
+        assert!(model.id.is_some());
         assert!(model.name.is_none());
         model.name = Some("name".to_string());
-        let model = library.save(&model);
-        let model: Playlist = library.get(&model.key.unwrap()).unwrap();
+        let model = library.save(&model).unwrap();
+        let model: Playlist = library.get(&model.id.unwrap()).unwrap();
         assert!(model.name == Some("name".to_string()));
     }
 
     #[test]
     fn tracks() {
         let library = Library::open_memory();
-        let playlist = library.save(&Playlist::default());
+        let playlist = library.save(&Playlist::default()).unwrap();
         for _ in 0..20 {
-            let track = library.save(&Track::default());
-            playlist.append(&library, &track);
+            let track = library.save(&Track::default()).unwrap();
+            playlist.append(&library, &track.into());
         }
-        let playlist = Playlist::get(&library, &playlist.key.unwrap()).unwrap();
+        let playlist = Playlist::get(&library, &playlist.id.unwrap()).unwrap();
         assert!(playlist.len(&library) == 20);
     }
 
@@ -194,12 +186,12 @@ mod tests {
             title: Some("track5".to_string()),
             ..Default::default()
         }.save(&library);
-        playlist.append(&library, &track1);
-        playlist.append(&library, &track2);
-        playlist.append(&library, &track3);
-        playlist.insert(&library, &track4, 1);
-        playlist.insert(&library, &track5, 0);
-        playlist.append(&library, &track1);
+        playlist.append(&library, &DimpleEntity::from(&track1));
+        playlist.append(&library, &DimpleEntity::from(&track2));
+        playlist.append(&library, &DimpleEntity::from(&track3));
+        playlist.insert(&library, &track4.into(), 1);
+        playlist.insert(&library, &track5.into(), 0);
+        playlist.append(&library, &DimpleEntity::from(&track1));
         // TODO finish these tests
         // dbg!(PlaylistItem::list(&library));
         // dbg!(playlist.tracks(&library).iter().map(|t| t.title.clone()).collect::<Vec<_>>());
@@ -214,13 +206,13 @@ mod tests {
         let release = Release::default().save(&library);
         for i in 0..10 {
             Track {
-                release_key: release.key.clone(),
+                release_id: release.id.clone(),
                 title: Some(format!("track {}", i)),
                 ..Default::default()
             }.save(&library);
         }
         let playlist = Playlist::default().save(&library);
-        playlist.insert(&library, &release, 1);
+        playlist.insert(&library, &release.into(), 1);
         // TODO finish these tests
         // dbg!(PlaylistItem::list(&library));
         // dbg!(playlist.tracks(&library).iter().map(|t| t.title.clone()).collect::<Vec<_>>());

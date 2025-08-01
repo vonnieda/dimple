@@ -1,4 +1,4 @@
-use dimple_core_macro::ModelSupport;
+use serde::{Deserialize, Serialize};
 
 use crate::library::Library;
 
@@ -6,16 +6,16 @@ use super::{Artist, Dimage, Genre, Link, ModelBasics as _, Release};
 
 // // https://musicbrainz.org/doc/Track
 // // https://musicbrainz.org/ws/2/release/4d3ce256-ea71-44c5-8ce9-deb8f1e7dce4?inc=aliases%2Bartist-credits%2Blabels%2Bdiscids%2Brecordings&fmt=json
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, ModelSupport)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Track {
-    pub key: Option<String>,
+    pub id: Option<String>,
     pub title: Option<String>,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
     pub save: bool,
     pub download: bool,
 
-    pub release_key: Option<String>,
+    pub release_id: Option<String>,
 
     pub position: Option<u32>,
     pub length_ms: Option<u64>,
@@ -40,7 +40,7 @@ pub struct Track {
 
 impl Track {
     pub fn release(&self, library: &Library) -> Option<Release> {
-        self.release_key.clone().and_then(|key| Release::get(library, &key))
+        self.release_id.clone().and_then(|id| library.get(&id))
     }
 
     pub fn album_name(&self, library: &Library) -> Option<String> {
@@ -58,44 +58,44 @@ impl Track {
     /// TODO this should return the artists in order, with the primary being
     /// first. I'm not exactly sure how to indicate primary yet.
     pub fn artists(&self, library: &Library) -> Vec<Artist> {
-        self.key.as_ref().map(|key| {
+        self.id.as_ref().map(|id| {
             library.query("
                 SELECT a.* FROM ArtistRef ar 
-                JOIN Artist a ON (a.key = ar.artist_key) 
-                WHERE ar.model_key = ?1
+                JOIN Artist a ON (a.id = ar.artist_id) 
+                WHERE ar.model_id = ?1
                 ORDER BY ar.rowid ASC
-            ", (key,))
+            ", (id,))
         }).unwrap_or_default()
     }
 
     pub fn genres(&self, library: &Library) -> Vec<Genre> {
-        self.key.as_ref().map(|key| {
+        self.id.as_ref().map(|id| {
             library.query("
                 SELECT g.* FROM GenreRef gr 
-                JOIN Genre g ON (g.key = gr.genre_key) 
-                WHERE gr.model_key = ?1
+                JOIN Genre g ON (g.id = gr.genre_id) 
+                WHERE gr.model_id = ?1
                 ORDER BY g.name ASC
-            ", (key,))
+            ", (id,))
         }).unwrap_or_default()
     }
 
     pub fn links(&self, library: &Library) -> Vec<Link> {
-        self.key.as_ref().map(|key| {
+        self.id.as_ref().map(|id| {
             library.query("
                 SELECT l.* FROM LinkRef lr 
-                JOIN Link l ON (l.key = lr.link_key) 
-                WHERE lr.model_key = ?1
+                JOIN Link l ON (l.id = lr.link_id) 
+                WHERE lr.model_id = ?1
                 ORDER BY l.url ASC
-            ", (key,))
+            ", (id,))
         }).unwrap_or_default()
     }
 
     pub fn images(&self, library: &Library) -> Vec<Dimage> {
         library.query("
             SELECT d.* FROM DimageRef dr 
-            JOIN Dimage d ON (d.key = dr.dimage_key) 
-            WHERE dr.model_key = ?1
-        ", (self.key.clone().unwrap(),))
+            JOIN Dimage d ON (d.id = dr.dimage_id) 
+            WHERE dr.model_id = ?1
+        ", (self.id.clone().unwrap(),))
     }
 }
 
@@ -103,7 +103,7 @@ impl Track {
 mod tests {
     use std::{hash::DefaultHasher};
 
-    use crate::{library::Library, model::{Artist, ArtistRef, Diff, Genre, GenreRef}};
+    use crate::{library::Library, model::{Artist, ArtistRef, Genre, GenreRef}};
 
     use super::{Track};
 
@@ -119,19 +119,19 @@ mod tests {
         let track = library.save(&Track {
             title: Some("Lucy".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
 
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()
-        });
-        ArtistRef::attach(&library, &artist, &track);
+        }).unwrap();
+        ArtistRef::attach(&library, &artist, &track.id);
         let artist = library.save(&Artist {
 
             name: Some("Lou Reed".to_string()),
             ..Default::default()
-        });
-        ArtistRef::attach(&library, &artist, &track);
+        }).unwrap();
+        ArtistRef::attach(&library, &artist, &track.id);
 
         // dbg!(track.artists(&library));
     }
@@ -142,38 +142,38 @@ mod tests {
         let death_metal = library.save(&Genre {
             name: Some("death metal".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let heavy_metal = library.save(&Genre {
             name: Some("heavy metal".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let rock = library.save(&Genre {
             name: Some("rock".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let _smooth_jazz = library.save(&Genre {
             name: Some("smooth jazz".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let _jazz = library.save(&Genre {
             name: Some("jazz".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
 
         let track = library.save(&Track {
             title: Some("Lucy".to_string()),
             ..Default::default()
-        });
-        GenreRef::attach(&library, &heavy_metal, &track);
-        GenreRef::attach(&library, &rock, &track);
+        }).unwrap();
+        GenreRef::attach(&library, &heavy_metal, &track.id);
+        GenreRef::attach(&library, &rock, &track.id);
 
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()
-        });
-        GenreRef::attach(&library, &rock, &artist);
-        GenreRef::attach(&library, &heavy_metal, &artist);
-        GenreRef::attach(&library, &death_metal, &artist);
+        }).unwrap();
+        GenreRef::attach(&library, &rock, &artist.id);
+        GenreRef::attach(&library, &heavy_metal, &artist.id);
+        GenreRef::attach(&library, &death_metal, &artist.id);
 
         assert!(artist.genres(&library).len() == 3);
         assert!(track.genres(&library).len() == 2);

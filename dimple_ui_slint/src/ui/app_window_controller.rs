@@ -1,5 +1,4 @@
 use dimple_core::{librarian::Librarian, library::Library, player::{PlayWhen, Player, PlayerEvent}, plugins::{fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugins::Plugins, wikidata::WikidataPlugin}};
-use player_bar;
 use std::{collections::VecDeque, env, path::Path, sync::{Arc, Mutex}};
 
 use slint::{ComponentHandle, SharedString, Weak};
@@ -24,6 +23,7 @@ pub struct App {
     pub ui: Weak<AppWindow>,
     pub media_controls: Arc<Mutex<Option<MediaControls>>>,
     pub plugins: Plugins,
+    pub librarian: Librarian,
 }
 
 pub struct AppWindowController {
@@ -36,6 +36,8 @@ impl AppWindowController {
         let ui = AppWindow::new().unwrap();
         // TODO This and library should happen once the UI is up so that we
         // can show errors if needed. 
+        // So, launch the UI, then launch a thread that loads the config
+        // then that can load the library.
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
         let mut data_dir = dirs.data_dir().to_path_buf();
         let mut cache_dir = dirs.cache_dir().to_path_buf();
@@ -60,7 +62,7 @@ impl AppWindowController {
         plugins.add_plugin(Arc::new(LrclibPlugin::default()));
         plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
         let librarian = Librarian::new(&library, &plugins);
-        let images = ImageMangler::new(librarian, ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
+        let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         let ui_weak = ui.as_weak();
         Self {
             ui,
@@ -73,6 +75,7 @@ impl AppWindowController {
                 ui: ui_weak,
                 media_controls: Arc::new(Mutex::new(None)),
                 plugins,
+                librarian,
             },
         }
     }

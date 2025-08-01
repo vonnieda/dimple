@@ -3,6 +3,7 @@ use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
 use crate::ui::CardGridAdapter;
 use crate::ui::Page;
+use dimple_core::model::DimpleEntity;
 use dimple_core::model::Genre;
 use dimple_core::model::ModelBasics;
 use slint::ModelRc;
@@ -45,7 +46,7 @@ fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {
     genres.iter().cloned().enumerate()
         .map(|(index, genre)| {
             let mut card: CardAdapter = genre_card(&genre);
-            card.image.image = images.lazy_get(genre.clone(), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&DimpleEntity::from(&genre), 200, 200, move |ui, image| {
                 let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
                 card.image.image = image;
                 ui.get_genre_list().cards.set_row_data(index, card);
@@ -58,19 +59,19 @@ fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {
 fn genre_card(genre: &Genre) -> CardAdapter {
     let genre = genre.clone();
     CardAdapter {
-        key: genre.key.clone().unwrap_or_default().into(),
+        key: genre.id.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: genre.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://genre/{}", genre.id.clone().unwrap_or_default()).into(),
         },
         title: LinkAdapter {
             name: genre.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://genre/{}", genre.id.clone().unwrap_or_default()).into(),
         },
         sub_title: LinkAdapter {
             name: genre.disambiguation.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://genre/{}", genre.id.clone().unwrap_or_default()).into(),
         },
     }
 }

@@ -7,6 +7,7 @@ use crate::ui::Page;
 use dimple_core::librarian;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
+use dimple_core::model::DimpleEntity;
 use dimple_core::model::Genre;
 use dimple_core::model::Link;
 use dimple_core::model::ModelBasics;
@@ -65,7 +66,7 @@ pub fn release_details(url: &str, app: &App) {
         let key2 = key1.clone();
         std::thread::spawn(move || {
             if let Some(release) = Release::get(&app2.library, &key2) {
-                librarian::refresh_metadata(&app2.library, &app2.plugins, &release);
+                librarian::refresh_metadata(&app2.library, &app2.plugins, &DimpleEntity::from(&release));
             }
         });            
     }).unwrap();
@@ -89,7 +90,7 @@ fn update_model(app: &App) {
             let ui = app.ui.clone();
             ui.upgrade_in_event_loop(move |ui| {
                 let mut card: CardAdapter = release.clone().into();                
-                card.image.image = app.images.lazy_get(release.clone(), 275, 275, |ui, image| {
+                card.image.image = app.images.lazy_get(&DimpleEntity::from(&release), 275, 275, |ui, image| {
                     let mut card = ui.global::<ReleaseDetailsAdapter>().get_card();
                     card.image.image = image;
                     ui.global::<ReleaseDetailsAdapter>().set_card(card);
@@ -100,7 +101,7 @@ fn update_model(app: &App) {
                 let links = link_links(&links);
     
                 ui.global::<ReleaseDetailsAdapter>().set_card(card.into());
-                ui.global::<ReleaseDetailsAdapter>().set_key(release.key.clone().unwrap_or_default().into());
+                ui.global::<ReleaseDetailsAdapter>().set_key(release.id.clone().unwrap_or_default().into());
                 ui.global::<ReleaseDetailsAdapter>().set_release_type(release.release_group_type.clone().unwrap_or("Release".to_string()).into());
                 ui.global::<ReleaseDetailsAdapter>().set_artists(ModelRc::from(artists.as_slice()));
                 ui.global::<ReleaseDetailsAdapter>().set_summary(release.summary.clone().unwrap_or_default().into());
@@ -116,27 +117,27 @@ fn update_model(app: &App) {
 }
 
 fn play_now(app: &App, key: &str) {
-    app.player.play_now(&Release::get(&app.library, key).unwrap());
+    app.player.play_now(&DimpleEntity::from(&Release::get(&app.library, key).unwrap()));
 }
 
 fn play_next(app: &App, key: &str) {
-    app.player.play_next(&Release::get(&app.library, key).unwrap());
+    app.player.play_next(&DimpleEntity::from(&Release::get(&app.library, key).unwrap()));
 }
 
 fn play_later(app: &App, key: &str) {
-    app.player.play_later(&Release::get(&app.library, key).unwrap());
+    app.player.play_later(&DimpleEntity::from(&Release::get(&app.library, key).unwrap()));
 }
 
 fn play_track_now(app: &App, key: &str) {
-    app.player.play_now(&Track::get(&app.library, key).unwrap());
+    app.player.play_now(&DimpleEntity::from(&Track::get(&app.library, key).unwrap()));
 }
 
 fn play_track_next(app: &App, key: &str) {
-    app.player.play_next(&Track::get(&app.library, key).unwrap());
+    app.player.play_next(&DimpleEntity::from(&Track::get(&app.library, key).unwrap()));
 }
 
 fn play_track_later(app: &App, key: &str) {
-    app.player.play_later(&Track::get(&app.library, key).unwrap());
+    app.player.play_later(&DimpleEntity::from(&Track::get(&app.library, key).unwrap()));
 }
 
 fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
@@ -158,7 +159,7 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
 
 fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
     let keys: Vec<_> = tracks.iter()
-        .map(|track| track.key.clone().unwrap())
+        .map(|track| track.id.clone().unwrap())
         .map(|key| SharedString::from(key))
         .collect();
     keys.as_slice().into()
@@ -168,7 +169,7 @@ fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
     genres.iter().map(|genre| {
         LinkAdapter {
             name: genre.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://genre/{}", genre.id.clone().unwrap_or_default()).into(),
         }
     }).collect()
 }
@@ -177,7 +178,7 @@ fn artist_links(artists: &[Artist]) -> Vec<LinkAdapter> {
     artists.iter().map(|artist| {
         LinkAdapter {
             name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         }
     }).collect()
 }

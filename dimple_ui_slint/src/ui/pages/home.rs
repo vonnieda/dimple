@@ -1,10 +1,10 @@
 use dimple_core::library::Library;
-use dimple_core::model::{Artist, LibraryModel, Model, Playlist, Release};
-use slint::{ComponentHandle as _, ModelRc};
+use dimple_core::model::{Artist, DimpleEntity, Release};
+use slint::ComponentHandle as _;
 
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
-use crate::ui::{AppWindow, CardAdapter, HomeAdapter, CardSectionAdapter, ImageLinkAdapter, LinkAdapter, Page};
+use crate::ui::{CardAdapter, HomeAdapter, CardSectionAdapter, ImageLinkAdapter, LinkAdapter, Page};
 
 pub fn home_init(app: &App) {
 }
@@ -32,8 +32,8 @@ fn update_model(app: &App) {
         let favorite_releases = app.library.query("
             SELECT Release.* 
             FROM Release 
-            JOIN ArtistRef ON (ArtistRef.model_key = Release.key)
-            JOIN Artist ON (Artist.key = ArtistRef.artist_key)
+            JOIN ArtistRef ON (ArtistRef.model_id = Release.id)
+            JOIN Artist ON (Artist.id = ArtistRef.artist_id)
             JOIN 
                 (SELECT artist,album,count(title) AS cnt 
                     FROM Event 
@@ -90,7 +90,7 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            card.image.image = images.lazy_get(release.clone(), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&DimpleEntity::from(&release), 200, 200, move |ui, image| {
                 let adapter = ui.global::<HomeAdapter>();
                 // let mut card = adapter.get_releases().row_data(index).unwrap();
                 // card.image.image = image;
@@ -104,21 +104,21 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
 fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
     let release = release.clone();
     CardAdapter {
-        key: release.key.clone().unwrap_or_default().into(),
+        key: release.id.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         title: LinkAdapter {
             name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         sub_title: LinkAdapter {
             name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
     }
@@ -128,7 +128,7 @@ fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {
     artists.iter().cloned().enumerate()
         .map(|(index, artist)| {
             let mut card: CardAdapter = artist_card(&artist);
-            card.image.image = images.lazy_get(artist.clone(), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&DimpleEntity::from(&artist), 200, 200, move |ui, image| {
                 // let mut card = ui.get_artist_list().cards.row_data(index).unwrap();
                 // card.image.image = image;
                 // ui.get_artist_list().cards.set_row_data(index, card);
@@ -141,19 +141,19 @@ fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {
 fn artist_card(artist: &Artist) -> CardAdapter {
     let artist = artist.clone();
     CardAdapter {
-        key: artist.key.clone().unwrap_or_default().into(),        
+        key: artist.id.clone().unwrap_or_default().into(),        
         image: ImageLinkAdapter {
             image: Default::default(),
             name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         title: LinkAdapter {
             name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         sub_title: LinkAdapter {
             name: artist.disambiguation.unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
     }

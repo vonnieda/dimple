@@ -1,19 +1,26 @@
-use crate::library::Library;
+use dimple_db::db::Entity;
+use musicbrainz_rs::entity;
+use serde::{Deserialize, Serialize};
 
-use super::{Artist, LibraryModel};
+use crate::{library::Library, model::{track, Track}};
 
-#[derive(Debug, Clone, Default, PartialEq)]
+use super::{Artist};
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct ArtistRef {
-    pub model_key: String,
-    pub artist_key: String,
+    pub id: Option<String>,
+    pub model_id: String,
+    pub artist_id: String,
 }
 
 impl ArtistRef {
-    pub fn attach(library: &Library, artist: &Artist, model: &impl LibraryModel) {
-        let _ = library.conn().execute(
-            "INSERT INTO ArtistRef (artist_key, model_key) VALUES (?, ?)", 
-            (artist.key.clone(), model.key()));
-    }
+    pub fn attach(library: &Library, artist: &Artist, model_id: &Option<String>) {
+        let _ = library.save(&ArtistRef {
+            model_id: model_id.clone().unwrap(),
+            artist_id: artist.id.clone().unwrap(),
+            ..Default::default()
+        });
+    }    
 }
 
 #[cfg(test)]
@@ -23,9 +30,9 @@ mod tests {
     #[test]
     fn library_crud() {
         let library = Library::open_memory();
-        let artist = library.save(&Artist::default());
-        let track = library.save(&Track::default());
-        ArtistRef::attach(&library, &artist, &track);
+        let artist = library.save(&Artist::default()).unwrap();
+        let track = library.save(&Track::default()).unwrap();
+        ArtistRef::attach(&library, &artist, &track.id);
         assert!(track.artists(&library).len() == 1);
     }
 }

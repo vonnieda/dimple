@@ -1,9 +1,9 @@
-use dimple_core_macro::ModelSupport;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Default, PartialEq, ModelSupport)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct PlaylistItem {
-    pub key: Option<String>,
-    pub playlist_key: String,
+    pub id: Option<String>,
+    pub playlist_id: String,
     pub ordinal: String,
-    pub track_key: String,
+    pub track_id: String,
 }

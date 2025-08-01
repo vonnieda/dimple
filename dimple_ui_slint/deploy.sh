@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP="../target/release/bundle/osx/Dimple.app"
+APP="target/release/bundle/osx/Dimple.app"
 BIN="$APP/Contents/MacOS/dimple_ui_slint"
 ZIP="$APP/../Dimple.app.zip"
 IDENT="KZ3MZ5JYNR"

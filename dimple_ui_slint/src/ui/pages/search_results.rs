@@ -1,9 +1,7 @@
 
-use dimple_core::librarian;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
-use dimple_core::model::ModelBasics;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
 use url::Url;
@@ -35,7 +33,7 @@ fn update_model(app: &App, query: &str) {
     let app = app.clone();
     let query = query.to_string();
     std::thread::spawn(move || {
-        let results = librarian::search(&app.library, &app.plugins, &query);
+        let results = app.librarian.search(&query);
         let artists = results.artists;
         let tracks = results.tracks;
         let genres = results.genres;
@@ -91,7 +89,7 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            card.image.image = images.lazy_get(release.clone(), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&release.into(), 200, 200, move |ui, image| {
                 // let adapter = ui.global::<HomeAdapter>();
                 // let mut card = adapter.get_releases().row_data(index).unwrap();
                 // card.image.image = image;
@@ -105,21 +103,21 @@ fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library)
 fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
     let release = release.clone();
     CardAdapter {
-        key: release.key.clone().unwrap_or_default().into(),
+        key: release.id.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         title: LinkAdapter {
             name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         sub_title: LinkAdapter {
             name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
     }
@@ -129,7 +127,7 @@ fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {
     artists.iter().cloned().enumerate()
         .map(|(index, artist)| {
             let mut card: CardAdapter = artist_card(&artist);
-            card.image.image = images.lazy_get(artist.clone(), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&artist.into(), 200, 200, move |ui, image| {
                 // let mut card = ui.get_artist_list().cards.row_data(index).unwrap();
                 // card.image.image = image;
                 // ui.get_artist_list().cards.set_row_data(index, card);
@@ -142,19 +140,19 @@ fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {
 fn artist_card(artist: &Artist) -> CardAdapter {
     let artist = artist.clone();
     CardAdapter {
-        key: artist.key.clone().unwrap_or_default().into(),        
+        key: artist.id.clone().unwrap_or_default().into(),        
         image: ImageLinkAdapter {
             image: Default::default(),
             name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         title: LinkAdapter {
             name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         sub_title: LinkAdapter {
             name: artist.disambiguation.unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
     }
@@ -164,7 +162,7 @@ fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {
     genres.iter().cloned().enumerate()
         .map(|(index, genre)| {
             let mut card: CardAdapter = genre_card(&genre);
-            card.image.image = images.lazy_get(genre.clone(), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&genre.into(), 200, 200, move |ui, image| {
                 // let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
                 // card.image.image = image;
                 // ui.get_genre_list().cards.set_row_data(index, card);
@@ -177,19 +175,19 @@ fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {
 fn genre_card(genre: &Genre) -> CardAdapter {
     let genre = genre.clone();
     CardAdapter {
-        key: genre.key.clone().unwrap_or_default().into(),
+        key: genre.id.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: genre.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://genre/{}", genre.id.clone().unwrap_or_default()).into(),
         },
         title: LinkAdapter {
             name: genre.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://genre/{}", genre.id.clone().unwrap_or_default()).into(),
         },
         sub_title: LinkAdapter {
             name: genre.disambiguation.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://genre/{}", genre.id.clone().unwrap_or_default()).into(),
         },
     }
 }
@@ -198,7 +196,7 @@ fn track_cards(images: &ImageMangler, tracks: &[Track], library: &Library) -> Ve
     tracks.iter().cloned().enumerate()
         .map(|(index, track)| {
             let mut card: CardAdapter = track_card(&track, &track.artist(library).unwrap_or_default());
-            card.image.image = images.lazy_get(track.clone(), 200, 200, move |ui, image| {
+            card.image.image = images.lazy_get(&track.into(), 200, 200, move |ui, image| {
                 // let adapter = ui.global::<HomeAdapter>();
                 // let mut card = adapter.get_releases().row_data(index).unwrap();
                 // card.image.image = image;
@@ -212,21 +210,21 @@ fn track_cards(images: &ImageMangler, tracks: &[Track], library: &Library) -> Ve
 fn track_card(track: &Track, artist: &Artist) -> CardAdapter {
     let track = track.clone();
     CardAdapter {
-        key: track.key.clone().unwrap_or_default().into(),
+        key: track.id.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
             name: track.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://track/{}", track.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         title: LinkAdapter {
             name: track.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://track/{}", track.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://track/{}", track.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         sub_title: LinkAdapter {
             name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.key.clone().unwrap_or_default()).into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
     }

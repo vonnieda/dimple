@@ -4,9 +4,8 @@ pub mod symphonia_tagged_media_file;
 
 use std::path::Path;
 
-use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, Dimage, DimageRef, Genre, Link, MediaFile, ModelBasics as _, Release, Track, TrackSource}};
+use crate::{librarian, library::Library, model::{ModelBasics as _, Track, TrackSource}};
 
-use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator as _};
 use lofty_tagged_media_file::LoftyTaggedMediaFile;
@@ -20,7 +19,7 @@ pub fn import(library: &Library, path: &str) {
     let files = scan(path);
     log::info!("Scanned {} files.", files.len());
 
-    files.par_iter().for_each(|file| {
+    files.iter().for_each(|file| {
         let path = Path::new(&file.path);
         if let Err(e) = import_single_file(&library, path, force) {
             log::error!("  Error reading {:?}: {}", path, e);
@@ -81,19 +80,19 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     media_file.last_modified = path.metadata()?.modified()?.into();
     let media_file = media_file.save(library);
     
-    // Find or create a TrackSource by the MediaFile key. This is not yet saved,
+    // Find or create a TrackSource by the MediaFile id. This is not yet saved,
     // since it will be updated below.
     let mut track_source = TrackSource::find(library, 
-        "SELECT * FROM TrackSource WHERE media_file_key = ?", 
-        (&media_file.key,)).unwrap_or_default();
+        "SELECT * FROM TrackSource WHERE media_file_id = ?", 
+        (&media_file.id,)).unwrap_or_default();
     
     // Match and merge the Track, preferring the one on the TrackSource if it
     // exists.
     let track = librarian::merge_track_metadata(library, &track_metadata, track_source.track(library));
 
-    // Update the TrackSource with the saved track_key.
-    track_source.track_key = track.key.clone();
-    track_source.media_file_key = media_file.key.clone();
+    // Update the TrackSource with the saved track_id.
+    track_source.track_id = track.id.clone();
+    track_source.media_file_id = media_file.id.clone();
     let track_source = track_source.save(library);
 
     Ok(track_source)
@@ -103,7 +102,7 @@ fn print_track(track: &Track, library: &Library) {
     println!("{:?}", track.title);
     println!("  Artists: {:?}", track.artists(library).iter().map(|a| a.name.clone()).collect::<Vec<_>>());
     println!("  Genres: {:?}", track.genres(library).iter().map(|a| a.name.clone()).collect::<Vec<_>>());
-    println!("  Release: {:?}", track.release(library).map(|r| r.key.clone()));
+    println!("  Release: {:?}", track.release(library).map(|r| r.id.clone()));
     println!("  Links: {:?}", track.links(library));
 }
 

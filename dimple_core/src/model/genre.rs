@@ -1,13 +1,13 @@
-use dimple_core_macro::ModelSupport;
+use serde::{Deserialize, Serialize};
 
 use crate::library::Library;
 
 use super::{Artist, Dimage, Link, Release};
 
 // https://musicbrainz.org/doc/Genre
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, ModelSupport)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Genre {
-    pub key: Option<String>,
+    pub id: Option<String>,
     pub name: Option<String>,
     pub disambiguation: Option<String>,
     pub summary: Option<String>,
@@ -32,43 +32,43 @@ impl Genre {
     pub fn links(&self, library: &Library) -> Vec<Link> {
         library.query("
             SELECT l.* FROM LinkRef lr 
-            JOIN Link l ON (l.key = lr.link_key) 
-            WHERE lr.model_key = ?1
-        ", (self.key.clone().unwrap(),))
+            JOIN Link l ON (l.id = lr.link_id) 
+            WHERE lr.model_id = ?1
+        ", (self.id.clone().unwrap(),))
     }
 
     pub fn releases(&self, library: &Library) -> Vec<Release> {
         let sql = "
             SELECT Release.* FROM Release
-            LEFT JOIN GenreRef ON (GenreRef.model_key = Release.key)
-            WHERE GenreRef.genre_key = ?1
+            LEFT JOIN GenreRef ON (GenreRef.model_id = Release.id)
+            WHERE GenreRef.genre_id = ?1
             ORDER BY title ASC
         ";
-        library.query(sql, (self.key.clone(),))
+        library.query(sql, (self.id.clone(),))
     }
 
     pub fn artists(&self, library: &Library) -> Vec<Artist> {
         let sql = "
             SELECT Artist.* FROM Artist
-            LEFT JOIN GenreRef ON (GenreRef.model_key = Artist.key)
-            WHERE GenreRef.genre_key = ?1
+            LEFT JOIN GenreRef ON (GenreRef.model_id= Artist.id)
+            WHERE GenreRef.genre_id = ?1
             ORDER BY name ASC
         ";
-        library.query(sql, (self.key.clone(),))
+        library.query(sql, (self.id.clone(),))
     }
 
     pub fn images(&self, library: &Library) -> Vec<Dimage> {
         library.query("
             SELECT d.* FROM DimageRef dr 
-            JOIN Dimage d ON (d.key = dr.dimage_key) 
-            WHERE dr.model_key = ?1
-        ", (self.key.clone().unwrap(),))
+            JOIN Dimage d ON (d.id = dr.dimage_id) 
+            WHERE dr.model_id = ?1
+        ", (self.id.clone().unwrap(),))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Genre, Diff}};
+    use crate::{library::Library, model::{Genre}};
 
     #[test]
     fn library_crud() {
@@ -76,8 +76,8 @@ mod tests {
         let model = library.save(&Genre {
             name: Some("The Meat Puppets".to_string()),
             ..Default::default()
-        });
-        assert!(model.key.is_some());
+        }).unwrap();
+        assert!(model.id.is_some());
         assert!(model.name == Some("The Meat Puppets".to_string()));
     }
 }

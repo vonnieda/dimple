@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use reqwest::blocking::Client;
 use serde::{Deserialize};
 
-use crate::{librarian::TrackMetadata, library::Library, model::{Model, Track}};
+use crate::{librarian::TrackMetadata, library::Library, model::{Track}};
 
 use super::{plugin::{Plugin}, plugins::Plugins, USER_AGENT};
 
@@ -93,12 +93,12 @@ mod tests {
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let track = library.save(&Track {
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
-        });
-        ArtistRef::attach(&library, &artist, &track);
+        }).unwrap();
+        ArtistRef::attach(&library, &artist, &track.id);
 
         let lrclib = LrclibPlugin::default();
         let host = Plugins::default();

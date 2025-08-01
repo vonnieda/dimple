@@ -136,14 +136,14 @@ impl SymphoniaTaggedMediaFile {
 
     pub fn track(&self) -> Track {
         Track {
-            key: None,
+            id: None,
             title: self.tag(StandardTagKey::TrackTitle),
             disambiguation: None,
             summary: None,
             save: false,
             download: false,
     
-            release_key: None,
+            release_id: None,
             position: self.tag(StandardTagKey::TrackNumber)
                 .and_then(|s| parse_n_of_m_tag(&s).0),
             length_ms: self.length_ms,        
@@ -171,7 +171,7 @@ impl SymphoniaTaggedMediaFile {
 
     pub fn release(&self) -> Release {
         Release {
-            key: None,
+            id: None,
             title: self.tag(StandardTagKey::Album),
             disambiguation: None,
             summary: None,

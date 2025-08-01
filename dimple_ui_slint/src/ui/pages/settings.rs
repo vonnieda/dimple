@@ -6,7 +6,6 @@ use dimple_core::model::MediaFile;
 use dimple_core::model::Playlist;
 use dimple_core::model::Track;
 use dimple_core::model::TrackSource;
-use size::Size;
 use slint::{ModelRc, SharedString};
 
 use crate::config::PluginConfig;
@@ -65,7 +64,7 @@ pub fn settings(app: &App) {
         database_stats.push(format!("Tracks: {}", db.list::<Track>().len()));
         database_stats.push(format!("TrackSources: {}", db.list::<TrackSource>().len()));
 
-        let mut cache_stats: Vec<String> = vec![];
+        let cache_stats: Vec<String> = vec![];
         // TODO Before any music has been loaded, there are no images, so the
         // cache is empty, and this blows up. 
         // cache_stats.push(format!("Thumbnail cache: {}", Size::from_bytes(app.images.cache_len())));

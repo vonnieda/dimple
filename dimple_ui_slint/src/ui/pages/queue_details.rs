@@ -4,7 +4,6 @@ use std::time::Duration;
 
 use crate::ui::app_window_controller::App;
 use crate::ui::Page;
-use dimple_core::library;
 use dimple_core::library::Library;
 use dimple_core::model::Playlist;
 use dimple_core::model::Track;
@@ -89,7 +88,7 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
 
 fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
     let keys: Vec<_> = tracks.iter()
-        .map(|track| track.key.clone().unwrap())
+        .map(|track| track.id.clone().unwrap())
         .map(|key| SharedString::from(key))
         .collect();
     keys.as_slice().into()

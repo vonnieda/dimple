@@ -35,11 +35,11 @@ impl TrackDownloader {
         let cache = self.cache.clone();
         let track = track.clone();
         let library = library.clone();
-        self.cache.write().unwrap().get_or_insert(track.key.clone().unwrap(), move || {
+        self.cache.write().unwrap().get_or_insert(track.id.clone().unwrap(), move || {
             self.threadpool.execute(move || {
                 let content = library.load_track_content(&track).expect("No valid sources found.");
                 let song = Song::new(Box::new(Cursor::new(content)), &Hint::new(), None).unwrap();
-                cache.write().unwrap().put(track.key.clone().unwrap(), TrackDownloadStatus::Ready(song));
+                cache.write().unwrap().put(track.id.clone().unwrap(), TrackDownloadStatus::Ready(song));
             });
             TrackDownloadStatus::Downloading
         }).clone()

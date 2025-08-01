@@ -1,6 +1,4 @@
-use image::DynamicImage;
-
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, Model, Release, Track}};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, Track}};
 
 use super::plugins::Plugins;
 
@@ -19,11 +17,6 @@ pub trait Plugin: Send + Sync {
 
     }
 
-    // fn metadata(&self, _host: &PluginHost, _library: &Library, _model: &dyn Model) 
-    //     -> Result<Option<MetadataResponse>, anyhow::Error> {
-    //     Ok(None)
-    // }
-
     fn artist_metadata(&self, _host: &Plugins, _library: &Library, _artist: &Artist) -> Result<Option<ArtistMetadata>, anyhow::Error> {
         Ok(None)
     }
@@ -36,15 +29,11 @@ pub trait Plugin: Send + Sync {
         Ok(None)
     }
 
-    // fn image(&self, _host: &PluginHost, _library: &Library, _track: &Track, _model: &PluginModel) -> Result<Option<DynamicImage>, anyhow::Error> {
-    //     Ok(None)
-    // }    
-
     fn search(&self, _host: &Plugins, _library: &Library, _query: &str) -> Result<SearchResults, anyhow::Error> {
         Ok(SearchResults::default())
     }
 
-    fn image(&self, _host: &Plugins, _library: &Library, _model: &dyn Model) -> Result<Option<Dimage>, anyhow::Error> {
+    fn image(&self, _host: &Plugins, _library: &Library, _model: &DimpleEntity) -> Result<Option<Dimage>, anyhow::Error> {
         Ok(None)
     }
 }

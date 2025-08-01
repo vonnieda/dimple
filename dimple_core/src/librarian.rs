@@ -1,6 +1,7 @@
+use dimple_db::db::Entity;
 use image::DynamicImage;
 
-use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Dimage, DimageRef, Genre, GenreRef, LibraryModel, Link, LinkRef, Model, ModelBasics as _, Release, Track}, plugins::{plugin::Plugin, plugins::Plugins}};
+use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, ArtistRef, Dimage, DimageRef, DimpleEntity, Genre, GenreRef, Link, LinkRef, ModelBasics as _, Release, Track}, plugins::plugins::Plugins};
 
 #[derive(Clone)]
 pub struct Librarian {
@@ -16,14 +17,14 @@ impl Librarian {
         }
     }
 
-    pub fn image(&self, model: &dyn Model) -> Option<DynamicImage> {
+    pub fn image(&self, model: &DimpleEntity) -> Option<DynamicImage> {
         if let Some(image) = self.library.image(model) {
             return Some(image)
         }
     
         for dimage in self.plugins.image(&self.library, model) {
             let dimage = merge_image(&self.library, &dimage);
-            DimageRef::attach(&self.library, &dimage, model);
+            DimageRef::attach(&self.library, &dimage, &Some(model.id()));
         }
     
         self.library.image(model)
@@ -58,38 +59,29 @@ impl Librarian {
     }    
 }
 
-pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &dyn Model) {
-    log::info!("refresh_metadata {:?} {:?}", model.type_name(), model.key());
-    if let Some(track) = model.as_any().downcast_ref::<Track>() {
-        if let Some(track) = Track::get(library, &track.key().clone().unwrap()) {
-            for metadata in plugins.track_metadata(library, &track) {
-                librarian::merge_track_metadata(library, &metadata, Some(track.clone()));
-            }
-        }
-    }
-    else if let Some(artist) = model.as_any().downcast_ref::<Artist>() {
-        if let Some(artist) = Artist::get(library, &artist.key().clone().unwrap()) {
+pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEntity) {
+    match model {
+        DimpleEntity::Artist(artist) => {
             for metadata in plugins.artist_metadata(library, &artist) {
                 librarian::merge_artist_metadata(library, &metadata, Some(artist.clone()));
             }
-        }
-    }
-    else if let Some(release) = model.as_any().downcast_ref::<Release>() {
-        if let Some(release) = Release::get(library, &release.key().clone().unwrap()) {
+        },
+        DimpleEntity::Track(track) => {
+            for metadata in plugins.track_metadata(library, &track) {
+                librarian::merge_track_metadata(library, &metadata, Some(track.clone()));
+            }
+        },
+        DimpleEntity::Genre(genre) => {
+            // if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
+            //     library.save(&CrdtRules::merge(genre, metadata));
+            // }
+        },
+        DimpleEntity::Release(release) => {
             for metadata in plugins.release_metadata(library, &release) {
                 librarian::merge_release_metadata(library, &metadata, Some(release.clone()));
             }
-        }
-    }
-    // else if let Some(genre) = model.as_any().downcast_ref::<Genre>() {
-    //     if let Some(genre) = Genre::get(library, &genre.key().clone().unwrap()) {
-    //         if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
-    //             library.save(&CrdtRules::merge(genre, metadata));
-    //         }
-    //     }
-    // }
-    else {
-        todo!()
+        },
+        _ => todo!()
     }
 }
 
@@ -103,9 +95,9 @@ pub fn merge_artist_metadata(library: &Library, artist: &ArtistMetadata, pre_mat
     let matched = pre_match.or_else(|| match_artist(library, &artist.artist)).unwrap_or_default();
     let merged = CrdtRules::merge(matched, artist.artist.clone());
     let merged = merged.save(library);
-    merge_genres(library, &artist.genres, &merged);
-    merge_links(library, &artist.links, &merged);
-    merge_images(library, &artist.images, &merged);
+    merge_genres(library, &artist.genres, &merged.id);
+    merge_links(library, &artist.links, &merged.id);
+    merge_images(library, &artist.images, &merged.id);
     merged
 }
 
@@ -117,10 +109,10 @@ pub fn merge_release_metadata(library: &Library, metadata: &ReleaseMetadata, pre
     let matched = pre_match.or_else(|| match_release(library, &metadata)).unwrap_or_default();
     let merged = CrdtRules::merge(matched, metadata.release.clone());
     let merged = merged.save(library);
-    merge_artists(library, &metadata.artists, &merged);
-    merge_genres(library, &metadata.genres, &merged);
-    merge_links(library, &metadata.links, &merged);
-    merge_images(library, &metadata.images, &merged);
+    merge_artists(library, &metadata.artists, &merged.id);
+    merge_genres(library, &metadata.genres, &merged.id);
+    merge_links(library, &metadata.links, &merged.id);
+    merge_images(library, &metadata.images, &merged.id);
     merged
 }
 
@@ -128,13 +120,13 @@ pub fn merge_track_metadata(library: &Library, metadata: &TrackMetadata, pre_mat
     let matched = pre_match.or_else(|| match_track(library, &metadata)).unwrap_or_default();
     let merged = CrdtRules::merge(matched, metadata.track.clone());
     let mut merged = merged.save(library);
-    merge_artists(library, &metadata.artists, &merged);
-    merge_genres(library, &metadata.genres, &merged);
-    merge_links(library, &metadata.links, &merged);
-    merge_images(library, &metadata.images, &merged);
+    merge_artists(library, &metadata.artists, &merged.id);
+    merge_genres(library, &metadata.genres, &merged.id);
+    merge_links(library, &metadata.links, &merged.id);
+    merge_images(library, &metadata.images, &merged.id);
     if let Some(release) = metadata.release.clone() {
         let release = merge_release_metadata(library, &release, merged.release(library));
-        merged.release_key = release.key;
+        merged.release_id = release.id;
         merged = merged.save(&library);
     }
     merged
@@ -146,10 +138,10 @@ pub fn merge_link(library: &Library, link: &Link) -> Link {
     link.save(library)
 }
 
-pub fn merge_images<T: LibraryModel>(library: &Library, images: &[Dimage], model: &T) {
+pub fn merge_images(library: &Library, images: &[Dimage], model_id: &Option<String>) {
     for dimage in images {
         let dimage = merge_image(library, dimage);
-        DimageRef::attach(library, &dimage, model);
+        DimageRef::attach(library, &dimage, model_id);
     }
 }
 
@@ -159,10 +151,10 @@ pub fn merge_image(library: &Library, dimage: &Dimage) -> Dimage {
     dimage.save(library)
 }
 
-pub fn merge_links<T: LibraryModel>(library: &Library, links: &[Link], model: &T) {
+pub fn merge_links(library: &Library, links: &[Link], model_id: &Option<String>) {
     for link in links {
         let link = merge_link(library, link);
-        merge_link_ref(library, &link, model);
+        merge_link_ref(library, &link, model_id);
     }
 }
 
@@ -172,30 +164,30 @@ pub fn merge_genre(library: &Library, genre: &Genre) -> Genre {
     genre.save(library)
 }
 
-pub fn merge_genres<T: LibraryModel>(library: &Library, genres: &[Genre], model: &T) {
+pub fn merge_genres(library: &Library, genres: &[Genre], model_id: &Option<String>) {
     for genre in genres {
         let genre = merge_genre(library, genre);
-        merge_genre_ref(library, &genre, model);
+        merge_genre_ref(library, &genre, model_id);
     }
 }
 
-pub fn merge_artists<T: LibraryModel>(library: &Library, artists: &[ArtistMetadata], model: &T) {
+pub fn merge_artists(library: &Library, artists: &[ArtistMetadata], model_id: &Option<String>) {
     for artist in artists {
         let artist = merge_artist_metadata(library, &artist, None);
-        merge_artist_ref(library, &artist, model);
+        merge_artist_ref(library, &artist, model_id);
     }
 }
 
-pub fn merge_artist_ref<T: LibraryModel>(library: &Library, artist: &Artist, model: &T) {
-    ArtistRef::attach(library, artist, model);
+pub fn merge_artist_ref(library: &Library, artist: &Artist, model_id: &Option<String>) {
+    ArtistRef::attach(library, artist, model_id);
 }
 
-pub fn merge_genre_ref<T: LibraryModel>(library: &Library, genre: &Genre, model: &T) {
-    GenreRef::attach(library, genre, model);
+pub fn merge_genre_ref(library: &Library, genre: &Genre, model_id: &Option<String>) {
+    GenreRef::attach(library, genre, model_id);
 }
 
-pub fn merge_link_ref<T: LibraryModel>(library: &Library, link: &Link, model: &T) {
-    LinkRef::attach(library, link, model);
+pub fn merge_link_ref(library: &Library, link: &Link, model_id: &Option<String>) {
+    LinkRef::attach(library, link, model_id);
 }
 
 pub fn match_artist(library: &Library, artist: &Artist) -> Option<Artist> {
@@ -219,8 +211,8 @@ pub fn match_release(library: &Library, release: &ReleaseMetadata) -> Option<Rel
     for artist in release.artists.clone() {
         let matched_release: Option<Release> = library.find("
             SELECT r.* FROM Release r
-            LEFT JOIN ArtistRef rar ON (rar.model_key = r.key)
-            LEFT JOIN Artist ra ON (ra.key = rar.artist_key)
+            LEFT JOIN ArtistRef rar ON (rar.model_id = r.id)
+            LEFT JOIN Artist ra ON (ra.id = rar.artist_id)
             WHERE (r.title = ?1 AND ra.name = ?2)
             ", (&release.release.title, artist.artist.name));
         if matched_release.is_some() {
@@ -245,11 +237,11 @@ pub fn match_track(library: &Library, track: &TrackMetadata) -> Option<Track> {
         for artist in release.artists.clone() {
             let matched_track: Option<Track> = library.find("
                 SELECT t.* FROM Track t
-                LEFT JOIN Release r ON (r.key = t.release_key)
-                LEFT JOIN ArtistRef tar ON (tar.model_key = t.key)
-                LEFT JOIN Artist ta ON (ta.key = tar.artist_key)
-                LEFT JOIN ArtistRef rar ON (rar.model_key = r.key)
-                LEFT JOIN Artist ra ON (ra.key = rar.artist_key)
+                LEFT JOIN Release r ON (r.id = t.release_id)
+                LEFT JOIN ArtistRef tar ON (tar.model_id = t.id)
+                LEFT JOIN Artist ta ON (ta.id = tar.artist_id)
+                LEFT JOIN ArtistRef rar ON (rar.model_id = r.id)
+                LEFT JOIN Artist ra ON (ra.id = rar.artist_id)
                 WHERE (t.title = ?1 AND r.title = ?2 AND (ta.name = ?3 OR ra.name = ?3))
                 ", (&track.track.title, &release.release.title, artist.artist.name));
             if matched_track.is_some() {
@@ -324,7 +316,9 @@ pub struct SearchResults {
 mod tests {
     use std::sync::Arc;
 
-    use crate::{librarian::{self, ArtistMetadata, Librarian}, library::Library, model::{Artist, ModelBasics}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugins::Plugins, wikidata::WikidataPlugin}};
+    use anyhow::Result;
+
+    use crate::{librarian::{self, ArtistMetadata, Librarian}, library::Library, model::{Artist, DimpleEntity, ModelBasics}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugins::Plugins, wikidata::WikidataPlugin}};
 
     #[test]
     fn merge_artist_metadata() {
@@ -364,13 +358,14 @@ mod tests {
             },
             ..Default::default()
         }, None);
-        assert!(artist1.key != artist3.key);
-        assert!(artist1.key == artist2.key);
-        assert!(artist3.key == artist4.key);
+        assert!(artist1.id != artist3.id);
+        assert!(artist1.id == artist2.id);
+        assert!(artist3.id == artist4.id);
     }
 
     #[test]
-    fn image() {
+    #[ignore]
+    fn image() -> Result<()> {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
         library.notifier.observe(|e| {
@@ -386,11 +381,10 @@ mod tests {
         let artist = library.save(&Artist {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
-        });
-        let image = librarian.image(&artist).unwrap();
-        dbg!(image.width(), image.height());
-        let image = librarian.image(&artist).unwrap();
-        dbg!(image.width(), image.height());
+        })?;
+        let image = librarian.image(&artist.into()).unwrap();
+        assert!(image.width() > 0 && image.height() > 0);
+        Ok(())
     }
 
     #[test]
@@ -409,6 +403,6 @@ mod tests {
         let artist = results.artists.get(0).unwrap().clone();
         assert!(artist.musicbrainz_id == Some("5182c1d9-c7d2-4dad-afa0-ccfeada921a8".to_string()));
 
-        let releases = artist.releases(&library)
+        // let releases = artist.releases(&library)
     }
 }

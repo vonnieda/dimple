@@ -4,7 +4,7 @@ use lru::LruCache;
 use reqwest::blocking::Client;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, merge::CrdtRules, model::{Artist, Dimage, Model, Release, Track}};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, merge::CrdtRules, model::{Artist, Dimage, DimpleEntity, Release, Track}};
 
 use super::{plugin::Plugin, USER_AGENT};
 
@@ -42,7 +42,7 @@ impl Plugins {
         results
     }
 
-    pub fn image(&self, library: &Library, model: &dyn Model) -> Vec<Dimage> {
+    pub fn image(&self, library: &Library, model: &DimpleEntity) -> Vec<Dimage> {
         let mut results = vec![];
         for plugin in self.plugins.read().unwrap().iter() {
             if let Ok(Some(image)) = plugin.image(self, library, model) {
@@ -165,7 +165,7 @@ mod tests {
 
     use crate::{
         library::Library,
-        model::{Artist, ArtistRef, Track}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, wikidata::WikidataPlugin},
+        model::{Artist, ArtistRef, DimpleEntity, Track}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, wikidata::WikidataPlugin},
     };
 
     use super::Plugins;
@@ -180,12 +180,12 @@ mod tests {
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let track = library.save(&Track {
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
-        });
-        ArtistRef::attach(&library, &artist, &track);
+        }).unwrap();
+        ArtistRef::attach(&library, &artist, &track.id);
 
         // assert!(plugins.track_metadata(&library, &track).is_some());
     }
@@ -197,7 +197,7 @@ mod tests {
         let artist = library.save(&Artist {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let plugins = Plugins::default();
         plugins.add_plugin(Arc::new(ExamplePlugin::default()));
         plugins.add_plugin(Arc::new(LrclibPlugin::default()));
@@ -215,14 +215,14 @@ mod tests {
         let artist = library.save(&Artist {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let plugins = Plugins::default();
         plugins.add_plugin(Arc::new(ExamplePlugin::default()));
         plugins.add_plugin(Arc::new(LrclibPlugin::default()));
         plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
         plugins.add_plugin(Arc::new(WikidataPlugin::default()));
         plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
-        let images = plugins.image(&library, &artist);
+        let images = plugins.image(&library, &artist.into());
         dbg!(images);
     }
 

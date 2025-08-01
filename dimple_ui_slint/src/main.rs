@@ -27,7 +27,16 @@ fn main() -> Result<(), slint::PlatformError> {
     // [2025-03-20T14:35:24.952Z WARN  tiny_skia::painter] empty paths and horizontal/vertical lines cannot be filled
     builder.filter(Some("tiny_skia::painter"), log::LevelFilter::Off);
 
+    // TODO this was just for debugging, but would be nice to have this go
+    // to Console.app somehow? Maybe with the panic handler now it does.
+    // let target = Box::new(File::create("/tmp/dimple.log").unwrap());
+    // builder.target(env_logger::Target::Pipe(target));
+
     builder.init();
+
+    std::panic::set_hook(Box::new(|panic_info| {
+        log::error!("Panic: {:?}", panic_info);
+    }));    
 
     let ui = AppWindowController::new();
     ui.run()
