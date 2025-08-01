@@ -36,6 +36,8 @@ impl AppWindowController {
         let ui = AppWindow::new().unwrap();
         // TODO This and library should happen once the UI is up so that we
         // can show errors if needed. 
+        // So, launch the UI, then launch a thread that loads the config
+        // then that can load the library.
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
         let mut data_dir = dirs.data_dir().to_path_buf();
         let mut cache_dir = dirs.cache_dir().to_path_buf();

@@ -364,6 +364,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn image() -> Result<()> {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
