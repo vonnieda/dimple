@@ -1,6 +1,6 @@
 use std::{env, sync::Arc, time::Duration};
 
-use dimple_core::{import::spotify, library::Library, model::{Artist, Blob, DimpleEntity, ModelBasics as _, Release, Track}, player::Player};
+use dimple_core::{import::spotify, library::Library, model::{Artist, DimpleEntity, ModelBasics as _, Release, Track}, player::Player};
 use directories::ProjectDirs;
 
 fn main() {
@@ -38,8 +38,6 @@ fn main() {
         println!("    clear                           Clear the play queue.");
         println!("    play                            Play the play queue from start to finish.");
         println!("    sync                            Sync the library with an S3 target.");
-        println!("    changelogs                      List changelogs.");
-        println!("    blobs                           List blobs.");
         return
     }
 
@@ -131,14 +129,6 @@ fn main() {
     else if command == "sync" {
         library.sync();
     } 
-    else if command == "blobs" {
-        let mut i = 0;
-        for blob in library.list::<Blob>() {
-            println!("{:?}", blob);
-            i += 1;
-        }
-        println!("{} blobs", i);
-    }
     if command == "import_spotify" {
         let path = &args[2];
         spotify::import(&library, path);

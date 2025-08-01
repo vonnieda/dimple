@@ -30,8 +30,8 @@ mod tests {
     #[test]
     fn library_crud() {
         let library = Library::open_memory();
-        let artist = library.save(&Artist::default());
-        let track = library.save(&Track::default());
+        let artist = library.save(&Artist::default()).unwrap();
+        let track = library.save(&Track::default()).unwrap();
         ArtistRef::attach(&library, &artist, &track.id);
         assert!(track.artists(&library).len() == 1);
     }

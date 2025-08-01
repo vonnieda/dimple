@@ -4,9 +4,8 @@ pub mod symphonia_tagged_media_file;
 
 use std::path::Path;
 
-use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, Dimage, DimageRef, Genre, Link, MediaFile, ModelBasics as _, Release, Track, TrackSource}};
+use crate::{librarian, library::Library, model::{ModelBasics as _, Track, TrackSource}};
 
-use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator as _};
 use lofty_tagged_media_file::LoftyTaggedMediaFile;
@@ -20,7 +19,7 @@ pub fn import(library: &Library, path: &str) {
     let files = scan(path);
     log::info!("Scanned {} files.", files.len());
 
-    files.par_iter().for_each(|file| {
+    files.iter().for_each(|file| {
         let path = Path::new(&file.path);
         if let Err(e) = import_single_file(&library, path, force) {
             log::error!("  Error reading {:?}: {}", path, e);

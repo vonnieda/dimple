@@ -119,18 +119,18 @@ mod tests {
         let track = library.save(&Track {
             title: Some("Lucy".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
 
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         ArtistRef::attach(&library, &artist, &track.id);
         let artist = library.save(&Artist {
 
             name: Some("Lou Reed".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         ArtistRef::attach(&library, &artist, &track.id);
 
         // dbg!(track.artists(&library));
@@ -142,35 +142,35 @@ mod tests {
         let death_metal = library.save(&Genre {
             name: Some("death metal".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let heavy_metal = library.save(&Genre {
             name: Some("heavy metal".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let rock = library.save(&Genre {
             name: Some("rock".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let _smooth_jazz = library.save(&Genre {
             name: Some("smooth jazz".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let _jazz = library.save(&Genre {
             name: Some("jazz".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
 
         let track = library.save(&Track {
             title: Some("Lucy".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         GenreRef::attach(&library, &heavy_metal, &track.id);
         GenreRef::attach(&library, &rock, &track.id);
 
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         GenreRef::attach(&library, &rock, &artist.id);
         GenreRef::attach(&library, &heavy_metal, &artist.id);
         GenreRef::attach(&library, &death_metal, &artist.id);

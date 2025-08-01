@@ -46,7 +46,7 @@ impl AppWindowController {
         }
 
         let image_cache_dir = cache_dir.join("image_cache");
-        let library_path = data_dir.join("library_2.db");
+        let library_path = data_dir.join("library.db");
         dbg!(&data_dir, &cache_dir, &library_path, &image_cache_dir);
         std::fs::create_dir_all(&data_dir).unwrap();
         std::fs::create_dir_all(&cache_dir).unwrap();

@@ -43,7 +43,7 @@ fn new_playlist(_app: &App) {
     let playlist = _app.library.save(&Playlist {
         name: Some("New Playlist".to_string()),
         ..Default::default()
-    });
+    }).unwrap();
     let app = _app.clone();
     _app.ui.upgrade_in_event_loop(move |_ui| {
         app.navigate(format!("dimple://playlist/{}", playlist.id.unwrap()).into());

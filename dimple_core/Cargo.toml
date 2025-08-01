@@ -31,6 +31,6 @@ lazy_static = "1.5.0"
 fast_image_resize = { version = "5.1.1", features = ["rayon"] }
 fractional_index = "2.0.2"
 musicbrainz_rs = { version = "0.9.0", features = ["blocking"], default-features = false }
-lofty = "0.22.1"
+lofty = "0.22.4"
 itertools = "0.14.0"
 cacache = "13.1.0"

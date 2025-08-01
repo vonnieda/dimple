@@ -19,7 +19,7 @@ mod tests {
     #[test]
     fn library_crud() {
         let library = Library::open_memory();
-        let model = library.save(&Artist::default());
+        let model = library.save(&Artist::default()).unwrap();
         assert!(model.id.is_some());
     }
 }

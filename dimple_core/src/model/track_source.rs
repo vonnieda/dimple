@@ -8,7 +8,6 @@ use super::{MediaFile, ModelBasics as _, Track};
 pub struct TrackSource {
     pub id: Option<String>,
     pub track_id: Option<String>,
-    pub blob_id: Option<String>,
     pub media_file_id: Option<String>,
 }
 
@@ -24,20 +23,19 @@ impl TrackSource {
 
 #[cfg(test)]
 mod tests {
-    use crate::{library::Library, model::{Blob, Track, TrackSource}};
+    use crate::{library::Library, model::{Track, TrackSource}};
 
     #[test]
     fn library_crud() {
         let library = Library::open_memory();
-        let blob = library.save(&Blob::default());
-        let track = library.save(&Track::default());
+        let track = library.save(&Track::default()).unwrap();
         let model = library.save(&TrackSource {
             track_id: track.id.clone(),
-            blob_id: blob.id.clone(),
             ..Default::default()
-        });
-        let model = library.save(&model);
+        }).unwrap();
+        let model = library.save(&model).unwrap();
         let model: TrackSource = library.get(&model.id.unwrap()).unwrap();
-        assert!(model.blob_id == blob.id);
+        // TODO?
+        // assert!(model.blob_id == blob.id);
     }
 }

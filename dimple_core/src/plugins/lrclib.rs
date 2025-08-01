@@ -93,11 +93,11 @@ mod tests {
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let track = library.save(&Track {
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         ArtistRef::attach(&library, &artist, &track.id);
 
         let lrclib = LrclibPlugin::default();

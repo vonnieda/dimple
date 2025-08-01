@@ -123,7 +123,6 @@ CREATE INDEX PlaylistItem_playlist_id_ordinal ON PlaylistItem (playlist_id, ordi
 CREATE TABLE MediaFile (
     id TEXT PRIMARY KEY,
     file_path TEXT UNIQUE NOT NULL,
-    sha256 TEXT NOT NULL,
     last_modified TEXT DEFAULT NULL,
     last_imported TEXT DEFAULT NULL
 );
@@ -131,23 +130,11 @@ CREATE TABLE MediaFile (
 CREATE TABLE TrackSource (
     id TEXT PRIMARY KEY,
     track_id TEXT NOT NULL,
-    blob_id TEXT,
     media_file_id TEXT,
     FOREIGN KEY (track_id) REFERENCES Track(id),
-    FOREIGN KEY (blob_id) REFERENCES Blob(id),
     FOREIGN KEY (media_file_id) REFERENCES MediaFile(id)
 );
-CREATE INDEX TrackSource_idx_1 ON TrackSource (blob_id);
-CREATE UNIQUE INDEX TrackSource_idx_2 ON TrackSource (track_id, blob_id);
 CREATE INDEX TrackSource_idx_media_file_id ON TrackSource (media_file_id);
-
-
-CREATE TABLE Blob (
-    id TEXT PRIMARY KEY,
-    sha256 TEXT UNIQUE NOT NULL,
-    length U32 NOT NULL
-);
-
 
 CREATE TABLE Dimage (
     id TEXT PRIMARY KEY,

@@ -103,7 +103,7 @@ mod tests {
         let artist = library.save(&Artist {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let image = plugin.image(&plugins, &library, &artist.into()).unwrap().unwrap();
         assert!(image.width == 1000);
     }

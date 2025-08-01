@@ -171,7 +171,6 @@ impl CrdtRules for MediaFile {
             id: CrdtRules::merge(l.id, r.id),
             last_imported: CrdtRules::merge(l.last_imported, r.last_imported),
             last_modified: CrdtRules::merge(l.last_modified, r.last_modified),
-            sha256: CrdtRules::merge(l.sha256, r.sha256),
         }
     }
 }

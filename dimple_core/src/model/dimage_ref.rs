@@ -24,15 +24,18 @@ impl DimageRef {
 
 #[cfg(test)]
 mod tests {
+    use anyhow::Result;
+
     use crate::{library::Library, model::{Dimage, DimageRef, Track}};
 
     #[test]
-    fn library_crud() {
+    fn library_crud() -> Result<()> {
         let library = Library::open_memory();
-        let dimage = library.save(&Dimage::default());
-        let track = library.save(&Track::default());
+        let dimage = library.save(&Dimage::default())?;
+        let track = library.save(&Track::default())?;
         DimageRef::attach(&library, &dimage, &track.id);
         assert!(track.images(&library).len() == 1);
+        Ok(())
     }
 }
 

@@ -32,8 +32,8 @@ mod tests {
         let genre = library.save(&Genre {
             name: Some("Test".to_string()),
             ..Default::default()
-        });
-        let track = library.save(&Track::default());
+        }).unwrap();
+        let track = library.save(&Track::default()).unwrap();
         GenreRef::attach(&library, &genre, &track.id);
         assert!(track.genres(&library).len() == 1);
     }

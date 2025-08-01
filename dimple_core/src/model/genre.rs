@@ -76,7 +76,7 @@ mod tests {
         let model = library.save(&Genre {
             name: Some("The Meat Puppets".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         assert!(model.id.is_some());
         assert!(model.name == Some("The Meat Puppets".to_string()));
     }

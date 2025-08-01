@@ -130,11 +130,11 @@ mod tests {
     #[test]
     fn library_crud() {
         let library = Library::open_memory();
-        let mut model = library.save(&Playlist::default());
+        let mut model = library.save(&Playlist::default()).unwrap();
         assert!(model.id.is_some());
         assert!(model.name.is_none());
         model.name = Some("name".to_string());
-        let model = library.save(&model);
+        let model = library.save(&model).unwrap();
         let model: Playlist = library.get(&model.id.unwrap()).unwrap();
         assert!(model.name == Some("name".to_string()));
     }
@@ -142,9 +142,9 @@ mod tests {
     #[test]
     fn tracks() {
         let library = Library::open_memory();
-        let playlist = library.save(&Playlist::default());
+        let playlist = library.save(&Playlist::default()).unwrap();
         for _ in 0..20 {
-            let track = library.save(&Track::default());
+            let track = library.save(&Track::default()).unwrap();
             playlist.append(&library, &track.into());
         }
         let playlist = Playlist::get(&library, &playlist.id.unwrap()).unwrap();

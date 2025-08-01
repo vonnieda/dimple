@@ -316,6 +316,8 @@ pub struct SearchResults {
 mod tests {
     use std::sync::Arc;
 
+    use anyhow::Result;
+
     use crate::{librarian::{self, ArtistMetadata, Librarian}, library::Library, model::{Artist, DimpleEntity, ModelBasics}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugins::Plugins, wikidata::WikidataPlugin}};
 
     #[test]
@@ -362,7 +364,7 @@ mod tests {
     }
 
     #[test]
-    fn image() {
+    fn image() -> Result<()> {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
         library.notifier.observe(|e| {
@@ -378,11 +380,10 @@ mod tests {
         let artist = library.save(&Artist {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
-        });
+        })?;
         let image = librarian.image(&artist.into()).unwrap();
-        dbg!(image.width(), image.height());
-        let image = librarian.image(&artist.into()).unwrap();
-        dbg!(image.width(), image.height());
+        assert!(image.width() > 0 && image.height() > 0);
+        Ok(())
     }
 
     #[test]

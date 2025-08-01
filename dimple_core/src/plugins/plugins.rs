@@ -180,11 +180,11 @@ mod tests {
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let track = library.save(&Track {
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         ArtistRef::attach(&library, &artist, &track.id);
 
         // assert!(plugins.track_metadata(&library, &track).is_some());
@@ -197,7 +197,7 @@ mod tests {
         let artist = library.save(&Artist {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let plugins = Plugins::default();
         plugins.add_plugin(Arc::new(ExamplePlugin::default()));
         plugins.add_plugin(Arc::new(LrclibPlugin::default()));
@@ -215,7 +215,7 @@ mod tests {
         let artist = library.save(&Artist {
             musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
             ..Default::default()
-        });
+        }).unwrap();
         let plugins = Plugins::default();
         plugins.add_plugin(Arc::new(ExamplePlugin::default()));
         plugins.add_plugin(Arc::new(LrclibPlugin::default()));

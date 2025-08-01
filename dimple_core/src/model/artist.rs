@@ -66,11 +66,11 @@ mod tests {
     #[test]
     fn library_crud() {
         let library = Library::open_memory();
-        let mut model = library.save(&Artist::default());
+        let mut model = library.save(&Artist::default()).unwrap();
         assert!(model.id.is_some());
         assert!(model.name.is_none());
         model.name = Some("Name".to_string());
-        let model = library.save(&model);
+        let model = library.save(&model).unwrap();
         let model: Artist = library.get(&model.id.unwrap()).unwrap();
         assert!(model.name == Some("Name".to_string()));
     }

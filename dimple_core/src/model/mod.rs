@@ -20,9 +20,6 @@ pub use track_source::TrackSource;
 mod media_file;
 pub use media_file::MediaFile;
 
-mod blob;
-pub use blob::Blob;
-
 mod genre;
 pub use genre::Genre;
 
@@ -75,7 +72,7 @@ impl <T: Entity> ModelBasics<T> for T {
     }
 
     fn save(&self, library: &Library) -> T {
-        library.save(self)
+        library.save(self).unwrap()
     }
     
     fn query(library: &Library, sql: &str, params: impl Params) -> Vec<T> {

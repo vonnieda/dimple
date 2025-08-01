@@ -29,8 +29,8 @@ mod tests {
     #[test]
     fn library_crud() {
         let library = Library::open_memory();
-        let link = library.save(&Link::default());
-        let track = library.save(&Track::default());
+        let link = library.save(&Link::default()).unwrap();
+        let track = library.save(&Track::default()).unwrap();
         LinkRef::attach(&library, &link, &track.id);
         assert!(track.links(&library).len() == 1);
     }

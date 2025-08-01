@@ -2,6 +2,7 @@ pub mod track_downloader;
 
 use std::{sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, time::{Duration, Instant}};
 
+use anyhow::Result;
 use dimple_db::db::Entity;
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
@@ -163,7 +164,7 @@ impl Player {
             None => self.library.save(&Playlist {
                 id: Some(id.to_string()),
                 ..Default::default()
-            })
+            }).unwrap()
         };
         playlist
     }

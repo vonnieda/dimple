@@ -1,12 +1,13 @@
 use std::{fmt::Debug, time::Duration};
 
+use anyhow::Result;
 use dimple_db::{db::{Entity, Migrations}, rusqlite::Params, Db};
 use image::DynamicImage;
 use include_dir::{include_dir, Dir};
 use log::info;
 use uuid::Uuid;
 
-use crate::{model::{Artist, Blob, DimpleEntity, Genre, MediaFile, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier};
+use crate::{model::{Artist, DimpleEntity, Genre, MediaFile, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier};
 
 #[derive(Clone)]
 pub struct Library {
@@ -43,6 +44,8 @@ impl Library {
         library
     }
 
+    // TODO most listeners will switch to query_subscribe, if not all then
+    // those can subscribe to db directly.
     fn setup_temporary_notifier(&self) {
         let library_clone = self.clone();
         std::thread::spawn(move || {
@@ -112,8 +115,8 @@ impl Library {
     }
 
     // TODO need to change these wrappers to return Results
-    pub fn save<T: Entity>(&self, obj: &T) -> T {
-        self.db.save(obj).unwrap()
+    pub fn save<T: Entity>(&self, obj: &T) -> Result<T> {
+        Ok(self.db.save(obj)?)
     }
 
     pub fn get<T: Entity>(&self, key: &str) -> Option<T> {
@@ -192,57 +195,12 @@ impl Library {
         self.find("SELECT * FROM MediaFile WHERE file_path = ?", (file_path,))
     }
 
-    pub fn find_blob_by_sha256(&self, sha256: &str) -> Option<Blob> {
-        self.find("SELECT * FROM Blob WHERE sha256 = ?", (sha256,))
-    }
-
     pub fn track_sources_for_track(&self, track: &Track) -> Vec<TrackSource> {
         self.query("SELECT * FROM TrackSource WHERE track_id = ?", (&track.id,))
     }
         
-    pub fn track_sources_by_blob(&self, blob: &Blob) -> Vec<TrackSource> {
-        self.query("SELECT * FROM TrackSource WHERE blob_id = ?", (&blob.id,))
-    }
-
-    pub fn media_files_by_sha256(&self, sha256: &str) -> Vec<MediaFile> {
-        self.query("SELECT * FROM TrackSource WHERE sha256 = ?", (sha256,))
-    }
-
-    pub fn load_blob_content(&self, blob: &Blob) -> Option<Vec<u8>> {
-        for media_file in self.media_files_by_sha256(&blob.sha256) {
-            if let Ok(content) = std::fs::read(&media_file.file_path) {
-                info!("Found blob sha256 {} at {}", blob.sha256, &media_file.file_path);
-                return Some(content)
-            }
-        }
-        // TODO This will go to Db
-        // for sync in self.synchronizers.read().unwrap().iter() {
-        //     if let Some(content) = sync.load_blob_content(blob) {
-        //         info!("Found blob sha256 {} in sync", blob.sha256);
-        //         return Some(content)
-        //     }
-        // }
-        None
-    }
-
-    pub fn load_local_blob_content(&self, blob: &Blob) -> Option<Vec<u8>> {
-        for media_file in self.media_files_by_sha256(&blob.sha256) {
-            if let Ok(content) = std::fs::read(media_file.file_path) {
-                return Some(content)
-            }
-        }
-        None
-    }
-
     pub fn load_track_content(&self, track: &Track) -> Option<Vec<u8>> {
         for source in self.track_sources_for_track(track) {
-            if let Some(blob_id) = source.blob_id {
-                if let Some(blob) = self.get::<Blob>(&blob_id) {
-                    if let Some(content) = self.load_blob_content(&blob) {
-                        return Some(content)
-                    }
-                }
-            }
             if let Some(media_file_id) = source.media_file_id {
                 if let Some(media_file) = self.get::<MediaFile>(&media_file_id) {
                     if let Ok(content) = std::fs::read(media_file.file_path) {

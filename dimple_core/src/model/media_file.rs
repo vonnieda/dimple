@@ -8,9 +8,6 @@ pub struct MediaFile {
     pub id: Option<String>,
 
     pub file_path: String,
-    // TODO I think I'm going to remove this and only use sha256 for sync
-    // It's just too slow to have to worry about for every import.
-    pub sha256: String,
 
     pub last_modified: DateTime<Utc>,
     pub last_imported: DateTime<Utc>,
@@ -25,7 +22,7 @@ mod tests {
     #[test]
     fn library_crud() {
         let library = Library::open_memory();
-        let model = library.save(&MediaFile::default());
+        let model = library.save(&MediaFile::default()).unwrap();
         assert!(model.id.is_some());
     }
 }

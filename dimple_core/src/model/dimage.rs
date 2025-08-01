@@ -117,7 +117,7 @@ mod tests {
         let mut dimage = Dimage::default();
         let dymage = image::open("tests/data/smol.png").unwrap();
         dimage.set_image(&dymage);
-        let dimage = library.save(&dimage);
+        let dimage = library.save(&dimage).unwrap();
         assert!(dimage.id.is_some());
         assert!(dimage.png_data.len() > 0);
         assert!(dimage.png_thumbnail.len() > 0);
