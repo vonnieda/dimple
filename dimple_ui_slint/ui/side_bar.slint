@@ -4,6 +4,7 @@ import { Styles, Navigator, AppState, Label } from "common.slint";
 import {StyleMetrics, VerticalBox, TextEdit, Spinner, Slider, CheckBox, Palette} from "std-widgets.slint";
 import {Link, LinkAdapter, ImageLinkAdapter} from "./components/link.slint";
 import {CardAdapter} from "./components/card.slint";
+import { SettingsAdapter } from "pages/settings.slint";
 
 export struct SideBarAdapter {
     pinned_items: [CardAdapter],
@@ -76,7 +77,7 @@ component SideBarMenuItem inherits TouchArea {
                 height: Styles.icon-width-sidebar;
                 colorize: root.has-hover ? Palette.selection-foreground : Palette.foreground;
             }
-            if AppState.sidebar_open: Label {
+            if SettingsAdapter.sidebar_open: Label {
                 vertical-alignment: center;
                 text: text;
                 font-size: Styles.default-font-size * 1.2;

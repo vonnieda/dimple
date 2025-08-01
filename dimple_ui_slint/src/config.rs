@@ -1,63 +1,162 @@
+use anyhow::Result;
+use dimple_db::{db::{Migrations, M}, Db};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Config {
-    path: String,
-    config_file: ConfigFile,
+    pub db: Db,
 }
 
 impl Config {
-    // pub fn open(path: &str) -> Config {
-    //     Config {
-    //         path: path.to_string(),
-    //         config_file: ConfigFile::default(),
-    //     }
-    // }
-
-    pub fn on_change(&self) {
-        todo!()
+    pub fn new(db: Db) -> Result<Self> {
+        let migrations = Migrations::new(vec![
+            M::up("CREATE TABLE ConfigValue (
+                id TEXT PRIMARY KEY,
+                key TEXT NOT NULL UNIQUE,
+                value TEXT
+            );"),
+        ]);
+        db.migrate(&migrations)?;
+        Ok(Config {
+            db,
+        })
     }
 
-    pub fn emit_change(&self, event: &str) {
-
+    fn get_value(&self, key: &str) -> Option<String> {
+        let values: Vec<ConfigValue> = self.db.query("SELECT * FROM ConfigValue WHERE key = ?", (key,)).unwrap();
+        values.into_iter().next().map(|v| v.value)?
     }
 
-    pub fn offline_mode(&self) -> bool {
-        self.config_file.offline_mode
+    fn set_value(&self, key: &str, value: Option<String>) {
+        self.db.transaction(|tx| {
+            let v = tx.query::<ConfigValue, _>("SELECT * FROM ConfigValue WHERE key = ?", (key,))?.into_iter().next();
+            if let Some(mut v) = v {
+                v.value = value;
+                tx.save(&v)?;
+            }
+            else {
+                tx.save(&ConfigValue {
+                    key: key.to_string(),
+                    value,
+                    ..Default::default()
+                })?;
+            }
+            Ok(())
+        }).unwrap();
     }
 
-    pub fn set_offline_mode(&mut self, value: bool) {
-        self.config_file.offline_mode = value;
-        self.emit_change("offline_mode");
+    pub fn offline(&self) -> bool {
+        self.get_value("offline") == Some("true".to_string())
     }
 
-    pub fn plugin_config(&self) -> Vec<PluginConfig> {
-        self.config_file.plugin_config.clone()
+    pub fn set_offline(&self, value: bool) {
+        self.set_value("offline", if value {
+            Some("true".to_string())
+        }
+        else {
+            Some("false".to_string())
+        })
     }
 
-    pub fn add_plugin_config(&mut self, config: &PluginConfig) {
-        self.config_file.plugin_config.push(config.clone());
+    pub fn sidebar_open(&self) -> bool {
+        self.get_value("sidebar_open") == Some("true".to_string())
     }
 
-    fn load(&self) {
-
+    pub fn set_sidebar_open(&self, value: bool) {
+        self.set_value("sidebar_open", if value {
+            Some("true".to_string())
+        }
+        else {
+            Some("false".to_string())
+        })
     }
 
-    fn save(&self) {
+    pub fn debug(&self) -> bool {
+        self.get_value("debug") == Some("true".to_string())
+    }
 
+    pub fn set_debug(&self, value: bool) {
+        self.set_value("debug", if value {
+            Some("true".to_string())
+        }
+        else {
+            Some("false".to_string())
+        })
+    }
+
+    pub fn s3_endpoint(&self) -> Option<String> {
+        self.get_value("s3_endpoint")
+    }
+
+    pub fn set_s3_endpoint(&self, value: Option<String>) {
+        self.set_value("s3_endpoint", value)
+    }
+
+
+    pub fn s3_region(&self) -> Option<String> {
+        self.get_value("s3_region")
+    }
+
+    pub fn set_s3_region(&self, value: Option<String>) {
+        self.set_value("s3_region", value)
+    }
+
+    
+    pub fn s3_bucket(&self) -> Option<String> {
+        self.get_value("s3_bucket")
+    }
+
+    pub fn set_s3_bucket(&self, value: Option<String>) {
+        self.set_value("s3_bucket", value)
+    }
+
+    
+    pub fn s3_access_key(&self) -> Option<String> {
+        self.get_value("s3_access_key")
+    }
+
+    pub fn set_s3_access_key(&self, value: Option<String>) {
+        self.set_value("s3_access_key", value)
+    }
+
+    
+    pub fn s3_secret_key(&self) -> Option<String> {
+        self.get_value("s3_secret_key")
+    }
+
+    pub fn set_s3_secret_key(&self, value: Option<String>) {
+        self.set_value("s3_secret_key", value)
+    }
+
+    
+    pub fn s3_prefix(&self) -> Option<String> {
+        self.get_value("s3_prefix")
+    }
+
+    pub fn set_s3_prefix(&self, value: Option<String>) {
+        self.set_value("s3_prefix", value)
     }
 }
 
-#[derive(Default, Serialize, Deserialize, Clone)]
-pub struct ConfigFile {
-    pub offline_mode: bool,
-    pub plugin_config: Vec<PluginConfig>,
+#[derive(Serialize, Deserialize, Default, Clone, PartialEq)]
+struct ConfigValue {
+    id: String,
+    key: String,
+    value: Option<String>,
 }
 
-#[derive(Default, Serialize, Deserialize, Clone)]
-pub struct PluginConfig {
-    pub key: String,
-    pub type_name: String,
-    pub enabled: bool,
-    pub config: String,
+#[cfg(test)]
+mod tests {
+    use dimple_db::Db;
+
+    use crate::config::Config;
+
+    #[test]
+    fn basics() -> anyhow::Result<()> {
+        let config = Config::new(Db::open_memory()?)?;
+        assert_eq!(config.offline(), false);
+        config.set_offline(true);
+        assert_eq!(config.offline(), true);
+        Ok(())
+    }
 }

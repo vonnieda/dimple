@@ -23,12 +23,29 @@ export struct PluginAdapter {
 }
 
 export global SettingsAdapter {
+    in-out property <bool> offline;
+    in-out property <bool> debug;
+    in-out property <bool> sidebar-open;
+    in-out property <string> s3-endpoint;
+    in-out property <string> s3-region;
+    in-out property <string> s3-bucket;
+    in-out property <string> s3-access-key;
+    in-out property <string> s3-secret-key;
+    in-out property <string> s3-prefix;
+
     in property <[PluginAdapter]> plugins;
     in property <[string]> cache_stats;
     in property <[string]> database_stats;
-    pure callback set_online(bool);
+    pure callback set_offline(bool);
     pure callback set_debug(bool);
-    pure callback set_font_size(float);
+    pure callback set_sidebar_open(bool);
+    pure callback set_s3_endpoint(string);
+    pure callback set_s3_region(string);
+    pure callback set_s3_bucket(string);
+    pure callback set_s3_access_key(string);
+    pure callback set_s3_secret_key(string);
+    pure callback set_s3_prefix(string);
+    pure callback sync_now();
     pure callback import_files();
     pure callback import_directories();
     pure callback quit();
@@ -47,14 +64,28 @@ component General inherits VerticalBox {
         alignment: start;
         
         Label {
-            text: "Offline Mode";
+            text: "Offline";
             vertical-alignment: center;
         }
 
         Switch {
-            checked: AppState.offline-mode;
+            checked: SettingsAdapter.offline;
+            changed checked => { SettingsAdapter.set_offline(self.checked); }
+        }
+    }
+
+    HorizontalBox {
+        alignment: start;
+        
+        Label {
+            text: "Debug";
+            vertical-alignment: center;
+        }
+
+        Switch {
+            checked: SettingsAdapter.debug;
             toggled => {
-                SettingsAdapter.set_online(!self.checked);
+                SettingsAdapter.set_debug(self.checked);
             }
         }
     }
@@ -129,7 +160,10 @@ component Sync inherits VerticalBox {
             col: 1;
             colspan: 2;
             min-width: 200px;
+            text: SettingsAdapter.s3-endpoint;
+            accepted(text) => { SettingsAdapter.set_s3_endpoint(text) }
         }        
+
         Label {
             row: 1;
             col: 0;
@@ -141,7 +175,10 @@ component Sync inherits VerticalBox {
             col: 1;
             colspan: 2;
             min-width: 200px;
+            text: SettingsAdapter.s3-region;
+            accepted(text) => { SettingsAdapter.set_s3_region(text) }
         }        
+
         Label {
             row: 2;
             col: 0;
@@ -153,7 +190,10 @@ component Sync inherits VerticalBox {
             col: 1;
             colspan: 2;
             min-width: 200px;
+            text: SettingsAdapter.s3-bucket;
+            accepted(text) => { SettingsAdapter.set_s3_bucket(text) }
         }        
+
         Label {
             row: 3;
             col: 0;
@@ -165,11 +205,14 @@ component Sync inherits VerticalBox {
             col: 1;
             colspan: 2;
             min-width: 200px;
+            text: SettingsAdapter.s3-access-key;
+            accepted(text) => { SettingsAdapter.set_s3_access_key(text) }
         }        
+
         Label {
             row: 4;
             col: 0;
-            text: "S3 Prefix";
+            text: "S3 Secret Key";
             vertical-alignment: center;
         }
         LineEdit {
@@ -177,12 +220,31 @@ component Sync inherits VerticalBox {
             col: 1;
             colspan: 2;
             min-width: 200px;
-        }        
-        ActionButton {
+            text: SettingsAdapter.s3-secret-key;
+            accepted(text) => { SettingsAdapter.set_s3_secret_key(text) }
+        }  
+
+        Label {
             row: 5;
+            col: 0;
+            text: "S3 Prefix";
+            vertical-alignment: center;
+        }
+        LineEdit {
+            row: 5;
+            col: 1;
+            colspan: 2;
+            min-width: 200px;
+            text: SettingsAdapter.s3-prefix;
+            accepted(text) => { SettingsAdapter.set_s3_prefix(text) }
+        }        
+
+        ActionButton {
+            row: 6;
             col: 0;
             icon: @image-url("../../icons/phosphor/SVGs/regular/arrow-clockwise.svg");
             text: "Sync Now";
+            clicked => { SettingsAdapter.sync_now() }
         }
     }
 }
@@ -270,14 +332,14 @@ component Import inherits VerticalBox {
     HorizontalBox {
         alignment: start;
         ActionButton {
-            text: "Import File(s)";
-            icon: @image-url("../../icons/phosphor/SVGs/regular/file.svg");
-            clicked => { SettingsAdapter.import_files(); }
-        }
-        ActionButton {
             text: "Import Folder(s)";
             icon: @image-url("../../icons/phosphor/SVGs/regular/folder.svg");
             clicked => { SettingsAdapter.import_directories(); }
+        }
+        ActionButton {
+            text: "Import File(s)";
+            icon: @image-url("../../icons/phosphor/SVGs/regular/file.svg");
+            clicked => { SettingsAdapter.import_files(); }
         }
     }
 }

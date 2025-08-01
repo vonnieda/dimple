@@ -1,4 +1,5 @@
 use dimple_core::{librarian::Librarian, library::Library, player::{PlayWhen, Player, PlayerEvent}, plugins::{fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugins::Plugins, wikidata::WikidataPlugin}};
+use dimple_db::Db;
 use std::{collections::VecDeque, env, path::Path, sync::{Arc, Mutex}};
 
 use slint::{ComponentHandle, SharedString, Weak};
@@ -49,12 +50,14 @@ impl AppWindowController {
 
         let image_cache_dir = cache_dir.join("image_cache");
         let library_path = data_dir.join("library.db");
-        dbg!(&data_dir, &cache_dir, &library_path, &image_cache_dir);
+        let config_path = data_dir.join("config.db");
+        dbg!(&data_dir, &cache_dir, &library_path, &image_cache_dir, &config_path);
         std::fs::create_dir_all(&data_dir).unwrap();
         std::fs::create_dir_all(&cache_dir).unwrap();
         std::fs::create_dir_all(&image_cache_dir).unwrap();
 
         let library = Library::open(library_path.to_str().unwrap());
+        let config = Config::new(Db::open(config_path.to_str().unwrap()).unwrap()).unwrap();
         let player = Player::new(Arc::new(library.clone()));
         let plugins = Plugins::new(cache_dir.to_str().unwrap());
         plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
@@ -67,7 +70,7 @@ impl AppWindowController {
         Self {
             ui,
             app: App {
-                config: Config::default(),
+                config,
                 library,
                 history: Arc::new(Mutex::new(VecDeque::new())),
                 player,

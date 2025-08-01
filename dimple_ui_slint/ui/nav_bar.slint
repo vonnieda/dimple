@@ -1,6 +1,7 @@
 import { HorizontalBox, LineEdit, Palette, Button } from "std-widgets.slint";
 import { Styles, Navigator, AppState } from "./common.slint";
 import { Label } from "common.slint";
+import { SettingsAdapter } from "pages/settings.slint";
 
 component NavBarButton inherits TouchArea {
     in property <image> source;
@@ -21,7 +22,9 @@ export component NavBar inherits HorizontalBox {
     padding: 0;
     NavBarButton {
         source: @image-url("../icons/phosphor/SVGs/regular/sidebar-simple.svg");
-        clicked => { AppState.sidebar_open = !AppState.sidebar_open; }
+        clicked => { 
+            SettingsAdapter.set_sidebar_open(!SettingsAdapter.sidebar-open); 
+        }
     }
     NavBarButton {
         source: @image-url("../icons/phosphor/SVGs/regular/queue.svg");
