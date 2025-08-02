@@ -7,6 +7,7 @@ use dimple_core::model::Playlist;
 use dimple_core::model::Track;
 use dimple_core::model::TrackSource;
 use dimple_core::plugins;
+use dimple_db::sync::SyncEngine;
 use slint::{ModelRc, SharedString};
 
 use crate::ui::app_window_controller::App;
@@ -156,7 +157,20 @@ fn import_directories(app: &App) {
 }
 
 fn sync_now(app: &App) {
-    println!("let's sync");
+    let app_clone = app.clone();
+    thread::spawn(move || {
+        let app = app_clone;
+        let sync_engine = SyncEngine::builder()
+            .prefix(&app.config.s3_prefix().unwrap_or_default())
+            .s3(&app.config.s3_endpoint().unwrap_or_default(), 
+                &app.config.s3_bucket().unwrap_or_default(), 
+                &app.config.s3_region().unwrap_or_default(),
+                &app.config.s3_access_key().unwrap_or_default(), 
+                &app.config.s3_secret_key().unwrap_or_default()).unwrap()
+            .build()
+            .unwrap();
+        sync_engine.sync(&app.library.db).unwrap();
+    });
 }
 
 // fn plugin_adapter(plugin_config: PluginConfig) -> PluginAdapter{

@@ -12,7 +12,7 @@ use crate::{model::{Artist, DimpleEntity, Genre, MediaFile, ModelBasics as _, Re
 #[derive(Clone)]
 pub struct Library {
     pub notifier: Notifier<LibraryEvent>,
-    db: Db,
+    pub db: Db,
 }
 
 impl Library {
