@@ -161,6 +161,7 @@ component Sync inherits VerticalBox {
             colspan: 2;
             min-width: 200px;
             text: SettingsAdapter.s3-endpoint;
+            changed text => { SettingsAdapter.set_s3_endpoint(self.text) }
             accepted(text) => { SettingsAdapter.set_s3_endpoint(text) }
         }        
 
@@ -176,6 +177,7 @@ component Sync inherits VerticalBox {
             colspan: 2;
             min-width: 200px;
             text: SettingsAdapter.s3-region;
+            changed text => { SettingsAdapter.set_s3_region(self.text) }
             accepted(text) => { SettingsAdapter.set_s3_region(text) }
         }        
 
@@ -191,6 +193,7 @@ component Sync inherits VerticalBox {
             colspan: 2;
             min-width: 200px;
             text: SettingsAdapter.s3-bucket;
+            changed text => { SettingsAdapter.set_s3_bucket(self.text) }
             accepted(text) => { SettingsAdapter.set_s3_bucket(text) }
         }        
 
@@ -206,6 +209,7 @@ component Sync inherits VerticalBox {
             colspan: 2;
             min-width: 200px;
             text: SettingsAdapter.s3-access-key;
+            changed text => { SettingsAdapter.set_s3_access_key(self.text) }
             accepted(text) => { SettingsAdapter.set_s3_access_key(text) }
         }        
 
@@ -221,6 +225,7 @@ component Sync inherits VerticalBox {
             colspan: 2;
             min-width: 200px;
             text: SettingsAdapter.s3-secret-key;
+            changed text => { SettingsAdapter.set_s3_secret_key(self.text) }
             accepted(text) => { SettingsAdapter.set_s3_secret_key(text) }
         }  
 
@@ -236,6 +241,7 @@ component Sync inherits VerticalBox {
             colspan: 2;
             min-width: 200px;
             text: SettingsAdapter.s3-prefix;
+            changed text => { SettingsAdapter.set_s3_prefix(self.text) }
             accepted(text) => { SettingsAdapter.set_s3_prefix(text) }
         }        
 
