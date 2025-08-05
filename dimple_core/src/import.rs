@@ -70,13 +70,17 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
         track_metadata.clone().artists.get(0).map(|f| f.artist.name.clone().unwrap_or_default().to_string()),
         track_metadata.clone().release.unwrap().release.title,
         track_metadata.clone().track.title);
-    
+
+    // TODO and now, finally, I can do this work in a transaction!
+
+
     // Create or update a MediaFile by the file path.
     let mut media_file = library.find_media_file_by_file_path(path.to_str().unwrap())
         .unwrap_or_default();
     media_file.file_path = path.to_str().unwrap().to_string();
     media_file.last_imported = Utc::now();
     media_file.last_modified = path.metadata()?.modified()?.into();
+    media_file.content = Some(std::fs::read(path)?);
     let media_file = media_file.save(library);
     
     // Find or create a TrackSource by the MediaFile id. This is not yet saved,

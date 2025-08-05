@@ -11,6 +11,8 @@ pub struct MediaFile {
 
     pub last_modified: DateTime<Utc>,
     pub last_imported: DateTime<Utc>,
+
+    pub content: Option<Vec<u8>>,
 }
 
 #[cfg(test)]

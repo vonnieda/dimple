@@ -198,6 +198,9 @@ impl Library {
         for source in self.track_sources_for_track(track) {
             if let Some(media_file_id) = source.media_file_id {
                 if let Some(media_file) = self.get::<MediaFile>(&media_file_id) {
+                    if let Some(content) = media_file.content {
+                        return Some(content)
+                    }
                     if let Ok(content) = std::fs::read(media_file.file_path) {
                         return Some(content)
                     }

@@ -15,7 +15,6 @@ CREATE TABLE Artist (
     wikidata_id TEXT
 );
 CREATE INDEX Artist_musicbrainz_id ON Artist (musicbrainz_id);
-CREATE UNIQUE INDEX Artist_unique_name_disambiguation ON Artist (name, COALESCE(disambiguation, ''));
 
 CREATE TABLE Release (
     id TEXT PRIMARY KEY,
@@ -65,15 +64,14 @@ CREATE TABLE Track (
     media_track_count INT,
     media_position INT,
     media_title TEXT,
-    media_format TEXT,
-    FOREIGN KEY (release_id) REFERENCES Release(id)
+    media_format TEXT
 );
 CREATE INDEX Track_musicbrainz_id ON Track (musicbrainz_id);
 CREATE INDEX Track_release_id ON Track (release_id);
 
 CREATE TABLE Genre (
     id TEXT PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
     disambiguation TEXT,
     summary TEXT,
     save BOOL NOT NULL DEFAULT false,
@@ -86,12 +84,11 @@ CREATE TABLE Genre (
     wikidata_id TEXT
 );
 CREATE INDEX Genre_musicbrainz_id ON Genre (musicbrainz_id);
-CREATE UNIQUE INDEX Genre_unique_name_disambiguation ON Genre (name, COALESCE(disambiguation, ''));
 
 CREATE TABLE Link (
     id TEXT PRIMARY KEY,
     name TEXT,
-    url TEXT UNIQUE NOT NULL
+    url TEXT NOT NULL
 );
 
 CREATE TABLE Playlist (
@@ -114,25 +111,22 @@ CREATE TABLE PlaylistItem (
     id TEXT PRIMARY KEY,
     playlist_id TEXT NOT NULL,
     ordinal TEXT NOT NULL,
-    track_id TEXT NOT NULL,
-    FOREIGN KEY (playlist_id) REFERENCES Playlist(id),
-    FOREIGN KEY (track_id) REFERENCES Track(id)
+    track_id TEXT NOT NULL
 );
 CREATE INDEX PlaylistItem_playlist_id_ordinal ON PlaylistItem (playlist_id, ordinal);
 
 CREATE TABLE MediaFile (
     id TEXT PRIMARY KEY,
-    file_path TEXT UNIQUE NOT NULL,
+    file_path TEXT NOT NULL,
     last_modified TEXT DEFAULT NULL,
-    last_imported TEXT DEFAULT NULL
+    last_imported TEXT DEFAULT NULL,
+    content BLOB -- TODO this isn't where I want this, but just wanna see it working
 );
 
 CREATE TABLE TrackSource (
     id TEXT PRIMARY KEY,
     track_id TEXT NOT NULL,
-    media_file_id TEXT,
-    FOREIGN KEY (track_id) REFERENCES Track(id),
-    FOREIGN KEY (media_file_id) REFERENCES MediaFile(id)
+    media_file_id TEXT
 );
 CREATE INDEX TrackSource_idx_media_file_id ON TrackSource (media_file_id);
 
@@ -143,7 +137,7 @@ CREATE TABLE Dimage (
     height INT NOT NULL,
     png_thumbnail BLOB NOT NULL,
     png_data BLOB NOT NULL,
-    sha256 UNIQUE NOT NULL
+    sha256 NOT NULL
 );
 
 -- TODO Rename to Scrobble, I think.
@@ -160,37 +154,33 @@ CREATE TABLE Event (
 CREATE INDEX Event_idx_1 ON Event (timestamp, event_type);
 CREATE INDEX Event_idx_2 ON Event (timestamp);
 CREATE INDEX Event_idx_3 ON Event (event_type);
-CREATE UNIQUE INDEX Event_idx_4 ON Event (source_type, source);
+CREATE INDEX Event_idx_4 ON Event (source_type, source);
 
 CREATE TABLE DimageRef (
     id TEXT PRIMARY KEY,
     model_id TEXT NOT NULL,
-    dimage_id TEXT NOT NULL,
-    FOREIGN KEY (dimage_id) REFERENCES Dimage(id)
+    dimage_id TEXT NOT NULL
 );
-CREATE UNIQUE INDEX DimageRef_unique_model_id_dimage_id ON DimageRef (model_id, dimage_id);
+CREATE INDEX DimageRef_model_id_dimage_id ON DimageRef (model_id, dimage_id);
 
 CREATE TABLE LinkRef (
     id TEXT PRIMARY KEY,
     model_id TEXT NOT NULL,
-    link_id TEXT NOT NULL,
-    FOREIGN KEY (link_id) REFERENCES Link(id)
+    link_id TEXT NOT NULL
 );
-CREATE UNIQUE INDEX LinkRef_unique_model_id_link_id ON LinkRef (model_id, link_id);
+CREATE INDEX LinkRef_model_id_link_id ON LinkRef (model_id, link_id);
 
 CREATE TABLE ArtistRef (
     id TEXT PRIMARY KEY,
     model_id TEXT NOT NULL,
-    artist_id TEXT NOT NULL,
-    FOREIGN KEY (artist_id) REFERENCES Artist(id)
+    artist_id TEXT NOT NULL
 );
-CREATE UNIQUE INDEX ArtistRef_unique_model_id_artist_id ON ArtistRef (model_id, artist_id);
+CREATE INDEX ArtistRef_model_id_artist_id ON ArtistRef (model_id, artist_id);
 
 CREATE TABLE GenreRef (
     id TEXT PRIMARY KEY,
     model_id TEXT NOT NULL,
-    genre_id TEXT NOT NULL,
-    FOREIGN KEY (genre_id) REFERENCES Genre(id)
+    genre_id TEXT NOT NULL
 );
-CREATE UNIQUE INDEX GenreRef_unique_model_id_genre_id ON GenreRef (model_id, genre_id);
+CREATE INDEX GenreRef_model_id_genre_id ON GenreRef (model_id, genre_id);
 
