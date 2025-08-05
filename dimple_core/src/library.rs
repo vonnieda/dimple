@@ -62,11 +62,6 @@ impl Library {
                         type_name: type_name, 
                         key: id, 
                     }),
-                    dimple_db::db::DbEvent::Delete(type_name, id) => library_clone.notifier.notify(LibraryEvent { 
-                        library: library_clone.clone(), 
-                        type_name: type_name, 
-                        key: id, 
-                    }),
                 }
             }
         });

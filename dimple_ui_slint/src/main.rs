@@ -34,9 +34,9 @@ fn main() -> Result<(), slint::PlatformError> {
 
     builder.init();
 
-    std::panic::set_hook(Box::new(|panic_info| {
-        log::error!("Panic: {:?}", panic_info);
-    }));    
+    // std::panic::set_hook(Box::new(|panic_info| {
+    //     log::error!("Panic: {:?}", panic_info);
+    // }));    
 
     let ui = AppWindowController::new();
     ui.run()

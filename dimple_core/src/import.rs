@@ -7,7 +7,6 @@ use std::path::Path;
 use crate::{librarian, library::Library, model::{ModelBasics as _, Track, TrackSource}};
 
 use chrono::{DateTime, Utc};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator as _};
 use lofty_tagged_media_file::LoftyTaggedMediaFile;
 use walkdir::WalkDir;
 
@@ -49,7 +48,7 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     if !path.is_file() {
         return Err(anyhow::anyhow!("Path must be a file: {:?}", path));
     }
-    // log::info!("Importing {:?}.", path);
+    log::info!("Importing {:?}.", path);
 
     // Read the tags from the file.
     let tags = LoftyTaggedMediaFile::new(path)?;
@@ -66,11 +65,11 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     if track_metadata.artists.is_empty() {
         log::warn!("  No artists {}", path.to_string_lossy());
     }
-    // log::info!("{:?} {:?} {:?} {:?}", 
-    //     path.file_name().unwrap(), 
-    //     track_metadata.clone().artists.get(0).map(|f| f.artist.name.clone().unwrap_or_default().to_string()),
-    //     track_metadata.clone().release.unwrap().release.title,
-    //     track_metadata.clone().track.title);
+    log::info!("{:?} {:?} {:?} {:?}", 
+        path.file_name().unwrap(), 
+        track_metadata.clone().artists.get(0).map(|f| f.artist.name.clone().unwrap_or_default().to_string()),
+        track_metadata.clone().release.unwrap().release.title,
+        track_metadata.clone().track.title);
     
     // Create or update a MediaFile by the file path.
     let mut media_file = library.find_media_file_by_file_path(path.to_str().unwrap())
@@ -96,14 +95,6 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     let track_source = track_source.save(library);
 
     Ok(track_source)
-}
-
-fn print_track(track: &Track, library: &Library) {
-    println!("{:?}", track.title);
-    println!("  Artists: {:?}", track.artists(library).iter().map(|a| a.name.clone()).collect::<Vec<_>>());
-    println!("  Genres: {:?}", track.genres(library).iter().map(|a| a.name.clone()).collect::<Vec<_>>());
-    println!("  Release: {:?}", track.release(library).map(|r| r.id.clone()));
-    println!("  Links: {:?}", track.links(library));
 }
 
 #[derive(Debug)]

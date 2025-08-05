@@ -148,17 +148,17 @@ export component TrackDetails inherits ScrollView {
                 }
                 HorizontalBox {
                     Button {
-                        text: "Save";
-                        clicked => {
-                            lyrics_editing = false;                
-                            TrackDetailsAdapter.set_lyrics(TrackDetailsAdapter.key, text_edit.text);
-                        }
-                    }
-                    Button {
                         text: "Cancel";
                         clicked => {
                             // TODO reset if changed
                             lyrics_editing = false;                
+                        }
+                    }
+                    Button {
+                        text: "Save";
+                        clicked => {
+                            lyrics_editing = false;                
+                            TrackDetailsAdapter.set_lyrics(TrackDetailsAdapter.key, text_edit.text);
                         }
                     }
                 }
