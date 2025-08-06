@@ -22,7 +22,7 @@ component RowPopupMenu inherits PopupMenu {
     in-out property <int> popup-row;
 
     PopupMenuButton {
-        text: "Play Last";
+        text: "Play Later";
         icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
         clicked => { AppState.play_later(TrackListAdapter.row_keys[popup-row]); }
     }

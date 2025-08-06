@@ -69,7 +69,7 @@ component RowMenu inherits PopupMenu {
     in property <string> key;
 
     PopupMenuButton {
-        text: "Play Last";
+        text: "Play Later";
         icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
         clicked => { AppState.play_later(key); }
     }

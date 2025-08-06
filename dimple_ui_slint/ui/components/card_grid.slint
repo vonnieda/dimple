@@ -19,7 +19,7 @@ component CardMenu inherits PopupMenu {
     in property <CardAdapter> model;
 
     PopupMenuButton {
-        text: "Play Last";
+        text: "Play Later";
         icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
         clicked => { AppState.play_later(model.key); }
     }
