@@ -4,8 +4,9 @@ pub mod symphonia_tagged_media_file;
 
 use std::path::Path;
 
-use crate::{librarian, library::Library, model::{ModelBasics as _, Track, TrackSource}};
+use crate::{import::symphonia_tagged_media_file::SymphoniaTaggedMediaFile, librarian, library::Library, model::{ModelBasics as _, Track, TrackSource}};
 
+use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use lofty_tagged_media_file::LoftyTaggedMediaFile;
 use walkdir::WalkDir;
@@ -44,6 +45,21 @@ fn scan(path: &str) -> Vec<ScannedFile> {
     files
 }
 
+/// Time to actually think through what happens in an import:
+/// - Create a Db transaction to perform all the matching and updating.
+/// - Do any slow work up front, before creating a Db transaction.
+/// - MediaFile has a file path, which is of course device specific. Part of
+/// that issue is that we sync all tables, which means we sync MediaFiles
+/// with paths that don't make sense on every device. 
+///     - This is not super critical right now. Other devices may try to look
+///     up files not on this device - no big deal.
+/// - We need to be able to sync the music, but it's a bummer that we end up
+/// with a copy at the original file, a copy in the changelog, and a copy
+/// in the database.
+///     - Specialized blob handling is one option. I keep thinking of a method
+///     where we can refer to the blob in the changelog and not keep a copy in
+///     the entities. Pull it in on the fly.
+///     - This one is not critical right now. Storage is cheapish.
 fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<TrackSource, anyhow::Error> {
     if !path.is_file() {
         return Err(anyhow::anyhow!("Path must be a file: {:?}", path));
@@ -52,7 +68,7 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
 
     // Read the tags from the file.
     let tags = LoftyTaggedMediaFile::new(path)?;
-    let track_metadata = tags.track_metadata();
+    let mut track_metadata = tags.track_metadata();
     if track_metadata.track.title.is_none() {
         log::warn!("  No track title {}", path.to_string_lossy());
     }
@@ -65,14 +81,21 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     if track_metadata.artists.is_empty() {
         log::warn!("  No artists {}", path.to_string_lossy());
     }
-    log::info!("{:?} {:?} {:?} {:?}", 
+    if track_metadata.track.length_ms.is_none() {
+        log::warn!("  No track length tag {}, attempting to calculate", path.to_string_lossy());
+        let symph = SymphoniaTaggedMediaFile::new(path)?;
+        if let Some(length) = symph.track_metadata().track.length_ms {
+            track_metadata.track.length_ms = Some(length);
+        }
+        else {
+           return Err(anyhow!("Unable to find or calculate track length {}", path.to_string_lossy()))
+        }
+    }
+    log::debug!("{:?} {:?} {:?} {:?}", 
         path.file_name().unwrap(), 
         track_metadata.clone().artists.get(0).map(|f| f.artist.name.clone().unwrap_or_default().to_string()),
         track_metadata.clone().release.unwrap().release.title,
         track_metadata.clone().track.title);
-
-    // TODO and now, finally, I can do this work in a transaction!
-
 
     // Create or update a MediaFile by the file path.
     let mut media_file = library.find_media_file_by_file_path(path.to_str().unwrap())
@@ -80,8 +103,10 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     media_file.file_path = path.to_str().unwrap().to_string();
     media_file.last_imported = Utc::now();
     media_file.last_modified = path.metadata()?.modified()?.into();
-    media_file.content = Some(std::fs::read(path)?);
+    media_file.content = Some(std::fs::read(path)?); // TODO temporary, no idea where it's gonna go
     let media_file = media_file.save(library);
+
+    // TODO and now, finally, I can do all this work in a transaction!
     
     // Find or create a TrackSource by the MediaFile id. This is not yet saved,
     // since it will be updated below.

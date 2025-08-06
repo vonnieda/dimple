@@ -1,4 +1,4 @@
-use std::{env, sync::Arc, time::Duration};
+use std::{env, path::Path, sync::Arc, time::Duration};
 
 use dimple_core::{import::spotify, library::Library, model::{Artist, DimpleEntity, ModelBasics as _, Release, Track}, player::Player};
 use directories::ProjectDirs;
@@ -41,35 +41,27 @@ fn main() {
         return
     }
 
+
     let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
-    let data_dir = dirs.data_dir();
-    let cache_dir = dirs.cache_dir();
-    let config_dir = dirs.config_dir();
-    let image_cache_dir = cache_dir.join("image_cache");
+    let mut data_dir = dirs.data_dir().to_path_buf();
+    let mut config_dir = dirs.config_dir().to_path_buf();
+    let mut cache_dir = dirs.cache_dir().to_path_buf();
+    if let Some(root) = env::var("DIMPLE_ROOT").ok() {
+        let root_dir = Path::new(&root.to_string()).to_path_buf();
+        data_dir = root_dir.join("data").to_path_buf();
+        config_dir = root_dir.join("config").to_path_buf();
+        cache_dir = root_dir.join("cache").to_path_buf();
+    }
     let library_path = data_dir.join("library.db");
-    dbg!(&data_dir, &cache_dir, &config_dir, &library_path, &image_cache_dir);
+    let config_path = config_dir.join("config.db");
+    let image_cache_dir = cache_dir.join("image_cache");
+    dbg!(&data_dir, &cache_dir, &library_path, &image_cache_dir, &config_path);
     std::fs::create_dir_all(&data_dir).unwrap();
-    std::fs::create_dir_all(&cache_dir).unwrap();
     std::fs::create_dir_all(&config_dir).unwrap();
+    std::fs::create_dir_all(&cache_dir).unwrap();
     std::fs::create_dir_all(&image_cache_dir).unwrap();
 
-    let library = if let Some(path) = env::var("DIMPLE_LIBRARY_PATH").ok() {
-        Arc::new(Library::open(&path))
-    }
-    else {
-        Arc::new(Library::open(library_path.to_str().unwrap()))    
-    };
-
-    // let access_key = env::var("DIMPLE_TEST_S3_ACCESS_KEY").unwrap();
-    // let secret_key = env::var("DIMPLE_TEST_S3_SECRET_KEY").unwrap();
-    // let region = env::var("DIMPLE_TEST_S3_REGION").unwrap();
-    // let endpoint = env::var("DIMPLE_TEST_S3_ENDPOINT").unwrap();
-    // let bucket = env::var("DIMPLE_TEST_S3_BUCKET").unwrap();
-    // let prefix = env::var("DIMPLE_TEST_S3_PREFIX").unwrap();
-    // let storage = S3Storage::new(&access_key, &secret_key, &region, &endpoint, &bucket, &prefix);
-    // // let storage = MemoryStorage::default();
-    // let sync = Sync::new(Box::new(storage), &prefix);
-    // library.add_sync(sync);
+    let library = Arc::new(Library::open(library_path.to_str().unwrap()));
 
     let player = Player::new(library.clone());
     let command = &args[1];

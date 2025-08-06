@@ -85,6 +85,7 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
     }
 }
 
+// TODO alllll this stuff has to change to take a DbTransaction I think.
 pub fn merge_artist(library: &Library, artist: &Artist) -> Artist {
     let matched = match_artist(library, artist).unwrap_or_default();
     let merged = CrdtRules::merge(matched, artist.clone());

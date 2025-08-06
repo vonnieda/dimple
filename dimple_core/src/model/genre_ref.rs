@@ -14,11 +14,17 @@ pub struct GenreRef {
 
 impl GenreRef {
     pub fn attach(library: &Library, genre: &Genre, model_id: &Option<String>) {
-        let _ = library.save(&GenreRef {
-            model_id: model_id.clone().unwrap(),
-            genre_id: genre.id.clone().unwrap(),
-            ..Default::default()
-        });
+        library.db.transaction(|txn| {
+            let sql = "SELECT * FROM GenreRef WHERE genre_id = ? and model_id = ?";
+            if txn.query::<GenreRef, _>(sql, (genre.id.as_ref(), model_id))?.is_empty() {
+                let _ = txn.save(&GenreRef {
+                    model_id: model_id.clone().unwrap(),
+                    genre_id: genre.id.clone().unwrap(),
+                    ..Default::default()
+                })?;
+            }
+            Ok(())
+        }).unwrap();
     }    
 }
 

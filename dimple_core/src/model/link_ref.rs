@@ -14,11 +14,17 @@ pub struct LinkRef {
 
 impl LinkRef {
     pub fn attach(library: &Library, link: &Link, model_id: &Option<String>) {
-        let _ = library.save(&LinkRef {
-            model_id: model_id.clone().unwrap(),
-            link_id: link.id.clone().unwrap(),
-            ..Default::default()
-        });
+        library.db.transaction(|txn| {
+            let sql = "SELECT * FROM LinkRef WHERE link_id = ? and model_id = ?";
+            if txn.query::<LinkRef, _>(sql, (link.id.as_ref(), model_id))?.is_empty() {
+                let _ = txn.save(&LinkRef {
+                    model_id: model_id.clone().unwrap(),
+                    link_id: link.id.clone().unwrap(),
+                    ..Default::default()
+                })?;
+            }
+            Ok(())
+        }).unwrap();
     }    
 }
 

@@ -77,7 +77,7 @@ pub fn settings(app: &App) {
         let mut database_stats: Vec<String> = vec![];
         database_stats.push(format!("Artists: {}", db.list::<Artist>().len()));
         database_stats.push(format!("Genres: {}", db.list::<Genre>().len()));
-        database_stats.push(format!("MediaFiles: {}", db.list::<MediaFile>().len()));
+        // database_stats.push(format!("MediaFiles: {}", db.list::<MediaFile>().len()));
         database_stats.push(format!("Playlists: {}", db.list::<Playlist>().len()));
         database_stats.push(format!("Tracks: {}", db.list::<Track>().len()));
         database_stats.push(format!("TrackSources: {}", db.list::<TrackSource>().len()));

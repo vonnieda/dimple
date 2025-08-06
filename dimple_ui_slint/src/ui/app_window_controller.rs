@@ -41,18 +41,20 @@ impl AppWindowController {
         // then that can load the library.
         let dirs = ProjectDirs::from("lol", "Dimple",  "dimple_ui_slint").unwrap();
         let mut data_dir = dirs.data_dir().to_path_buf();
+        let mut config_dir = dirs.config_dir().to_path_buf();
         let mut cache_dir = dirs.cache_dir().to_path_buf();
-
         if let Some(root) = env::var("DIMPLE_ROOT").ok() {
-            data_dir = Path::new(&root.to_string()).to_path_buf();
-            cache_dir = data_dir.join("cache").to_path_buf();
+            let root_dir = Path::new(&root.to_string()).to_path_buf();
+            data_dir = root_dir.join("data").to_path_buf();
+            config_dir = root_dir.join("config").to_path_buf();
+            cache_dir = root_dir.join("cache").to_path_buf();
         }
-
-        let image_cache_dir = cache_dir.join("image_cache");
         let library_path = data_dir.join("library.db");
-        let config_path = data_dir.join("config.db");
+        let config_path = config_dir.join("config.db");
+        let image_cache_dir = cache_dir.join("image_cache");
         dbg!(&data_dir, &cache_dir, &library_path, &image_cache_dir, &config_path);
         std::fs::create_dir_all(&data_dir).unwrap();
+        std::fs::create_dir_all(&config_dir).unwrap();
         std::fs::create_dir_all(&cache_dir).unwrap();
         std::fs::create_dir_all(&image_cache_dir).unwrap();
 

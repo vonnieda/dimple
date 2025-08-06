@@ -14,11 +14,17 @@ pub struct DimageRef {
 
 impl DimageRef {
     pub fn attach(library: &Library, dimage: &Dimage, model_id: &Option<String>) {
-        let _ = library.save(&DimageRef {
-            model_id: model_id.clone().unwrap(),
-            dimage_id: dimage.id.clone().unwrap(),
-            ..Default::default()
-        });
+        library.db.transaction(|txn| {
+            let sql = "SELECT * FROM DimageRef WHERE dimage_id = ? and model_id = ?";
+            if txn.query::<DimageRef, _>(sql, (dimage.id.as_ref(), model_id))?.is_empty() {
+                let _ = txn.save(&DimageRef {
+                    model_id: model_id.clone().unwrap(),
+                    dimage_id: dimage.id.clone().unwrap(),
+                    ..Default::default()
+                })?;
+            }
+            Ok(())
+        }).unwrap();
     }    
 }
 
