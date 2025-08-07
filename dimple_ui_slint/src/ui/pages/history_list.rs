@@ -1,6 +1,7 @@
 use std::rc::Rc;
-use std::thread;
 
+use anyhow::Result;
+use dimple_db::db::query::QuerySubscription;
 use crate::ui::app_window_controller::App;
 use crate::ui::HistoryListAdapter;
 use crate::ui::Page;
@@ -12,25 +13,46 @@ use slint::VecModel;
 use slint::ComponentHandle as _;
 use slint::ModelExt as _;
 
-pub fn history_list_init(app: &App) {
-    let app_ = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        let app = app_;
-        ui.global::<HistoryListAdapter>().on_current_row_changed(move |row| row_selected(&app, row));
-        ui.global::<HistoryListAdapter>().on_sort_model(sort_model);
-    }).unwrap();
+pub struct HistoryListController {
+    _events_subscription: QuerySubscription,
+}
+
+impl HistoryListController {
+    pub fn new(app: &App) -> Result<Self> {
+        // Subscribe to Event table changes
+        let ui = app.ui.clone();
+        let events_subscription = app.library.db.query_subscribe(
+        "SELECT * FROM Event ORDER BY timestamp DESC",
+        (),
+        move |events: Vec<Event>| {
+            log::info!("History events refreshed: {} events", events.len());
+            ui.upgrade_in_event_loop(move |ui| {
+                ui.global::<HistoryListAdapter>().set_row_data(row_data(&events));
+            }).unwrap();
+        },
+    )?;
+
+        // Set up UI callbacks
+        let app_ = app.clone();
+        app.ui.upgrade_in_event_loop(move |ui| {
+            let app = app_;
+            ui.global::<HistoryListAdapter>().on_current_row_changed(move |row| row_selected(&app, row));
+            ui.global::<HistoryListAdapter>().on_sort_model(sort_model);
+        }).unwrap();
+        
+        Ok(Self {
+            _events_subscription: events_subscription,
+        })
+    }
+}
+
+pub fn history_list_init(app: &App) -> Result<HistoryListController> {
+    HistoryListController::new(app)
 }
 
 pub fn history_list(app: &App) {
-    let app = app.clone();
-    thread::spawn(move || {
-        let events: Vec<Event> = app.library.query("SELECT * FROM Event ORDER BY timestamp DESC", ());
-        app.ui.upgrade_in_event_loop(move |ui| {
-            ui.global::<HistoryListAdapter>().set_row_data(row_data(&events));
-            ui.set_page(Page::HistoryList);
-        })
-        .unwrap();
-    });
+    // Just navigate to the page - data will be loaded via reactive query
+    app.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::HistoryList)).unwrap();
 }
 
 fn row_data(events: &[Event]) -> ModelRc<ModelRc<StandardListViewItem>> {

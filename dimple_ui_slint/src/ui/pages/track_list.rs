@@ -1,12 +1,12 @@
 use std::rc::Rc;
-use std::thread;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use anyhow::Result;
 use crate::ui::app_window_controller::App;
-use crate::ui::Page;
 use dimple_core::library::Library;
-use dimple_core::model::ModelBasics;
 use dimple_core::model::Track;
+use dimple_db::db::query::QuerySubscription;
 use slint::ModelRc;
 use slint::SharedString;
 use slint::StandardListViewItem;
@@ -14,26 +14,43 @@ use slint::VecModel;
 use slint::ComponentHandle as _;
 use crate::ui::TrackListAdapter;
 
-pub fn track_list_init(app: &App) {
-    let app_ = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        let app = app_.clone();
-        ui.global::<TrackListAdapter>().on_sort_table(move |col, ascending| sort_table(&app, col, ascending));
-    }).unwrap();
+pub struct TrackListController {
+    _tracks_subscription: QuerySubscription,
 }
 
-pub fn track_list(app: &App) {
-    let app = app.clone();
-    thread::spawn(move || {
-        let tracks = Track::list(&app.library);
+impl TrackListController {
+    pub fn new(app: &App) -> Result<Self> {
+        let sql = "
+            SELECT * FROM Track ORDER BY title ASC
+        ";
+        let ui = app.ui.clone();
         let library = app.library.clone();
-        app.ui.upgrade_in_event_loop(move |ui| {
-            ui.global::<TrackListAdapter>().set_row_data(row_data(&library, &tracks));
-            ui.global::<TrackListAdapter>().set_row_keys(row_keys(&tracks));
-            ui.set_page(Page::TrackList);
+        let tracks_subscription = app.library.db.query_subscribe(
+            sql,
+            (),
+            move |tracks: Vec<Track>| {
+                log::info!("Tracks refreshed: {} tracks", tracks.len());
+                let library = library.clone();
+                ui.upgrade_in_event_loop(move |ui| {
+                    ui.global::<TrackListAdapter>().set_row_data(row_data(&library, &tracks));
+                    ui.global::<TrackListAdapter>().set_row_keys(row_keys(&tracks));
+                }).unwrap();
+            },
+        )?;
+
+        // TODO
+        // let app_ = app.clone();
+        // app.ui.upgrade_in_event_loop(move |ui| {
+        //     let app = app_;
+        //     ui.global::<TrackListAdapter>().on_sort_table(move |col, ascending| {
+        //         sort_table(&app, &query_arc, col, ascending)
+        //     });
+        // }).unwrap();
+
+        Ok(Self {
+            _tracks_subscription: tracks_subscription,
         })
-        .unwrap();
-    });
+    }
 }
 
 fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
@@ -62,11 +79,16 @@ fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
     keys.as_slice().into()
 }
 
-fn sort_table(app: &App, col: i32, ascending: bool) {
+fn sort_table(app: &App, current_query: &Arc<Mutex<String>>, col: i32, ascending: bool) {
     let columns = vec!["title", "album", "artist", "position", "plays", "length_ms"];
     let query = format!("SELECT * FROM Track ORDER BY {} {}", 
         columns[col as usize], 
         if ascending { "asc" } else { "desc" });
+    
+    // Update the query for the subscription (this will trigger a refresh)
+    *current_query.lock().unwrap() = query.clone();
+    
+    // For now, do immediate update - TODO: make subscription dynamic
     let tracks: Vec<Track> = app.library.query(&query, ());
     let library = app.library.clone();
     app.ui.upgrade_in_event_loop(move |ui| {

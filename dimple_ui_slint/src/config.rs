@@ -139,10 +139,10 @@ impl Config {
 }
 
 #[derive(Serialize, Deserialize, Default, Clone, PartialEq)]
-struct ConfigValue {
-    id: String,
-    key: String,
-    value: Option<String>,
+pub struct ConfigValue {
+    pub id: String,
+    pub key: String,
+    pub value: Option<String>,
 }
 
 #[cfg(test)]

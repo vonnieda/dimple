@@ -30,6 +30,13 @@ pub struct App {
 pub struct AppWindowController {
     ui: AppWindow,
     app: App,
+    _settings_controller: pages::settings::SettingsController,
+    _history_list_controller: pages::history_list::HistoryListController,
+    _artist_list_controller: pages::artist_list::ArtistListController,
+    _playlist_list_controller: pages::playlist_list::PlaylistListController,
+    _genre_list_controller: pages::genre_list::GenreListController,
+    _release_list_controller: pages::release_list::ReleaseListController,
+    _track_list_controller: pages::track_list::TrackListController,
 }
 
 impl AppWindowController {
@@ -69,19 +76,37 @@ impl AppWindowController {
         let librarian = Librarian::new(&library, &plugins);
         let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         let ui_weak = ui.as_weak();
+        let app = App {
+            config,
+            library,
+            history: Arc::new(Mutex::new(VecDeque::new())),
+            player,
+            images,
+            ui: ui_weak,
+            media_controls: Arc::new(Mutex::new(None)),
+            plugins,
+            librarian,
+        };
+        
+        // Initialize page controllers
+        let settings_controller = pages::settings::SettingsController::new(&app).unwrap();
+        let history_list_controller = pages::history_list::HistoryListController::new(&app).unwrap();
+        let artist_list_controller = pages::artist_list::ArtistListController::new(&app).unwrap();
+        let playlist_list_controller = pages::playlist_list::PlaylistListController::new(&app).unwrap();
+        let genre_list_controller = pages::genre_list::GenreListController::new(&app).unwrap();
+        let release_list_controller = pages::release_list::ReleaseListController::new(&app).unwrap();
+        let track_list_controller = pages::track_list::TrackListController::new(&app).unwrap();
+        
         Self {
             ui,
-            app: App {
-                config,
-                library,
-                history: Arc::new(Mutex::new(VecDeque::new())),
-                player,
-                images,
-                ui: ui_weak,
-                media_controls: Arc::new(Mutex::new(None)),
-                plugins,
-                librarian,
-            },
+            app,
+            _settings_controller: settings_controller,
+            _history_list_controller: history_list_controller,
+            _artist_list_controller: artist_list_controller,
+            _playlist_list_controller: playlist_list_controller,
+            _genre_list_controller: genre_list_controller,
+            _release_list_controller: release_list_controller,
+            _track_list_controller: track_list_controller,
         }
     }
 
@@ -104,20 +129,13 @@ impl AppWindowController {
 
         let _player_bar = PlayerBar::new(&self.app);
 
-        pages::artist_details::artist_details_init(&self.app);
-        pages::artist_list::artist_list_init(&self.app);
-        pages::genre_list::genre_list_init(&self.app);
-        pages::genre_details::genre_details_init(&self.app);
-        pages::history_list::history_list_init(&self.app);
         pages::home::home_init(&self.app);
-        pages::playlist_list::playlist_list_init(&self.app);
+        pages::artist_details::artist_details_init(&self.app);
+        pages::genre_details::genre_details_init(&self.app);
         pages::playlist_details::playlist_details_init(&self.app);
         pages::queue_details::queue_details_init(&self.app);
-        pages::release_list::release_list_init(&self.app);
         pages::release_details::release_details_init(&self.app);
         pages::search_results::search_results_init(&self.app);        
-        pages::settings::settings_init(&self.app);        
-        pages::track_list::track_list_init(&self.app);
         pages::track_details::track_details_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
@@ -156,35 +174,37 @@ impl App {
         // TODO change this mess to use a registry that pages call during init
         // Or maybe get rid of the navigator altogether? Now that we have proper
         // callbacks it might be superfluous.
+        // TODO ideally the switching of pages would be in the slint files to
+        // make the ui editing experience a LOT better
         else if url.starts_with("dimple://home") {
             pages::home::home(self);
         } 
         else if url.starts_with("dimple://artists") {
-            pages::artist_list::artist_list(self);
+            self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::ArtistList)).unwrap();
         }
         else if url.starts_with("dimple://artist/") {
             crate::ui::pages::artist_details::artist_details(&url, self);
         }
         else if url.starts_with("dimple://releases") {
-            pages::release_list::release_list(self);
+            self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::ReleaseList)).unwrap();
         }
         else if url.starts_with("dimple://release/") {
             crate::ui::pages::release_details::release_details(&url, self);
         }
         else if url.starts_with("dimple://tracks") {
-            pages::track_list::track_list(self);
+            self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::TrackList)).unwrap();
         }
         else if url.starts_with("dimple://track/") {
             pages::track_details::track_details(&url, self);
         }
         else if url.starts_with("dimple://genres") {
-            pages::genre_list::genre_list(self);
+            self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::GenreList)).unwrap();
         }
         else if url.starts_with("dimple://genre/") {
             crate::ui::pages::genre_details::genre_details(&url, self);
         }
         else if url.starts_with("dimple://playlists") {
-            pages::playlist_list::playlist_list(self);
+            self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::PlaylistList)).unwrap();
         }
         else if url.starts_with("dimple://playlist/") {
             pages::playlist_details::playlist_details(&url, self);

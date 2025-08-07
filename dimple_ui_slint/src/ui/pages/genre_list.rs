@@ -1,45 +1,44 @@
+use anyhow::Result;
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
 use crate::ui::CardGridAdapter;
-use crate::ui::Page;
 use dimple_core::model::DimpleEntity;
 use dimple_core::model::Genre;
-use dimple_core::model::ModelBasics;
+use dimple_db::db::query::QuerySubscription;
 use slint::ModelRc;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
 use slint::Model as _;
 
-pub fn genre_list_init(app: &App) {
-    let app = app.clone();
-    let library = app.library.clone();
-    // library.on_change(Box::new(move |_event| update_model(&app)));
+pub struct GenreListController {
+    _genres_subscription: QuerySubscription,
 }
 
-pub fn genre_list(app: &App) {
-    update_model(app);
-    app.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::GenreList)).unwrap();
-}
-
-fn update_model(app: &App) {
-    let app = app.clone();
-    std::thread::spawn(move || {
-        let library = app.library.clone();
-        let genres = library.query("
-            SELECT * 
-            FROM Genre 
-            ORDER BY name ASC, disambiguation ASC", ());
+impl GenreListController {
+    pub fn new(app: &App) -> Result<Self> {
         let ui = app.ui.clone();
         let images = app.images.clone();
-        ui.upgrade_in_event_loop(move |ui| {
-            let cards = genre_cards(&images, &genres);
-            let adapter = CardGridAdapter {
-                cards: ModelRc::from(cards.as_slice()),
-            };
-            ui.set_genre_list(adapter);
-        }).unwrap();
-    });
+        let genres_subscription = app.library.db.query_subscribe(
+            "SELECT * FROM Genre ORDER BY name ASC, disambiguation ASC",
+            (),
+            move |genres: Vec<Genre>| {
+                log::info!("Genres refreshed: {} genres", genres.len());
+                let images = images.clone();
+                ui.upgrade_in_event_loop(move |ui| {
+                    let cards = genre_cards(&images, &genres);
+                    let adapter = CardGridAdapter {
+                        cards: ModelRc::from(cards.as_slice()),
+                    };
+                    ui.set_genre_list(adapter);
+                }).unwrap();
+            },
+        )?;
+
+        Ok(Self {
+            _genres_subscription: genres_subscription,
+        })
+    }
 }
 
 fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {

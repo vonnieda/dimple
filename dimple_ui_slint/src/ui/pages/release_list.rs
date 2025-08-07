@@ -1,12 +1,12 @@
+use anyhow::Result;
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
-use crate::ui::Page;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
 use dimple_core::model::DimpleEntity;
 use dimple_core::model::Release;
-use dimple_core::model::ModelBasics;
+use dimple_db::db::query::QuerySubscription;
 use slint::ComponentHandle;
 use slint::ModelRc;
 use crate::ui::ImageLinkAdapter;
@@ -14,34 +14,35 @@ use crate::ui::LinkAdapter;
 use crate::ui::ReleaseListAdapter;
 use slint::Model as _;
 
-pub fn release_list_init(app: &App) {
-    let app = app.clone();
-    let library = app.library.clone();
-    // library.on_change(Box::new(move |_event| update_model(&app)));
+pub struct ReleaseListController {
+    _releases_subscription: QuerySubscription,
 }
 
-pub fn release_list(app: &App) {
-    update_model(app);
-    app.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::ReleaseList)).unwrap();
-}
-
-fn update_model(app: &App) {
-    let app = app.clone();
-    std::thread::spawn(move || {
-        let library = app.library.clone();
-        let releases = library.query("
-            SELECT * 
-            FROM Release
-            ORDER BY title ASC
-        ", ());
+impl ReleaseListController {
+    pub fn new(app: &App) -> Result<Self> {
+        // Subscribe to release changes
         let ui = app.ui.clone();
         let images = app.images.clone();
-        ui.upgrade_in_event_loop(move |ui| {
-            let cards = release_cards(&images, &releases, &library);
-            let adapter = ui.global::<ReleaseListAdapter>();
-            adapter.set_cards(ModelRc::from(cards.as_slice()));
-        }).unwrap();
-    });
+        let library = app.library.clone();
+        let releases_subscription = app.library.db.query_subscribe(
+            "SELECT * FROM Release ORDER BY title ASC",
+            (),
+            move |releases: Vec<Release>| {
+                log::info!("Releases refreshed: {} releases", releases.len());
+                let images = images.clone();
+                let library = library.clone();
+                ui.upgrade_in_event_loop(move |ui| {
+                    let cards = release_cards(&images, &releases, &library);
+                    let adapter = ui.global::<ReleaseListAdapter>();
+                    adapter.set_cards(ModelRc::from(cards.as_slice()));
+                }).unwrap();
+            },
+        )?;
+
+        Ok(Self {
+            _releases_subscription: releases_subscription,
+        })
+    }
 }
 
 fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library) -> Vec<CardAdapter> {

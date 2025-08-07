@@ -2,41 +2,44 @@ use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
 use crate::ui::CardGridAdapter;
-use crate::ui::Page;
+use anyhow::Result;
 use dimple_core::model::Artist;
 use dimple_core::model::DimpleEntity;
+use dimple_db::db::query::QuerySubscription;
 use slint::ModelRc;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
 use slint::Model as _;
 
-pub fn artist_list_init(app: &App) {
+pub struct ArtistListController {
+    _artists_subscription: QuerySubscription,
 }
 
-pub fn artist_list(app: &App) {
-    update_model(app);
-    app.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::ArtistList)).unwrap();
-}
-
-fn update_model(app: &App) {
-    let app = app.clone();
-    std::thread::spawn(move || {
-        let library = app.library.clone();
-        let artists = library.query("
+impl ArtistListController {
+    pub fn new(app: &App) -> Result<Self> {
+        let sql = "
             SELECT * 
             FROM Artist
-            ORDER BY name ASC, disambiguation ASC
-        ", ());
-        let ui = app.ui.clone();
+            ORDER BY lower(name) ASC, lower(disambiguation) ASC
+        ";
         let images = app.images.clone();
-        ui.upgrade_in_event_loop(move |ui| {
-            let cards = artist_cards(&images, &artists);
-            let adapter = CardGridAdapter {
-                cards: ModelRc::from(cards.as_slice()),
-            };
-            ui.set_artist_list(adapter);
-        }).unwrap();
-    });
+        let ui = app.ui.clone();
+        let artists_subscription = app.library.db.query_subscribe(sql, (), move |artists| {
+            log::info!("Artists refreshed: {} artists", artists.len());
+            let images = images.clone();
+            ui.upgrade_in_event_loop(move |ui| {
+                let cards = artist_cards(&images, &artists);
+                let adapter = CardGridAdapter {
+                    cards: ModelRc::from(cards.as_slice()),
+                };
+                ui.set_artist_list(adapter);
+            }).unwrap();
+        })?;
+        
+        Ok(Self {
+            _artists_subscription: artists_subscription,
+        })
+    }
 }
 
 fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {

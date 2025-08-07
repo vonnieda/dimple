@@ -13,7 +13,6 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox, Slider, Switch, LineEdit, GridBox} from "std-widgets.slint";
 import { AppState, Styles, Navigator, Label, PageSubtitle, SectionTitle, PageTitle } from "../common.slint";
-// import { ActionButton } from "../components/action_buttons.slint";
 
 export struct PluginAdapter {
     title: string,
@@ -89,14 +88,6 @@ component General inherits VerticalBox {
             }
         }
     }
-
-    // HorizontalBox {
-    //     alignment: start;
-    //     Button {
-    //         text: "Quit Dimple";
-    //         clicked => { SettingsAdapter.quit(); }
-    //     }
-    // }
 }
 
 component Database inherits VerticalBox {

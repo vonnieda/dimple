@@ -1,42 +1,56 @@
+use anyhow::Result;
 use crate::ui::app_window_controller::App;
 use crate::ui::CardAdapter;
-use crate::ui::Page;
 use dimple_core::model::DimpleEntity;
 use dimple_core::model::Playlist;
+use dimple_db::db::query::QuerySubscription;
 use slint::Model as _;
 use crate::ui::PlaylistListAdapter;
 use slint::ComponentHandle;
 
-pub fn playlist_list_init(_app: &App) {
-    let app = _app.clone();
-    _app.ui.upgrade_in_event_loop(move |ui| {
-        ui.global::<PlaylistListAdapter>().on_new_playlist(move || new_playlist(&app));
-    }).unwrap();
+pub struct PlaylistListController {
+    _playlists_subscription: QuerySubscription,
 }
 
-pub fn playlist_list(app: &App) {
-    let ui = app.ui.clone();
-    let images = app.images.clone();
-    let app = app.clone();
-    std::thread::spawn(move || {
-        let playlists: Vec<Playlist> = app.library
-            .query("SELECT * FROM Playlist ORDER BY name ASC", ());
-        ui.upgrade_in_event_loop(move |ui| {
-            let cards: Vec<CardAdapter> = playlists.iter().cloned().enumerate()
-                .map(|(index, playlist)| {
-                    let mut card: CardAdapter = playlist.clone().into();
-                    card.image.image = images.lazy_get(&DimpleEntity::from(&playlist), 200, 200, move |ui, image| {
-                        let mut card = ui.global::<PlaylistListAdapter>().get_cards().row_data(index).unwrap();
-                        card.image.image = image;
-                        ui.global::<PlaylistListAdapter>().get_cards().set_row_data(index, card);
-                    });
-                    card
-                })
-                .collect();
-            ui.global::<PlaylistListAdapter>().set_cards(cards.as_slice().into());
-            ui.set_page(Page::PlaylistList);
+impl PlaylistListController {
+    pub fn new(app: &App) -> Result<Self> {
+        // Subscribe to playlist changes
+        let ui = app.ui.clone();
+        let images = app.images.clone();
+        let playlists_subscription = app.library.db.query_subscribe(
+            "SELECT * FROM Playlist ORDER BY name ASC",
+            (),
+            move |playlists: Vec<Playlist>| {
+                log::info!("Playlists refreshed: {} playlists", playlists.len());
+                let images = images.clone();
+                ui.upgrade_in_event_loop(move |ui| {
+                    let cards: Vec<CardAdapter> = playlists.iter().cloned().enumerate()
+                        .map(|(index, playlist)| {
+                            let mut card: CardAdapter = playlist.clone().into();
+                            card.image.image = images.lazy_get(&DimpleEntity::from(&playlist), 200, 200, move |ui, image| {
+                                let mut card = ui.global::<PlaylistListAdapter>().get_cards().row_data(index).unwrap();
+                                card.image.image = image;
+                                ui.global::<PlaylistListAdapter>().get_cards().set_row_data(index, card);
+                            });
+                            card
+                        })
+                        .collect();
+                    ui.global::<PlaylistListAdapter>().set_cards(cards.as_slice().into());
+                }).unwrap();
+            },
+        )?;
+
+        // Set up UI callbacks
+        let app_ = app.clone();
+        app.ui.upgrade_in_event_loop(move |ui| {
+            let app = app_;
+            ui.global::<PlaylistListAdapter>().on_new_playlist(move || new_playlist(&app));
         }).unwrap();
-    });
+
+        Ok(Self {
+            _playlists_subscription: playlists_subscription,
+        })
+    }
 }
 
 fn new_playlist(_app: &App) {

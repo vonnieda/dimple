@@ -1,118 +1,153 @@
 use std::thread;
 
-use dimple_core::model::Artist;
-use dimple_core::model::Genre;
-use dimple_core::model::MediaFile;
-use dimple_core::model::Playlist;
-use dimple_core::model::Track;
-use dimple_core::model::TrackSource;
+use anyhow::Result;
 use dimple_core::plugins;
-use dimple_db::sync::SyncEngine;
-use slint::{ModelRc, SharedString};
+use dimple_db::db::query::QuerySubscription;
+use dimple_db::{sync::SyncEngine};
+use serde::{Deserialize, Serialize};
+use slint::{ModelRc, SharedString, ComponentHandle};
 
+use crate::config::ConfigValue;
 use crate::ui::app_window_controller::App;
-
 use crate::ui::SettingsAdapter;
 use crate::ui::Page;
 
+pub struct SettingsController {
+    _stats_subscription: QuerySubscription,
+    _config_subscription: QuerySubscription,
+}
 
-use slint::ComponentHandle;
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct EntityCounts {
+    artist_count: i64,
+    release_count: i64,
+    track_count: i64,
+    track_source_count: i64,
+    playlist_count: i64,
+    genre_count: i64,
+    dimage_count: i64,
+    link_count: i64,
+    change_count: i64,
+}
 
-pub fn settings_init(app: &App) {
-    let app_ = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_set_sidebar_open(move |v| {
-            app.config.set_sidebar_open(v);
-            // TODO note, we set this here but not in the others below because
-            // this changes app state that other pages need to know about. I
-            // think it goes away when this page is just reacting to database
-            // changes.
-            app.ui.upgrade_in_event_loop(move |ui| {
-                ui.global::<SettingsAdapter>().set_sidebar_open(v);
+impl SettingsController {
+    pub fn new(app: &App) -> Result<Self> {
+    // Subscribe to entity count updates - using a single combined query for efficiency
+        let ui = app.ui.clone();
+        let stats_subscription = app.library.db.query_subscribe(
+        "SELECT
+            (SELECT COUNT(*) FROM Artist) as artist_count,
+            (SELECT COUNT(*) FROM Release) as release_count,
+            (SELECT COUNT(*) FROM Track) as track_count,
+            (SELECT COUNT(*) FROM TrackSource) as track_source_count,
+            (SELECT COUNT(*) FROM Playlist) as playlist_count,
+            (SELECT COUNT(*) FROM Genre) as genre_count,
+            (SELECT COUNT(*) FROM Dimage) as dimage_count,
+            (SELECT COUNT(*) FROM Link) as link_count,
+            (SELECT COUNT(*) FROM ZV_CHANGE) as change_count
+            ",
+        (),
+        move |counts: Vec<EntityCounts>| {
+            if let Some(count_data) = counts.first() {
+                let count_data = count_data.clone();
+                ui.upgrade_in_event_loop(move |ui| {
+                    let stats = vec![
+                        format!("Artists: {}", count_data.artist_count),
+                        format!("Releases: {}", count_data.release_count),
+                        format!("Tracks: {}", count_data.track_count),
+                        format!("TrackSources: {}", count_data.track_source_count),
+                        format!("Playlists: {}", count_data.playlist_count),
+                        format!("Genres: {}", count_data.genre_count),
+                        format!("Dimages: {}", count_data.dimage_count),
+                        format!("Links: {}", count_data.link_count),
+                        format!("Changes: {}", count_data.change_count),
+                    ];
+                    let stats: Vec<SharedString> = stats.into_iter().map(Into::into).collect();
+                    ui.global::<SettingsAdapter>().set_database_stats(ModelRc::from(stats.as_slice()));
+                }).unwrap();
+            }
+        },
+    )?;
+
+        // Subscribe to config value updates
+        let ui = app.ui.clone();
+        let config_subscription = app.config.db.query_subscribe::<ConfigValue, _, _>(
+        "SELECT id, key, value FROM ConfigValue",
+        (),
+        move |rows| {
+            ui.upgrade_in_event_loop(move |ui| {
+                for config_value in rows {
+                    match config_value.key.as_str() {
+                        "offline" => ui.global::<SettingsAdapter>().set_offline(config_value.value == Some("true".to_string())),
+                        "debug" => ui.global::<SettingsAdapter>().set_debug(config_value.value == Some("true".to_string())),
+                        "sidebar_open" => ui.global::<SettingsAdapter>().set_sidebar_open(config_value.value == Some("true".to_string())),
+                        "s3_endpoint" => ui.global::<SettingsAdapter>().set_s3_endpoint(config_value.value.unwrap_or_default().into()),
+                        "s3_region" => ui.global::<SettingsAdapter>().set_s3_region(config_value.value.unwrap_or_default().into()),
+                        "s3_bucket" => ui.global::<SettingsAdapter>().set_s3_bucket(config_value.value.unwrap_or_default().into()),
+                        "s3_access_key" => ui.global::<SettingsAdapter>().set_s3_access_key(config_value.value.unwrap_or_default().into()),
+                        "s3_secret_key" => ui.global::<SettingsAdapter>().set_s3_secret_key(config_value.value.unwrap_or_default().into()),
+                        "s3_prefix" => ui.global::<SettingsAdapter>().set_s3_prefix(config_value.value.unwrap_or_default().into()),
+                        _ => {}
+                    }
+                }
             }).unwrap();
-        });
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().set_sidebar_open(app.config.sidebar_open());
+        },
+    )?;
 
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_set_offline(move |v| app.config.set_offline(v));
+        // Set up UI callbacks
+        let app_ = app.clone();
+        app.ui.upgrade_in_event_loop(move |ui| {
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_set_sidebar_open(move |v| app.config.set_sidebar_open(v));
 
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_set_debug(move |v| app.config.set_debug(v));
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().set_sidebar_open(app.config.sidebar_open());
 
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_set_s3_endpoint(move |v| app.config.set_s3_endpoint(plugins::plugins::nempty(&v.to_string())));
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_set_s3_region(move |v| app.config.set_s3_region(plugins::plugins::nempty(&v.to_string())));
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_set_s3_bucket(move |v| app.config.set_s3_bucket(plugins::plugins::nempty(&v.to_string())));
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_set_s3_access_key(move |v| app.config.set_s3_access_key(plugins::plugins::nempty(&v.to_string())));
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_set_s3_secret_key(move |v| app.config.set_s3_secret_key(plugins::plugins::nempty(&v.to_string())));
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_set_s3_prefix(move |v| app.config.set_s3_prefix(plugins::plugins::nempty(&v.to_string())));
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_set_offline(move |v| app.config.set_offline(v));
 
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_import_files(move || import_files(&app));
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_set_debug(move |v| app.config.set_debug(v));
 
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_import_directories(move || import_directories(&app));
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_set_s3_endpoint(move |v| app.config.set_s3_endpoint(plugins::plugins::nempty(&v.to_string())));
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_set_s3_region(move |v| app.config.set_s3_region(plugins::plugins::nempty(&v.to_string())));
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_set_s3_bucket(move |v| app.config.set_s3_bucket(plugins::plugins::nempty(&v.to_string())));
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_set_s3_access_key(move |v| app.config.set_s3_access_key(plugins::plugins::nempty(&v.to_string())));
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_set_s3_secret_key(move |v| app.config.set_s3_secret_key(plugins::plugins::nempty(&v.to_string())));
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_set_s3_prefix(move |v| app.config.set_s3_prefix(plugins::plugins::nempty(&v.to_string())));
 
-        let app = app_.clone();
-        ui.global::<SettingsAdapter>().on_sync_now(move || sync_now(&app));
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_import_files(move || import_files(&app));
 
-        ui.global::<SettingsAdapter>().on_quit(move || slint::quit_event_loop().unwrap());
-    }).unwrap();
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_import_directories(move || import_directories(&app));
+
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_sync_now(move || sync_now(&app));
+
+            ui.global::<SettingsAdapter>().on_quit(move || slint::quit_event_loop().unwrap());
+        }).unwrap();
+        
+        Ok(Self {
+            _stats_subscription: stats_subscription,
+            _config_subscription: config_subscription,
+        })
+    }
+}
+
+pub fn settings_init(app: &App) -> Result<SettingsController> {
+    SettingsController::new(app)
 }
 
 pub fn settings(app: &App) {
-    let app = app.clone();
-    std::thread::spawn(move || {
-        let db = app.library.clone();
-
-        // let plugins = app.config.plugin_config();
-
-        let mut database_stats: Vec<String> = vec![];
-        database_stats.push(format!("Artists: {}", db.list::<Artist>().len()));
-        database_stats.push(format!("Genres: {}", db.list::<Genre>().len()));
-        // database_stats.push(format!("MediaFiles: {}", db.list::<MediaFile>().len()));
-        database_stats.push(format!("Playlists: {}", db.list::<Playlist>().len()));
-        database_stats.push(format!("Tracks: {}", db.list::<Track>().len()));
-        database_stats.push(format!("TrackSources: {}", db.list::<TrackSource>().len()));
-
-        let cache_stats: Vec<String> = vec![];
-        // TODO Before any music has been loaded, there are no images, so the
-        // cache is empty, and this blows up. 
-        // cache_stats.push(format!("Thumbnail cache: {}", Size::from_bytes(app.images.cache_len())));
-        // cache_stats.push(format!("Plugin cache: {}", Size::from_bytes(app.librarian.plugin_cache_len())));
-        
-        // TODO probably need to load these in from startup so UI is right, especially sidebar
-        app.ui.upgrade_in_event_loop(move |ui| {
-            ui.global::<SettingsAdapter>().set_offline(app.config.offline());
-            ui.global::<SettingsAdapter>().set_debug(app.config.debug());
-            ui.global::<SettingsAdapter>().set_s3_endpoint(app.config.s3_endpoint().unwrap_or_default().into());
-            ui.global::<SettingsAdapter>().set_s3_region(app.config.s3_region().unwrap_or_default().into());
-            ui.global::<SettingsAdapter>().set_s3_bucket(app.config.s3_bucket().unwrap_or_default().into());
-            ui.global::<SettingsAdapter>().set_s3_access_key(app.config.s3_access_key().unwrap_or_default().into());
-            ui.global::<SettingsAdapter>().set_s3_secret_key(app.config.s3_secret_key().unwrap_or_default().into());
-            ui.global::<SettingsAdapter>().set_s3_prefix(app.config.s3_prefix().unwrap_or_default().into());
-            let database_stats: Vec<SharedString> = database_stats.into_iter()
-                .map(Into::into)
-                .collect();
-            let cache_stats: Vec<SharedString> = cache_stats.into_iter()
-                .map(Into::into)
-                .collect();
-            // let plugins: Vec<PluginAdapter> = plugins.into_iter()
-            //     .map(plugin_adapter)
-            //     .collect();
-            ui.global::<SettingsAdapter>().set_database_stats(ModelRc::from(database_stats.as_slice()));
-            ui.global::<SettingsAdapter>().set_cache_stats(ModelRc::from(cache_stats.as_slice()));
-            // ui.global::<SettingsAdapter>().set_plugins(plugins.as_slice().into());
-            ui.set_page(Page::Settings);
-        }).unwrap();
-    });
+    // Navigate to settings page
+    app.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::Settings)).unwrap();
 }
 
 fn import_files(app: &App) {
