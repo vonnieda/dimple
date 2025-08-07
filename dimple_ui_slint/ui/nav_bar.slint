@@ -2,6 +2,7 @@ import { HorizontalBox, LineEdit, Palette, Button } from "std-widgets.slint";
 import { Styles, Navigator, AppState } from "./common.slint";
 import { Label } from "common.slint";
 import { SettingsAdapter } from "pages/settings.slint";
+import { SearchResultsAdapter } from "pages/search_results.slint";
 
 component NavBarButton inherits TouchArea {
     in property <image> source;
@@ -51,8 +52,9 @@ export component NavBar inherits HorizontalBox {
     }
     LineEdit {
         placeholder-text: "Search for songs, artists, genres, playlists, URLs...";
+        edited(query) => { SearchResultsAdapter.query(query); }
         // edited(query) => { Navigator.navigate("dimple://search/" + query); }
-        accepted(query) => { Navigator.navigate("dimple://search/" + query); }
+        // accepted(query) => { Navigator.navigate("dimple://search/" + query); }
         font-size: Styles.default-font-size;
         height: self.font-size * 2;
     }

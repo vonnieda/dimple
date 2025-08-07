@@ -37,6 +37,7 @@ pub struct AppWindowController {
     _genre_list_controller: pages::genre_list::GenreListController,
     _release_list_controller: pages::release_list::ReleaseListController,
     _track_list_controller: pages::track_list::TrackListController,
+    _search_results_controller: pages::search_results::SearchResultsController,
 }
 
 impl AppWindowController {
@@ -96,6 +97,7 @@ impl AppWindowController {
         let genre_list_controller = pages::genre_list::GenreListController::new(&app).unwrap();
         let release_list_controller = pages::release_list::ReleaseListController::new(&app).unwrap();
         let track_list_controller = pages::track_list::TrackListController::new(&app).unwrap();
+        let search_results_controller = pages::search_results::SearchResultsController::new(&app).unwrap();
         
         Self {
             ui,
@@ -107,6 +109,7 @@ impl AppWindowController {
             _genre_list_controller: genre_list_controller,
             _release_list_controller: release_list_controller,
             _track_list_controller: track_list_controller,
+            _search_results_controller: search_results_controller,
         }
     }
 
@@ -135,7 +138,6 @@ impl AppWindowController {
         pages::playlist_details::playlist_details_init(&self.app);
         pages::queue_details::queue_details_init(&self.app);
         pages::release_details::release_details_init(&self.app);
-        pages::search_results::search_results_init(&self.app);        
         pages::track_details::track_details_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
@@ -167,9 +169,6 @@ impl App {
         }
         else if url == "dimple://refresh" {
             self.refresh();
-        }
-        else if url.starts_with("dimple://search") {
-            pages::search_results::search_results(&url, self);
         }
         // TODO change this mess to use a registry that pages call during init
         // Or maybe get rid of the navigator altogether? Now that we have proper

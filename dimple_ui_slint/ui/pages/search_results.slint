@@ -6,6 +6,8 @@ import { LinkAdapter } from "../components/link.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 
 export global SearchResultsAdapter {
+    callback query(string);
+    
     in-out property <[CardSectionAdapter]> sections: [
         { title: "For You", sub-title: "From your listens.", cards: [
             { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},

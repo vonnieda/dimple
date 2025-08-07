@@ -1,10 +1,25 @@
 
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::thread;
+use std::time::{Duration, Instant};
+
+use anyhow::Result;
+use dimple_core::librarian;
+use dimple_core::librarian::SearchResults;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
-use url::Url;
+use dimple_core::plugins::plugins::Plugins;
+use dimple_db::db::query::QuerySubscription;
+use dimple_db::rusqlite::types::ToSqlOutput;
+use dimple_db::rusqlite::ToSql;
+use itertools::Itertools;
+use serde::Deserialize;
+use serde::Serialize;
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
@@ -15,74 +30,187 @@ use crate::ui::Page;
 use crate::ui::SearchResultsAdapter;
 use slint::ComponentHandle as _;
 
-pub fn search_results_init(app: &App) {
+pub struct SearchResultsController {
+    _sub: QuerySubscription,
 }
 
-pub fn search_results(url: &str, app: &App) {
-    let app = app.clone();
-    let url = Url::parse(&url).unwrap();
-    let query = url.path_segments().unwrap().next().unwrap();
-    let query = percent_encoding::percent_decode_str(query).decode_utf8_lossy().to_string();
-    update_model(&app, &query);
-    app.ui.upgrade_in_event_loop(move |ui| {
-        ui.set_page(Page::SearchResults);
-    }).unwrap();    
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+struct SearchResult {
+    rank: f32,
+    id: String,
+    entity_type: String,
+    title: String,
+    sub_title: String,
 }
 
-fn update_model(app: &App, query: &str) {
-    let app = app.clone();
-    let query = query.to_string();
-    std::thread::spawn(move || {
-        let results = app.librarian.search(&query);
-        let artists = results.artists;
-        let tracks = results.tracks;
-        let genres = results.genres;
-        let releases = results.releases;
-                                    
-        let app = app.clone();
-        app.ui.upgrade_in_event_loop(move |ui| {
-            let mut sections: Vec<CardSectionAdapter> = vec![];
-
-            if !tracks.is_empty() {
-                sections.push(CardSectionAdapter {
-                    title: "Tracks".into(),
-                    sub_title: Default::default(),
-                    cards: track_cards(&app.images, &tracks, &app.library).as_slice().into(),
+impl SearchResultsController {
+    pub fn new(app: &App) -> Result<Self> {
+        let ui = app.ui.clone();
+        let sql = "
+            SELECT 0 AS rank, id AS id, 'Artist' AS entity_type, name AS title, coalesce(disambiguation, '') AS sub_title FROM Artist WHERE name LIKE ?1
+            UNION 
+            SELECT 0 AS rank, id AS id, 'Release' AS entity_type, title AS title, coalesce(release_group_type, '') AS sub_title FROM Release WHERE title LIKE ?1
+            UNION 
+            SELECT 0 AS rank, id AS id, 'Genre' AS entity_type, name AS title, coalesce(disambiguation, '') AS sub_title FROM Genre WHERE name LIKE ?1
+            UNION 
+            SELECT 0 AS rank, id AS id, 'Track' AS entity_type, title AS title, coalesce(disambiguation, '') AS sub_title FROM Track WHERE title LIKE ?1
+            ORDER BY rank, title
+            LIMIT 25
+        ";
+        let query_param = MutableStringParam::new();
+        let app_clone = app.clone();
+        let sub = app.library.db.query_subscribe(sql, (query_param.clone(),), move |results: Vec<SearchResult>| {
+            log::info!("Results refreshed: {} results", results.len());
+            let results = results.into_iter().into_group_map_by(|f| f.entity_type.clone());
+            // TODO this conversion back to entities is legacy and not needed now. 
+            // Can just create a SearchResult card. Which will then line up nicely
+            // with FTS. Still want to break them up into sections though - I like
+            // that.
+            let results = SearchResults {
+                artists: results.get("Artist").cloned().unwrap_or_default().iter().map(|f| Artist {
+                    id: Some(f.id.clone()),
+                    name: Some(f.title.clone()),
+                    disambiguation: Some(f.sub_title.clone()),
                     ..Default::default()
-                });
-            }
-
-            if !artists.is_empty() {
-                sections.push(CardSectionAdapter {
-                    title: "Artists".into(),
-                    sub_title: Default::default(),
-                    cards: artist_cards(&app.images, &artists).as_slice().into(),
+                }).collect(),
+                releases: results.get("Release").cloned().unwrap_or_default().iter().map(|f| Release {
+                    id: Some(f.id.clone()),
+                    title: Some(f.title.clone()),
+                    disambiguation: Some(f.sub_title.clone()),
                     ..Default::default()
-                });
-            }
-
-            if !releases.is_empty() {
-                sections.push(CardSectionAdapter {
-                    title: "Releases".into(),
-                    sub_title: Default::default(),
-                    cards: release_cards(&app.images, &releases, &app.library).as_slice().into(),
+                }).collect(),
+                tracks: results.get("Track").cloned().unwrap_or_default().iter().map(|f| Track {
+                    id: Some(f.id.clone()),
+                    title: Some(f.title.clone()),
+                    disambiguation: Some(f.sub_title.clone()),
                     ..Default::default()
-                });
-            }
-
-            if !genres.is_empty() {
-                sections.push(CardSectionAdapter {
-                    title: "Genres".into(),
-                    sub_title: Default::default(),
-                    cards: genre_cards(&app.images, &genres).as_slice().into(),
+                }).collect(),
+                genres: results.get("Genre").cloned().unwrap_or_default().iter().map(|f| Genre {
+                    id: Some(f.id.clone()),
+                    name: Some(f.title.clone()),
+                    disambiguation: Some(f.sub_title.clone()),
                     ..Default::default()
-                });
-            }
+                }).collect(),
+                ..Default::default()
+            };
+            update_results(&app_clone, results);
+        })?;
 
-            let adapter = ui.global::<SearchResultsAdapter>();
-            adapter.set_sections(sections.as_slice().into());
+        let ui_clone = ui.clone();
+        let sub_clone = sub.clone();
+        
+        // Create shared state for debouncing
+        let last_query_time = Arc::new(Mutex::new(Instant::now()));
+        let query_counter = Arc::new(AtomicU64::new(0));
+        let plugins = app.plugins.clone();
+        let library = app.library.clone();
+        
+        ui.upgrade_in_event_loop(move |ui| {
+            ui.global::<SearchResultsAdapter>().on_query(move |query| {
+                let query_str = format!("%{}%", query);
+                query_param.set(&query_str);
+                sub_clone.refresh();
+                
+                // Debounced search_plugins call
+                let search_query = query.to_string();
+                let plugins_clone = plugins.clone();
+                let library_clone = library.clone();
+                let last_time_clone = last_query_time.clone();
+                let counter_clone = query_counter.clone();
+                
+                // Increment counter for this query
+                let current_count = counter_clone.fetch_add(1, Ordering::SeqCst) + 1;
+                
+                // Update last query time
+                {
+                    let mut time = last_time_clone.lock().unwrap();
+                    *time = Instant::now();
+                }
+                
+                // Spawn a thread to handle the debounced search
+                thread::spawn(move || {
+                    // Wait for the debounce period (250ms)
+                    thread::sleep(Duration::from_millis(250));
+                    
+                    // Check if this is still the latest query
+                    let latest_count = counter_clone.load(Ordering::SeqCst);
+                    if current_count == latest_count {
+                        // This is the latest query, execute the search
+                        search_plugins(plugins_clone, library_clone, search_query);
+                    }
+                });
+                
+                ui_clone.upgrade_in_event_loop(move |ui| ui.set_page(Page::SearchResults)).unwrap();
+            });
         }).unwrap();
+        
+        Ok(Self {
+            _sub: sub,
+        })
+    }
+}
+
+fn search_plugins(plugins: Plugins, library: Library, query: String) {
+    thread::spawn(move || {
+        let plugin_results = plugins.search(&library, &query);
+
+        for result in plugin_results {
+            for artist in result.artists {
+                librarian::merge_artist(&library, &artist);
+            }
+        }
     });
+}
+
+fn update_results(app: &App, results: SearchResults) {
+    let artists = results.artists;
+    let tracks = results.tracks;
+    let genres = results.genres;
+    let releases = results.releases;
+                                
+    let app = app.clone();
+    app.ui.upgrade_in_event_loop(move |ui| {
+        let mut sections: Vec<CardSectionAdapter> = vec![];
+
+        if !tracks.is_empty() {
+            sections.push(CardSectionAdapter {
+                title: "Tracks".into(),
+                sub_title: Default::default(),
+                cards: track_cards(&app.images, &tracks, &app.library).as_slice().into(),
+                ..Default::default()
+            });
+        }
+
+        if !artists.is_empty() {
+            sections.push(CardSectionAdapter {
+                title: "Artists".into(),
+                sub_title: Default::default(),
+                cards: artist_cards(&app.images, &artists).as_slice().into(),
+                ..Default::default()
+            });
+        }
+
+        if !releases.is_empty() {
+            sections.push(CardSectionAdapter {
+                title: "Releases".into(),
+                sub_title: Default::default(),
+                cards: release_cards(&app.images, &releases, &app.library).as_slice().into(),
+                ..Default::default()
+            });
+        }
+
+        if !genres.is_empty() {
+            sections.push(CardSectionAdapter {
+                title: "Genres".into(),
+                sub_title: Default::default(),
+                cards: genre_cards(&app.images, &genres).as_slice().into(),
+                ..Default::default()
+            });
+        }
+
+        let adapter = ui.global::<SearchResultsAdapter>();
+        adapter.set_sections(sections.as_slice().into());
+    }).unwrap();
 }
 
 fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library) -> Vec<CardAdapter> {
@@ -227,6 +355,31 @@ fn track_card(track: &Track, artist: &Artist) -> CardAdapter {
             url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
+    }
+}
+
+#[derive(Clone)]
+struct MutableStringParam {
+    value: Arc<Mutex<String>>,
+}
+
+impl MutableStringParam {
+    pub fn new() -> Self {
+        MutableStringParam { 
+            value: Arc::new(Mutex::new("".to_string())) 
+        }
+    }
+
+    pub fn set(&self, value: &str) {
+        *self.value.lock().unwrap() = value.to_string();
+    }
+}
+
+impl ToSql for MutableStringParam {
+    fn to_sql(&self) -> dimple_db::rusqlite::Result<ToSqlOutput<'_>> {
+        let s = self.value.lock().unwrap().to_string();
+        let t = ToSqlOutput::Owned(dimple_db::rusqlite::types::Value::Text(s));
+        Ok(t)
     }
 }
 

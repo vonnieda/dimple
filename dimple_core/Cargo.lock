@@ -1020,7 +1020,7 @@ dependencies = [
 [[package]]
 name = "dimple_db"
 version = "0.1.0"
-source = "git+https://github.com/vonnieda/dimple_db#3a1f9e92001d38fe6fb3a48266e0420fd806856e"
+source = "git+https://github.com/vonnieda/dimple_db?branch=dev#f97047ae14ce8ca1375f3245428d91b47ffc5f75"
 dependencies = [
  "age",
  "anyhow",
