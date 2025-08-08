@@ -14,76 +14,35 @@ impl Librarian {
             plugins: plugins.clone(),
         }
     }
-
-    // pub fn image(&self, model: &DimpleEntity) -> Option<DynamicImage> {
-    //     if let Some(image) = self.library.image(model) {
-    //         return Some(image)
-    //     }
-    
-    //     for dimage in self.plugins.image(&self.library, model) {
-    //         let dimage = merge_image(&self.library, &dimage);
-    //         DimageRef::attach(&self.library, &dimage, &Some(model.id()));
-    //     }
-    
-    //     self.library.image(model)
-    // }    
-
-    // pub fn search(&self, query: &str) -> SearchResults {
-    //     let plugin_results = self.plugins.search(&self.library, query);
-    
-    //     for result in plugin_results {
-    //         for artist in result.artists {
-    //             librarian::merge_artist(&self.library, &artist);
-    //         }
-    //     }
-    
-    //     let query = format!("%{}%", query);
-    //     let artists = Artist::query(&self.library, 
-    //         "SELECT * FROM Artist WHERE name LIKE ?1 LIMIT 25", (&query,));
-    //     let releases = Release::query(&self.library, 
-    //         "SELECT * FROM Release WHERE title LIKE ?1 LIMIT 25", (&query,));
-    //     let genres = Genre::query(&self.library, 
-    //         "SELECT * FROM Genre WHERE name LIKE ?1 LIMIT 25", (&query,));
-    //     let tracks = Track::query(&self.library, 
-    //         "SELECT * FROM Track WHERE title LIKE ?1 LIMIT 25", (&query,));    
-    
-    //     SearchResults { 
-    //         artists, 
-    //         releases, 
-    //         genres, 
-    //         tracks, 
-    //         ..Default::default()
-    //     }
-    // }    
 }
 
 pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEntity) {
-    library.db.transaction(|txn| {
-        match model {
-            DimpleEntity::Artist(artist) => {
-                for metadata in plugins.artist_metadata(library, &artist) {
-                    librarian::merge_artist_metadata(txn, &metadata, Some(artist.clone()))?;
-                }
-            },
-            DimpleEntity::Track(track) => {
-                for metadata in plugins.track_metadata(library, &track) {
-                    librarian::merge_track_metadata(txn, &metadata, Some(track.clone()))?;
-                }
-            },
-            // DimpleEntity::Genre(genre) => {
-            //     if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
-            //         library.save(&CrdtRules::merge(genre, metadata));
-            //     }
-            // },
-            DimpleEntity::Release(release) => {
-                for metadata in plugins.release_metadata(library, &release) {
-                    librarian::merge_release_metadata(txn, &metadata, Some(release.clone()))?;
-                }
-            },
-            _ => todo!()
-        }
-        Ok(())
-    }).unwrap();
+    match model {
+        DimpleEntity::Artist(artist) => {
+            for metadata in plugins.artist_metadata(library, &artist) {
+                let _ = library.db.transaction(|t| 
+                    librarian::merge_artist_metadata(t, &metadata, Some(artist.clone())));
+            }
+        },
+        DimpleEntity::Track(track) => {
+            for metadata in plugins.track_metadata(library, &track) {
+                let _ = library.db.transaction(|t| 
+                    librarian::merge_track_metadata(t, &metadata, Some(track.clone())));
+            }
+        },
+        // DimpleEntity::Genre(genre) => {
+        //     if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
+        //         library.save(&CrdtRules::merge(genre, metadata));
+        //     }
+        // },
+        DimpleEntity::Release(release) => {
+            for metadata in plugins.release_metadata(library, &release) {
+                let _ = library.db.transaction(|t| 
+                    librarian::merge_release_metadata(t, &metadata, Some(release.clone())));
+            }
+        },
+        _ => todo!()
+    }
 }
 
 pub fn merge_artist_metadata(txn: &DbTransaction, artist: &ArtistMetadata, pre_match: Option<Artist>) -> Result<Artist, anyhow::Error> {
@@ -296,10 +255,6 @@ pub fn match_track(txn: &DbTransaction, track: &TrackMetadata) -> Result<Option<
     }
     Ok(None)
 }
-
-
-
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct ArtistMetadata {
