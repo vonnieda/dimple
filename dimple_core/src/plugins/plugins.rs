@@ -1,11 +1,9 @@
-use std::{num::NonZero, sync::{Arc, Mutex, RwLock}};
+use std::{sync::{Arc, RwLock}};
 
-use lru::LruCache;
-use rayon::iter::IntoParallelRefIterator;
 use reqwest::blocking::Client;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, merge::CrdtRules, model::{Artist, Dimage, DimpleEntity, Release, Track}};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, Track}, plugins::{coverart_archive::CoverArtArchivePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, the_audio_db::TheAudioDbPlugin, wikidata::WikidataPlugin}};
 
 use super::{plugin::Plugin, USER_AGENT};
 
@@ -31,6 +29,15 @@ impl Plugins {
 
     pub fn add_plugin(&self, plugin: Arc<dyn Plugin>) {
         self.plugins.write().unwrap().push(plugin);
+    }
+
+    pub fn add_default_plugins(&self) {
+        self.add_plugin(Arc::new(MusicBrainzPlugin::default()));
+        self.add_plugin(Arc::new(WikidataPlugin::default()));
+        self.add_plugin(Arc::new(LrclibPlugin::default()));
+        self.add_plugin(Arc::new(TheAudioDbPlugin::default()));
+        self.add_plugin(Arc::new(FanartTvPlugin::default()));
+        self.add_plugin(Arc::new(CoverArtArchivePlugin::default()));
     }
 
     pub fn artist_metadata(&self, library: &Library, artist: &Artist) -> Vec<ArtistMetadata> {

@@ -13,6 +13,7 @@ use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
+use dimple_core::plugins;
 use dimple_core::plugins::plugins::Plugins;
 use dimple_db::db::query::QuerySubscription;
 use dimple_db::rusqlite::types::ToSqlOutput;
@@ -98,50 +99,17 @@ impl SearchResultsController {
 
         let ui_clone = ui.clone();
         let sub_clone = sub.clone();
-        
-        // Create shared state for debouncing
-        let last_query_time = Arc::new(Mutex::new(Instant::now()));
-        let query_counter = Arc::new(AtomicU64::new(0));
-        let plugins = app.plugins.clone();
-        let library = app.library.clone();
-        
+        let plugins_clone = app.plugins.clone();
+        let library_clone = app.library.clone();
         ui.upgrade_in_event_loop(move |ui| {
             ui.global::<SearchResultsAdapter>().on_query(move |query| {
                 let query_str = format!("%{}%", query);
                 query_param.set(&query_str);
-                sub_clone.refresh();
-                
-                // Debounced search_plugins call
-                let search_query = query.to_string();
-                let plugins_clone = plugins.clone();
-                let library_clone = library.clone();
-                let last_time_clone = last_query_time.clone();
-                let counter_clone = query_counter.clone();
-                
-                // Increment counter for this query
-                let current_count = counter_clone.fetch_add(1, Ordering::SeqCst) + 1;
-                
-                // Update last query time
-                {
-                    let mut time = last_time_clone.lock().unwrap();
-                    *time = Instant::now();
-                }
-                
-                // Spawn a thread to handle the debounced search
-                thread::spawn(move || {
-                    // Wait for the debounce period (250ms)
-                    thread::sleep(Duration::from_millis(250));
-                    
-                    // Check if this is still the latest query
-                    let latest_count = counter_clone.load(Ordering::SeqCst);
-                    if current_count == latest_count {
-                        // This is the latest query, execute the search
-                        search_plugins(plugins_clone, library_clone, search_query);
-                    }
-                });
-                
+                sub_clone.refresh();            
+                search_plugins(plugins_clone.clone(), library_clone.clone(), query_str);
                 ui_clone.upgrade_in_event_loop(move |ui| ui.set_page(Page::SearchResults)).unwrap();
             });
+                
         }).unwrap();
         
         Ok(Self {
@@ -157,6 +125,10 @@ fn search_plugins(plugins: Plugins, library: Library, query: String) {
         for result in plugin_results {
             for artist in result.artists {
                 librarian::merge_artist(&library, &artist);
+            }
+            for release in result.releases {
+                // TODO
+                // librarian::merge_release_metadata(&library, &release, None);
             }
         }
     });

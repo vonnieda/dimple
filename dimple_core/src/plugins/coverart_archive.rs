@@ -26,7 +26,11 @@ impl CoverArtArchivePlugin {
 
 impl Plugin for CoverArtArchivePlugin {
     fn type_name(&self) -> String {
-        "CoverArtArchive".to_string()
+        "CoverArtArchivePlugin".to_string()
+    }
+
+    fn display_name(&self) -> String {
+        "Cover Art Archive".to_string()
     }
     
     fn image(&self, host: &Plugins, _library: &Library, model: &DimpleEntity) -> Result<Option<Dimage>, anyhow::Error> {

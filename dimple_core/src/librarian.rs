@@ -17,46 +17,46 @@ impl Librarian {
         }
     }
 
-    pub fn image(&self, model: &DimpleEntity) -> Option<DynamicImage> {
-        if let Some(image) = self.library.image(model) {
-            return Some(image)
-        }
+    // pub fn image(&self, model: &DimpleEntity) -> Option<DynamicImage> {
+    //     if let Some(image) = self.library.image(model) {
+    //         return Some(image)
+    //     }
     
-        for dimage in self.plugins.image(&self.library, model) {
-            let dimage = merge_image(&self.library, &dimage);
-            DimageRef::attach(&self.library, &dimage, &Some(model.id()));
-        }
+    //     for dimage in self.plugins.image(&self.library, model) {
+    //         let dimage = merge_image(&self.library, &dimage);
+    //         DimageRef::attach(&self.library, &dimage, &Some(model.id()));
+    //     }
     
-        self.library.image(model)
-    }    
+    //     self.library.image(model)
+    // }    
 
-    pub fn search(&self, query: &str) -> SearchResults {
-        let plugin_results = self.plugins.search(&self.library, query);
+    // pub fn search(&self, query: &str) -> SearchResults {
+    //     let plugin_results = self.plugins.search(&self.library, query);
     
-        for result in plugin_results {
-            for artist in result.artists {
-                librarian::merge_artist(&self.library, &artist);
-            }
-        }
+    //     for result in plugin_results {
+    //         for artist in result.artists {
+    //             librarian::merge_artist(&self.library, &artist);
+    //         }
+    //     }
     
-        let query = format!("%{}%", query);
-        let artists = Artist::query(&self.library, 
-            "SELECT * FROM Artist WHERE name LIKE ?1 LIMIT 25", (&query,));
-        let releases = Release::query(&self.library, 
-            "SELECT * FROM Release WHERE title LIKE ?1 LIMIT 25", (&query,));
-        let genres = Genre::query(&self.library, 
-            "SELECT * FROM Genre WHERE name LIKE ?1 LIMIT 25", (&query,));
-        let tracks = Track::query(&self.library, 
-            "SELECT * FROM Track WHERE title LIKE ?1 LIMIT 25", (&query,));    
+    //     let query = format!("%{}%", query);
+    //     let artists = Artist::query(&self.library, 
+    //         "SELECT * FROM Artist WHERE name LIKE ?1 LIMIT 25", (&query,));
+    //     let releases = Release::query(&self.library, 
+    //         "SELECT * FROM Release WHERE title LIKE ?1 LIMIT 25", (&query,));
+    //     let genres = Genre::query(&self.library, 
+    //         "SELECT * FROM Genre WHERE name LIKE ?1 LIMIT 25", (&query,));
+    //     let tracks = Track::query(&self.library, 
+    //         "SELECT * FROM Track WHERE title LIKE ?1 LIMIT 25", (&query,));    
     
-        SearchResults { 
-            artists, 
-            releases, 
-            genres, 
-            tracks, 
-            ..Default::default()
-        }
-    }    
+    //     SearchResults { 
+    //         artists, 
+    //         releases, 
+    //         genres, 
+    //         tracks, 
+    //         ..Default::default()
+    //     }
+    // }    
 }
 
 pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEntity) {
@@ -71,11 +71,11 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
                 librarian::merge_track_metadata(library, &metadata, Some(track.clone()));
             }
         },
-        DimpleEntity::Genre(genre) => {
-            // if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
-            //     library.save(&CrdtRules::merge(genre, metadata));
-            // }
-        },
+        // DimpleEntity::Genre(genre) => {
+        //     if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
+        //         library.save(&CrdtRules::merge(genre, metadata));
+        //     }
+        // },
         DimpleEntity::Release(release) => {
             for metadata in plugins.release_metadata(library, &release) {
                 librarian::merge_release_metadata(library, &metadata, Some(release.clone()));
@@ -86,12 +86,6 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
 }
 
 // TODO alllll this stuff has to change to take a DbTransaction I think.
-pub fn merge_artist(library: &Library, artist: &Artist) -> Artist {
-    let matched = match_artist(library, artist).unwrap_or_default();
-    let merged = CrdtRules::merge(matched, artist.clone());
-    merged.save(library)
-}
-
 pub fn merge_artist_metadata(library: &Library, artist: &ArtistMetadata, pre_match: Option<Artist>) -> Artist {
     let matched = pre_match.or_else(|| match_artist(library, &artist.artist)).unwrap_or_default();
     let merged = CrdtRules::merge(matched, artist.artist.clone());
@@ -133,10 +127,40 @@ pub fn merge_track_metadata(library: &Library, metadata: &TrackMetadata, pre_mat
     merged
 }
 
+pub fn merge_artist(library: &Library, artist: &Artist) -> Artist {
+    let matched = match_artist(library, artist).unwrap_or_default();
+    let merged = CrdtRules::merge(matched.clone(), artist.clone());
+    if matched == merged {
+        return matched
+    }
+    merged.save(library)
+}
+
 pub fn merge_link(library: &Library, link: &Link) -> Link {
     let matched = match_link(library, &link).unwrap_or_default();
-    let link = CrdtRules::merge(matched, link.clone());
-    link.save(library)
+    let merged = CrdtRules::merge(matched.clone(), link.clone());
+    if matched == merged {
+        return matched
+    }
+    merged.save(library)
+}
+
+pub fn merge_image(library: &Library, dimage: &Dimage) -> Dimage {
+    let matched = match_dimage(library, &dimage).unwrap_or_default();
+    let merged = CrdtRules::merge(matched.clone(), dimage.clone());
+    if matched == merged {
+        return matched
+    }
+    merged.save(library)
+}
+
+pub fn merge_genre(library: &Library, genre: &Genre) -> Genre {
+    let matched = match_genre(library, &genre).unwrap_or_default();
+    let merged = CrdtRules::merge(matched.clone(), genre.clone());
+    if matched == merged {
+        return matched
+    }
+    merged.save(library)
 }
 
 pub fn merge_images(library: &Library, images: &[Dimage], model_id: &Option<String>) {
@@ -146,49 +170,25 @@ pub fn merge_images(library: &Library, images: &[Dimage], model_id: &Option<Stri
     }
 }
 
-pub fn merge_image(library: &Library, dimage: &Dimage) -> Dimage {
-    let matched = match_dimage(library, &dimage).unwrap_or_default();
-    let dimage = CrdtRules::merge(matched, dimage.clone());
-    dimage.save(library)
-}
-
 pub fn merge_links(library: &Library, links: &[Link], model_id: &Option<String>) {
     for link in links {
         let link = merge_link(library, link);
-        merge_link_ref(library, &link, model_id);
+        LinkRef::attach(library, &link, model_id);
     }
-}
-
-pub fn merge_genre(library: &Library, genre: &Genre) -> Genre {
-    let matched = match_genre(library, &genre).unwrap_or_default();
-    let genre = CrdtRules::merge(matched, genre.clone());
-    genre.save(library)
 }
 
 pub fn merge_genres(library: &Library, genres: &[Genre], model_id: &Option<String>) {
     for genre in genres {
         let genre = merge_genre(library, genre);
-        merge_genre_ref(library, &genre, model_id);
+        GenreRef::attach(library, &genre, model_id);
     }
 }
 
 pub fn merge_artists(library: &Library, artists: &[ArtistMetadata], model_id: &Option<String>) {
     for artist in artists {
         let artist = merge_artist_metadata(library, &artist, None);
-        merge_artist_ref(library, &artist, model_id);
+        ArtistRef::attach(library, &artist, model_id);
     }
-}
-
-pub fn merge_artist_ref(library: &Library, artist: &Artist, model_id: &Option<String>) {
-    ArtistRef::attach(library, artist, model_id);
-}
-
-pub fn merge_genre_ref(library: &Library, genre: &Genre, model_id: &Option<String>) {
-    GenreRef::attach(library, genre, model_id);
-}
-
-pub fn merge_link_ref(library: &Library, link: &Link, model_id: &Option<String>) {
-    LinkRef::attach(library, link, model_id);
 }
 
 pub fn match_artist(library: &Library, artist: &Artist) -> Option<Artist> {
@@ -364,46 +364,46 @@ mod tests {
         assert!(artist3.id == artist4.id);
     }
 
-    #[test]
-    #[ignore]
-    fn image() -> Result<()> {
-        let _ = env_logger::try_init();
-        let library = Library::open_memory();
-        library.notifier.observe(|e| {
-            dbg!(e.type_name, e.key);
-        });
-        let plugins = Plugins::default();
-        plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
-        plugins.add_plugin(Arc::new(WikidataPlugin::default()));
-        plugins.add_plugin(Arc::new(LrclibPlugin::default()));
-        plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
-        plugins.add_plugin(Arc::new(ExamplePlugin::default()));
-        let librarian = Librarian::new(&library, &plugins);
-        let artist = library.save(&Artist {
-            musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
-            ..Default::default()
-        })?;
-        let image = librarian.image(&artist.into()).unwrap();
-        assert!(image.width() > 0 && image.height() > 0);
-        Ok(())
-    }
+    // #[test]
+    // #[ignore]
+    // fn image() -> Result<()> {
+    //     let _ = env_logger::try_init();
+    //     let library = Library::open_memory();
+    //     library.notifier.observe(|e| {
+    //         dbg!(e.type_name, e.key);
+    //     });
+    //     let plugins = Plugins::default();
+    //     plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
+    //     plugins.add_plugin(Arc::new(WikidataPlugin::default()));
+    //     plugins.add_plugin(Arc::new(LrclibPlugin::default()));
+    //     plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
+    //     plugins.add_plugin(Arc::new(ExamplePlugin::default()));
+    //     let librarian = Librarian::new(&library, &plugins);
+    //     let artist = library.save(&Artist {
+    //         musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
+    //         ..Default::default()
+    //     })?;
+    //     let image = librarian.image(&artist.into()).unwrap();
+    //     assert!(image.width() > 0 && image.height() > 0);
+    //     Ok(())
+    // }
 
-    #[test]
-    fn basics() {
-        let _ = env_logger::try_init();
-        let library = Library::open_memory();
-        let plugins = Plugins::default();
-        plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
-        plugins.add_plugin(Arc::new(WikidataPlugin::default()));
-        plugins.add_plugin(Arc::new(LrclibPlugin::default()));
-        plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
-        plugins.add_plugin(Arc::new(ExamplePlugin::default()));
-        let librarian = Librarian::new(&library, &plugins);
+    // #[test]
+    // fn basics() {
+    //     let _ = env_logger::try_init();
+    //     let library = Library::open_memory();
+    //     let plugins = Plugins::default();
+    //     plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
+    //     plugins.add_plugin(Arc::new(WikidataPlugin::default()));
+    //     plugins.add_plugin(Arc::new(LrclibPlugin::default()));
+    //     plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
+    //     plugins.add_plugin(Arc::new(ExamplePlugin::default()));
+    //     let librarian = Librarian::new(&library, &plugins);
 
-        let results = librarian.search("Black Sabbath");
-        let artist = results.artists.get(0).unwrap().clone();
-        assert!(artist.musicbrainz_id == Some("5182c1d9-c7d2-4dad-afa0-ccfeada921a8".to_string()));
+    //     let results = librarian.search("Black Sabbath");
+    //     let artist = results.artists.get(0).unwrap().clone();
+    //     assert!(artist.musicbrainz_id == Some("5182c1d9-c7d2-4dad-afa0-ccfeada921a8".to_string()));
 
-        // let releases = artist.releases(&library)
-    }
+    //     // let releases = artist.releases(&library)
+    // }
 }

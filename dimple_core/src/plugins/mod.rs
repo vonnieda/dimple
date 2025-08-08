@@ -7,8 +7,7 @@ pub mod lrclib;
 pub mod musicbrainz;
 pub mod wikidata;
 pub mod fanart_tv;
-// TODO
-// pub mod the_audio_db;
+pub mod the_audio_db;
 pub mod coverart_archive;
 
 pub const USER_AGENT: &str = "Dimple/0.0.1 +https://github.com/vonnieda/dimple +jason@vonnieda.org";

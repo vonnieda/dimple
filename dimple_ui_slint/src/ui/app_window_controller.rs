@@ -1,5 +1,5 @@
-use dimple_core::{librarian::Librarian, library::Library, player::{PlayWhen, Player, PlayerEvent}, plugins::{fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, plugins::Plugins, wikidata::WikidataPlugin}};
-use dimple_db::Db;
+use dimple_core::{librarian::Librarian, library::Library, model::Artist, player::{PlayWhen, Player, PlayerEvent}, plugins::plugins::Plugins};
+use dimple_db::{db::DbEvent, Db};
 use std::{collections::VecDeque, env, path::Path, sync::{Arc, Mutex}};
 
 use slint::{ComponentHandle, SharedString, Weak};
@@ -70,10 +70,7 @@ impl AppWindowController {
         let config = Config::new(Db::open(config_path.to_str().unwrap()).unwrap()).unwrap();
         let player = Player::new(Arc::new(library.clone()));
         let plugins = Plugins::new(cache_dir.to_str().unwrap());
-        plugins.add_plugin(Arc::new(MusicBrainzPlugin::default()));
-        plugins.add_plugin(Arc::new(WikidataPlugin::default()));
-        plugins.add_plugin(Arc::new(LrclibPlugin::default()));
-        plugins.add_plugin(Arc::new(FanartTvPlugin::default()));
+        plugins.add_default_plugins();
         let librarian = Librarian::new(&library, &plugins);
         let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         let ui_weak = ui.as_weak();
@@ -88,6 +85,34 @@ impl AppWindowController {
             plugins,
             librarian,
         };
+
+        // Image "service": Downloads images for new artists, releases, etc.
+        let app_clone = app.clone();
+        std::thread::spawn(move || {
+            let app = app_clone;
+            let rx = app.library.db.subscribe();
+            loop {
+                if let Ok(event) = rx.recv() {
+                    if let DbEvent::Insert(entity_type, entity_id) = event {
+                        if entity_type == "Artist" {
+                            if let Ok(Some(artist)) = app.library.db.get::<Artist>(&entity_id) {
+                                println!("new artist {:?}", artist.name);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        // Update logging "service"
+        let app_clone = app.clone();
+        std::thread::spawn(move || {
+            app_clone.library.db.subscribe().iter().for_each(|e| {
+                match e {
+                    DbEvent::Insert(a, b) => println!("insert {} {}", a, b),
+                    DbEvent::Update(a, b) => println!("update {} {}", a, b),
+                }
+            });
+        });
         
         // Initialize page controllers
         let settings_controller = pages::settings::SettingsController::new(&app).unwrap();

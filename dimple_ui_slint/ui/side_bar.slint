@@ -93,6 +93,12 @@ export component SideBar inherits VerticalBox {
 
     padding: 0;
     
+
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/house.svg");
+        url: "dimple://home";
+        text: "Home";
+    }
     SideBarMenuItem {
         image: @image-url("../icons/phosphor/SVGs/regular/users-three.svg");
         url: "dimple://artists";
@@ -123,6 +129,12 @@ export component SideBar inherits VerticalBox {
         url: "dimple://history";
         text: "History";
     }
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/queue.svg");
+        url: "dimple://queue";
+        text: "Queue";
+    }
+
 
     // Pinned items
     for card in model.pinned-items: SideBarImageItem {
