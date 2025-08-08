@@ -204,8 +204,7 @@ mod tests {
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
         }).unwrap();
-        ArtistRef::attach(&library, &artist, &track.id);
-
+        library.db.transaction(|t| ArtistRef::attach(t, &artist, &track.id));
         // assert!(plugins.track_metadata(&library, &track).is_some());
     }
 

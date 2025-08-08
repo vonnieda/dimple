@@ -116,12 +116,14 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     
     // Match and merge the Track, preferring the one on the TrackSource if it
     // exists.
-    let track = librarian::merge_track_metadata(library, &track_metadata, track_source.track(library));
-
-    // Update the TrackSource with the saved track_id.
-    track_source.track_id = track.id.clone();
-    track_source.media_file_id = media_file.id.clone();
-    let track_source = track_source.save(library);
+    let track_source = library.db.transaction(|txn| {
+        let track = librarian::merge_track_metadata(txn, &track_metadata, track_source.track(library))?;        
+        // Update the TrackSource with the saved track_id.
+        track_source.track_id = track.id.clone();
+        track_source.media_file_id = media_file.id.clone();
+        let track_source = txn.save(&track_source)?;        
+        Ok(track_source)
+    }).unwrap();
 
     Ok(track_source)
 }

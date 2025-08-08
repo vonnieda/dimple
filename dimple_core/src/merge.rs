@@ -258,9 +258,9 @@ mod test {
             wikidata_id: Some("Q0123129".to_string()),
             ..Default::default()
         };
-        /// Commutative: A v B = B v A
-        /// Associative: (A v B) v C = A v (B v C)
-        /// Idempotent : A v A = A
+        // Commutative: A v B = B v A
+        // Associative: (A v B) v C = A v (B v C)
+        // Idempotent : A v A = A
         assert!(CrdtRules::merge(a.clone(), b.clone()) == CrdtRules::merge(b.clone(), a.clone()));
         assert!(CrdtRules::merge(CrdtRules::merge(a.clone(), b.clone()), c.clone()) 
             == CrdtRules::merge(a.clone(), CrdtRules::merge(b.clone(), c.clone())));

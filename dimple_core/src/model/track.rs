@@ -121,17 +121,18 @@ mod tests {
             ..Default::default()
         }).unwrap();
 
-        let artist = library.save(&Artist {
-            name: Some("Metallica".to_string()),
-            ..Default::default()
-        }).unwrap();
-        ArtistRef::attach(&library, &artist, &track.id);
-        let artist = library.save(&Artist {
-
-            name: Some("Lou Reed".to_string()),
-            ..Default::default()
-        }).unwrap();
-        ArtistRef::attach(&library, &artist, &track.id);
+        let _ = library.db.transaction(|t| {
+            let artist = library.save(&Artist {
+                name: Some("Metallica".to_string()),
+                ..Default::default()
+            })?;
+            ArtistRef::attach(t, &artist, &track.id)?;
+            let artist = library.save(&Artist {
+                name: Some("Lou Reed".to_string()),
+                ..Default::default()
+            })?;
+            ArtistRef::attach(t, &artist, &track.id)
+        });
 
         // dbg!(track.artists(&library));
     }
@@ -164,16 +165,16 @@ mod tests {
             title: Some("Lucy".to_string()),
             ..Default::default()
         }).unwrap();
-        GenreRef::attach(&library, &heavy_metal, &track.id);
-        GenreRef::attach(&library, &rock, &track.id);
+        let _ = library.db.transaction(|t| GenreRef::attach(t, &heavy_metal, &track.id));
+        let _ = library.db.transaction(|t| GenreRef::attach(t, &rock, &track.id));
 
         let artist = library.save(&Artist {
             name: Some("Metallica".to_string()),
             ..Default::default()
         }).unwrap();
-        GenreRef::attach(&library, &rock, &artist.id);
-        GenreRef::attach(&library, &heavy_metal, &artist.id);
-        GenreRef::attach(&library, &death_metal, &artist.id);
+        let _ = library.db.transaction(|t| GenreRef::attach(t, &rock, &artist.id));
+        let _ = library.db.transaction(|t| GenreRef::attach(t, &heavy_metal, &artist.id));
+        let _ = library.db.transaction(|t| GenreRef::attach(t, &death_metal, &artist.id));
 
         assert!(artist.genres(&library).len() == 3);
         assert!(track.genres(&library).len() == 2);

@@ -1,4 +1,4 @@
-use dimple_db::db::Entity;
+use dimple_db::db::{Entity, transaction::DbTransaction};
 use serde::{Deserialize, Serialize};
 
 use crate::library::Library;
@@ -13,19 +13,17 @@ pub struct LinkRef {
 }
 
 impl LinkRef {
-    pub fn attach(library: &Library, link: &Link, model_id: &Option<String>) {
-        library.db.transaction(|txn| {
-            let sql = "SELECT * FROM LinkRef WHERE link_id = ? and model_id = ?";
-            if txn.query::<LinkRef, _>(sql, (link.id.as_ref(), model_id))?.is_empty() {
-                let _ = txn.save(&LinkRef {
-                    model_id: model_id.clone().unwrap(),
-                    link_id: link.id.clone().unwrap(),
-                    ..Default::default()
-                })?;
-            }
-            Ok(())
-        }).unwrap();
-    }    
+    pub fn attach(txn: &DbTransaction, link: &Link, model_id: &Option<String>) -> Result<(), anyhow::Error> {
+        let sql = "SELECT * FROM LinkRef WHERE link_id = ? and model_id = ?";
+        if txn.query::<LinkRef, _>(sql, (link.id.as_ref(), model_id))?.is_empty() {
+            let _ = txn.save(&LinkRef {
+                model_id: model_id.clone().unwrap(),
+                link_id: link.id.clone().unwrap(),
+                ..Default::default()
+            })?;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -37,7 +35,7 @@ mod tests {
         let library = Library::open_memory();
         let link = library.save(&Link::default()).unwrap();
         let track = library.save(&Track::default()).unwrap();
-        LinkRef::attach(&library, &link, &track.id);
+        let _ = library.db.transaction(|t| LinkRef::attach(t, &link, &track.id));
         assert!(track.links(&library).len() == 1);
     }
 }

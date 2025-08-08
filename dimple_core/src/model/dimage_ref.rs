@@ -1,4 +1,4 @@
-use dimple_db::db::Entity;
+use dimple_db::db::{Entity, transaction::DbTransaction};
 use serde::{Deserialize, Serialize};
 
 use crate::library::{Library};
@@ -13,19 +13,17 @@ pub struct DimageRef {
 }
 
 impl DimageRef {
-    pub fn attach(library: &Library, dimage: &Dimage, model_id: &Option<String>) {
-        library.db.transaction(|txn| {
-            let sql = "SELECT * FROM DimageRef WHERE dimage_id = ? and model_id = ?";
-            if txn.query::<DimageRef, _>(sql, (dimage.id.as_ref(), model_id))?.is_empty() {
-                let _ = txn.save(&DimageRef {
-                    model_id: model_id.clone().unwrap(),
-                    dimage_id: dimage.id.clone().unwrap(),
-                    ..Default::default()
-                })?;
-            }
-            Ok(())
-        }).unwrap();
-    }    
+    pub fn attach(txn: &DbTransaction, dimage: &Dimage, model_id: &Option<String>) -> Result<(), anyhow::Error> {
+        let sql = "SELECT * FROM DimageRef WHERE dimage_id = ? and model_id = ?";
+        if txn.query::<DimageRef, _>(sql, (dimage.id.as_ref(), model_id))?.is_empty() {
+            let _ = txn.save(&DimageRef {
+                model_id: model_id.clone().unwrap(),
+                dimage_id: dimage.id.clone().unwrap(),
+                ..Default::default()
+            })?;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -39,7 +37,7 @@ mod tests {
         let library = Library::open_memory();
         let dimage = library.save(&Dimage::default())?;
         let track = library.save(&Track::default())?;
-        DimageRef::attach(&library, &dimage, &track.id);
+        let _ = library.db.transaction(|txn| DimageRef::attach(txn, &dimage, &track.id));
         assert!(track.images(&library).len() == 1);
         Ok(())
     }

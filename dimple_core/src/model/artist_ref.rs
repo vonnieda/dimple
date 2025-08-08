@@ -1,4 +1,4 @@
-use dimple_db::db::Entity;
+use dimple_db::db::{Entity, transaction::DbTransaction};
 use musicbrainz_rs::entity;
 use serde::{Deserialize, Serialize};
 
@@ -14,19 +14,17 @@ pub struct ArtistRef {
 }
 
 impl ArtistRef {
-    pub fn attach(library: &Library, artist: &Artist, model_id: &Option<String>) {
-        library.db.transaction(|txn| {
-            let sql = "SELECT * FROM ArtistRef WHERE artist_id = ? and model_id = ?";
-            if txn.query::<ArtistRef, _>(sql, (artist.id.as_ref(), model_id))?.is_empty() {
-                let _ = txn.save(&ArtistRef {
-                    model_id: model_id.clone().unwrap(),
-                    artist_id: artist.id.clone().unwrap(),
-                    ..Default::default()
-                })?;
-            }
-            Ok(())
-        }).unwrap();
-    }    
+    pub fn attach(txn: &DbTransaction, artist: &Artist, model_id: &Option<String>) -> Result<(), anyhow::Error> {
+        let sql = "SELECT * FROM ArtistRef WHERE artist_id = ? and model_id = ?";
+        if txn.query::<ArtistRef, _>(sql, (artist.id.as_ref(), model_id))?.is_empty() {
+            let _ = txn.save(&ArtistRef {
+                model_id: model_id.clone().unwrap(),
+                artist_id: artist.id.clone().unwrap(),
+                ..Default::default()
+            })?;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -38,8 +36,10 @@ mod tests {
         let library = Library::open_memory();
         let artist = library.save(&Artist::default()).unwrap();
         let track = library.save(&Track::default()).unwrap();
-        ArtistRef::attach(&library, &artist, &track.id);
-        ArtistRef::attach(&library, &artist, &track.id);
+        let _ = library.db.transaction(|t| {
+            ArtistRef::attach(t, &artist, &track.id)?;
+            ArtistRef::attach(t, &artist, &track.id)
+        });
         assert_eq!(track.artists(&library).len(), 1);
     }
 }

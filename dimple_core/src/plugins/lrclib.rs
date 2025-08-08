@@ -90,16 +90,18 @@ mod tests {
 
         let library = Library::open_memory();
 
-        let artist = library.save(&Artist {
-            name: Some("Metallica".to_string()),
-            ..Default::default()
+        let track = library.db.transaction(|txn| {
+            let artist = txn.save(&Artist {
+                name: Some("Metallica".to_string()),
+                ..Default::default()
+            }).unwrap();
+            let track = txn.save(&Track {
+                title: Some("Master of Puppets".to_string()),
+                ..Default::default()
+            }).unwrap();
+            let _ = ArtistRef::attach(&txn, &artist, &track.id);
+            Ok(track)
         }).unwrap();
-        let track = library.save(&Track {
-            title: Some("Master of Puppets".to_string()),
-            ..Default::default()
-        }).unwrap();
-        ArtistRef::attach(&library, &artist, &track.id);
-
         let lrclib = LrclibPlugin::default();
         let host = Plugins::default();
         let track_metadata = lrclib.track_metadata(&host, &library, &track).unwrap().unwrap();

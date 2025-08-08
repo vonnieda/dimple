@@ -122,15 +122,20 @@ fn search_plugins(plugins: Plugins, library: Library, query: String) {
     thread::spawn(move || {
         let plugin_results = plugins.search(&library, &query);
 
-        for result in plugin_results {
-            for artist in result.artists {
-                librarian::merge_artist(&library, &artist);
+        library.db.transaction(|txn| {
+            for result in plugin_results {
+                for artist in result.artists {
+                    librarian::merge_artist(txn, &artist)?;
+                }
+                for _release in result.releases {
+                    // TODO
+                    // librarian::merge_release_metadata(txn, &release, None)?;
+                }
             }
-            for release in result.releases {
-                // TODO
-                // librarian::merge_release_metadata(&library, &release, None);
-            }
-        }
+            Ok(())
+        }).unwrap_or_else(|e| {
+            eprintln!("Failed to merge search results: {}", e);
+        });
     });
 }
 
