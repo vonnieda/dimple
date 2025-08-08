@@ -55,15 +55,15 @@ impl ImageMangler {
             let buffer = dynamic_to_buffer(&dyn_image);
             return Image::from_rgba8_premultiplied(buffer.clone())
         }
-        let images = self.clone();
-        let model1 = model.clone();
-        let ui = self.ui.clone();
+        let images_clone = self.clone();
+        let model_clone = model.clone();
+        let ui_clone = self.ui.clone();
         self.threadpool.execute(move || {
-            if let Some(dyn_image) = images.librarian.image(&model1) {
+            if let Some(dyn_image) = images_clone.librarian.library.image(&model_clone) {
                 let dyn_image = resize(dyn_image, width, height);
-                images.cache_set(&cache_key, &dyn_image);
+                images_clone.cache_set(&cache_key, &dyn_image);
                 let buffer = dynamic_to_buffer(&dyn_image);
-                ui.upgrade_in_event_loop(move |ui| {
+                ui_clone.upgrade_in_event_loop(move |ui| {
                     let image = Image::from_rgba8_premultiplied(buffer);
                     set_image(ui, image);
                 }).unwrap();                    

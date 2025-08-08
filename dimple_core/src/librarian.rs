@@ -5,8 +5,8 @@ use crate::{librarian, library::Library, merge::CrdtRules, model::{Artist, Artis
 
 #[derive(Clone)]
 pub struct Librarian {
-    library: Library,
-    plugins: Plugins,
+    pub library: Library,
+    pub plugins: Plugins,
 }
 
 impl Librarian {

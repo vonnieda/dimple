@@ -1,6 +1,7 @@
 use std::{num::NonZero, sync::{Arc, Mutex, RwLock}};
 
 use lru::LruCache;
+use rayon::iter::IntoParallelRefIterator;
 use reqwest::blocking::Client;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
@@ -45,8 +46,15 @@ impl Plugins {
     pub fn image(&self, library: &Library, model: &DimpleEntity) -> Vec<Dimage> {
         let mut results = vec![];
         for plugin in self.plugins.read().unwrap().iter() {
-            if let Ok(Some(image)) = plugin.image(self, library, model) {
-                results.push(image);
+            let result = plugin.image(self, library, model);
+            match result {
+                Ok(Some(image)) => {
+                    results.push(image);
+                },
+                Ok(None) => (),
+                Err(e) => {
+                    log::error!("{}", e);
+                }
             }
         }
         results
@@ -156,6 +164,10 @@ impl CachedResponse {
 
     pub fn bytes(&self) -> Result<Vec<u8>, anyhow::Error> {
         return Ok(self.response.clone())
+    }
+
+    pub fn status(&self) -> u16 {
+        self.status
     }
 }
 

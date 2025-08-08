@@ -1,62 +1,43 @@
 use anyhow::{Error, Result};
-use dimple_core::model::{Entity, Model, Dimage};
-use dimple_librarian::plugin::{NetworkMode, Plugin, PluginContext, PluginSupport};
-use image::DynamicImage;
 use serde::{Deserialize, Serialize};
+
+use crate::{library::Library, model::{dimage::DimageKind, Dimage, DimpleEntity}, plugins::{plugin::Plugin, plugins::Plugins}};
 
 #[derive(Debug, Default)]
 pub struct CoverArtArchivePlugin {
 }
 
 impl CoverArtArchivePlugin {
-    fn get_coverart(&self, url: &str, ctx: &PluginContext) -> Result<DynamicImage> {
-        let response: CoverArtResponse = ctx.get(self, url)?.json()?;
+    fn get_coverart(&self, url: &str, plugins: &Plugins) -> Result<Option<Dimage>> {
+        let response: CoverArtResponse = plugins.get(url)?.json()?;
         for image in response.images {
             if image.approved && image.front {
-                let image_response = ctx.get(self, &image.image)?;
+                let image_response = plugins.get(&image.image)?;
                 let bytes = image_response.bytes()?;
                 let image = image::load_from_memory(&bytes)?;
-                return Ok(image)
+                let mut dimage = Dimage::new(&image);
+                dimage.kind = Some(DimageKind::MusicArtistThumb);
+                return Ok(Some(dimage))
             }
         }
-        Err(Error::msg("No suitable image found"))
+        Ok(None)
     }
 }
 
 impl Plugin for CoverArtArchivePlugin {
-    fn name(&self) -> String {
+    fn type_name(&self) -> String {
         "CoverArtArchive".to_string()
     }
     
-    fn list(
-        &self,
-        list_of: &dimple_core::model::Model,
-        related_to: &Option<dimple_core::model::Model>,
-        network_mode: dimple_librarian::plugin::NetworkMode,
-        ctx: &PluginContext,
-    ) -> Result<Box<dyn Iterator<Item = dimple_core::model::Model>>> {
-        if network_mode != NetworkMode::Online {
-            return Err(Error::msg("Offline."))
-        }
-
-        match (list_of, related_to) {
-            (Model::Dimage(_), Some(Model::ReleaseGroup(rg))) => {
-                let mbid = rg.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
-                let url = format!("http://coverartarchive.org/release-group/{}", mbid);
-                let image = self.get_coverart(&url, ctx)?;
-                let mut dimage = Dimage::default();
-                dimage.set_image(&image);
-                Ok(Box::new(std::iter::once(dimage.model())))
-            },
-            (Model::Dimage(_), Some(Model::Release(rg))) => {
-                let mbid = rg.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
+    fn image(&self, host: &Plugins, _library: &Library, model: &DimpleEntity) -> Result<Option<Dimage>, anyhow::Error> {
+        match model {
+            DimpleEntity::Release(release) => {
+                let mbid = release.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
                 let url = format!("http://coverartarchive.org/release/{}", mbid);
-                let image = self.get_coverart(&url, ctx)?;
-                let mut dimage = Dimage::default();
-                dimage.set_image(&image);
-                Ok(Box::new(std::iter::once(dimage.model())))
-            },
-            _ => Ok(Box::new(std::iter::empty())),
+                let dimage = self.get_coverart(&url, host)?;
+                Ok(dimage)
+            }
+            _ => Ok(None)
         }
     }
 }
@@ -76,28 +57,19 @@ struct CoverArtImage {
 
 #[cfg(test)]
 mod tests {
-    use dimple_core::model::{Entity, KnownIds, Dimage, Release};
-    use dimple_librarian::plugin::{Plugin, PluginContext};
-
-    use crate::CoverArtArchivePlugin;
+    use crate::{library::Library, model::{Release}, plugins::{coverart_archive::CoverArtArchivePlugin, plugin::Plugin as _, plugins::Plugins}};
 
     #[test]
-    fn basics() {
+    fn it_works() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let plugins = Plugins::default();
         let plugin = CoverArtArchivePlugin::default();
-        let ctx = PluginContext::default();
-        let release = Release {
-            known_ids: KnownIds {
-                musicbrainz_id: Some("76df3287-6cda-33eb-8e9a-044b5e15ffdd".to_string()),
-                ..Default::default()
-            },
+        let artist = library.save(&Release {
+            musicbrainz_id: Some("76df3287-6cda-33eb-8e9a-044b5e15ffdd".to_string()),
             ..Default::default()
-        };
-        let results = plugin.list(&Dimage::default().model(), &Some(release.model()), 
-            dimple_librarian::plugin::NetworkMode::Online, &ctx).unwrap();
-        for result in results {
-            let dimage: Dimage = result.into();
-            let image = dimage.get_image();
-            println!("{}x{}", image.width(), image.height());
-        }
+        }).unwrap();
+        let image = plugin.image(&plugins, &library, &artist.into()).unwrap().unwrap();
+        assert_eq!(image.width, 538);
     }
 }
