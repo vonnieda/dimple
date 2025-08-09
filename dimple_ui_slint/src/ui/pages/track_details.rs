@@ -96,9 +96,7 @@ fn update_model(app: &App) {
                 ui.global::<TrackDetailsAdapter>().set_lyrics(lyrics.into());
                 ui.global::<TrackDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
                 ui.global::<TrackDetailsAdapter>().set_dump(format!("{:?}", track).into());
-    
-                ui.set_page(Page::TrackDetails);
-            }).unwrap();
+                }).unwrap();
         });
     }).unwrap();
 }
@@ -106,7 +104,7 @@ fn update_model(app: &App) {
 fn set_lyrics(app: &App, key: &str, lyrics: &str) {
     let mut track = app.library.get::<Track>(key).unwrap();
     track.lyrics = Some(lyrics.to_string());
-    app.library.save(&track);
+    let _ = app.library.save(&track);
 }
 
 fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {

@@ -87,6 +87,8 @@ impl AppWindowController {
         };
 
         // Image "service": Downloads images for new artists, releases, etc.
+        // We'll want this to run periodically for any artists with no art
+        // and whenever a new artist is added.
         let app_clone = app.clone();
         std::thread::spawn(move || {
             let app = app_clone;
@@ -96,6 +98,7 @@ impl AppWindowController {
                     if let DbEvent::Insert(entity_type, entity_id) = event {
                         if entity_type == "Artist" {
                             if let Ok(Some(artist)) = app.library.db.get::<Artist>(&entity_id) {
+                                // TODO do something cool
                                 println!("new artist {:?}", artist.name);
                             }
                         }
@@ -103,16 +106,16 @@ impl AppWindowController {
                 }
             }
         });
-        // Update logging "service"
-        let app_clone = app.clone();
-        std::thread::spawn(move || {
-            app_clone.library.db.subscribe().iter().for_each(|e| {
-                match e {
-                    DbEvent::Insert(a, b) => println!("insert {} {}", a, b),
-                    DbEvent::Update(a, b) => println!("update {} {}", a, b),
-                }
-            });
-        });
+        // // Update logging "service"
+        // let app_clone = app.clone();
+        // std::thread::spawn(move || {
+        //     app_clone.library.db.subscribe().iter().for_each(|e| {
+        //         match e {
+        //             DbEvent::Insert(a, b) => println!("insert {} {}", a, b),
+        //             DbEvent::Update(a, b) => println!("update {} {}", a, b),
+        //         }
+        //     });
+        // });
         
         // Initialize page controllers
         let settings_controller = pages::settings::SettingsController::new(&app).unwrap();

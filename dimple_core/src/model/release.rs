@@ -24,6 +24,7 @@ pub struct Release {
     pub status: Option<String>,
     pub quality: Option<String>,
     pub release_group_type: Option<String>,
+    pub release_group_musicbrainz_id: Option<String>,
 
     pub discogs_id: Option<String>,
     pub lastfm_id: Option<String>,

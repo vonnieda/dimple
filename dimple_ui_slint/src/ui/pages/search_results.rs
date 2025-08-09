@@ -127,8 +127,7 @@ fn search_plugins(plugins: Plugins, library: Library, query: String) {
                 for artist in result.artists {
                     librarian::merge_artist(txn, &artist)?;
                 }
-                for _release in result.releases {
-                    // TODO
+                for release in result.releases {
                     // librarian::merge_release_metadata(txn, &release, None)?;
                 }
             }

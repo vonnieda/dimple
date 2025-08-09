@@ -38,18 +38,13 @@ impl From<ArtistConverter> for ArtistMetadata {
                 summary: None,
                 ..Default::default()
             },
-            genres: value
-                .0
-                .genres
-                .iter()
-                .flatten()
+            releases: value.0.releases.iter().flatten()
+                .map(|r| ReleaseMetadata::from(ReleaseConverter::from(r.to_owned())))
+                .collect(),
+            genres: value.0.genres.iter().flatten()
                 .map(|f| crate::model::Genre::from(GenreConverter::from(f.to_owned())))
                 .collect(),
-            links: value
-                .0
-                .relations
-                .iter()
-                .flatten()
+            links: value.0.relations.iter().flatten()
                 .filter_map(|r| match &r.content {
                     RelationContent::Url(u) => Some(u.resource.to_string()),
                     _ => None,
@@ -64,7 +59,7 @@ impl From<ArtistConverter> for ArtistMetadata {
                     url: s,
                 })
                 .collect(),
-            ..Default::default()
+            images: vec![],
         }
     }
 }
@@ -90,6 +85,7 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                 title: none_if_empty(value.0.title),
                 packaging: value.0.packaging.map(|f| format!("{:?}", f)),
                 release_group_type: value.0.release_group.clone().and_then(|rg| rg.primary_type).and_then(|pt| Some(format!("{:?}", pt))),
+                // TODO add the two release_group fields
                 // release_group: value.0.release_group
                 //     .map(|f| ReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
                 status: value.0.status.map(|f| format!("{:?}", f)),
@@ -100,18 +96,13 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                 //     .collect(),
                 ..Default::default()
             },
-            genres: value
-                .0
-                .genres
-                .iter()
-                .flatten()
+            artists: value.0.artist_credit.iter().flatten()
+                .map(|f| ArtistMetadata::from(ArtistConverter::from(f.artist.to_owned())))
+                .collect(),
+            genres: value.0.genres.iter().flatten()
                 .map(|f| crate::model::Genre::from(GenreConverter::from(f.to_owned())))
                 .collect(),
-            links: value
-                .0
-                .relations
-                .iter()
-                .flatten()
+            links: value.0.relations.iter().flatten()
                 .filter_map(|r| match &r.content {
                     RelationContent::Url(u) => Some(u.resource.to_string()),
                     _ => None,
@@ -126,7 +117,12 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                     url: s,
                 })
                 .collect(),
-            ..Default::default()
+            tracks: value.0.media.iter().flatten()
+                .flat_map(|media| media.tracks.iter())
+                .flat_map(|tracks| tracks.into_iter())
+                .map(|track| TrackMetadata::from(TrackConverter::from(track.to_owned())))
+                .collect(),
+            images: vec![],
         }
     }
 }
@@ -139,22 +135,66 @@ impl From<musicbrainz_rs::entity::release::Track> for TrackConverter {
     }
 }
 
+// pub struct Track {
+//     pub recording: Option<Recording>,
+//     pub title: String,
+//     pub number: String,
+//     pub length: Option<u32>,
+//     pub position: u32,
+//     pub id: String,
+//     pub artist_credit: Option<Vec<ArtistCredit>>,
+// }
 impl From<TrackConverter> for TrackMetadata {
     fn from(value: TrackConverter) -> Self {
         Self {
             track: Track {
-                // artist_credits: value.0.recording.artist_credit.iter().flatten()
-                //     .map(|artist_credit| ArtistCredit::from(ArtistCreditConverter::from(artist_credit.to_owned())))
-                //     .collect(),
-                // genres: value.0.recording.genres.iter().flatten()
-                //     .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
-                //     .collect(),
                 id: None,
-                musicbrainz_id: Some(value.0.id),
-                // length: value.0.length,
-                // number: u32::from_str_radix(&value.0.number, 10).ok(),
+                musicbrainz_id: Some(value.0.id.clone()),
                 position: Some(value.0.position),
                 title: none_if_empty(value.0.title),
+                disambiguation: None,
+                summary: None,
+                save: false,
+                download: false,
+                release_id: None,
+                length_ms: value.0.length.map(|l| l as u64),
+                lyrics: None,
+                synchronized_lyrics: None,
+                discogs_id: None,
+                lastfm_id: None,
+                spotify_id: None,
+                wikidata_id: None,
+                media_track_count: None,
+                media_position: Some(value.0.position),
+                media_title: None,
+                media_format: None,
+            },
+            artists: value.0.artist_credit.iter().flatten()
+                .map(|f| ArtistMetadata::from(ArtistConverter::from(f.artist.to_owned())))
+                .collect(),
+            genres: value.0.recording.iter().flat_map(|r| r.genres.as_ref()).flat_map(|g| g.iter())
+                .map(|f| crate::model::Genre::from(GenreConverter::from(f.to_owned())))
+                .collect(),
+            links: value.0.recording.iter().flat_map(|r| r.relations.as_ref()).flat_map(|r| r.iter())
+                .filter_map(|r| match &r.content {
+                    RelationContent::Url(u) => Some(u.resource.to_string()),
+                    _ => None,
+                })
+                .chain(
+                    std::iter::once(value.0.id.clone())
+                        .map(|mbid| format!("https://musicbrainz.org/track/{}", mbid)),
+                )
+                .map(|s| Link {
+                    id: None,
+                    name: None,
+                    url: s,
+                })
+                .collect(),
+            release: None,
+            images: vec![],            
+        }
+    }
+}
 
                 // links: value.0.relations.iter().flatten()
                 //     .filter_map(|r| match &r.content {
@@ -165,12 +205,15 @@ impl From<TrackConverter> for TrackMetadata {
                 //         .map(|mbid| format!("https://musicbrainz.org/release/{}", mbid)))
                 //     .map(|s| Link { key: None, name: None, url: s })
                 //     .collect(),
-                ..Default::default()
-            },
-            ..Default::default()
-        }
-    }
-}
+
+                // artist_credits: value.0.recording.artist_credit.iter().flatten()
+                //     .map(|artist_credit| ArtistCredit::from(ArtistCreditConverter::from(artist_credit.to_owned())))
+                //     .collect(),
+                // genres: value.0.recording.genres.iter().flatten()
+                //     .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
+                //     .collect(),
+
+
 
 pub struct GenreConverter(musicbrainz_rs::entity::genre::Genre);
 

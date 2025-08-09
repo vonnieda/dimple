@@ -1,11 +1,82 @@
 use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
-use anyhow::Error;
+use anyhow::{Error, Result};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Release, Track}, plugins::converters::ReleaseConverter};
 
 use super::{converters::{ArtistConverter, TrackConverter}, plugin::Plugin, plugins::Plugins};
+
+// https://musicbrainz.org/doc/MusicBrainz_API
+// Subqueries
+// The inc= parameter allows you to request more information to be included about the entity. Any of the entities directly linked to the entity can be included.
+//  /ws/2/area
+//  /ws/2/artist            recordings, releases, release-groups, works
+//  /ws/2/collection        user-collections (includes private collections, requires authentication)
+//  /ws/2/event
+//  /ws/2/genre
+//  /ws/2/instrument
+//  /ws/2/label             releases
+//  /ws/2/place
+//  /ws/2/recording         artists, releases, release-groups, isrcs, url-rels
+//  /ws/2/release           artists, collections, labels, recordings, release-groups
+//  /ws/2/release-group     artists, releases
+//  /ws/2/series
+//  /ws/2/work
+//  /ws/2/url
+
+// Some additional inc= parameters are supported to specify how much of the data about the linked entities should be included:
+//  - discids           include discids for all media in the releases
+//  - media             include media for all releases, this includes the # of tracks on each medium and its format.
+//  - isrcs             include isrcs for all recordings
+//  - artist-credits    include artists credits for all releases and recordings
+//  - various-artists   include only those releases where the artist appears on one of the tracks, 
+//                      but not in the artist credit for the release itself (this is only valid on a
+//                      /ws/2/artist?inc=releases request).
+
+// Misc inc= arguments
+// - aliases                   include artist, label, area or work aliases; treat these as a set, as they are not deliberately ordered
+// - annotation                include annotation
+// - tags, ratings             include tags and/or ratings for the entity
+// - user-tags, user-ratings   same as above, but only return the tags and/or ratings submitted by the specified user
+// - genres, user-genres       include genres (tags in the genres list): either all or the ones submitted by the user, respectively
+// 
+
+// The following list shows which linked entities you can use in a browse request:
+//  /ws/2/area              collection
+//  /ws/2/artist            area, collection, recording, release, release-group, work
+//  /ws/2/collection        area, artist, editor, event, label, place, recording, release, release-group, work
+//  /ws/2/event             area, artist, collection, place
+//  /ws/2/genre             collection
+//  /ws/2/instrument        collection
+//  /ws/2/label             area, collection, release
+//  /ws/2/place             area, collection
+//  /ws/2/recording         artist, collection, release, work
+//  /ws/2/release           area, artist, collection, label, track, track_artist, recording, release-group
+//  /ws/2/release-group     artist, collection, release
+//  /ws/2/series            collection
+//  /ws/2/work              artist, collection
+
+// Just like with normal lookup requests, the server can be instructed to include more data about the entity using an 'inc=' argument. Supported values for inc= are:
+//  /ws/2/area              aliases
+//  /ws/2/artist            aliases
+//  /ws/2/event             aliases
+//  /ws/2/instrument        aliases
+//  /ws/2/label             aliases
+//  /ws/2/place             aliases
+//  /ws/2/recording         artist-credits, isrcs
+//  /ws/2/release           artist-credits, labels, recordings, release-groups, media, discids, isrcs (with recordings)
+//  /ws/2/release-group     artist-credits
+//  /ws/2/series            aliases
+//  /ws/2/work              aliases
+//  /ws/2/area              aliases
+//  /ws/2/url               (only relationship includes)
+
+// In addition to the inc= values listed above, all entities support:
+//  annotation, tags, user-tags, genres, user-genres
+
+// All entities except area, place, release, and series support:
+//  ratings, user-ratings
 
 pub struct MusicBrainzPlugin {
     config: MusicBrainzPluginConfig,
@@ -42,7 +113,7 @@ impl Plugin for MusicBrainzPlugin {
         -> Result<Option<ArtistMetadata>, anyhow::Error> {
 
         if let Some(mbid) = artist.musicbrainz_id.clone() {
-            let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
+            let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=releases+release-groups+artist-credits+genres+url-rels", mbid);
             let mb_artist: musicbrainz_rs::entity::artist::Artist = self.get(host, &url)?;
             let artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
             return Ok(Some(artist_metadata))
@@ -54,6 +125,7 @@ impl Plugin for MusicBrainzPlugin {
         -> Result<Option<ReleaseMetadata>, anyhow::Error> {
 
         if let Some(mbid) = release.musicbrainz_id.clone() {
+            // TODO artists? artist-credits?
             let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels", mbid);
             let mb_release: musicbrainz_rs::entity::release::Release = self.get(host, &url)?;
             let release_metadata: ReleaseMetadata = ReleaseConverter::from(mb_release).into();
@@ -92,36 +164,34 @@ impl Plugin for MusicBrainzPlugin {
             ..Default::default()
         })
     }
-
-    // fn artist_releases() {
-    //     let mut offset: u32 = 0;
-    //     let releases: Vec<ReleaseMetadata>
-    //     loop {
-    //         let url = format!("https://musicbrainz.org/ws/2/release?fmt=json&offset={}&limit=100&artist={}&inc=artist-credits", 
-    //             offset, mbid);
-    //         if !response.cached() {
-    //             self.enforce_rate_limit();
-    //         }
-    //         let mb_artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
-    //         let artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
-    //     }
-
-
-    // //                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
-    // //                 let url = format!("https://musicbrainz.org/ws/2/release-group?fmt=json&offset=0&limit=100&artist={}&inc=artist-credits", mbid);
-    // //                 let response = ctx.get(self, &url)?;
-    // //                 if !response.cached() {
-    // //                     self.enforce_rate_limit();
-    // //                 }        
-    // //                 let release_groups = response.json::<ReleaseGroups>()?;
-    // //                 let iter = release_groups.release_groups.into_iter()
-    // //                     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-    // //                     .map(|src| src.model());
-    // //                 Ok(Box::new(iter))
-    // }
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct ReleasesResponse {
+    pub releases: Vec<musicbrainz_rs::entity::release::Release>,
+}
+    
 impl MusicBrainzPlugin {
+    fn artist_releases(&self, plugins: &Plugins, mbid: &str) -> Result<Vec<ReleaseMetadata>> {
+        let limit: usize = 25;
+        let mut offset: usize = 0;
+        let mut releases: Vec<ReleaseMetadata> = vec![];
+        loop {
+            let url = format!("https://musicbrainz.org/ws/2/release?artist={}&status=official&inc=artist-credits+labels+recordings+release-groups+media+discids+isrcs+tags+genres+url-rels&fmt=json&offset={}&limit={}", mbid, offset, limit);
+            let releases_response: ReleasesResponse = self.get(plugins, &url)?;
+            if releases_response.releases.is_empty() {
+                break
+            }
+            else {
+                offset += releases_response.releases.len();
+            }
+            releases_response.releases.into_iter()
+                .map(|src| ReleaseMetadata::from(ReleaseConverter::from(src.clone())))
+                .for_each(|r| releases.push(r));
+        }
+        Ok(releases)
+    }
+
     fn enforce_rate_limit(&self) {
         let mut last_request_time = self.rate_limit_lock.lock().unwrap();
 
@@ -153,7 +223,9 @@ struct MusicBrainzPluginConfig {
 }
 
 mod tests {
-    use crate::{library::Library, model::Artist, plugins::{plugin::Plugin, plugins::Plugins}};
+    use musicbrainz_rs::entity::artist;
+
+    use crate::{librarian::{self, ArtistMetadata}, library::Library, model::{Artist, Release}, plugins::{plugin::Plugin, plugins::Plugins}};
 
     use super::MusicBrainzPlugin;
 
@@ -163,14 +235,58 @@ mod tests {
         let library = Library::open_memory();
         let plugins = Plugins::default();
         let plugin = MusicBrainzPlugin::default();
-        let metadata = plugin.artist_metadata(&plugins, &library, &Artist {
-            musicbrainz_id: Some("6821bf3f-5d5b-4b0f-8fa4-79d2ab2d9219".to_string()),
+        let artist_metadata = plugin.artist_metadata(&plugins, &library, &Artist {
+            musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
             ..Default::default()
         }).unwrap().unwrap();
-        assert!(metadata.artist.name == Some("Blonde Redhead".to_string()));
+        assert_eq!(artist_metadata.artist.name, Some("We Were Heading North".to_string()));
+        assert!(artist_metadata.links.len() >= 2);
+        assert!(artist_metadata.genres.len() >= 1);
+        assert!(artist_metadata.releases.len() >= 3);
+        assert!(artist_metadata.releases[0].artists.len() >= 1);
+        dump_artist_metadata(&artist_metadata);
+        let _ = library.db.transaction(move |t| {
+            librarian::merge_artist_metadata(t, &artist_metadata, None)
+        });
+        dump_library(&library);
     }
 
+    fn dump_artist_metadata(artist_metadata: &ArtistMetadata) {
+        println!("{} {}", artist_metadata.artist.name.as_deref().unwrap_or_default(), artist_metadata.artist.musicbrainz_id.as_deref().unwrap_or_default());
+        println!("Releases:");
+        for release in &artist_metadata.releases {
+            println!("  {} {}", &release.release.title.as_deref().unwrap_or_default(), release.release.musicbrainz_id.as_deref().unwrap_or_default());
+            println!("  Artists:");
+            for artist in &release.artists {
+                println!("    {} {}", &artist.artist.name.as_deref().unwrap_or_default(), &artist.artist.musicbrainz_id.as_deref().unwrap_or_default());
+            }
+            println!("  Tracks:");
+            for track in &release.tracks {
+                println!("    {} {}", &track.track.position.unwrap_or_default(), &track.track.title.as_deref().unwrap_or_default());
+                println!("    Artists:");
+                for artist in &track.artists {
+                    println!("      {} {}", &artist.artist.name.as_deref().unwrap_or_default(), &artist.artist.musicbrainz_id.as_deref().unwrap_or_default());
+                }
+                println!("    Genres:");
+                for genre in &track.genres {
+                    println!("      {} {}", &genre.name.as_deref().unwrap_or_default(), &genre.musicbrainz_id.as_deref().unwrap_or_default());
+                }
+            }
+        }
+    }
     
+    fn dump_library(library: &Library) {
+        for artist in library.list::<Artist>() {
+            println!("{}", artist.name.as_deref().unwrap_or_default());
+            for release in artist.releases(library) {
+                println!("  {}", &release.title.as_deref().unwrap_or_default());
+                for track in release.tracks(library) {
+                    println!("    {} {}", &track.position.unwrap_or_default(), &track.title.as_deref().unwrap_or_default());
+                }
+            }
+        }
+    }
+
     #[test]
     fn search() {
         let _ = env_logger::try_init();
@@ -181,718 +297,3 @@ mod tests {
         dbg!(results);
     }    
 }
-
-// // https://musicbrainz.org/doc/MusicBrainz_Entity
-// #[derive(Debug)]
-// pub struct MusicBrainzClient {
-//     rate_limit_lock: Mutex<Instant>,
-// }
-
-// impl MusicBrainzClient {
-//     /// Blocks until at least one second has passed since the last request.
-//     /// TODO I think I can adjust this to average over 10 seconds or something
-//     /// so that we can do quick bursts without feeling slow and without
-//     /// passing the rate limit.
-//     fn enforce_rate_limit(&self) {
-//         let mut last_request_time = self.rate_limit_lock.lock().unwrap();
-
-//         if let Some(time_passed) = Instant::now().checked_duration_since(*last_request_time) {
-//             if time_passed < Duration::from_secs(1) {
-//                 let sleep_duration = Duration::from_secs(1) - time_passed;
-//                 std::thread::sleep(sleep_duration);
-//             }
-//         }
-
-//         // Update the last request time
-//         *last_request_time = Instant::now();
-//     }
-// }
-
-//     // https://musicbrainz.org/doc/MusicBrainz_API (Lookups)
-//     // > Note that the number of linked entities returned is always limited to 25. 
-//     // > If you need the remaining results, you will have to perform a browse request. 
-//     fn get(&self, 
-//         model: &Model, 
-//         network_mode: NetworkMode,
-//         ctx: &PluginContext,
-//     ) -> Result<Option<Model>> {
-//         if network_mode != NetworkMode::Online {
-//             return Err(Error::msg("Offline."))
-//         }
-
-//         match model {
-//             Model::Artist(artist) => {
-//                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;                
-//                 let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=aliases+annotation+genres+ratings+tags+url-rels", mbid);
-//                 let response = ctx.get(self, &url)?;
-//                 if !response.cached() {
-//                     self.enforce_rate_limit();
-//                 }
-//                 let artist = response.json::<musicbrainz_rs::entity::artist::Artist>()?;
-//                 let artist = Artist::from(ArtistConverter::from(artist.clone()));
-//                 Ok(Some(artist.model()))
-//             },
-
-//             Model::ReleaseGroup(r) => {
-//                 let mbid = r.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;
-//                 let url = format!("https://musicbrainz.org/ws/2/release-group/{}?fmt=json&inc=aliases+annotation+artists+genres+releases+ratings+tags+url-rels", mbid);
-//                 let response = ctx.get(self, &url)?;
-//                 if !response.cached() {
-//                     self.enforce_rate_limit();
-//                 }        
-//                 let release_group = response.json::<musicbrainz_rs::entity::release_group::ReleaseGroup>()?;
-//                 let release_group = ReleaseGroup::from(ReleaseGroupConverter::from(release_group.clone()));
-//                 Ok(Some(release_group.model()))
-//             },
-
-//             Model::Release(r) => {
-//                 let mbid = r.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;
-//                 let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels", mbid);
-//                 let response = ctx.get(self, &url)?;
-//                 if !response.cached() {
-//                     self.enforce_rate_limit();
-//                 }        
-//                 let release = response.json::<musicbrainz_rs::entity::release::Release>()?;
-//                 let release = Release::from(ReleaseConverter::from(release.clone()));
-//                 Ok(Some(release.model()))
-//             },
-
-//             Model::Recording(r) => {
-//                 let mbid = r.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid missing"))?;
-//                 let url = format!("https://musicbrainz.org/ws/2/recording/{}?fmt=json&inc=aliases+annotation+artists+genres+isrcs+ratings+releases+release-groups+tags+url-rels", mbid);
-//                 let response = ctx.get(self, &url)?;
-//                 if !response.cached() {
-//                     self.enforce_rate_limit();
-//                 }        
-//                 let recording = response.json::<musicbrainz_rs::entity::recording::Recording>()?;
-//                 let recording = Recording::from(RecordingConverter::from(recording.clone()));
-//                 Ok(Some(recording.model()))
-//             },
-            
-//             _ => Ok(None),
-//         }
-//     }
-
-//     // https://musicbrainz.org/doc/MusicBrainz_API (Browse)
-//     fn list(
-//         &self,
-//         list_of: &Model,
-//         related_to: &Option<Model>,
-//         network_mode: NetworkMode,
-//         ctx: &PluginContext,
-//     ) -> Result<Box<dyn Iterator<Item = Model>>> {
-//         // TODO handle paging
-//         if network_mode != NetworkMode::Online {
-//             return Err(Error::msg("Offline."))
-//         }
-//         match (list_of, related_to) {
-//             (Model::ReleaseGroup(_), Some(Model::Artist(artist))) => {                
-//                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
-//                 let url = format!("https://musicbrainz.org/ws/2/release-group?fmt=json&offset=0&limit=100&artist={}&inc=artist-credits", mbid);
-//                 let response = ctx.get(self, &url)?;
-//                 if !response.cached() {
-//                     self.enforce_rate_limit();
-//                 }        
-//                 let release_groups = response.json::<ReleaseGroups>()?;
-//                 let iter = release_groups.release_groups.into_iter()
-//                     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-//                     .map(|src| src.model());
-//                 Ok(Box::new(iter))
-//             },
-//             (Model::Release(_), Some(Model::Artist(artist))) => {                
-//                 let mbid = artist.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
-//                 let url = format!("https://musicbrainz.org/ws/2/release?fmt=json&offset=0&limit=100&artist={}&inc=artist-credits+labels+recordings+release-groups+media+discids+isrcs", mbid);
-//                 let response = ctx.get(self, &url)?;
-//                 if !response.cached() {
-//                     self.enforce_rate_limit();
-//                 }
-//                 let releases = response.json::<Releases>()?;
-//                 let iter = releases.releases.into_iter()
-//                     .map(|src| Release::from(ReleaseConverter::from(src.clone())))
-//                     .map(|src| src.model());
-//                 Ok(Box::new(iter))
-//             },
-//             (Model::Release(_), Some(Model::ReleaseGroup(release_group))) => {                
-//                 let mbid = release_group.known_ids.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
-//                 let url = format!("https://musicbrainz.org/ws/2/release?fmt=json&offset=0&limit=100&release-group={}&inc=artist-credits+labels+recordings+release-groups+media+discids+isrcs", mbid);
-//                 let response = ctx.get(self, &url)?;
-//                 if !response.cached() {
-//                     self.enforce_rate_limit();
-//                 }
-//                 let releases = response.json::<Releases>()?;
-//                 let iter = releases.releases.into_iter()
-//                     .map(|src| Release::from(ReleaseConverter::from(src.clone())))
-//                     .map(|src| src.model());
-//                 Ok(Box::new(iter))
-//             },
-//             _ => {
-//                 log::debug!("list({}, {}) not implemented", 
-//                     list_of.entity().type_name(), 
-//                     related_to.clone().map(|r| r.entity().type_name()).unwrap_or_default());
-//                 Err(Error::msg("Not implemented."))
-//             },
-//         }        
-//     }
-
-//     // TODO I want to return scores, or at least filter by them.
-//     fn search(&self, 
-//         query: &str, 
-//         network_mode: NetworkMode,
-//         ctx: &PluginContext,
-//     ) -> Result<Box<dyn Iterator<Item = Model>>> {
-//         if network_mode != NetworkMode::Online {
-//             return Err(Error::msg("Offline."))
-//         }
-    
-//         let iter = std::iter::empty();
-
-//         let url = format!("https://musicbrainz.org/ws/2/artist/?query={}&fmt=json", &query);
-//         let response = ctx.get(self, &url).unwrap();
-//         if !response.cached() {
-//             self.enforce_rate_limit();
-//         }
-//         let results = response.json::<ArtistResults>().unwrap();
-//         let models = results.artists.into_iter()
-//             .map(|src| Artist::from(ArtistConverter::from(src.clone())))
-//             .map(|src| src.model());
-//         let iter = iter.chain(models);
-
-//         let url = format!("https://musicbrainz.org/ws/2/release-group/?query={}&fmt=json", &query);
-//         if !response.cached() {
-//             self.enforce_rate_limit();
-//         }
-//         let response = ctx.get(self, &url)?;
-//         let results = response.json::<ReleaseGroupResults>()?;
-//         let models = results.release_groups.into_iter()
-//             .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-//             .map(|src| src.model());
-//         let iter = iter.chain(models);
-
-//         let url = format!("https://musicbrainz.org/ws/2/recording/?query={}&fmt=json", &query);
-//         if !response.cached() {
-//             self.enforce_rate_limit();
-//         }
-//         let response = ctx.get(self, &url)?;
-//         let results = response.json::<RecordingResults>()?;
-//         let models = results.recordings.into_iter()
-//             .map(|src| Recording::from(RecordingConverter::from(src.clone())))
-//             .map(|src| src.model());
-//         let iter = iter.chain(models);
-
-//         Ok(Box::new(iter))
-//     }    
-// }
-
-// #[cfg(test)]
-// mod tests {
-//     use dimple_core::model::{Artist, Entity, KnownIds, Medium, Model, Recording, Release, ReleaseGroup, Track};
-//     use dimple_librarian::plugin::{NetworkMode, Plugin, PluginContext};
-//     use musicbrainz_rs::entity::release_group;
-
-//     use crate::MusicBrainzPlugin;
-
-//     #[test]
-//     fn get_artist() {
-//         let plugin = MusicBrainzPlugin::default();
-//         let ctx = PluginContext::default();
-//         let artist = Artist {
-//             known_ids: KnownIds {
-//                 musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
-//                 ..Default::default()
-//             },
-//             ..Default::default()
-//         };
-//         let artist = plugin.get(&artist.model(), NetworkMode::Online, &ctx).unwrap().unwrap();
-//     }
-
-//     #[test]
-//     fn get_release_group() {
-//         let plugin = MusicBrainzPlugin::default();
-//         let ctx = PluginContext::default();
-//         let release_group = ReleaseGroup {
-//             known_ids: KnownIds {
-//                 musicbrainz_id: Some("a96550cd-c202-326d-9593-313f72399ad5".to_string()),
-//                 ..Default::default()
-//             },
-//             ..Default::default()
-//         };
-//         let release_group = plugin.get(&release_group.model(), NetworkMode::Online, &ctx).unwrap().unwrap();
-//     }
-
-//     #[test]
-//     fn get_release() {
-//         let plugin = MusicBrainzPlugin::default();
-//         let ctx = PluginContext::default();
-//         let release = Release {
-//             known_ids: KnownIds {
-//                 musicbrainz_id: Some("006cb56d-6eff-4b7d-853f-ecd2db97f3b2".to_string()),
-//                 ..Default::default()
-//             },
-//             ..Default::default()
-//         };
-//         let release = plugin.get(&release.model(), NetworkMode::Online, &ctx).unwrap().unwrap();
-//     }
-
-//     #[test]
-//     fn get_recording() {
-//         let plugin = MusicBrainzPlugin::default();
-//         let ctx = PluginContext::default();
-//         let recording = Recording {
-//             known_ids: KnownIds {
-//                 musicbrainz_id: Some("70ac6733-068f-4613-b06b-bea17cfbcc30".to_string()),
-//                 ..Default::default()
-//             },
-//             ..Default::default()
-//         };
-//         let recording = plugin.get(&recording.model(), NetworkMode::Online, &ctx).unwrap().unwrap();
-//     }
-
-//     #[test]
-//     fn list_artist_releases() {
-//         let plugin = MusicBrainzPlugin::default();
-//         let ctx = PluginContext::default();
-//         let artist = Artist {
-//             known_ids: KnownIds {
-//                 musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
-//                 ..Default::default()
-//             },
-//             ..Default::default()
-//         };
-//         let releases: Vec<Release> = plugin.list(&Release::default().model(), 
-//             &Some(artist.model()), NetworkMode::Online, &ctx)
-//             .unwrap()
-//             .map(|model| Release::from(model))
-//             .collect();
-//     }
-
-//     #[test]
-//     fn list_release_group_releases() {
-//         let plugin = MusicBrainzPlugin::default();
-//         let ctx = PluginContext::default();
-//         let release_group = ReleaseGroup {
-//             known_ids: KnownIds {
-//                 musicbrainz_id: Some("f44f4f73-a714-31a1-a4b8-bfcaaf311f50".to_string()),
-//                 ..Default::default()
-//             },
-//             ..Default::default()
-//         };
-//         let releases: Vec<Release> = plugin.list(&Release::default().model(), 
-//             &Some(release_group.model()), NetworkMode::Online, &ctx)
-//             .unwrap()
-//             .map(|model| Release::from(model))
-//             .collect();
-//     }
-
-//     #[test]
-//     fn search() {
-//         let plugin = MusicBrainzPlugin::default();
-//         let ctx = PluginContext::default();
-//         let results: Vec<Model> = plugin.search("Nirvana", NetworkMode::Online, &ctx).unwrap().collect();
-//     }
-
-//     #[test]
-//     fn tree() {
-//         let plugin = MusicBrainzPlugin::default();
-//         let ctx = PluginContext::default();
-//         let artist = Artist {
-//             known_ids: KnownIds {
-//                 musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
-//                 ..Default::default()
-//             },
-//             ..Default::default()
-//         };
-//         let artist: Artist = plugin.get(&artist.model(), NetworkMode::Online, &ctx).unwrap().unwrap().into();
-//         println!("{} {:?}", 
-//             artist.name.clone().unwrap_or_default(),
-//             artist.links,
-//         );
-//         let release_groups = plugin.list(&ReleaseGroup::default().model(), &Some(artist.model()), NetworkMode::Online, &ctx).unwrap();
-//         for release_group in release_groups {
-//             let release_group: ReleaseGroup = release_group.into();
-//             println!("  {} {:?}", 
-//                 release_group.title.clone().unwrap_or_default(),
-//                 release_group.links,
-//             );
-//             let releases = plugin.list(&Release::default().model(), &Some(release_group.model()), NetworkMode::Online, &ctx).unwrap();
-//             for release in releases {
-//                 let release: Release = release.into();
-//                 println!("    {} [{}] {} {:?}", 
-//                     release.title.clone().unwrap_or_default(),
-//                     release.country.clone().unwrap_or_default(),
-//                     release.date.clone().unwrap_or_default(),
-//                     release.links,
-//                 );
-//                 // let media = plugin.list(&Medium::default().model(), &Some(release.model()), NetworkMode::Online).unwrap();
-//                 for medium in release.media {
-//                     let medium: Medium = medium.into();
-//                     println!("      {} / {} {}", 
-//                         medium.position.unwrap_or_default(),
-//                         medium.disc_count.unwrap_or_default(),
-//                         medium.format.clone().unwrap_or_default(),
-//                     );
-//                     // let tracks = plugin.list(&Track::default().model(), &Some(medium.model()), NetworkMode::Online).unwrap();
-//                     for track in medium.tracks {
-//                         let track: Track = track.into();
-//                         println!("        {} {}", 
-//                             track.position.unwrap_or_default(),
-//                             track.title.unwrap_or_default(),
-//                         );
-
-//                         let recording = track.recording;
-//                         println!("            {} {} {:?}", 
-//                             recording.title.unwrap_or_default(),
-//                             recording.length.unwrap_or_default() / 1000,
-//                             recording.links
-//                         );
-//                     }
-//                 }
-//             }
-//         }
-//     }    
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// fn list(
-//     &self,
-//     list_of: &dyn Entity,
-//     related_to: Option<&dyn Entity>,
-//     network_mode: dimple_librarian::plugin::NetworkMode,
-// ) -> Result<Box<dyn Iterator<Item = Box<dyn Entity>>>> {
-//     match (list_of.model(), related_to.map(|related_to| model()) {
-//         (Model::ReleaseGroup(_), Some(Entities::Artist(a))) => {                
-//             // // TODO handle paging
-//             let mbid = a.mbid();
-//             if mbid.is_none() {
-//                 return Box::new(vec![].into_iter())
-//             }
-//             let mbid = mbid.unwrap();
-//             let request_token = LibrarySupport::start_request(self, 
-//                 &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", mbid));
-//             self.enforce_rate_limit();
-//             let results: Vec<_> = MBReleaseGroup::browse().by_artist(&mbid)
-//                 .execute()
-//                 .inspect(|_f| {
-//                     LibrarySupport::end_request(request_token, None, None);
-//                 })        
-//                 .inspect_err(|f| log::error!("{}", f))
-//                 .unwrap()
-//                 .entities
-//                 .iter()
-//                 .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-//                 .map(Entities::ReleaseGroup)
-//                 .collect();
-//             Box::new(results.into_iter())
-//         },
-//         (Entities::Release(_), Some(Entities::Artist(a))) => {                
-//             // TODO handle paging
-//             let mbid = a.mbid();
-//             if mbid.is_none() {
-//                 return Box::new(vec![].into_iter())
-//             }
-//             let mbid = mbid.unwrap();
-//             // https://musicbrainz.org/artist/65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab/releases
-//             let request_token = LibrarySupport::start_request(self, 
-//                 &format!("https://musicbrainz.org/ws/2/release?artist={}&fmt=json", &mbid));
-//             self.enforce_rate_limit();
-//             let results: Vec<_> = MBRelease::browse().by_artist(&mbid)
-//                 .execute()
-//                 .inspect(|_f| {
-//                     LibrarySupport::end_request(request_token, None, None);
-//                 })        
-//                 .inspect_err(|f| log::error!("{}", f))
-//                 .unwrap()
-//                 .entities
-//                 .iter()
-//                 .map(|src| Release::from(ReleaseConverter::from(src.clone())))
-//                 .map(Entities::Release)
-//                 .collect();
-//             Box::new(results.into_iter())
-//         },
-//         (Entities::Recording(_), Some(Entities::Release(a))) => {
-//             // TODO handle paging
-//             let mbid = a.mbid();
-//             if mbid.is_none() {
-//                 return Box::new(vec![].into_iter())
-//             }
-//             let mbid = mbid.unwrap();
-//             let request_token = LibrarySupport::start_request(self, 
-//                 &format!("https://musicbrainz.org/ws/2/recording/TODO TODO{}?fmt=json", &mbid));
-//             self.enforce_rate_limit();
-//             let results: Vec<_> = MBRecording::browse().by_release(&mbid)
-//                 .execute()
-//                 .inspect(|_f| {
-//                     LibrarySupport::end_request(request_token, None, None);
-//                 })        
-//                 .inspect_err(|f| log::error!("{}", f))
-//                 .unwrap()
-//                 .entities
-//                 .iter()
-//                 .map(|src| Recording::from(RecordingConverter::from(src.clone())))
-//                 .map(Entities::Recording)
-//                 .collect();
-//             Box::new(results.into_iter())
-//         },
-//         (Entities::Release(_), Some(Entities::ReleaseGroup(r))) => {
-//             // TODO handle paging
-//             let mbid = r.mbid();
-//             if mbid.is_none() {
-//                 return Box::new(vec![].into_iter())
-//             }
-//             let mbid = mbid.unwrap();
-//             let request_token = LibrarySupport::start_request(self, 
-//                 &format!("https://musicbrainz.org/ws/2/release/TODO TODO{}?fmt=json", &mbid));
-//             self.enforce_rate_limit();
-//             let results: Vec<_> = MBRelease::browse().by_release_group(&mbid)
-//                 .execute()
-//                 .inspect(|_f| {
-//                     LibrarySupport::end_request(request_token, None, None);
-//                 })        
-//                 .inspect_err(|f| log::error!("{}", f))
-//                 .unwrap()
-//                 .entities
-//                 .iter()
-//                 .map(|src| Release::from(ReleaseConverter::from(src.clone())))
-//                 .map(Entities::Release)
-//                 .collect();
-//             Box::new(results.into_iter())
-//         },
-//         _ => Box::new(vec![].into_iter()),
-//     }
-// }
-    
-
-
-// impl Collection for MusicBrainzLibrary {
-//     fn name(&self) -> String {
-//         "MusicBrainz".to_string()
-//     }
-
-//     fn search(&self, query: &str) -> Box<dyn Iterator<Item = Entities>> {
-//         let query = query.to_string();
-
-//         self.enforce_rate_limit();
-//         let request_token = LibrarySupport::start_request(self, 
-//             &format!("http://musicbrainz.org/search/artist/{}", &query));
-
-//         // TODO And releases, tracks, etc.
-//         let search_query = ArtistSearchQuery::query_builder()
-//             .artist(&query)
-//             .build();
-//         let results: Vec<Entities> = MBArtist::search(search_query)
-//             .execute()
-//             .inspect(|_f| {
-//                 LibrarySupport::end_request(request_token, None, None);
-//             })
-//             // TODO
-//             .unwrap()
-//             .entities
-//             .iter()
-//             .map(|src| dimple_core::model::Artist::from(ArtistConverter::from(src.clone())))
-//             .map(Entities::Artist)
-//             .collect();
-//         Box::new(results.into_iter())
-//     }
-
-//     fn list(&self, of_type: &Entities, related_to: Option<&Entities>) -> Box<dyn Iterator<Item = Entities>> {
-//         match (of_type, related_to) {
-//             (Entities::ReleaseGroup(_), Some(Entities::Artist(a))) => {                
-//                 // // TODO handle paging
-//                 let mbid = a.mbid();
-//                 if mbid.is_none() {
-//                     return Box::new(vec![].into_iter())
-//                 }
-//                 let mbid = mbid.unwrap();
-//                 let request_token = LibrarySupport::start_request(self, 
-//                     &format!("https://musicbrainz.org/ws/2/release-group/TODO TODO{}?fmt=json", mbid));
-//                 self.enforce_rate_limit();
-//                 let results: Vec<_> = MBReleaseGroup::browse().by_artist(&mbid)
-//                     .execute()
-//                     .inspect(|_f| {
-//                         LibrarySupport::end_request(request_token, None, None);
-//                     })        
-//                     .inspect_err(|f| log::error!("{}", f))
-//                     .unwrap()
-//                     .entities
-//                     .iter()
-//                     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-//                     .map(Entities::ReleaseGroup)
-//                     .collect();
-//                 Box::new(results.into_iter())
-//             },
-//             (Entities::Release(_), Some(Entities::Artist(a))) => {                
-//                 // TODO handle paging
-//                 let mbid = a.mbid();
-//                 if mbid.is_none() {
-//                     return Box::new(vec![].into_iter())
-//                 }
-//                 let mbid = mbid.unwrap();
-//                 // https://musicbrainz.org/artist/65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab/releases
-//                 let request_token = LibrarySupport::start_request(self, 
-//                     &format!("https://musicbrainz.org/ws/2/release?artist={}&fmt=json", &mbid));
-//                 self.enforce_rate_limit();
-//                 let results: Vec<_> = MBRelease::browse().by_artist(&mbid)
-//                     .execute()
-//                     .inspect(|_f| {
-//                         LibrarySupport::end_request(request_token, None, None);
-//                     })        
-//                     .inspect_err(|f| log::error!("{}", f))
-//                     .unwrap()
-//                     .entities
-//                     .iter()
-//                     .map(|src| Release::from(ReleaseConverter::from(src.clone())))
-//                     .map(Entities::Release)
-//                     .collect();
-//                 Box::new(results.into_iter())
-//             },
-//             (Entities::Recording(_), Some(Entities::Release(a))) => {
-//                 // TODO handle paging
-//                 let mbid = a.mbid();
-//                 if mbid.is_none() {
-//                     return Box::new(vec![].into_iter())
-//                 }
-//                 let mbid = mbid.unwrap();
-//                 let request_token = LibrarySupport::start_request(self, 
-//                     &format!("https://musicbrainz.org/ws/2/recording/TODO TODO{}?fmt=json", &mbid));
-//                 self.enforce_rate_limit();
-//                 let results: Vec<_> = MBRecording::browse().by_release(&mbid)
-//                     .execute()
-//                     .inspect(|_f| {
-//                         LibrarySupport::end_request(request_token, None, None);
-//                     })        
-//                     .inspect_err(|f| log::error!("{}", f))
-//                     .unwrap()
-//                     .entities
-//                     .iter()
-//                     .map(|src| Recording::from(RecordingConverter::from(src.clone())))
-//                     .map(Entities::Recording)
-//                     .collect();
-//                 Box::new(results.into_iter())
-//             },
-//             (Entities::Release(_), Some(Entities::ReleaseGroup(r))) => {
-//                 // TODO handle paging
-//                 let mbid = r.mbid();
-//                 if mbid.is_none() {
-//                     return Box::new(vec![].into_iter())
-//                 }
-//                 let mbid = mbid.unwrap();
-//                 let request_token = LibrarySupport::start_request(self, 
-//                     &format!("https://musicbrainz.org/ws/2/release/TODO TODO{}?fmt=json", &mbid));
-//                 self.enforce_rate_limit();
-//                 let results: Vec<_> = MBRelease::browse().by_release_group(&mbid)
-//                     .execute()
-//                     .inspect(|_f| {
-//                         LibrarySupport::end_request(request_token, None, None);
-//                     })        
-//                     .inspect_err(|f| log::error!("{}", f))
-//                     .unwrap()
-//                     .entities
-//                     .iter()
-//                     .map(|src| Release::from(ReleaseConverter::from(src.clone())))
-//                     .map(Entities::Release)
-//                     .collect();
-//                 Box::new(results.into_iter())
-//             },
-//             _ => Box::new(vec![].into_iter()),
-//         }
-//     }
-
-//     fn fetch(&self, entity: &Entities) -> Option<Entities> {
-//         match entity {
-//             Entities::Artist(a) => {
-//                 let mbid = a.mbid()?;
-//                 let request_token = LibrarySupport::start_request(self, 
-//                     &format!("https://musicbrainz.org/ws/2/artist/{}?inc=aliases%20release-groups%20releases%20release-group-rels%20release-rels&fmt=json", mbid));
-//                 self.enforce_rate_limit();
-//                 MBArtist::fetch().id(&mbid)
-//                     .with_aliases().with_annotations().with_genres().with_rating()
-//                     .with_tags().with_release_groups().with_url_relations()
-//                     .execute()
-//                     .inspect(|_f| {
-//                         LibrarySupport::end_request(request_token, None, None);
-//                     })        
-//                     .inspect_err(|f| log::error!("{}", f))
-//                     .ok()
-//                     .inspect(|src| log::debug!("{:?}", src))
-//                     .map(|src| Artist::from(ArtistConverter::from(src.clone())))
-//                     .map(Entities::Artist)        
-//             },
-//             Entities::ReleaseGroup(r) => {
-//                 let mbid = r.mbid()?;
-//                 let request_token = LibrarySupport::start_request(self, 
-//                     &format!("https://musicbrainz.org/ws/2/release-group/{}?inc=aliases%20artists%20releases%20release-group-rels%20release-rels%20url-rels&fmt=json", mbid));
-//                 self.enforce_rate_limit();
-//                 MBReleaseGroup::fetch().id(&mbid)
-//                     .with_aliases().with_annotations().with_artists()
-//                     .with_genres().with_ratings().with_releases().with_tags()
-//                     .with_url_relations()
-//                     .execute()
-//                     .inspect(|_f| {
-//                         LibrarySupport::end_request(request_token, None, None);
-//                     })        
-//                     .inspect_err(|f| log::error!("{}", f))
-//                     .ok()
-//                     .inspect(|src| log::debug!("{:?}", src))
-//                     .map(|src| ReleaseGroup::from(ReleaseGroupConverter::from(src.clone())))
-//                     .map(Entities::ReleaseGroup)        
-//             },
-//             Entities::Release(r) => {
-//                 let mbid = r.mbid()?;
-//                 let request_token = LibrarySupport::start_request(self, 
-//                     &format!("https://musicbrainz.org/ws/2/release/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", mbid));
-//                 self.enforce_rate_limit();
-//                 MBRelease::fetch().id(&mbid)
-//                     .with_aliases().with_annotations().with_artist_credits()
-//                     .with_artists().with_genres().with_labels().with_ratings()
-//                     .with_recordings().with_release_groups().with_tags()
-//                     .with_url_relations()
-//                     .execute()
-//                     .inspect(|_f| {
-//                         LibrarySupport::end_request(request_token, None, None);
-//                     })        
-//                     .inspect_err(|f| log::error!("{}", f))
-//                     .ok()
-//                     .inspect(|src| log::debug!("{:?}", src))
-//                     .map(|src| Release::from(ReleaseConverter::from(src.clone())))
-//                     .map(Entities::Release)        
-//             },
-//             Entities::Recording(r) => {
-//                 let mbid = r.mbid()?;
-//                 let request_token = LibrarySupport::start_request(self, 
-//                     &format!("https://musicbrainz.org/ws/2/recording/{}?inc=aliases%20artist-credits%20artist-rels%20artists%20genres%20labels%20ratings%20recording-rels%20recordings%20release-groups%20release-group-rels%20tags%20release-rels%20url-rels%20work-level-rels%20work-rels&fmt=json", mbid));
-//                 self.enforce_rate_limit();
-//                 MBRecording::fetch().id(&mbid)
-//                     .with_aliases().with_annotations().with_artists()
-//                     .with_genres().with_isrcs().with_ratings().with_releases()
-//                     .with_tags().with_url_relations()
-//                     .execute()
-//                     .inspect(|_f| {
-//                         LibrarySupport::end_request(request_token, None, None);
-//                     })        
-//                     .inspect_err(|f| log::error!("{}", f))
-//                     .ok()
-//                     .inspect(|src| log::debug!("{:?}", src))
-//                     .map(|src| Recording::from(RecordingConverter::from(src.clone())))
-//                     .map(Entities::Recording)        
-//             },
-//             Entities::Genre(_) => None,
-//             Entities::RecordingSource(_) => None,
-//             Entities::MediaFile(_) => None,
-//             Entities::Track(_) => None,
-//             Entities::Medium(_) => None,
-//         }        
-//     }
-// }

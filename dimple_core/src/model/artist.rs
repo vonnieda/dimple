@@ -45,7 +45,7 @@ impl Artist {
             SELECT Release.* FROM Release
             LEFT JOIN ArtistRef ON (ArtistRef.model_id = Release.id)
             WHERE ArtistRef.artist_id = ?1
-            ORDER BY date ASC, title ASC
+            ORDER BY date DESC, title ASC
         ";
         library.query(sql, (self.id.clone(),))
     }

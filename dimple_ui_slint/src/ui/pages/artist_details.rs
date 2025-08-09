@@ -16,6 +16,10 @@ use crate::ui::ArtistDetailsAdapter;
 use crate::ui::ImageLinkAdapter;
 use slint::Model as _;
 
+// TODO
+// convert to new style controller then we have key and all this trash goes
+// away 
+
 pub fn artist_details_init(app: &App) {
     // TODO filter events by key - but we can't get the key without the
     // UI, so rethink the whole mess.
@@ -45,7 +49,7 @@ pub fn artist_details(url: &str, app: &App) {
         let key2 = key1.clone();
         std::thread::spawn(move || {
             if let Some(artist) = Artist::get(&app2.library, &key2) {
-                librarian::refresh_metadata(&app2.library, &app2.plugins, &DimpleEntity::from(&artist));
+                librarian::refresh_metadata(&app2.library, &app2.plugins, &artist.into());
             }
         });    
     }).unwrap();

@@ -66,7 +66,7 @@ pub fn release_details(url: &str, app: &App) {
         let key2 = key1.clone();
         std::thread::spawn(move || {
             if let Some(release) = Release::get(&app2.library, &key2) {
-                librarian::refresh_metadata(&app2.library, &app2.plugins, &DimpleEntity::from(&release));
+                librarian::refresh_metadata(&app2.library, &app2.plugins, &release.into());
             }
         });            
     }).unwrap();
