@@ -103,10 +103,9 @@ impl SearchResultsController {
         let library_clone = app.library.clone();
         ui.upgrade_in_event_loop(move |ui| {
             ui.global::<SearchResultsAdapter>().on_query(move |query| {
-                let query_str = format!("%{}%", query);
-                query_param.set(&query_str);
+                query_param.set(&format!("%{}%", query));
                 sub_clone.refresh();            
-                search_plugins(plugins_clone.clone(), library_clone.clone(), query_str);
+                search_plugins(plugins_clone.clone(), library_clone.clone(), query.to_string());
                 ui_clone.upgrade_in_event_loop(move |ui| ui.set_page(Page::SearchResults)).unwrap();
             });
                 
