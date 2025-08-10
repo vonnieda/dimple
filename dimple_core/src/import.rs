@@ -4,10 +4,11 @@ pub mod symphonia_tagged_media_file;
 
 use std::path::Path;
 
-use crate::{import::symphonia_tagged_media_file::SymphoniaTaggedMediaFile, librarian, library::Library, model::{ModelBasics as _, Track, TrackSource}};
+use crate::{import::symphonia_tagged_media_file::SymphoniaTaggedMediaFile, librarian, library::Library, model::{MediaFile, ModelBasics as _, Track, TrackSource}};
 
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
+use dimple_db::db::transaction::DbTransaction;
 use lofty_tagged_media_file::LoftyTaggedMediaFile;
 use walkdir::WalkDir;
 
@@ -97,27 +98,31 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
         track_metadata.clone().release.unwrap().release.title,
         track_metadata.clone().track.title);
 
-    // Create or update a MediaFile by the file path.
-    let mut media_file = library.find_media_file_by_file_path(path.to_str().unwrap())
-        .unwrap_or_default();
-    media_file.file_path = path.to_str().unwrap().to_string();
-    media_file.last_imported = Utc::now();
-    media_file.last_modified = path.metadata()?.modified()?.into();
-    media_file.content = Some(std::fs::read(path)?); // TODO temporary, no idea where it's gonna go
-    let media_file = media_file.save(library);
+    let file_path = path.to_str().unwrap();
+    let file_content = Some(std::fs::read(path)?);
+    let track_source = library.db.transaction(move |txn| {
+        // Create or update a MediaFile by the file path.
+        let mut media_file: MediaFile = txn
+            .find("SELECT * FROM MediaFile WHERE file_path = ?", (file_path,))?
+            .unwrap_or_default();
+        media_file.file_path = path.to_str().unwrap().to_string();
+        media_file.last_imported = Utc::now();
+        media_file.last_modified = path.metadata()?.modified()?.into();
+        // TODO temporary, waiting on blob support
+        // TODO STOPSHIP move read outside of txn 
+        media_file.content = file_content; 
+        let media_file = txn.save(&media_file)?;
 
-    // TODO and now, finally, I can do all this work in a transaction!
-    
-    // Find or create a TrackSource by the MediaFile id. This is not yet saved,
-    // since it will be updated below.
-    let mut track_source = TrackSource::find(library, 
-        "SELECT * FROM TrackSource WHERE media_file_id = ?", 
-        (&media_file.id,)).unwrap_or_default();
-    
-    // Match and merge the Track, preferring the one on the TrackSource if it
-    // exists.
-    let track_source = library.db.transaction(|txn| {
-        let track = librarian::merge_track_metadata(txn, &track_metadata, track_source.track(library))?;        
+        // Find or create a TrackSource by the MediaFile id. This is not yet saved,
+        // since it will be updated below.
+        let mut track_source: TrackSource = txn
+            .find("SELECT * FROM TrackSource WHERE media_file_id = ?",  (&media_file.id,))?
+            .unwrap_or_default();
+        
+        // Match and merge the Track, preferring the one on the TrackSource if it
+        // exists.
+        let pre_match: Option<Track> = track_source.track_id.clone().and_then(|id| txn.get(&id).ok()).flatten();
+        let track = librarian::merge_track_metadata(txn, &track_metadata, pre_match)?;        
         // Update the TrackSource with the saved track_id.
         track_source.track_id = track.id.clone();
         track_source.media_file_id = media_file.id.clone();

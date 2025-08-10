@@ -186,10 +186,6 @@ impl Library {
         None
     }
 
-    pub fn find_media_file_by_file_path(&self, file_path: &str) -> Option<MediaFile> {
-        self.find("SELECT * FROM MediaFile WHERE file_path = ?", (file_path,))
-    }
-
     pub fn track_sources_for_track(&self, track: &Track) -> Vec<TrackSource> {
         self.query("SELECT * FROM TrackSource WHERE track_id = ?", (&track.id,))
     }

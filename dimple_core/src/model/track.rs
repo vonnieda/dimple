@@ -122,12 +122,12 @@ mod tests {
         }).unwrap();
 
         let _ = library.db.transaction(|t| {
-            let artist = library.save(&Artist {
+            let artist = t.save(&Artist {
                 name: Some("Metallica".to_string()),
                 ..Default::default()
             })?;
             ArtistRef::attach(t, &artist, &track.id)?;
-            let artist = library.save(&Artist {
+            let artist = t.save(&Artist {
                 name: Some("Lou Reed".to_string()),
                 ..Default::default()
             })?;
