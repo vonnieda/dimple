@@ -183,7 +183,7 @@ pub fn match_artist(txn: &DbTransaction, artist: &Artist) -> Result<Option<Artis
         SELECT Artist.* 
         FROM Artist 
         WHERE (Artist.musicbrainz_id IS NOT NULL AND Artist.musicbrainz_id = ?1)
-        OR (Artist.name IS NOT NULL AND Artist.name = ?2 AND ((Artist.disambiguation IS NULL AND ?3 IS NULL) OR (Artist.disambiguation = ?3)))
+        OR (Artist.name IS NOT NULL AND Artist.name COLLATE NOCASE = ?2 AND ((Artist.disambiguation IS NULL AND ?3 IS NULL) OR (Artist.disambiguation = ?3)))
         ", (&artist.musicbrainz_id, &artist.name, &artist.disambiguation))?;
     Ok(results.into_iter().next())
 }
@@ -193,7 +193,7 @@ pub fn match_genre(txn: &DbTransaction, genre: &Genre) -> Result<Option<Genre>, 
         SELECT Genre.* 
         FROM Genre 
         WHERE (Genre.musicbrainz_id IS NOT NULL AND Genre.musicbrainz_id = ?1)
-        OR (Genre.name IS NOT NULL AND Genre.name = ?2 COLLATE NOCASE AND ((Genre.disambiguation IS NULL AND ?3 IS NULL) OR (Genre.disambiguation = ?3 COLLATE NOCASE)))
+        OR (Genre.name IS NOT NULL AND Genre.name COLLATE NOCASE = ?2 AND ((Genre.disambiguation IS NULL AND ?3 IS NULL) OR (Genre.disambiguation COLLATE NOCASE = ?3)))
         ", (&genre.musicbrainz_id, &genre.name, &genre.disambiguation))?;
     Ok(results.into_iter().next())
 }
@@ -230,7 +230,10 @@ pub fn match_release(txn: &DbTransaction, release: &ReleaseMetadata) -> Result<O
             SELECT r.* FROM Release r
             LEFT JOIN ArtistRef rar ON (rar.model_id = r.id)
             LEFT JOIN Artist ra ON (ra.id = rar.artist_id)
-            WHERE (r.title = ?1 AND ra.name = ?2)
+            WHERE (
+                r.title COLLATE NOCASE = ?1 
+                AND ra.name COLLATE NOCASE = ?2
+            )
             ", (&release.release.title, artist.artist.name))?;
         if !matched_release.is_empty() {
             return Ok(matched_release.into_iter().next())
@@ -260,7 +263,11 @@ pub fn match_track(txn: &DbTransaction, track: &TrackMetadata) -> Result<Option<
                 LEFT JOIN Artist ta ON (ta.id = tar.artist_id)
                 LEFT JOIN ArtistRef rar ON (rar.model_id = r.id)
                 LEFT JOIN Artist ra ON (ra.id = rar.artist_id)
-                WHERE (t.title = ?1 AND r.title = ?2 AND (ta.name = ?3 OR ra.name = ?3))
+                WHERE (
+                    t.title COLLATE NOCASE = ?1 
+                    AND COLLATE NOCASE r.title = ?2 
+                    AND (ta.name COLLATE NOCASE = ?3 OR ra.name COLLATE NOCASE = ?3)
+                )
                 ", (&track.track.title, &release.release.title, artist.artist.name))?;
             if !matched_track.is_empty() {
                 return Ok(matched_track.into_iter().next())
