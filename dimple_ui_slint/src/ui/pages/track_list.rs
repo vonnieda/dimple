@@ -29,7 +29,6 @@ impl TrackListController {
             sql,
             (),
             move |tracks: Vec<Track>| {
-                log::info!("Tracks refreshed: {} tracks", tracks.len());
                 let library = library.clone();
                 ui.upgrade_in_event_loop(move |ui| {
                     ui.global::<TrackListAdapter>().set_row_data(row_data(&library, &tracks));

@@ -1,6 +1,6 @@
 use dimple_core::{librarian::Librarian, library::Library, model::Artist, player::{PlayWhen, Player, PlayerEvent}, plugins::plugins::Plugins};
 use dimple_db::{db::DbEvent, Db};
-use std::{collections::VecDeque, env, path::Path, sync::{Arc, Mutex}};
+use std::{collections::VecDeque, env, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use slint::{ComponentHandle, SharedString, Weak};
 
@@ -25,6 +25,9 @@ pub struct App {
     pub media_controls: Arc<Mutex<Option<MediaControls>>>,
     pub plugins: Plugins,
     pub librarian: Librarian,
+    pub artist_details_controller: Arc<RwLock<Option<pages::artist_details::ArtistDetailsController>>>,
+    pub release_details_controller: Arc<RwLock<Option<pages::release_details::ReleaseDetailsController>>>,
+    pub track_details_controller: Arc<RwLock<Option<pages::track_details::TrackDetailsController>>>,
 }
 
 pub struct AppWindowController {
@@ -74,6 +77,12 @@ impl AppWindowController {
         let librarian = Librarian::new(&library, &plugins);
         let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         let ui_weak = ui.as_weak();
+        // TODO look at this.
+        // Create placeholders for detail controllers to break circular dependency
+        let artist_details_controller = Arc::new(RwLock::new(None));
+        let release_details_controller = Arc::new(RwLock::new(None));
+        let track_details_controller = Arc::new(RwLock::new(None));
+        
         let app = App {
             config,
             library,
@@ -84,7 +93,20 @@ impl AppWindowController {
             media_controls: Arc::new(Mutex::new(None)),
             plugins,
             librarian,
+            artist_details_controller: artist_details_controller.clone(),
+            release_details_controller: release_details_controller.clone(),
+            track_details_controller: track_details_controller.clone(),
         };
+        
+        // Now create the real controllers and replace the placeholders
+        let real_artist_controller = pages::artist_details::ArtistDetailsController::new(&app).unwrap();
+        *artist_details_controller.write().unwrap() = Some(real_artist_controller);
+        
+        let real_release_controller = pages::release_details::ReleaseDetailsController::new(&app).unwrap();
+        *release_details_controller.write().unwrap() = Some(real_release_controller);
+        
+        let real_track_controller = pages::track_details::TrackDetailsController::new(&app).unwrap();
+        *track_details_controller.write().unwrap() = Some(real_track_controller);
 
         // Image "service": Downloads images for new artists, releases, etc.
         // We'll want this to run periodically for any artists with no art
@@ -161,12 +183,9 @@ impl AppWindowController {
         let _player_bar = PlayerBar::new(&self.app);
 
         pages::home::home_init(&self.app);
-        pages::artist_details::artist_details_init(&self.app);
         pages::genre_details::genre_details_init(&self.app);
         pages::playlist_details::playlist_details_init(&self.app);
         pages::queue_details::queue_details_init(&self.app);
-        pages::release_details::release_details_init(&self.app);
-        pages::track_details::track_details_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
         
@@ -210,19 +229,25 @@ impl App {
             self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::ArtistList)).unwrap();
         }
         else if url.starts_with("dimple://artist/") {
-            crate::ui::pages::artist_details::artist_details(&url, self);
+            if let Some(ref mut controller) = self.artist_details_controller.write().unwrap().as_mut() {
+                crate::ui::pages::artist_details::artist_details(&url, self, controller);
+            }
         }
         else if url.starts_with("dimple://releases") {
             self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::ReleaseList)).unwrap();
         }
         else if url.starts_with("dimple://release/") {
-            crate::ui::pages::release_details::release_details(&url, self);
+            if let Some(ref mut controller) = self.release_details_controller.write().unwrap().as_mut() {
+                crate::ui::pages::release_details::release_details(&url, self, controller);
+            }
         }
         else if url.starts_with("dimple://tracks") {
             self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::TrackList)).unwrap();
         }
         else if url.starts_with("dimple://track/") {
-            pages::track_details::track_details(&url, self);
+            if let Some(ref mut controller) = self.track_details_controller.write().unwrap().as_mut() {
+                pages::track_details::track_details(&url, self, controller);
+            }
         }
         else if url.starts_with("dimple://genres") {
             self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::GenreList)).unwrap();

@@ -25,7 +25,6 @@ impl HistoryListController {
         "SELECT * FROM Event ORDER BY timestamp DESC",
         (),
         move |events: Vec<Event>| {
-            log::info!("History events refreshed: {} events", events.len());
             ui.upgrade_in_event_loop(move |ui| {
                 ui.global::<HistoryListAdapter>().set_row_data(row_data(&events));
             }).unwrap();

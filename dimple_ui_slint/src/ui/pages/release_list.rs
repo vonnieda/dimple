@@ -28,7 +28,6 @@ impl ReleaseListController {
             "SELECT * FROM Release ORDER BY title ASC",
             (),
             move |releases: Vec<Release>| {
-                log::info!("Releases refreshed: {} releases", releases.len());
                 let images = images.clone();
                 let library = library.clone();
                 ui.upgrade_in_event_loop(move |ui| {

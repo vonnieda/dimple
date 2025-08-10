@@ -1,8 +1,13 @@
+use std::sync::Arc;
+use std::sync::Mutex;
+
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Playlist;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
+use dimple_db::rusqlite::types::ToSqlOutput;
+use dimple_db::rusqlite::ToSql;
 use crate::ui::CardAdapter;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
@@ -110,6 +115,31 @@ impl From<Track> for CardAdapter {
             //     url: format!("dimple://playlist/{}", value.id.clone().unwrap_or_default()).into(),
             // },
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct MutableStringParam {
+    value: Arc<Mutex<String>>,
+}
+
+impl MutableStringParam {
+    pub fn new() -> Self {
+        MutableStringParam { 
+            value: Arc::new(Mutex::new("".to_string())) 
+        }
+    }
+
+    pub fn set(&self, value: &str) {
+        *self.value.lock().unwrap() = value.to_string();
+    }
+}
+
+impl ToSql for MutableStringParam {
+    fn to_sql(&self) -> dimple_db::rusqlite::Result<ToSqlOutput<'_>> {
+        let s = self.value.lock().unwrap().to_string();
+        let t = ToSqlOutput::Owned(dimple_db::rusqlite::types::Value::Text(s));
+        Ok(t)
     }
 }
 

@@ -11,6 +11,7 @@ use slint::Model as _;
 use slint::ModelRc;
 use url::Url;
 use crate::ui::app_window_controller::App;
+use crate::ui::common::MutableStringParam;
 use crate::ui::images::ImageMangler;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::Page;
@@ -18,86 +19,161 @@ use crate::ui::TrackDetailsAdapter;
 use crate::ui::LinkAdapter;
 use slint::ComponentHandle as _;
 use crate::ui::CardAdapter;
+use dimple_db::db::query::QuerySubscription;
+use anyhow::Result;
 
-pub fn track_details_init(app: &App) {
-    let app1 = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        let app = app1.clone();
-        ui.global::<TrackDetailsAdapter>().on_set_lyrics(move |key, lyrics| set_lyrics(&app, &key, &lyrics));
-    }).unwrap();
-
-    // TODO filter events by key - but we can't get the key without the
-    // UI, so rethink the whole mess.
-    let app1 = app.clone();
-    app.library.notifier.observe(move |event| if event.type_name == "Track" { update_model(&app1) });
+pub struct TrackDetailsController {
+    current_key: MutableStringParam,
+    track_subscription: QuerySubscription,
+    artists_subscription: QuerySubscription,
+    genres_subscription: QuerySubscription,
+    links_subscription: QuerySubscription,
+    release_subscription: QuerySubscription,
 }
 
-pub fn track_details(url: &str, app: &App) {
+impl TrackDetailsController {
+    pub fn new(app: &App) -> Result<Self> {
+        let current_key = MutableStringParam::new();
+        
+        // Set up UI event handlers
+        let app_clone = app.clone();
+        app.ui.upgrade_in_event_loop(move |ui| {
+            let app = app_clone.clone();
+            ui.global::<TrackDetailsAdapter>().on_set_lyrics(move |key, lyrics| set_lyrics(&app, &key, &lyrics));
+        }).unwrap();
+        
+        // Set up track subscription
+        let sql = "SELECT * FROM Track WHERE id = ?";
+        let images = app.images.clone();
+        let ui = app.ui.clone();
+        let track_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |tracks: Vec<Track>| {
+            if let Some(track) = tracks.first() {
+                let track = track.clone();
+                let images = images.clone();
+                ui.upgrade_in_event_loop(move |ui| {
+                    let mut card: CardAdapter = track.clone().into();
+                    card.image.image = images.lazy_get(&DimpleEntity::from(&track), 275, 275, |ui, image| {
+                        let mut card = ui.global::<TrackDetailsAdapter>().get_card();
+                        card.image.image = image;
+                        ui.global::<TrackDetailsAdapter>().set_card(card);
+                    });
+
+                    ui.global::<TrackDetailsAdapter>().set_card(card.into());
+                    ui.global::<TrackDetailsAdapter>().set_key(track.id.clone().unwrap_or_default().into());
+                    ui.global::<TrackDetailsAdapter>().set_summary(track.summary.clone().unwrap_or_default().into());
+                    ui.global::<TrackDetailsAdapter>().set_disambiguation(track.disambiguation.clone().unwrap_or_default().into());
+                    let lyrics = track.lyrics.clone()
+                        .map(|s| s.trim().replace("\r", ""))
+                        .filter(|s| !s.is_empty())
+                        .unwrap_or("(No lyrics, click title to edit.)".to_string());
+                    ui.global::<TrackDetailsAdapter>().set_lyrics(lyrics.into());
+                    ui.global::<TrackDetailsAdapter>().set_dump(format!("{:?}", track).into());
+                }).unwrap();
+            }
+        })?;
+
+        // Set up artists subscription  
+        let sql = "
+            SELECT a.* FROM Artist a
+            JOIN ArtistRef ar ON a.id = ar.artist_id
+            WHERE ar.model_id = ?
+        ";
+        let ui = app.ui.clone();
+        let artists_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |artists: Vec<Artist>| {
+            ui.upgrade_in_event_loop(move |ui| {
+                let artist_links = artist_links(&artists);
+                ui.global::<TrackDetailsAdapter>().set_artists(ModelRc::from(artist_links.as_slice()));
+            }).unwrap();
+        })?;
+
+        // Set up genres subscription
+        let sql = "
+            SELECT g.* FROM Genre g
+            JOIN GenreRef gr ON g.id = gr.genre_id
+            WHERE gr.model_id = ?
+        ";
+        let ui = app.ui.clone();
+        let genres_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |genres: Vec<Genre>| {
+            ui.upgrade_in_event_loop(move |ui| {
+                let genre_links = genre_links(&genres);
+                ui.global::<TrackDetailsAdapter>().set_genres(ModelRc::from(genre_links.as_slice()));
+            }).unwrap();
+        })?;
+
+        // Set up links subscription
+        let sql = "
+            SELECT l.* FROM Link l
+            JOIN LinkRef lr ON l.id = lr.link_id
+            WHERE lr.model_id = ?
+        ";
+        let ui = app.ui.clone();
+        let links_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |links: Vec<Link>| {
+            ui.upgrade_in_event_loop(move |ui| {
+                let link_adapters = link_links(&links);
+                ui.global::<TrackDetailsAdapter>().set_links(ModelRc::from(link_adapters.as_slice()));
+            }).unwrap();
+        })?;
+
+        // Set up release subscription
+        let sql = "SELECT * FROM Release WHERE id = (SELECT release_id FROM Track WHERE id = ?)";
+        let ui = app.ui.clone();
+        let images = app.images.clone();
+        let library = app.library.clone();
+        let release_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |releases: Vec<Release>| {
+            let images = images.clone();
+            let library = library.clone();
+            ui.upgrade_in_event_loop(move |ui| {
+                if let Some(release) = releases.first() {
+                    ui.global::<TrackDetailsAdapter>().set_release_date(release.date.clone().unwrap_or_default().into());
+                    let release_cards = release_cards(&images, &[release.clone()], &library);
+                    ui.global::<TrackDetailsAdapter>().set_releases(release_cards.as_slice().into());
+                }
+            }).unwrap();
+        })?;
+
+        Ok(Self {
+            current_key,
+            track_subscription,
+            artists_subscription,
+            genres_subscription,
+            links_subscription,
+            release_subscription,
+        })
+    }
+
+    pub fn set_track(&mut self, key: String, app: &App) -> Result<()> {
+        self.current_key.set(&key);
+        
+        // Refresh all subscriptions
+        self.track_subscription.refresh();
+        self.artists_subscription.refresh();
+        self.genres_subscription.refresh();
+        self.links_subscription.refresh();
+        self.release_subscription.refresh();
+
+        // Trigger metadata refresh in background
+        let app_clone = app.clone();
+        let key_clone = key.clone();
+        std::thread::spawn(move || {
+            if let Some(track) = Track::get(&app_clone.library, &key_clone) {
+                librarian::refresh_metadata(&app_clone.library, &app_clone.plugins, &DimpleEntity::from(&track));
+            }
+        });
+
+        Ok(())
+    }
+}
+
+pub fn track_details(url: &str, app: &App, controller: &mut TrackDetailsController) {
     let url = Url::parse(&url).unwrap();
     let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
 
-    let app1 = app.clone();
-    let key1 = key.clone();
+    // Set the track in the controller which will handle all subscriptions
+    controller.set_track(key, app).unwrap();
+    
+    // Navigate to the track details page
     app.ui.upgrade_in_event_loop(move |ui| {
-        ui.global::<TrackDetailsAdapter>().set_key(key1.clone().into());
-        update_model(&app1);
         ui.set_page(Page::TrackDetails);
-
-        let app2 = app1.clone();
-        let key2 = key1.clone();
-        std::thread::spawn(move || {
-            if let Some(track) = Track::get(&app2.library, &key2) {
-                librarian::refresh_metadata(&app2.library, &app2.plugins, &DimpleEntity::from(&track));
-            }
-        });    
-    }).unwrap();
-}
-
-fn update_model(app: &App) {
-    let app1 = app.clone();
-    app.ui.upgrade_in_event_loop(move |ui| {
-        let key = ui.global::<TrackDetailsAdapter>().get_key();
-        if key.is_empty() {
-            return
-        }
-        let library = app1.library.clone();
-        let app = app1.clone();
-        std::thread::spawn(move || {
-            let track = Track::get(&library, &key).unwrap();
-            let artists = track.artists(&library);
-            let genres: Vec<Genre> = track.genres(&library);
-            let links: Vec<Link> = track.links(&library);
-            let release = track.release(&library).unwrap_or_default();
-            app.ui.upgrade_in_event_loop(move |ui| {
-                let artists = artist_links(&artists);
-                let genres = genre_links(&genres);
-                let links = link_links(&links);
-    
-                let mut card: CardAdapter = track.clone().into();
-                card.image.image = app.images.lazy_get(&DimpleEntity::from(&track), 275, 275, |ui, image| {
-                    let mut card = ui.global::<TrackDetailsAdapter>().get_card();
-                    card.image.image = image;
-                    ui.global::<TrackDetailsAdapter>().set_card(card);
-                });
-    
-                ui.global::<TrackDetailsAdapter>().set_card(card.into());
-                ui.global::<TrackDetailsAdapter>().set_key(track.id.clone().unwrap_or_default().into());
-                ui.global::<TrackDetailsAdapter>().set_artists(ModelRc::from(artists.as_slice()));
-                ui.global::<TrackDetailsAdapter>().set_summary(track.summary.clone().unwrap_or_default().into());
-                ui.global::<TrackDetailsAdapter>().set_disambiguation(track.disambiguation.clone().unwrap_or_default().into());
-                ui.global::<TrackDetailsAdapter>().set_release_date(release.date.clone().unwrap_or_default().into());
-                ui.global::<TrackDetailsAdapter>().set_releases(release_cards(&app.images, &[release], &app.library).as_slice().into());
-                ui.global::<TrackDetailsAdapter>().set_disambiguation(track.disambiguation.clone().unwrap_or_default().into());            
-                ui.global::<TrackDetailsAdapter>().set_genres(ModelRc::from(genres.as_slice()));
-                let lyrics = track.lyrics.clone()
-                    .map(|s| s.trim().replace("\r", ""))
-                    .filter(|s| !s.is_empty())
-                    .unwrap_or("(No lyrics, click title to edit.)".to_string());
-                ui.global::<TrackDetailsAdapter>().set_lyrics(lyrics.into());
-                ui.global::<TrackDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
-                ui.global::<TrackDetailsAdapter>().set_dump(format!("{:?}", track).into());
-                }).unwrap();
-        });
     }).unwrap();
 }
 

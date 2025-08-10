@@ -22,6 +22,7 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use crate::ui::app_window_controller::App;
+use crate::ui::common::MutableStringParam;
 use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
 use crate::ui::CardSectionAdapter;
@@ -61,7 +62,6 @@ impl SearchResultsController {
         let query_param = MutableStringParam::new();
         let app_clone = app.clone();
         let sub = app.library.db.query_subscribe(sql, (query_param.clone(),), move |results: Vec<SearchResult>| {
-            log::info!("Results refreshed: {} results", results.len());
             let results = results.into_iter().into_group_map_by(|f| f.entity_type.clone());
             // TODO this conversion back to entities is legacy and not needed now. 
             // Can just create a SearchResult card. Which will then line up nicely
@@ -330,31 +330,6 @@ fn track_card(track: &Track, artist: &Artist) -> CardAdapter {
             url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
-    }
-}
-
-#[derive(Clone)]
-struct MutableStringParam {
-    value: Arc<Mutex<String>>,
-}
-
-impl MutableStringParam {
-    pub fn new() -> Self {
-        MutableStringParam { 
-            value: Arc::new(Mutex::new("".to_string())) 
-        }
-    }
-
-    pub fn set(&self, value: &str) {
-        *self.value.lock().unwrap() = value.to_string();
-    }
-}
-
-impl ToSql for MutableStringParam {
-    fn to_sql(&self) -> dimple_db::rusqlite::Result<ToSqlOutput<'_>> {
-        let s = self.value.lock().unwrap().to_string();
-        let t = ToSqlOutput::Owned(dimple_db::rusqlite::types::Value::Text(s));
-        Ok(t)
     }
 }
 

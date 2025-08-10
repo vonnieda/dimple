@@ -23,7 +23,6 @@ impl GenreListController {
             "SELECT * FROM Genre ORDER BY name ASC, disambiguation ASC",
             (),
             move |genres: Vec<Genre>| {
-                log::info!("Genres refreshed: {} genres", genres.len());
                 let images = images.clone();
                 ui.upgrade_in_event_loop(move |ui| {
                     let cards = genre_cards(&images, &genres);

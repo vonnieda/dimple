@@ -25,7 +25,6 @@ impl ArtistListController {
         let images = app.images.clone();
         let ui = app.ui.clone();
         let artists_subscription = app.library.db.query_subscribe(sql, (), move |artists| {
-            log::info!("Artists refreshed: {} artists", artists.len());
             let images = images.clone();
             ui.upgrade_in_event_loop(move |ui| {
                 let cards = artist_cards(&images, &artists);

@@ -21,7 +21,6 @@ impl PlaylistListController {
             "SELECT * FROM Playlist ORDER BY name ASC",
             (),
             move |playlists: Vec<Playlist>| {
-                log::info!("Playlists refreshed: {} playlists", playlists.len());
                 let images = images.clone();
                 ui.upgrade_in_event_loop(move |ui| {
                     let cards: Vec<CardAdapter> = playlists.iter().cloned().enumerate()
