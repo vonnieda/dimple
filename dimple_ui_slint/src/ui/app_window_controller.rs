@@ -6,7 +6,7 @@ use slint::{ComponentHandle, SharedString, Weak};
 
 use directories::ProjectDirs;
 
-use crate::{config::Config, ui::*};
+use crate::{config::Config, ui::{pages::queue_details::QueueDetailsController, *}};
 
 use self::images::ImageMangler;
 
@@ -28,6 +28,7 @@ pub struct App {
     pub artist_details_controller: Arc<RwLock<Option<pages::artist_details::ArtistDetailsController>>>,
     pub release_details_controller: Arc<RwLock<Option<pages::release_details::ReleaseDetailsController>>>,
     pub track_details_controller: Arc<RwLock<Option<pages::track_details::TrackDetailsController>>>,
+    pub queue_details_controller: Arc<RwLock<Option<pages::queue_details::QueueDetailsController>>>,
 }
 
 pub struct AppWindowController {
@@ -82,6 +83,7 @@ impl AppWindowController {
         let artist_details_controller = Arc::new(RwLock::new(None));
         let release_details_controller = Arc::new(RwLock::new(None));
         let track_details_controller = Arc::new(RwLock::new(None));
+        let queue_details_controller = Arc::new(RwLock::new(None));
         
         let app = App {
             config,
@@ -96,6 +98,7 @@ impl AppWindowController {
             artist_details_controller: artist_details_controller.clone(),
             release_details_controller: release_details_controller.clone(),
             track_details_controller: track_details_controller.clone(),
+            queue_details_controller: queue_details_controller.clone(),
         };
         
         // Now create the real controllers and replace the placeholders
@@ -107,6 +110,9 @@ impl AppWindowController {
         
         let real_track_controller = pages::track_details::TrackDetailsController::new(&app).unwrap();
         *track_details_controller.write().unwrap() = Some(real_track_controller);
+        
+        let real_queue_controller = pages::queue_details::QueueDetailsController::new(&app).unwrap();
+        *queue_details_controller.write().unwrap() = Some(real_queue_controller);
 
         // Image "service": Downloads images for new artists, releases, etc.
         // We'll want this to run periodically for any artists with no art
@@ -185,7 +191,6 @@ impl AppWindowController {
         pages::home::home_init(&self.app);
         pages::genre_details::genre_details_init(&self.app);
         pages::playlist_details::playlist_details_init(&self.app);
-        pages::queue_details::queue_details_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
         
@@ -262,7 +267,7 @@ impl App {
             pages::playlist_details::playlist_details(&url, self);
         }
         else if url.starts_with("dimple://queue") {
-            pages::queue_details::queue_details(&url, self);
+            QueueDetailsController::show(self);
         }
         else if url.starts_with("dimple://history") {
             pages::history_list::history_list(self);

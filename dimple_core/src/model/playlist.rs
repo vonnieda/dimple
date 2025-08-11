@@ -35,6 +35,7 @@ impl Playlist {
             FROM PlaylistItem
             JOIN Track ON (Track.id = PlaylistItem.Track_id)
             WHERE PlaylistItem.playlist_id = ?1
+            AND PlaylistItem.deleted = FALSE
             ORDER BY PlaylistItem.ordinal ASC, PlaylistItem.rowid ASC
         ";
         library.query(sql, (self.id.clone(),))
@@ -45,6 +46,7 @@ impl Playlist {
             SELECT PlaylistItem.*
             FROM PlaylistItem
             WHERE PlaylistItem.playlist_id = ?1
+            AND PlaylistItem.deleted = FALSE
             ORDER BY PlaylistItem.ordinal ASC, PlaylistItem.rowid ASC
         ";
         library.query(sql, (self.id.clone(),))
@@ -81,12 +83,12 @@ impl Playlist {
                 };
                 let after = items.get(index).cloned().map(|a| a.ordinal);
                 let ordinal = Self::ordinal_between(&before, &after);
-                log::debug!("{:?} {:?} {}", &before, &after, ordinal);
                 let item = PlaylistItem {
                     id: None,
                     ordinal,
                     playlist_id: self.id.clone().unwrap(),
                     track_id: track.id.clone().unwrap(),
+                    deleted: false,
                 };
                 let _item = library.save(&item);
             },
@@ -113,13 +115,21 @@ impl Playlist {
         }
     }
     
-    pub fn remove(&self, index: usize) {
-        // TODO ordinals
+    pub fn remove(&self, library: &Library, index: usize) {
+        let items = self.items(library);
+        if let Some(item) = items.get(index) {
+            let mut updated_item = item.clone();
+            updated_item.deleted = true;
+            let _ = library.save(&updated_item);
+        }
     }
 
     pub fn clear(&self, library: &Library) {
-        // library.conn().execute("DELETE FROM PlaylistItem
-        //     WHERE playlist_id = ?1", (self.id.clone().unwrap(),)).unwrap();
+        let items = self.items(library);
+        for mut item in items {
+            item.deleted = true;
+            let _ = library.save(&item);
+        }
     }    
 }
 
@@ -216,5 +226,94 @@ mod tests {
         // TODO finish these tests
         // dbg!(PlaylistItem::list(&library));
         // dbg!(playlist.tracks(&library).iter().map(|t| t.title.clone()).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn test_remove() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let playlist = Playlist::default().save(&library);
+        
+        // Add 5 tracks to the playlist
+        let mut tracks = Vec::new();
+        for i in 0..5 {
+            let track = Track {
+                title: Some(format!("track{}", i)),
+                ..Default::default()
+            }.save(&library);
+            tracks.push(track.clone());
+            playlist.append(&library, &track.into());
+        }
+        
+        // Verify all 5 tracks are present
+        assert_eq!(playlist.len(&library), 5);
+        
+        // Remove the track at index 2 (track2)
+        playlist.remove(&library, 2);
+        
+        // Verify we now have 4 tracks
+        assert_eq!(playlist.len(&library), 4);
+        
+        // Verify the correct tracks remain
+        let remaining_tracks = playlist.tracks(&library);
+        assert_eq!(remaining_tracks[0].title, Some("track0".to_string()));
+        assert_eq!(remaining_tracks[1].title, Some("track1".to_string()));
+        assert_eq!(remaining_tracks[2].title, Some("track3".to_string()));
+        assert_eq!(remaining_tracks[3].title, Some("track4".to_string()));
+        
+        // Remove first track
+        playlist.remove(&library, 0);
+        assert_eq!(playlist.len(&library), 3);
+        
+        // Remove last track
+        playlist.remove(&library, 2);
+        assert_eq!(playlist.len(&library), 2);
+        
+        let final_tracks = playlist.tracks(&library);
+        assert_eq!(final_tracks[0].title, Some("track1".to_string()));
+        assert_eq!(final_tracks[1].title, Some("track3".to_string()));
+    }
+
+    #[test]
+    fn test_clear() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let playlist = Playlist::default().save(&library);
+        
+        // Add 10 tracks to the playlist
+        for i in 0..10 {
+            let track = Track {
+                title: Some(format!("track{}", i)),
+                ..Default::default()
+            }.save(&library);
+            playlist.append(&library, &track.into());
+        }
+        
+        // Verify all 10 tracks are present
+        assert_eq!(playlist.len(&library), 10);
+        
+        // Clear the playlist
+        playlist.clear(&library);
+        
+        // Verify the playlist is now empty
+        assert_eq!(playlist.len(&library), 0);
+        assert_eq!(playlist.tracks(&library).len(), 0);
+        assert_eq!(playlist.items(&library).len(), 0);
+        
+        // Add new tracks after clearing
+        for i in 0..3 {
+            let track = Track {
+                title: Some(format!("new_track{}", i)),
+                ..Default::default()
+            }.save(&library);
+            playlist.append(&library, &track.into());
+        }
+        
+        // Verify new tracks are added correctly
+        assert_eq!(playlist.len(&library), 3);
+        let new_tracks = playlist.tracks(&library);
+        assert_eq!(new_tracks[0].title, Some("new_track0".to_string()));
+        assert_eq!(new_tracks[1].title, Some("new_track1".to_string()));
+        assert_eq!(new_tracks[2].title, Some("new_track2".to_string()));
     }
 }

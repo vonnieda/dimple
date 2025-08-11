@@ -6,4 +6,6 @@ pub struct PlaylistItem {
     pub playlist_id: String,
     pub ordinal: String,
     pub track_id: String,
+    
+    pub deleted: bool,
 }

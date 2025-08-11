@@ -26,7 +26,6 @@ use crate::ui::PlaylistDetailsAdapter;
 pub fn playlist_details_init(_app: &App) {
     let app = _app.clone();
     _app.ui.upgrade_in_event_loop(move |ui| {
-        ui.global::<PlaylistDetailsAdapter>().on_sort_model(sort_model);
         {
             let app = app.clone();
             ui.global::<PlaylistDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
@@ -35,8 +34,8 @@ pub fn playlist_details_init(_app: &App) {
         // ui.global::<PlaylistDetailsAdapter>().on_set_download(move |key, checked| set_download(&app, &key, checked));
         // ui.global::<PlaylistDetailsAdapter>().on_set_love(move |key, checked| set_love(&app, &key, checked));
         {
-            let app = app.clone();
-            ui.global::<PlaylistDetailsAdapter>().on_delete(move |key| delete(&app, &key));
+            // let app = app.clone();
+            // ui.global::<PlaylistDetailsAdapter>().on_delete(move |key| delete(&app, &key));
         }
         {
             let app = app.clone();
@@ -86,7 +85,7 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
 fn set_name(app: &App, key: &str, name: &str) {
     let mut playlist = app.library.get::<Playlist>(key).unwrap();
     playlist.name = Some(name.to_string());
-    app.library.save(&playlist);
+    let _ = app.library.save(&playlist);
     app.ui.upgrade_in_event_loop(move |ui| {
         // TODO should not be needed with library.on_change
         ui.global::<PlaylistDetailsAdapter>().set_name(playlist.name.clone()
@@ -97,41 +96,6 @@ fn set_name(app: &App, key: &str, name: &str) {
 fn play_now(app: &App, key: &str) {
     let playlist = app.library.get::<Playlist>(key).unwrap();
     app.player.play_now(&DimpleEntity::from(&playlist));
-}
-
-fn delete(app: &App, key: &str) {
-    // let mut playlist = app.library.get::<Playlist>(key).unwrap();
-    // playlist.name = Some(name.to_string());
-    // app.library.save(&playlist);
-    // app.ui.upgrade_in_event_loop(move |ui| {
-    //     // TODO should not be needed with library.on_change
-    //     ui.global::<PlaylistDetailsAdapter>().set_name(playlist.name.clone()
-    //         .unwrap_or("(Nameless Playlist)".to_string()).into());
-    // }).unwrap();
-}
-
-fn sort_model(
-    source_model: ModelRc<ModelRc<StandardListViewItem>>,
-    sort_index: i32,
-    sort_ascending: bool,
-) -> ModelRc<ModelRc<StandardListViewItem>> {
-    let mut model = source_model.clone();
-
-    if sort_index >= 0 {
-        model = Rc::new(model.clone().sort_by(move |r_a, r_b| {
-            let c_a = r_a.row_data(sort_index as usize).unwrap();
-            let c_b = r_b.row_data(sort_index as usize).unwrap();
-
-            if sort_ascending {
-                c_a.text.cmp(&c_b.text)
-            } else {
-                c_b.text.cmp(&c_a.text)
-            }
-        }))
-        .into();
-    }
-
-    model
 }
 
 fn format_length(length: Duration) -> String {
