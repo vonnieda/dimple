@@ -85,8 +85,8 @@ pub fn resize(image: &DynamicImage, width: u32, height: u32) -> DynamicImage {
 
 
 /// This list is based on and gives thanks to:
-// https://wiki.fanart.tv/ImageTypes/Music/hdmusiclogo/
-// https://fanart.tv/music-fanart/
+/// https://wiki.fanart.tv/ImageTypes/Music/hdmusiclogo/
+/// https://fanart.tv/music-fanart/
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Default)]
 pub enum DimageKind {
     #[default]

@@ -31,22 +31,23 @@ Dump new things at the bottom, move things to the top to prioritize.
 - Bug: When going "Back" scroll position should be remembered. For example, as
   of 12/10/2024 if you go to tracks, then scroll down, then click a track, then
   click back, when you get back to track the scroll position is lost.
+- retain scroll position on back and maybe in general if the url of a detail page doesn't change
 - When I pause the music to watch a video, and I have to turn the volume all
   the way up to hear the video, and then I unpause the music the music is of
   course far too loud. Might be nice to fade it back in or something if the
   volume has been adjusted by more than like 50% since it was paused.
 - Needs to be easier to clear the editing of a click in text field like
   playlist name. Right now you have to hit enter - want at least escape or
-  clicking outside of the field too.
+  clicking outside of the field too. Better would be UI controls that appear.
 - register the dimple:// handler with the OS so that those open Dimple and then
   I'll handle it in navigate. I'd like to be able to demo to people with:
   1. Download and run Dimple
   2. Click this link (dimple://share/???)
   This will open Dimple and go to a page showing metadata about the share, which
   in this case is a library of free music hosted on my B2 account. The user can
-- Clicking playlist name to edit should focus and select all
+- Clicking playlist name to edit should focus and select all. Search too.
 - Bug: Empty queue shows placeholder text. Probably should just be empty.
-- Need like, download, etc. buttons ont he player bar. Probably over near the
+- Need like, download, etc. buttons on the player bar. Probably over near the
   play buttons.
 - ReplayGain.
 - Per song EQ.
@@ -63,7 +64,6 @@ Dump new things at the bottom, move things to the top to prioritize.
 - album art in tables
 - links in tables
 - gonna have to write my own table
-- retain scroll position on back and maybe in general if the url of a detail page doesn't change
 - genre numbers imported instead of names
 - auto refresh of media files
 - importing is blowing up the ui due to too many notifications
@@ -99,7 +99,8 @@ Dump new things at the bottom, move things to the top to prioritize.
 - architecture: the image lazy_get is index based, which has always been a race 
   condition and also just gross. Should be by key, or callback, or something else.
 - Clicking the play bar image to go to the current song in the queue does not
-  always work. I think this is a Slint issue.
+  always work. I think this is a Slint issue. Probably breaking the property.
 - Menu positioning is still wrong on grids in a scroller, cause it doesn't
   take the scroll position into account. Maybe needs to move up and we have
   like a "card event" or something on card grid.
+- player bar is stretching weird with long text

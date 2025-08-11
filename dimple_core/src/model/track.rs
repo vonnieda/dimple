@@ -133,8 +133,6 @@ mod tests {
             })?;
             ArtistRef::attach(t, &artist, &track.id)
         });
-
-        // dbg!(track.artists(&library));
     }
 
     #[test]

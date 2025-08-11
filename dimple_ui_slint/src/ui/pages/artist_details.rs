@@ -63,6 +63,7 @@ impl ArtistDetailsController {
             SELECT g.* FROM Genre g
             JOIN GenreRef gr ON g.id = gr.genre_id
             WHERE gr.model_id = ?
+            ORDER BY name ASC
         ";
         let ui = app.ui.clone();
         let genres_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |genres: Vec<Genre>| {
@@ -77,6 +78,7 @@ impl ArtistDetailsController {
             SELECT l.* FROM Link l
             JOIN LinkRef lr ON l.id = lr.link_id
             WHERE lr.model_id = ?
+            ORDER BY name ASC, url ASC
         ";
         let ui = app.ui.clone();
         let links_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |links: Vec<Link>| {
@@ -95,7 +97,7 @@ impl ArtistDetailsController {
         let sql = "
             SELECT r.* FROM Release r
             JOIN ArtistRef ar ON ar.model_id = r.id
-            WHERE ar.artist_id = ?
+            WHERE ar.artist_id = ? 
             ORDER BY r.date DESC, r.title ASC
         ";
         let images = app.images.clone();

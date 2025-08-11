@@ -55,7 +55,7 @@ component RowPopupMenu inherits PopupMenu {
         clicked => { QueueDetailsAdapter.remove_row(popup-row); }
     }
     PopupMenuButton {
-        text: "Remove All";
+        text: "Clear";
         icon: @image-url("../../icons/phosphor/SVGs/regular/trash.svg");
         clicked => { QueueDetailsAdapter.remove_all(); }
     }

@@ -1020,7 +1020,7 @@ dependencies = [
 [[package]]
 name = "dimple_db"
 version = "0.1.0"
-source = "git+https://github.com/vonnieda/dimple_db?branch=dev#1e7382478af76f90eb9bc31358add990376c8ba2"
+source = "git+https://github.com/vonnieda/dimple_db?branch=dev#c9f2fbf0b90f785d1af88ac4a8d38322c20e8d83"
 dependencies = [
  "age",
  "anyhow",
@@ -3056,9 +3056,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.95"
+version = "1.0.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02b3e5e68a3a1a02aad3ec490a98007cbc13c37cbe84a3cd7b8e406d76e7f778"
+checksum = "beef09f85ae72cea1ef96ba6870c51e6382ebfa4f0e85b643459331f3daa5be0"
 dependencies = [
  "unicode-ident",
 ]
