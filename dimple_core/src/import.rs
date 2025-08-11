@@ -9,7 +9,9 @@ use crate::{import::symphonia_tagged_media_file::SymphoniaTaggedMediaFile, libra
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use dimple_db::db::transaction::DbTransaction;
+use itertools::Itertools as _;
 use lofty_tagged_media_file::LoftyTaggedMediaFile;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator as _};
 use walkdir::WalkDir;
 
 pub fn import(library: &Library, path: &str) {
@@ -20,7 +22,7 @@ pub fn import(library: &Library, path: &str) {
     let files = scan(path);
     log::info!("Scanned {} files.", files.len());
 
-    files.iter().for_each(|file| {
+    files.par_iter().for_each(|file| {
         let path = Path::new(&file.path);
         if let Err(e) = import_single_file(&library, path, force) {
             log::error!("  Error reading {:?}: {}", path, e);
@@ -46,26 +48,11 @@ fn scan(path: &str) -> Vec<ScannedFile> {
     files
 }
 
-/// Time to actually think through what happens in an import:
-/// - Create a Db transaction to perform all the matching and updating.
-/// - Do any slow work up front, before creating a Db transaction.
-/// - MediaFile has a file path, which is of course device specific. Part of
-/// that issue is that we sync all tables, which means we sync MediaFiles
-/// with paths that don't make sense on every device. 
-///     - This is not super critical right now. Other devices may try to look
-///     up files not on this device - no big deal.
-/// - We need to be able to sync the music, but it's a bummer that we end up
-/// with a copy at the original file, a copy in the changelog, and a copy
-/// in the database.
-///     - Specialized blob handling is one option. I keep thinking of a method
-///     where we can refer to the blob in the changelog and not keep a copy in
-///     the entities. Pull it in on the fly.
-///     - This one is not critical right now. Storage is cheapish.
 fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<TrackSource, anyhow::Error> {
     if !path.is_file() {
         return Err(anyhow::anyhow!("Path must be a file: {:?}", path));
     }
-    log::info!("Importing {:?}.", path);
+    log::debug!("Importing {:?}.", path);
 
     // Read the tags from the file.
     let tags = LoftyTaggedMediaFile::new(path)?;
@@ -74,7 +61,7 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
         log::warn!("  No track title {}", path.to_string_lossy());
     }
     if track_metadata.release.is_none() {
-        log::warn!("  No release {}", path.to_string_lossy());
+        log::warn!("  No release info {}", path.to_string_lossy());
     }
     if track_metadata.release.clone().unwrap().release.title.is_none() {
         log::warn!("  No release title {}", path.to_string_lossy());
@@ -83,7 +70,7 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
         log::warn!("  No artists {}", path.to_string_lossy());
     }
     if track_metadata.track.length_ms.is_none() {
-        log::warn!("  No track length tag {}, attempting to calculate", path.to_string_lossy());
+        log::debug!("  No track length found {}, attempting to calculate", path.to_string_lossy());
         let symph = SymphoniaTaggedMediaFile::new(path)?;
         if let Some(length) = symph.track_metadata().track.length_ms {
             track_metadata.track.length_ms = Some(length);
@@ -92,15 +79,10 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
            return Err(anyhow!("Unable to find or calculate track length {}", path.to_string_lossy()))
         }
     }
-    log::debug!("{:?} {:?} {:?} {:?}", 
-        path.file_name().unwrap(), 
-        track_metadata.clone().artists.get(0).map(|f| f.artist.name.clone().unwrap_or_default().to_string()),
-        track_metadata.clone().release.unwrap().release.title,
-        track_metadata.clone().track.title);
 
     let file_path = path.to_str().unwrap();
     let file_content = Some(std::fs::read(path)?);
-    let track_source = library.db.transaction(move |txn| {
+    let track_source = library.db.transaction(|txn| {
         // Create or update a MediaFile by the file path.
         let mut media_file: MediaFile = txn
             .find("SELECT * FROM MediaFile WHERE file_path = ?", (file_path,))?
@@ -109,7 +91,6 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
         media_file.last_imported = Utc::now();
         media_file.last_modified = path.metadata()?.modified()?.into();
         // TODO temporary, waiting on blob support
-        // TODO STOPSHIP move read outside of txn 
         media_file.content = file_content; 
         let media_file = txn.save(&media_file)?;
 
@@ -130,6 +111,12 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
         Ok(track_source)
     }).unwrap();
 
+    log::info!("Imported {} {} {}: {}", 
+        track_metadata.track.title.unwrap_or("(Unknown Title)".to_string()),
+        track_metadata.release.unwrap().release.title.unwrap_or("(Unknown Release)".to_string()),
+        track_metadata.artists.iter().map(|f| f.artist.name.clone().unwrap_or("(Unknown Artist)".to_string()).to_string()).join(","),
+        path.file_name().unwrap().to_str().unwrap(),
+    );
     Ok(track_source)
 }
 

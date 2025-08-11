@@ -38,6 +38,13 @@ impl ReleaseDetailsController {
     pub fn new(app: &App) -> Result<Self> {
         let current_key = MutableStringParam::new();
         
+        // TODO okay the cause of the not being able to right click a release
+        // track and play now immediately after import is cause we're
+        // not setting the key in the ui or maybe cause the query is not
+        // reloading how it used to.
+        // row-menu-key = ReleaseDetailsAdapter.row_keys[row];
+
+
         // Set up UI event handlers
         let app_clone = app.clone();
         app.ui.upgrade_in_event_loop(move |ui| {

@@ -216,6 +216,8 @@ pub fn match_dimage(txn: &DbTransaction, dimage: &Dimage) -> Result<Option<Dimag
     Ok(results.into_iter().next())
 }
 
+// TODO I think we're importing multiple releases into one. See links on
+// 40 Watt Sun - The Inside Room. Multiple musicbrainz release links.
 pub fn match_release(txn: &DbTransaction, release: &ReleaseMetadata) -> Result<Option<Release>, anyhow::Error> {
     let matched_release: Vec<Release> = txn.query("
         SELECT Release.* 
@@ -242,7 +244,9 @@ pub fn match_release(txn: &DbTransaction, release: &ReleaseMetadata) -> Result<O
     Ok(None)
 }
 
-
+// TODO this failed when importing We Were Heading North's albums, then
+// searching for We Were Heading North to link up the artist with mbid,
+// then browsing to any release of theirs. The tracks are all duped.
 pub fn match_track(txn: &DbTransaction, track: &TrackMetadata) -> Result<Option<Track>, anyhow::Error> {
     // Try to find the track by a unique identifier
     let matched_track: Vec<Track> = txn.query("

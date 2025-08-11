@@ -422,7 +422,7 @@ mod tests {
     #[test]
     fn it_works() {
         // Note, if this test is failing randomly make sure it's running in
-        // release mode. Symphonia is too slow in debug mode to keep up.
+        // release mode. Audio decoding is slow in debug mode.
         let _ = env_logger::try_init();
         let library = Arc::new(Library::open_memory());
         let player = Player::new(library.clone());
