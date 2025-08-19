@@ -1,15 +1,15 @@
 use anyhow::Result;
+use slint::ComponentHandle as _;
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
-use crate::ui::CardGridAdapter;
+use crate::ui::GenreListAdapter;
 use dimple_core::model::DimpleEntity;
 use dimple_core::model::Genre;
 use dimple_db::db::query::QuerySubscription;
 use slint::ModelRc;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
-use slint::Model as _;
 
 pub struct GenreListController {
     _genres_subscription: QuerySubscription,
@@ -26,10 +26,8 @@ impl GenreListController {
                 let images = images.clone();
                 ui.upgrade_in_event_loop(move |ui| {
                     let cards = genre_cards(&images, &genres);
-                    let adapter = CardGridAdapter {
-                        cards: ModelRc::from(cards.as_slice()),
-                    };
-                    ui.set_genre_list(adapter);
+                    let adapter = ui.global::<GenreListAdapter>();
+                    adapter.set_cards(ModelRc::from(cards.as_slice()));
                 }).unwrap();
             },
         )?;
@@ -45,9 +43,9 @@ fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {
         .map(|(index, genre)| {
             let mut card: CardAdapter = genre_card(&genre);
             card.image.image = images.lazy_get(&DimpleEntity::from(&genre), 200, 200, move |ui, image| {
-                let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
-                card.image.image = image;
-                ui.get_genre_list().cards.set_row_data(index, card);
+                // let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
+                // card.image.image = image;
+                // ui.get_genre_list().cards.set_row_data(index, card);
             });
             card
         })

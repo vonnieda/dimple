@@ -1,5 +1,5 @@
 import { ScrollView, VerticalBox, HorizontalBox, Button } from "std-widgets.slint";
-import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
+import { CardGrid, CardGridAdapter, VirtualCardGrid } from "../components/card_grid.slint";
 import { CardAdapter } from "../components/card.slint";
 import {Styles, Label, PageTitle, PageSubtitle} from "../common.slint";
 
@@ -22,15 +22,10 @@ export global PlaylistListAdapter {
 }
 
 export component PlaylistList inherits VerticalBox {
-    padding: 0;
-
     VerticalLayout {
-        alignment: start;
-        padding: 0;
-    
-        PageTitle {
+        PageTitle { 
             text: "Playlists";
-        }    
+        }
         PageSubtitle {
             text: PlaylistListAdapter.cards.length + " items";
         }
@@ -42,14 +37,7 @@ export component PlaylistList inherits VerticalBox {
         //     }
         // }
     }
-
-    ScrollView {        
-        horizontal-scrollbar-policy: always-off;
-        VerticalBox {
-            width: 100%;
-            CardGrid {
-                cards: PlaylistListAdapter.cards;
-            }
-        }
+    VirtualCardGrid {
+        cards: PlaylistListAdapter.cards;
     }
 }

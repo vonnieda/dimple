@@ -1,7 +1,7 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Card, CardAdapter, PlayableCard } from "card.slint";
 import { Styles, Navigator, Label, AppState } from "../common.slint";
-import {StyleMetrics, HorizontalBox} from "std-widgets.slint";
+import {StyleMetrics, HorizontalBox, Palette, TabWidget} from "std-widgets.slint";
 import { PopupMenu, PopupMenuButton } from "popup_menu.slint";
 
 export struct CardSectionAdapter {
@@ -15,73 +15,166 @@ export struct CardGridAdapter {
     cards: [CardAdapter],
 }
 
-component CardMenu inherits PopupMenu {
-    in property <CardAdapter> model;
+export component VirtualCardGrid inherits Rectangle {
+    in-out property <[CardAdapter]> cards;
 
-    PopupMenuButton {
-        text: "Play Later";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
-        clicked => { AppState.play_later(model.key); }
-    }
-    PopupMenuButton {
-        text: "Play Next";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
-        clicked => { AppState.play_next(model.key); }
-    }
-    PopupMenuButton {
-        text: "Play Now";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-        clicked => { AppState.play_now(model.key); }
-    }
-    PopupMenuButton {
-        text: "Details";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
-        clicked => { Navigator.navigate(model.title.url); }
-    }
-}    
-
-export component CardGrid inherits VerticalBox {
-    in-out property <[CardAdapter]> cards: cards_ph;
-    in property <int> max-rows: 0;
     in property <length> card-width: Styles.thumbnail-width-large;
+    in property <length> card-height: Styles.thumbnail-width-large + (Styles.default-font-size * 4.5);
+    in property <length> spacing: StyleMetrics.layout-spacing;
 
-    property <int> cols: Math.max(1, Math.floor(self.width / (self.card-width + self.spacing)));
-    property <int> rows: self.max-rows >= 1 ? self.max-rows : Math.ceil(cards.length / cols);
-    // property <length> addl-spacing: (self.width - ((self.card-width + self.spacing) * cols)) / cols;
+    // Calculate grid dimensions
+    property <length> grid-width: self.width;
+    property <int> actual-columns: Math.max(1, Math.floor((grid-width - spacing) / (card-width + spacing)));
+    property <int> rows: Math.ceil(cards.length / actual-columns);
+    property <length> total-height: rows * (card-height + spacing) + spacing;
 
-    alignment: start;
-    padding: 0;
+    min-height: card-height;
+    preferred-height: total-height;
 
-    in-out property <length> card-menu-x;
-    in-out property <length> card-menu-y;
-    in-out property <CardAdapter> card-menu-model;
-    card-menu := CardMenu {
-        x: card-menu-x;
-        y: card-menu-y;
-        model: card-menu-model;
-        width: self.preferred-width;
-        height: self.preferred-height;
-    }
-    callback pointer-event(event: PointerEvent, x: length, y: length, model: CardAdapter);
-    pointer-event(event, x, y, model) => {
-        if event.kind == PointerEventKind.up && event.button == PointerEventButton.right {
-            root.card-menu-x = x;
-            root.card-menu-y = y;
-            root.card-menu-model = model;
-            card-menu.show();
+    ScrollView {
+        width: 100%;
+        height: 100%;
+        
+        viewport-height: total-height;
+        viewport-width: self.width;
+
+        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+        
+        // Container for the virtual content
+        Rectangle {
+            width: parent.viewport-width;
+            height: parent.viewport-height;
+            
+            // Calculate visible range
+            property <int> visible-start-row: Math.floor(-parent.viewport-y / (card-height + spacing));
+            property <int> visible-end-row: Math.ceil((-parent.viewport-y + parent.height) / (card-height + spacing));
+            property <int> visible-rows: visible-end-row - visible-start-row + 1;
+            property <int> first-visible-index: visible-start-row * actual-columns;
+            property <int> last-visible-index: Math.min(cards.length - 1, (visible-end-row + 1) * actual-columns - 1);
+            
+            // Render only visible cards
+            for row in visible-rows: Rectangle {
+                y: (visible-start-row + row) * (card-height + spacing) + spacing;
+                x: spacing;
+                width: parent.width - 2 * spacing;
+                height: card-height;
+                
+                HorizontalLayout {
+                    spacing: root.spacing;
+                    
+                    for col in actual-columns: Rectangle {
+                        property <int> item-index: (visible-start-row + row) * actual-columns + col;
+                        
+                        if item-index < cards.length: Card {
+                            width: card-width;
+                            height: card-height;
+                            model: cards[item-index];
+                        }
+                    }
+                }
+            }
         }
     }
+}
 
-    for row in rows: HorizontalBox {
-        alignment: start;
-        padding: 0;
-        for col in Math.min(cols, cards.length - (row * cols)): Card {
-            // width: root.card-width + addl-spacing;
-            model: cards[row * cols + col];
-            pointer-event(event, x, y, model) => { root.pointer-event(event, 
-                self.x + x, 
-                self.y + y, 
-                model); 
+export component CardGrid inherits Rectangle {
+    in-out property <[CardAdapter]> cards;
+    in property <int> max-rows: 0;
+
+    in property <length> card-width: Styles.thumbnail-width-large;
+    in property <length> card-height: Styles.thumbnail-width-large + (Styles.default-font-size * 4.5);
+    in property <length> spacing: StyleMetrics.layout-spacing;
+
+    // Calculate grid dimensions
+    property <length> grid-width: self.width;
+    property <int> actual-columns: Math.max(1, Math.floor((grid-width - spacing) / (card-width + spacing)));
+    property <int> rows: max-rows == 0 ? Math.ceil(cards.length / actual-columns) : max-rows;
+    property <length> total-height: rows * (card-height + spacing) + spacing;
+
+    // min-height: card-height;
+    preferred-height: total-height;
+    height: total-height;
+
+    for row in rows: Rectangle {
+        y: (row) * (card-height + spacing) + spacing;
+        x: spacing;
+        width: parent.width - 2 * spacing;
+        height: card-height;
+        
+        HorizontalLayout {
+            spacing: root.spacing;
+            
+            for col in actual-columns: Rectangle {
+                property <int> item-index: (row) * actual-columns + col;
+                
+                if item-index < cards.length: Card {
+                    width: card-width;
+                    height: card-height;
+                    model: cards[item-index];
+                }
+            }
+        }
+    }
+}
+
+export component Example inherits Window {
+    TabWidget {
+        Tab {
+            title: "CardGrid max-rows=1";
+            ScrollView {
+                v1 := VerticalBox {
+                    CardGrid {    
+                        cards: cards_ph;
+                        max-rows: 1;
+                    }
+                    CardGrid {    
+                        cards: cards_ph;
+                        max-rows: 1;
+                    }
+                    CardGrid {    
+                        cards: cards_ph;
+                        max-rows: 1;
+                    }
+                    CardGrid {    
+                        cards: cards_ph;
+                        max-rows: 1;
+                    }
+                }
+                viewport-width: root.width;
+                viewport-height: v1.preferred-height;
+                horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+            }
+        }
+        Tab {
+            title: "FixedCardGrid max-rows=0";
+            ScrollView {
+                v2 := VerticalBox {
+                    CardGrid {    
+                        cards: cards_ph;
+                        max-rows: 0;
+                    }
+                    CardGrid {    
+                        cards: cards_ph;
+                        max-rows: 0;
+                    }
+                    CardGrid {    
+                        cards: cards_ph;
+                        max-rows: 0;
+                    }
+                    CardGrid {    
+                        cards: cards_ph;
+                        max-rows: 0;
+                    }
+                }
+                viewport-width: root.width;
+                viewport-height: v2.preferred-height;
+                horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+            }
+        }
+        Tab {
+            title: "VirtualCardGrid";
+            VirtualCardGrid {    
+                cards: cards_ph;
             }
         }
     }
@@ -100,4 +193,3 @@ export component CardGrid inherits VerticalBox {
 
     property <[CardAdapter]> cards_ph: [card_ph, card_ph2, card_ph, card_ph2, card_ph2, card_ph, card_ph, card_ph2, card_ph2, card_ph2, card_ph, card_ph, card_ph, card_ph2, card_ph];
 }
-

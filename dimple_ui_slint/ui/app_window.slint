@@ -32,6 +32,8 @@ import { HistoryListAdapter, HistoryList } from "pages/history_list.slint";
 import { QueueDetailsAdapter, QueueDetails } from "pages/queue_details.slint";
 import { HorizontalRule, VerticalRule } from "components/hrule.slint";
 import { NavBar } from "nav_bar.slint";
+import { ArtistListAdapter } from "pages/artist_list.slint";
+import { GenreListAdapter } from "pages/genre_list.slint";
 
 import "../fonts/Inter/Inter-VariableFont_opsz,wght.ttf";
 import "../fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf";
@@ -44,7 +46,7 @@ export { Navigator, Styles, AppState, TrackListAdapter,
     SettingsAdapter, TrackDetailsAdapter, QueueDetailsAdapter,
     PlaylistListAdapter, PluginAdapter, PlayerBarAdapter, 
     ReleaseDetailsAdapter, ArtistDetailsAdapter, GenreDetailsAdapter, 
-    ReleaseListAdapter, HomeAdapter, SearchResultsAdapter, CardSectionAdapter }
+    ReleaseListAdapter, HomeAdapter, SearchResultsAdapter, CardSectionAdapter, ArtistListAdapter, GenreListAdapter }
 
 export enum Page { Home, SearchResults,
     ArtistList, ArtistDetails,
@@ -67,8 +69,6 @@ export component AppWindow inherits Window {
     in-out property <Page> page: Home;
 
     in-out property <CardGridAdapter> search;
-    in-out property <CardGridAdapter> artist-list;
-    in-out property <CardGridAdapter> genre-list;
     in-out property <SideBarAdapter> sidebar;
 
     MenuBar {
@@ -103,17 +103,13 @@ export component AppWindow inherits Window {
             Rectangle {
                 if page == Page.Home: Home {}
                 if page == Page.SearchResults: SearchResults {}
-                if page == Page.ArtistList: ArtistList {
-                    model: root.artist-list;
-                }
+                if page == Page.ArtistList: ArtistList {}
                 if page == Page.ArtistDetails: ArtistDetails {}
                 if page == Page.ReleaseList: ReleaseList {}
                 if page == Page.ReleaseDetails: ReleaseDetails {}                
                 if page == Page.TrackList: TrackList {}
                 if page == Page.TrackDetails: TrackDetails {}  
-                if page == Page.GenreList: GenreList {  
-                    model: root.genre-list;
-                }
+                if page == Page.GenreList: GenreList {}
                 if page == Page.GenreDetails: GenreDetails {}
                 if page == Page.PlaylistList: PlaylistList {}  
                 if page == Page.PlaylistDetails: PlaylistDetails {}

@@ -1,38 +1,88 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
-import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
+import { VirtualCardGrid } from "../components/card_grid.slint";
 import { CardAdapter, Card } from "../components/card.slint";
 import {Styles, Label, PageTitle, PageSubtitle} from "../common.slint";
 
-export component ArtistList inherits ScrollView {
-    in-out property <CardGridAdapter> model: model_ph;
+export global ArtistListAdapter {
+    in-out property <[CardAdapter]> cards: [{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },{
+        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+        title: {name: "A Reign of Fish"},
+        sub-title: {name: "Anchor System"},
+    },];
+}
 
-    VerticalBox {
-        width: 100%;
-        alignment: start;
-        padding: 0;
+export component ArtistList inherits VerticalBox {
+    padding: 0;
 
-        VerticalLayout {
-            PageTitle { 
-                text: "Artists";
-            }
-            PageSubtitle {
-                text: model.cards.length + " items";
-            }
+    VerticalLayout {
+        PageTitle { 
+            text: "Artists";
         }
-        CardGrid {
-            cards: model.cards;
+        PageSubtitle {
+            text: ArtistListAdapter.cards.length + " items";
         }
     }
-
-    property <CardAdapter> card_ph: {
-        image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png"),name: "A Reign of Mega-Super-Fish",url: "internal://release/1234"},
-        title: {name: "A Reign of Super Mega Ultra Fish",url: "internal://release/1234"},
-        sub-title: {name: "Fresh Finger Lickin' Good Pliers",url: "internal://artist/9876"},
-    };
-    
-    property <[CardAdapter]> cards_ph: [card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph, card_ph];
-
-    property <CardGridAdapter> model_ph: {
-        cards: cards_ph,
-    };
+    VirtualCardGrid {
+        cards: ArtistListAdapter.cards;
+    }
 }

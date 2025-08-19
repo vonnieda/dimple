@@ -1,11 +1,12 @@
 use crate::ui::app_window_controller::App;
 use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
-use crate::ui::CardGridAdapter;
+use crate::ui::ArtistListAdapter;
 use anyhow::Result;
 use dimple_core::model::Artist;
 use dimple_core::model::DimpleEntity;
 use dimple_db::db::query::QuerySubscription;
+use slint::ComponentHandle as _;
 use slint::ModelRc;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
@@ -28,10 +29,8 @@ impl ArtistListController {
             let images = images.clone();
             ui.upgrade_in_event_loop(move |ui| {
                 let cards = artist_cards(&images, &artists);
-                let adapter = CardGridAdapter {
-                    cards: ModelRc::from(cards.as_slice()),
-                };
-                ui.set_artist_list(adapter);
+                let adapter = ui.global::<ArtistListAdapter>();
+                adapter.set_cards(ModelRc::from(cards.as_slice()));
             }).unwrap();
         })?;
         
@@ -46,9 +45,9 @@ fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {
         .map(|(index, artist)| {
             let mut card: CardAdapter = artist_card(&artist);
             card.image.image = images.lazy_get(&DimpleEntity::from(&artist), 200, 200, move |ui, image| {
-                let mut card = ui.get_artist_list().cards.row_data(index).unwrap();
-                card.image.image = image;
-                ui.get_artist_list().cards.set_row_data(index, card);
+            //     let mut card = ui.get_artist_list().cards.row_data(index).unwrap();
+            //     card.image.image = image;
+            //     ui.get_artist_list().cards.set_row_data(index, card);
             });
             card
         })

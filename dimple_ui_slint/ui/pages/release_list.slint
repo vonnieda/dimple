@@ -1,5 +1,5 @@
 import { ScrollView, VerticalBox, GridBox, HorizontalBox } from "std-widgets.slint";
-import { CardGrid, CardGridAdapter } from "../components/card_grid.slint";
+import { CardGrid, CardGridAdapter, VirtualCardGrid } from "../components/card_grid.slint";
 import { CardAdapter, Card } from "../components/card.slint";
 import {Styles, Label, PageTitle, PageSubtitle} from "../common.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
@@ -72,26 +72,18 @@ export global ReleaseListAdapter {
     },];
 }
 
-export component ReleaseList inherits ScrollView {
-    horizontal-scrollbar-policy: always-off;
-
-    VerticalBox {
-        width: 100%;
-        alignment: start;
-        padding: 0;
-
-        VerticalLayout {
-            PageTitle {
-                text: "Releases";
-            }
-            PageSubtitle {
-                text: ReleaseListAdapter.cards.length + " items";
-            }
+export component ReleaseList inherits VerticalBox {
+    VerticalLayout {
+        PageTitle {
+            text: "Releases";
         }
-    
-        CardGrid {
-            cards: ReleaseListAdapter.cards;
+        PageSubtitle {
+            text: ReleaseListAdapter.cards.length + " items";
         }
+    }
+
+    VirtualCardGrid {
+        cards: ReleaseListAdapter.cards;
     }
 }
 
