@@ -1,6 +1,6 @@
 import { Button, VerticalBox , ScrollView} from "std-widgets.slint";
 import { Card, CardAdapter, PlayableCard } from "card.slint";
-import { Styles, Navigator, Label, AppState } from "../common.slint";
+import { Styles, Navigator, Label, AppState, SectionTitle } from "../common.slint";
 import {StyleMetrics, HorizontalBox, Palette, TabWidget} from "std-widgets.slint";
 import { PopupMenu, PopupMenuButton } from "popup_menu.slint";
 
@@ -15,6 +15,8 @@ export struct CardGridAdapter {
     cards: [CardAdapter],
 }
 
+// TODO I think this can be consolidated with CardGrid now by adding max-rows
+// TODO Need to change card to set overflow and wrap, or maybe just overflow.
 export component VirtualCardGrid inherits Rectangle {
     in-out property <[CardAdapter]> cards;
 
@@ -123,17 +125,29 @@ export component Example inherits Window {
             title: "CardGrid max-rows=1";
             ScrollView {
                 v1 := VerticalBox {
-                    CardGrid {    
-                        cards: cards_ph;
-                        max-rows: 1;
+                    SectionTitle {
+                        text: "Section 1";
                     }
                     CardGrid {    
                         cards: cards_ph;
                         max-rows: 1;
                     }
+                    SectionTitle {
+                        text: "Section 2";
+                    }
                     CardGrid {    
                         cards: cards_ph;
                         max-rows: 1;
+                    }
+                    SectionTitle {
+                        text: "Section 3";
+                    }
+                    CardGrid {    
+                        cards: cards_ph;
+                        max-rows: 1;
+                    }
+                    SectionTitle {
+                        text: "Section 4";
                     }
                     CardGrid {    
                         cards: cards_ph;
