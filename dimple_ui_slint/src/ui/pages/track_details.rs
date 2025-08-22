@@ -7,12 +7,10 @@ use dimple_core::model::Link;
 use dimple_core::model::ModelBasics as _;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
-use slint::Model as _;
 use slint::ModelRc;
 use url::Url;
 use crate::ui::app_window_controller::App;
 use crate::ui::common::MutableStringParam;
-use crate::ui::images::ImageMangler;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::Page;
 use crate::ui::TrackDetailsAdapter;
@@ -44,20 +42,12 @@ impl TrackDetailsController {
         
         // Set up track subscription
         let sql = "SELECT * FROM Track WHERE id = ?";
-        let images = app.images.clone();
         let ui = app.ui.clone();
         let track_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |tracks: Vec<Track>| {
             if let Some(track) = tracks.first() {
                 let track = track.clone();
-                let images = images.clone();
                 ui.upgrade_in_event_loop(move |ui| {
                     let mut card: CardAdapter = track.clone().into();
-                    card.image.image = images.lazy_get(&DimpleEntity::from(&track), 275, 275, |ui, image| {
-                        let mut card = ui.global::<TrackDetailsAdapter>().get_card();
-                        card.image.image = image;
-                        ui.global::<TrackDetailsAdapter>().set_card(card);
-                    });
-
                     ui.global::<TrackDetailsAdapter>().set_card(card.into());
                     ui.global::<TrackDetailsAdapter>().set_key(track.id.clone().unwrap_or_default().into());
                     ui.global::<TrackDetailsAdapter>().set_summary(track.summary.clone().unwrap_or_default().into());
@@ -117,15 +107,13 @@ impl TrackDetailsController {
         // Set up release subscription
         let sql = "SELECT * FROM Release WHERE id = (SELECT release_id FROM Track WHERE id = ?)";
         let ui = app.ui.clone();
-        let images = app.images.clone();
         let library = app.library.clone();
         let release_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |releases: Vec<Release>| {
-            let images = images.clone();
             let library = library.clone();
             ui.upgrade_in_event_loop(move |ui| {
                 if let Some(release) = releases.first() {
                     ui.global::<TrackDetailsAdapter>().set_release_date(release.date.clone().unwrap_or_default().into());
-                    let release_cards = release_cards(&images, &[release.clone()], &library);
+                    let release_cards = release_cards(&[release.clone()], &library);
                     ui.global::<TrackDetailsAdapter>().set_releases(release_cards.as_slice().into());
                 }
             }).unwrap();
@@ -219,16 +207,10 @@ impl From<Release> for LinkAdapter {
     }
 }
 
-fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library) -> Vec<CardAdapter> {
+fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            card.image.image = images.lazy_get(&DimpleEntity::from(&release), 200, 200, move |ui, image| {
-                let adapter = ui.global::<TrackDetailsAdapter>();
-                let mut card = adapter.get_releases().row_data(index).unwrap();
-                card.image.image = image;
-                adapter.get_releases().set_row_data(index, card);
-            });
             card
         })
         .collect()

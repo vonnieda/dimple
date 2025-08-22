@@ -1,6 +1,5 @@
 use anyhow::Result;
 use crate::ui::app_window_controller::App;
-use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
@@ -22,16 +21,14 @@ impl ReleaseListController {
     pub fn new(app: &App) -> Result<Self> {
         // Subscribe to release changes
         let ui = app.ui.clone();
-        let images = app.images.clone();
         let library = app.library.clone();
         let releases_subscription = app.library.db.query_subscribe(
             "SELECT * FROM Release ORDER BY title ASC",
             (),
             move |releases: Vec<Release>| {
-                let images = images.clone();
                 let library = library.clone();
                 ui.upgrade_in_event_loop(move |ui| {
-                    let cards = release_cards(&images, &releases, &library);
+                    let cards = release_cards(&releases, &library);
                     let adapter = ui.global::<ReleaseListAdapter>();
                     adapter.set_cards(ModelRc::from(cards.as_slice()));
                 }).unwrap();
@@ -44,16 +41,10 @@ impl ReleaseListController {
     }
 }
 
-fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library) -> Vec<CardAdapter> {
+fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            card.image.image = images.lazy_get(&DimpleEntity::from(&release), 200, 200, move |ui, image| {
-                let adapter = ui.global::<ReleaseListAdapter>();
-                let mut card = adapter.get_cards().row_data(index).unwrap();
-                card.image.image = image;
-                adapter.get_cards().set_row_data(index, card);
-            });
             card
         })
         .collect()

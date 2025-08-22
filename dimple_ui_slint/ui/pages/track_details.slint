@@ -50,7 +50,8 @@ export component TrackDetails inherits ScrollView {
                 BorderImage {
                     width: Styles.thumbnail-width-extra-large;
                     height: Styles.thumbnail-width-extra-large;
-                    source: TrackDetailsAdapter.card.image.image;
+                    key: TrackDetailsAdapter.key;
+                    placeholder: @image-url("../../icons/phosphor/SVGs/regular/music-notes.svg");
                 }
                 HorizontalBox {
                     alignment: space-between;

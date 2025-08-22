@@ -16,21 +16,14 @@ impl PlaylistListController {
     pub fn new(app: &App) -> Result<Self> {
         // Subscribe to playlist changes
         let ui = app.ui.clone();
-        let images = app.images.clone();
         let playlists_subscription = app.library.db.query_subscribe(
             "SELECT * FROM Playlist ORDER BY name ASC",
             (),
             move |playlists: Vec<Playlist>| {
-                let images = images.clone();
                 ui.upgrade_in_event_loop(move |ui| {
                     let cards: Vec<CardAdapter> = playlists.iter().cloned().enumerate()
                         .map(|(index, playlist)| {
                             let mut card: CardAdapter = playlist.clone().into();
-                            card.image.image = images.lazy_get(&DimpleEntity::from(&playlist), 200, 200, move |ui, image| {
-                                let mut card = ui.global::<PlaylistListAdapter>().get_cards().row_data(index).unwrap();
-                                card.image.image = image;
-                                ui.global::<PlaylistListAdapter>().get_cards().set_row_data(index, card);
-                            });
                             card
                         })
                         .collect();

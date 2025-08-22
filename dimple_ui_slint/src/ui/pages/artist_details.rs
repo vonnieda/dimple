@@ -1,6 +1,5 @@
 use crate::ui::app_window_controller::App;
 use crate::ui::common::MutableStringParam;
-use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
 use crate::ui::Page;
 use dimple_core::librarian;
@@ -35,20 +34,12 @@ impl ArtistDetailsController {
         
         // Set up artist subscription
         let sql = "SELECT * FROM Artist WHERE id = ?";
-        let images = app.images.clone();
         let ui = app.ui.clone();
         let artist_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |artists: Vec<Artist>| {
             if let Some(artist) = artists.first() {
                 let artist = artist.clone();
-                let images = images.clone();
                 ui.upgrade_in_event_loop(move |ui| {
                     let mut card: CardAdapter = artist.clone().into();                
-                    card.image.image = images.lazy_get(&DimpleEntity::from(&artist), 275, 275, |ui, image| {
-                        let mut card = ui.global::<ArtistDetailsAdapter>().get_card();
-                        card.image.image = image;
-                        ui.global::<ArtistDetailsAdapter>().set_card(card);
-                    });
-
                     ui.global::<ArtistDetailsAdapter>().set_card(card.into());
                     ui.global::<ArtistDetailsAdapter>().set_key(artist.id.clone().unwrap_or_default().into());
                     ui.global::<ArtistDetailsAdapter>().set_summary(artist.summary.clone().unwrap_or_default().into());
@@ -100,12 +91,10 @@ impl ArtistDetailsController {
             WHERE ar.artist_id = ? 
             ORDER BY r.date DESC, r.title ASC
         ";
-        let images = app.images.clone();
         let ui = app.ui.clone();
         let releases_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |releases: Vec<Release>| {
-            let images = images.clone();
             ui.upgrade_in_event_loop(move |ui| {
-                let release_cards = release_cards(&images, &releases);
+                let release_cards = release_cards(&releases);
                 ui.global::<ArtistDetailsAdapter>().set_releases(ModelRc::from(release_cards.as_slice()));
             }).unwrap();
         })?;
@@ -163,16 +152,10 @@ fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
     }).collect()
 }
 
-fn release_cards(images: &ImageMangler, releases: &[Release]) -> Vec<CardAdapter> {
+fn release_cards(releases: &[Release]) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release);
-            card.image.image = images.lazy_get(&DimpleEntity::from(&release), 200, 200, move |ui, image| {
-                let adapter = ui.global::<ArtistDetailsAdapter>();
-                let mut card = adapter.get_releases().row_data(index).unwrap();
-                card.image.image = image;
-                adapter.get_releases().set_row_data(index, card);
-            });
             card
         })
         .collect()

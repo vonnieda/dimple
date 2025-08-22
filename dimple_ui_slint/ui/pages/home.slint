@@ -1,6 +1,6 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { CardGrid, CardGridAdapter, CardSectionAdapter } from "../components/card_grid.slint";
+import { CardGrid, CardGridAdapter, CardSectionAdapter, SectionCardGrid } from "../components/card_grid.slint";
 import { Styles, Label, PageTitle, SectionTitle, SectionSubtitle, AppState, Navigator } from "../common.slint";
 import { LinkAdapter, Link } from "../components/link.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
@@ -65,8 +65,6 @@ export global HomeAdapter {
 }
 
 export component Home inherits ScrollView {
-    horizontal-scrollbar-policy: always-off;
-
     VerticalBox {
         width: 100%;
         alignment: start;
@@ -76,29 +74,8 @@ export component Home inherits ScrollView {
             text: "Home";
         }
 
-        // TODO this should be it's own component: CardSectionGrid
-        for section in HomeAdapter.sections: VerticalBox {
-            alignment: start;
-            padding: 0;
-            padding-bottom: 16px;
-            VerticalLayout {
-                HorizontalLayout {
-                    alignment: start;
-                    Link {
-                        horizontal-stretch: 0;
-                        name: section.title;
-                        url: section.url;
-                        font-size: Styles.default-font-size * 2;
-                    }
-                }
-                if section.sub-title != "": SectionSubtitle {
-                    text: section.sub-title;
-                }
-            }
-            CardGrid {
-                cards: section.cards;
-                max-rows: 1;
-            }
+        SectionCardGrid {
+            sections: HomeAdapter.sections;
         }
     }
 }

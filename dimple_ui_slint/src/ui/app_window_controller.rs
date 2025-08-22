@@ -8,8 +8,6 @@ use directories::ProjectDirs;
 
 use crate::{config::Config, ui::{components::lazy_image::init_lazy_image_loader, pages::queue_details::QueueDetailsController, *}};
 
-use self::images::ImageMangler;
-
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 
 use super::player_bar::PlayerBar;
@@ -20,7 +18,6 @@ pub struct App {
     pub library: Library,
     pub history: Arc<Mutex<VecDeque<String>>>,
     pub player: Player,
-    pub images: ImageMangler,
     pub ui: Weak<AppWindow>,
     pub media_controls: Arc<Mutex<Option<MediaControls>>>,
     pub plugins: Plugins,
@@ -76,7 +73,6 @@ impl AppWindowController {
         let plugins = Plugins::new(cache_dir.to_str().unwrap());
         plugins.add_default_plugins();
         let librarian = Librarian::new(&library, &plugins);
-        let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
         init_lazy_image_loader(&ui, &library);
         let ui_weak = ui.as_weak();
         // TODO look at this.
@@ -91,7 +87,6 @@ impl AppWindowController {
             library,
             history: Arc::new(Mutex::new(VecDeque::new())),
             player,
-            images,
             ui: ui_weak,
             media_controls: Arc::new(Mutex::new(None)),
             plugins,

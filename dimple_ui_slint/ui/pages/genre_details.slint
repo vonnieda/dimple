@@ -92,7 +92,8 @@ export component GenreDetails inherits ScrollView {
                 BorderImage {
                     width: Styles.thumbnail-width-extra-large;
                     height: Styles.thumbnail-width-extra-large;
-                    source: GenreDetailsAdapter.card.image.image;
+                    key: GenreDetailsAdapter.key;
+                    placeholder: @image-url("../../icons/phosphor/SVGs/regular/globe-simple.svg");
                 }
                 HorizontalBox {
                     alignment: space-between;

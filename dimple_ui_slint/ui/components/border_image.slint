@@ -1,8 +1,10 @@
 import { Styles } from "../common.slint";
 import { Palette } from "std-widgets.slint";
+import { LazyImage } from "lazy_image.slint";
 
 export component BorderImage inherits TouchArea {
-    in-out property <image> source;
+    in property <string> key;
+    in property <image> placeholder;
     mouse-cursor: MouseCursor.pointer;
     Rectangle {
         width: root.width;
@@ -12,11 +14,11 @@ export component BorderImage inherits TouchArea {
         border-width: Styles.thumbnail-border-width;
         clip: true;
         background: white;
-        Image {
+        LazyImage {
             width: root.width;
             height: root.height;
-            source: root.source;
+            key: root.key;
+            placeholder: root.placeholder;
         }
     }
 }
-

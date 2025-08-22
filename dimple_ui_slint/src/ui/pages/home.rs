@@ -3,7 +3,6 @@ use dimple_core::model::{Artist, DimpleEntity, Release};
 use slint::ComponentHandle as _;
 
 use crate::ui::app_window_controller::App;
-use crate::ui::images::ImageMangler;
 use crate::ui::{CardAdapter, HomeAdapter, CardSectionAdapter, ImageLinkAdapter, LinkAdapter, Page};
 
 pub fn home_init(app: &App) {
@@ -63,21 +62,21 @@ fn update_model(app: &App) {
                 title: "Newest Releases".into(),
                 sub_title: Default::default(),
                 url: format!("dimple://home/newest-releases").into(),
-                cards: release_cards(&app.images, &newest_releases, &app.library).as_slice().into(),
+                cards: release_cards(&newest_releases, &app.library).as_slice().into(),
             });
 
             sections.push(CardSectionAdapter {
                 title: "Favorite Releases".into(),
                 sub_title: Default::default(),
                 url: format!("dimple://home/favorite-releases").into(),
-                cards: release_cards(&app.images, &favorite_releases, &app.library).as_slice().into(),
+                cards: release_cards(&favorite_releases, &app.library).as_slice().into(),
             });
 
             sections.push(CardSectionAdapter {
                 title: "Favorite Artists".into(),
                 sub_title: Default::default(),
                 url: format!("dimple://home/favorite-artists").into(),
-                cards: artist_cards(&app.images, &favorite_artists).as_slice().into(),
+                cards: artist_cards(&favorite_artists).as_slice().into(),
             });
 
             let adapter = ui.global::<HomeAdapter>();
@@ -86,16 +85,10 @@ fn update_model(app: &App) {
     });
 }
 
-fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library) -> Vec<CardAdapter> {
+fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            card.image.image = images.lazy_get(&DimpleEntity::from(&release), 200, 200, move |ui, image| {
-                let adapter = ui.global::<HomeAdapter>();
-                // let mut card = adapter.get_releases().row_data(index).unwrap();
-                // card.image.image = image;
-                // adapter.get_releases().set_row_data(index, card);
-            });
             card
         })
         .collect()
@@ -124,15 +117,10 @@ fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
     }
 }
 
-fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {
+fn artist_cards(artists: &[Artist]) -> Vec<CardAdapter> {
     artists.iter().cloned().enumerate()
         .map(|(index, artist)| {
             let mut card: CardAdapter = artist_card(&artist);
-            card.image.image = images.lazy_get(&DimpleEntity::from(&artist), 200, 200, move |ui, image| {
-                // let mut card = ui.get_artist_list().cards.row_data(index).unwrap();
-                // card.image.image = image;
-                // ui.get_artist_list().cards.set_row_data(index, card);
-            });
             card
         })
         .collect()

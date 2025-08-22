@@ -1,5 +1,4 @@
 use crate::ui::app_window_controller::App;
-use crate::ui::images::ImageMangler;
 use crate::ui::CardAdapter;
 use crate::ui::CardSectionAdapter;
 use crate::ui::Page;
@@ -54,15 +53,8 @@ fn update_model(app: &App) {
             let artists = genre.artists(&app.library);
             let genres = vec![genre.clone()];
             let ui = app.ui.clone();
-            let images = app.images.clone();
             ui.upgrade_in_event_loop(move |ui| {
                 let mut card: CardAdapter = genre.clone().into();                
-                card.image.image = app.images.lazy_get(&DimpleEntity::from(&genre), 275, 275, |ui, image| {
-                    let mut card = ui.global::<GenreDetailsAdapter>().get_card();
-                    card.image.image = image;
-                    ui.global::<GenreDetailsAdapter>().set_card(card);
-                });
-
                 let links: Vec<LinkAdapter> = links.iter().map(|link| {
                     LinkAdapter {
                         name: link.name.clone().unwrap_or_else(|| link.url.clone()).into(),
@@ -77,7 +69,7 @@ fn update_model(app: &App) {
                     sections.push(CardSectionAdapter {
                         title: "Artists".into(),
                         sub_title: Default::default(),
-                        cards: artist_cards(&app.images, &artists).as_slice().into(),
+                        cards: artist_cards(&artists).as_slice().into(),
                         ..Default::default()
                     });
                 }
@@ -86,7 +78,7 @@ fn update_model(app: &App) {
                     sections.push(CardSectionAdapter {
                         title: "Releases".into(),
                         sub_title: Default::default(),
-                        cards: release_cards(&app.images, &releases, &app.library).as_slice().into(),
+                        cards: release_cards(&releases, &app.library).as_slice().into(),
                         ..Default::default()
                     });
                 }
@@ -95,7 +87,7 @@ fn update_model(app: &App) {
                     sections.push(CardSectionAdapter {
                         title: "Related Genres".into(),
                         sub_title: Default::default(),
-                        cards: genre_cards(&app.images, &genres).as_slice().into(),
+                        cards: genre_cards(&genres).as_slice().into(),
                         ..Default::default()
                     });
                 }
@@ -112,16 +104,10 @@ fn update_model(app: &App) {
     }).unwrap();
 }
 
-fn release_cards(images: &ImageMangler, releases: &[Release], library: &Library) -> Vec<CardAdapter> {
+fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
             let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            card.image.image = images.lazy_get(&release.into(), 200, 200, move |ui, image| {
-                // let adapter = ui.global::<HomeAdapter>();
-                // let mut card = adapter.get_releases().row_data(index).unwrap();
-                // card.image.image = image;
-                // adapter.get_releases().set_row_data(index, card);
-            });
             card
         })
         .collect()
@@ -150,15 +136,10 @@ fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
     }
 }
 
-fn artist_cards(images: &ImageMangler, artists: &[Artist]) -> Vec<CardAdapter> {
+fn artist_cards(artists: &[Artist]) -> Vec<CardAdapter> {
     artists.iter().cloned().enumerate()
         .map(|(index, artist)| {
             let mut card: CardAdapter = artist_card(&artist);
-            card.image.image = images.lazy_get(&artist.into(), 200, 200, move |ui, image| {
-                // let mut card = ui.get_artist_list().cards.row_data(index).unwrap();
-                // card.image.image = image;
-                // ui.get_artist_list().cards.set_row_data(index, card);
-            });
             card
         })
         .collect()
@@ -185,15 +166,10 @@ fn artist_card(artist: &Artist) -> CardAdapter {
     }
 }
 
-fn genre_cards(images: &ImageMangler, genres: &[Genre]) -> Vec<CardAdapter> {
+fn genre_cards(genres: &[Genre]) -> Vec<CardAdapter> {
     genres.iter().cloned().enumerate()
         .map(|(index, genre)| {
             let mut card: CardAdapter = genre_card(&genre);
-            card.image.image = images.lazy_get(&genre.into(), 200, 200, move |ui, image| {
-                // let mut card = ui.get_genre_list().cards.row_data(index).unwrap();
-                // card.image.image = image;
-                // ui.get_genre_list().cards.set_row_data(index, card);
-            });
             card
         })
         .collect()

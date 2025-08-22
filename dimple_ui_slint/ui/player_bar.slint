@@ -156,7 +156,8 @@ export component PlayerBar inherits HorizontalBox {
             BorderImage {
                 width: Styles.thumbnail-width-small;
                 height: Styles.thumbnail-width-small;
-                source: PlayerBarAdapter.now-playing-track.image.image;
+                key: PlayerBarAdapter.now_playing_track.key;
+                placeholder: @image-url("../icons/phosphor/SVGs/regular/music-notes.svg");
                 clicked => { Navigator.navigate("dimple://queue") }
             }
         }

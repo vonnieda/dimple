@@ -1,4 +1,4 @@
-use dimple_core::{library::Library, model::{Artist, DimpleEntity, Release}};
+use dimple_core::{library::Library, model::{Artist, DimpleEntity, Genre, Playlist, Release, Track}};
 use slint::{ComponentHandle as _, Model as _, ModelRc, VecModel, Weak};
 
 use crate::ui::{images::dynamic_to_slint, AppWindow, LazyImageLoader, LazyImageModel};
@@ -42,7 +42,11 @@ pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, key: &str, index
     std::thread::spawn(move || {
         // TODO hax
         let entity: Option<DimpleEntity> = library.get::<Artist>(&key).map(DimpleEntity::from)
-            .or_else(|| library.get::<Release>(&key).map(DimpleEntity::from));
+            .or_else(|| library.get::<Release>(&key).map(DimpleEntity::from))
+            .or_else(|| library.get::<Genre>(&key).map(DimpleEntity::from))
+            .or_else(|| library.get::<Track>(&key).map(DimpleEntity::from))
+            .or_else(|| library.get::<Playlist>(&key).map(DimpleEntity::from))
+            ;
         if entity.is_none() {
             log::warn!("no entity found for key {}", key);
             return

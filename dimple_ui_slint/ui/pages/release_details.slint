@@ -107,7 +107,8 @@ export component ReleaseDetails inherits ScrollView {
                 BorderImage {
                     width: Styles.thumbnail-width-extra-large;
                     height: Styles.thumbnail-width-extra-large;
-                    source: ReleaseDetailsAdapter.card.image.image;
+                    key: ReleaseDetailsAdapter.key;
+                    placeholder: @image-url("../../icons/phosphor/SVGs/regular/vinyl-record.svg");
                 }
                 HorizontalBox {
                     alignment: space-between;
