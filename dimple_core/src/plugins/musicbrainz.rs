@@ -1,11 +1,11 @@
 use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Release, Track}, plugins::converters::ReleaseConverter};
 
-use super::{converters::{ArtistConverter, TrackConverter}, plugin::Plugin, plugins::Plugins};
+use super::{converters::ArtistConverter, plugin::Plugin, plugins::Plugins};
 
 // https://musicbrainz.org/doc/MusicBrainz_API
 // Subqueries
@@ -113,7 +113,7 @@ impl Plugin for MusicBrainzPlugin {
         -> Result<Option<ArtistMetadata>, anyhow::Error> {
 
         if let Some(mbid) = artist.musicbrainz_id.clone() {
-            let url = format!("https://musicbrainz.org/ws/2/artist/{}?fmt=json&inc=releases+release-groups+artist-credits+genres+url-rels", mbid);
+            let url = format!("https://musicbrainz.org/ws/2/artist/{mbid}?fmt=json&inc=releases+release-groups+artist-credits+genres+url-rels");
             let mb_artist: musicbrainz_rs::entity::artist::Artist = self.get(host, &url)?;
             let artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
             return Ok(Some(artist_metadata))
@@ -126,7 +126,7 @@ impl Plugin for MusicBrainzPlugin {
 
         if let Some(mbid) = release.musicbrainz_id.clone() {
             // TODO artists? artist-credits?
-            let url = format!("https://musicbrainz.org/ws/2/release/{}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels", mbid);
+            let url = format!("https://musicbrainz.org/ws/2/release/{mbid}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels");
             let mb_release: musicbrainz_rs::entity::release::Release = self.get(host, &url)?;
             let release_metadata: ReleaseMetadata = ReleaseConverter::from(mb_release).into();
             return Ok(Some(release_metadata))
@@ -150,11 +150,11 @@ impl Plugin for MusicBrainzPlugin {
         -> Result<crate::librarian::SearchResults, anyhow::Error> {
         
         // http://musicbrainz.org/ws/2/artist/?query=artist:klok
-        let url = format!("https://musicbrainz.org/ws/2/artist/?fmt=json&query={}", query);
+        let url = format!("https://musicbrainz.org/ws/2/artist/?fmt=json&query={query}");
         let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::artist::Artist> = self.get(host, &url)?;
         let artists: Vec<ArtistMetadata> = mb_results.entities.into_iter().map(|e| ArtistConverter::from(e).into()).collect();
 
-        let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={}", query);
+        let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={query}");
         let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release> = self.get(host, &url)?;
         let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
 
@@ -177,7 +177,7 @@ impl MusicBrainzPlugin {
         let mut offset: usize = 0;
         let mut releases: Vec<ReleaseMetadata> = vec![];
         loop {
-            let url = format!("https://musicbrainz.org/ws/2/release?artist={}&status=official&inc=artist-credits+labels+recordings+release-groups+media+discids+isrcs+tags+genres+url-rels&fmt=json&offset={}&limit={}", mbid, offset, limit);
+            let url = format!("https://musicbrainz.org/ws/2/release?artist={mbid}&status=official&inc=artist-credits+labels+recordings+release-groups+media+discids+isrcs+tags+genres+url-rels&fmt=json&offset={offset}&limit={limit}");
             let releases_response: ReleasesResponse = self.get(plugins, &url)?;
             if releases_response.releases.is_empty() {
                 break
@@ -223,11 +223,11 @@ struct MusicBrainzPluginConfig {
 }
 
 mod tests {
-    use musicbrainz_rs::entity::artist;
+    
 
-    use crate::{librarian::{self, ArtistMetadata}, library::Library, model::{Artist, Release}, plugins::{plugin::Plugin, plugins::Plugins}};
+    use crate::{librarian::ArtistMetadata, library::Library, model::Artist};
 
-    use super::MusicBrainzPlugin;
+    
 
     #[test]
     fn it_works() {

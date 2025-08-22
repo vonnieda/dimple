@@ -1,12 +1,11 @@
 // Lyrics via https://lrclib.net/docs
 
 use anyhow::anyhow;
-use reqwest::blocking::Client;
 use serde::{Deserialize};
 
 use crate::{librarian::TrackMetadata, library::Library, model::{Track}};
 
-use super::{plugin::{Plugin}, plugins::Plugins, USER_AGENT};
+use super::{plugin::{Plugin}, plugins::Plugins};
 
 #[derive(Default)]
 pub struct LrclibPlugin {

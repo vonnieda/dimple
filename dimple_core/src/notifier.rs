@@ -5,6 +5,12 @@ pub struct Notifier<Event: Send + Sync + Clone + 'static> {
     senders: Arc<RwLock<Vec<Sender<Event>>>>,
 }
 
+impl<Event: Send + Sync + Clone + 'static> Default for Notifier<Event> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl <Event: Send + Sync + Clone + 'static> Notifier<Event> {
     pub fn new() -> Self {
         Self {
@@ -24,10 +30,10 @@ impl <Event: Send + Sync + Clone + 'static> Notifier<Event> {
         rx
     }
 
-    pub fn observe(&self, mut callback: impl FnMut(Event) -> () + Send + 'static) {
+    pub fn observe(&self, callback: impl FnMut(Event) + Send + 'static) {
         let rx = self.observer();
         thread::spawn(move || {
-            rx.iter().for_each(|e| callback(e));
+            rx.iter().for_each(callback);
         });
     }
 }

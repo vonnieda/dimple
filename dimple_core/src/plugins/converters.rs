@@ -51,7 +51,7 @@ impl From<ArtistConverter> for ArtistMetadata {
                 })
                 .chain(
                     std::iter::once(value.0.id.clone())
-                        .map(|mbid| format!("https://musicbrainz.org/artist/{}", mbid)),
+                        .map(|mbid| format!("https://musicbrainz.org/artist/{mbid}")),
                 )
                 .map(|s| Link {
                     id: None,
@@ -83,13 +83,13 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                 id: None,
                 musicbrainz_id: Some(value.0.id.clone()),
                 title: none_if_empty(value.0.title),
-                packaging: value.0.packaging.map(|f| format!("{:?}", f)),
-                release_group_type: value.0.release_group.clone().and_then(|rg| rg.primary_type).and_then(|pt| Some(format!("{:?}", pt))),
+                packaging: value.0.packaging.map(|f| format!("{f:?}")),
+                release_group_type: value.0.release_group.clone().and_then(|rg| rg.primary_type).map(|pt| format!("{pt:?}")),
                 // TODO add the two release_group fields
                 // release_group: value.0.release_group
                 //     .map(|f| ReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
-                status: value.0.status.map(|f| format!("{:?}", f)),
-                quality: value.0.quality.map(|f| format!("{:?}", f)),
+                status: value.0.status.map(|f| format!("{f:?}")),
+                quality: value.0.quality.map(|f| format!("{f:?}")),
                 summary: None,
                 // media: value.0.media.iter().flatten()
                 //     .map(|f| Medium::from(MediumConverter::from(f.to_owned())))
@@ -109,7 +109,7 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                 })
                 .chain(
                     std::iter::once(value.0.id.clone())
-                        .map(|mbid| format!("https://musicbrainz.org/release/{}", mbid)),
+                        .map(|mbid| format!("https://musicbrainz.org/release/{mbid}")),
                 )
                 .map(|s| Link {
                     id: None,
@@ -119,7 +119,7 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                 .collect(),
             tracks: value.0.media.iter().flatten()
                 .flat_map(|media| media.tracks.iter())
-                .flat_map(|tracks| tracks.into_iter())
+                .flat_map(|tracks| tracks.iter())
                 .map(|track| TrackMetadata::from(TrackConverter::from(track.to_owned())))
                 .collect(),
             images: vec![],
@@ -182,7 +182,7 @@ impl From<TrackConverter> for TrackMetadata {
                 })
                 .chain(
                     std::iter::once(value.0.id.clone())
-                        .map(|mbid| format!("https://musicbrainz.org/track/{}", mbid)),
+                        .map(|mbid| format!("https://musicbrainz.org/track/{mbid}")),
                 )
                 .map(|s| Link {
                     id: None,

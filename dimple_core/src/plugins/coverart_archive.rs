@@ -37,7 +37,7 @@ impl Plugin for CoverArtArchivePlugin {
         match model {
             DimpleEntity::Release(release) => {
                 let mbid = release.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
-                let url = format!("http://coverartarchive.org/release/{}", mbid);
+                let url = format!("http://coverartarchive.org/release/{mbid}");
                 let dimage = self.get_coverart(&url, host)?;
                 Ok(dimage)
             }

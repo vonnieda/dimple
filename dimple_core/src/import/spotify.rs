@@ -1,4 +1,4 @@
-use std::fs::{self, File};
+use std::fs::{self};
 
 use crate::{library::Library, model::Event};
 
@@ -9,8 +9,7 @@ use serde::{Deserialize, Serialize};
 
 pub fn import(library: &Library, path: &str) {
     let json_files = WalkDir::new(path).into_iter()
-        .filter(|dir_entry| dir_entry.is_ok())
-        .map(|dir_entry| dir_entry.unwrap())
+        .flatten()
         .filter(|dir_entry| dir_entry.file_type().is_file() 
             && dir_entry.path().extension().is_some_and(|ext| ext.eq_ignore_ascii_case("json")))
         .collect::<Vec<_>>();
@@ -32,7 +31,7 @@ fn import_streaming_history_audio(library: &Library, json_file: &DirEntry) {
         if !(entry.ts.is_some() 
             && entry.master_metadata_album_artist_name.is_some() 
             && entry.master_metadata_track_name.is_some()) {
-                log::warn!("Invalid entry #{}. Missing ts, artist, or title.", i);
+                log::warn!("Invalid entry #{i}. Missing ts, artist, or title.");
                 continue
         }         
         // There is a unique index on (source_type, source) so if we're

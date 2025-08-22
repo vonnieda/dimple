@@ -4,7 +4,6 @@ use crate::ui::CardSectionAdapter;
 use crate::ui::Page;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
-use dimple_core::model::DimpleEntity;
 use dimple_core::model::Genre;
 use dimple_core::model::ModelBasics;
 use dimple_core::model::Release;
@@ -27,8 +26,8 @@ pub fn genre_details_init(app: &App) {
 
 pub fn genre_details(url: &str, app: &App) {
     let app = app.clone();
-    let url = Url::parse(&url).unwrap();
-    let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
+    let url = Url::parse(url).unwrap();
+    let key = url.path_segments().unwrap().next().unwrap().to_string();
     let ui = app.ui.clone();
     ui.upgrade_in_event_loop(move |ui| {
         ui.global::<GenreDetailsAdapter>().set_key(key.into());
@@ -54,7 +53,7 @@ fn update_model(app: &App) {
             let genres = vec![genre.clone()];
             let ui = app.ui.clone();
             ui.upgrade_in_event_loop(move |ui| {
-                let mut card: CardAdapter = genre.clone().into();                
+                let card: CardAdapter = genre.clone().into();                
                 let links: Vec<LinkAdapter> = links.iter().map(|link| {
                     LinkAdapter {
                         name: link.name.clone().unwrap_or_else(|| link.url.clone()).into(),
@@ -92,12 +91,12 @@ fn update_model(app: &App) {
                     });
                 }
     
-                ui.global::<GenreDetailsAdapter>().set_card(card.into());
+                ui.global::<GenreDetailsAdapter>().set_card(card);
                 ui.global::<GenreDetailsAdapter>().set_key(genre.id.clone().unwrap_or_default().into());
                 ui.global::<GenreDetailsAdapter>().set_summary(genre.summary.clone().unwrap_or_default().into());
                 ui.global::<GenreDetailsAdapter>().set_disambiguation(genre.disambiguation.clone().unwrap_or_default().into());
                 ui.global::<GenreDetailsAdapter>().set_links(ModelRc::from(links.as_slice()));
-                ui.global::<GenreDetailsAdapter>().set_dump(format!("{:?}", genre).into());
+                ui.global::<GenreDetailsAdapter>().set_dump(format!("{genre:?}").into());
                 ui.global::<GenreDetailsAdapter>().set_sections(sections.as_slice().into());
             }).unwrap();
         });
@@ -107,7 +106,7 @@ fn update_model(app: &App) {
 fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
-            let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
+            let card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
             card
         })
         .collect()
@@ -139,7 +138,7 @@ fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
 fn artist_cards(artists: &[Artist]) -> Vec<CardAdapter> {
     artists.iter().cloned().enumerate()
         .map(|(index, artist)| {
-            let mut card: CardAdapter = artist_card(&artist);
+            let card: CardAdapter = artist_card(&artist);
             card
         })
         .collect()
@@ -169,7 +168,7 @@ fn artist_card(artist: &Artist) -> CardAdapter {
 fn genre_cards(genres: &[Genre]) -> Vec<CardAdapter> {
     genres.iter().cloned().enumerate()
         .map(|(index, genre)| {
-            let mut card: CardAdapter = genre_card(&genre);
+            let card: CardAdapter = genre_card(&genre);
             card
         })
         .collect()

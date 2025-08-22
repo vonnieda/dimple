@@ -204,7 +204,7 @@ impl CrdtRules for DateTime<Utc> {
 
 impl <T: CrdtRules + std::hash::Hash + Eq> CrdtRules for Vec<T> {
     fn merge(l: Self, r: Self) -> Self {
-        l.into_iter().chain(r.into_iter()).collect::<HashSet<_>>().into_iter().collect()
+        l.into_iter().chain(r).collect::<HashSet<_>>().into_iter().collect()
     }
 }
 

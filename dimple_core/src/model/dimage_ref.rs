@@ -1,7 +1,6 @@
-use dimple_db::db::{Entity, transaction::DbTransaction};
+use dimple_db::db::transaction::DbTransaction;
 use serde::{Deserialize, Serialize};
 
-use crate::library::{Library};
 
 use super::{Dimage};
 

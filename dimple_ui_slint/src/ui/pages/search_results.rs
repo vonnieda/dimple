@@ -1,9 +1,5 @@
 
-use std::sync::Arc;
-use std::sync::Mutex;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
-use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use dimple_core::librarian;
@@ -13,11 +9,8 @@ use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
-use dimple_core::plugins;
 use dimple_core::plugins::plugins::Plugins;
 use dimple_db::db::query::QuerySubscription;
-use dimple_db::rusqlite::types::ToSqlOutput;
-use dimple_db::rusqlite::ToSql;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
@@ -102,7 +95,7 @@ impl SearchResultsController {
         let library_clone = app.library.clone();
         ui.upgrade_in_event_loop(move |ui| {
             ui.global::<SearchResultsAdapter>().on_query(move |query| {
-                query_param.set(&format!("%{}%", query));
+                query_param.set(&format!("%{query}%"));
                 sub_clone.refresh();            
                 search_plugins(plugins_clone.clone(), library_clone.clone(), query.to_string());
                 ui_clone.upgrade_in_event_loop(move |ui| ui.set_page(Page::SearchResults)).unwrap();
@@ -131,7 +124,7 @@ fn search_plugins(plugins: Plugins, library: Library, query: String) {
             }
             Ok(())
         }).unwrap_or_else(|e| {
-            eprintln!("Failed to merge search results: {}", e);
+            eprintln!("Failed to merge search results: {e}");
         });
     });
 }
@@ -190,7 +183,7 @@ fn update_results(app: &App, results: SearchResults) {
 fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
-            let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
+            let card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
             card
         })
         .collect()
@@ -222,7 +215,7 @@ fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
 fn artist_cards(artists: &[Artist]) -> Vec<CardAdapter> {
     artists.iter().cloned().enumerate()
         .map(|(index, artist)| {
-            let mut card: CardAdapter = artist_card(&artist);
+            let card: CardAdapter = artist_card(&artist);
             card
         })
         .collect()
@@ -252,7 +245,7 @@ fn artist_card(artist: &Artist) -> CardAdapter {
 fn genre_cards(genres: &[Genre]) -> Vec<CardAdapter> {
     genres.iter().cloned().enumerate()
         .map(|(index, genre)| {
-            let mut card: CardAdapter = genre_card(&genre);
+            let card: CardAdapter = genre_card(&genre);
             card
         })
         .collect()
@@ -281,7 +274,7 @@ fn genre_card(genre: &Genre) -> CardAdapter {
 fn track_cards(tracks: &[Track], library: &Library) -> Vec<CardAdapter> {
     tracks.iter().cloned().enumerate()
         .map(|(index, track)| {
-            let mut card: CardAdapter = track_card(&track, &track.artist(library).unwrap_or_default());
+            let card: CardAdapter = track_card(&track, &track.artist(library).unwrap_or_default());
             card
         })
         .collect()

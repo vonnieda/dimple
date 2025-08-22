@@ -5,7 +5,6 @@ use crate::ui::LinkAdapter;
 use crate::ui::PlayerBarAdapter;
 
 use dimple_core::model::Artist;
-use dimple_core::model::DimpleEntity;
 use dimple_core::model::Release;
 use dimple_core::player::PlayerEvent;
 use dimple_core::player::Song;
@@ -78,7 +77,7 @@ impl PlayerBar {
                 }).unwrap();
             },
             PlayerEvent::Duration(duration) => {
-                let duration = duration.clone();
+                let duration = *duration;
                 self.app.ui.upgrade_in_event_loop(move |ui| {
                     let adapter = ui.global::<PlayerBarAdapter>();
                     adapter.set_duration_seconds(duration.as_secs() as i32);
@@ -86,7 +85,7 @@ impl PlayerBar {
                 }).unwrap();
             },
             PlayerEvent::Position(position) => {
-                let position = position.clone();
+                let position = *position;
                 self.app.ui.upgrade_in_event_loop(move |ui| {
                     let adapter = ui.global::<PlayerBarAdapter>();
                     adapter.set_position_seconds(position.as_secs() as f32);

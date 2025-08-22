@@ -8,7 +8,6 @@ use crate::{import::symphonia_tagged_media_file::SymphoniaTaggedMediaFile, libra
 
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use dimple_db::db::transaction::DbTransaction;
 use itertools::Itertools as _;
 use lofty_tagged_media_file::LoftyTaggedMediaFile;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator as _};
@@ -17,15 +16,15 @@ use walkdir::WalkDir;
 pub fn import(library: &Library, path: &str) {
     let force = true;
     
-    log::info!("Importing {}.", path);
+    log::info!("Importing {path}.");
 
     let files = scan(path);
     log::info!("Scanned {} files.", files.len());
 
     files.par_iter().for_each(|file| {
         let path = Path::new(&file.path);
-        if let Err(e) = import_single_file(&library, path, force) {
-            log::error!("  Error reading {:?}: {}", path, e);
+        if let Err(e) = import_single_file(library, path, force) {
+            log::error!("  Error reading {path:?}: {e}");
         }
     });
 }
@@ -52,7 +51,7 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     if !path.is_file() {
         return Err(anyhow::anyhow!("Path must be a file: {:?}", path));
     }
-    log::debug!("Importing {:?}.", path);
+    log::debug!("Importing {path:?}.");
 
     // Read the tags from the file.
     let tags = LoftyTaggedMediaFile::new(path)?;
@@ -128,7 +127,7 @@ struct ScannedFile {
 }
 
 mod tests {
-    use crate::{library::Library, model::MediaFile};
+    
 
     #[test]
     fn import() {

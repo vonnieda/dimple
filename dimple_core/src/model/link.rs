@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::library::Library;
 
-use super::Genre;
 
 // https://musicbrainz.org/doc/Artist
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]

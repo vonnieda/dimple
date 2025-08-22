@@ -41,6 +41,12 @@ pub struct AppWindowController {
     _search_results_controller: pages::search_results::SearchResultsController,
 }
 
+impl Default for AppWindowController {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AppWindowController {
     pub fn new() -> Self {
         let ui = AppWindow::new().unwrap();
@@ -52,7 +58,7 @@ impl AppWindowController {
         let mut data_dir = dirs.data_dir().to_path_buf();
         let mut config_dir = dirs.config_dir().to_path_buf();
         let mut cache_dir = dirs.cache_dir().to_path_buf();
-        if let Some(root) = env::var("DIMPLE_ROOT").ok() {
+        if let Ok(root) = env::var("DIMPLE_ROOT") {
             let root_dir = Path::new(&root.to_string()).to_path_buf();
             data_dir = root_dir.join("data").to_path_buf();
             config_dir = root_dir.join("config").to_path_buf();
@@ -179,7 +185,7 @@ impl App {
     pub fn navigate(&self, url: SharedString) {
         log::info!("{}", &url);
         if url.starts_with("http") {
-            let _ = opener::open_browser(url.to_string());
+            let _ = opener::open_browser(&url);
         }
         else if url == "dimple://back" {
             self.back();
@@ -356,9 +362,9 @@ fn desktop_integration(app: &App, ui: &AppWindow) -> MediaControls {
                 true => MediaPlayback::Playing { progress: Some(MediaPosition(track_position)) },
                 false => MediaPlayback::Paused { progress: Some(MediaPosition(track_position)) },
             };
-            let artist = current_track.clone().map(|t| t.artist_name(&app.library)).flatten();
-            let album = current_track.clone().map(|t| t.album_name(&app.library)).flatten();
-            let title = current_track.clone().map(|t| t.title).flatten();
+            let artist = current_track.clone().and_then(|t| t.artist_name(&app.library));
+            let album = current_track.clone().and_then(|t| t.album_name(&app.library));
+            let title = current_track.clone().and_then(|t| t.title);
             let metadata = MediaMetadata {
                 duration: Some(track_duration),
                 artist: artist.as_deref(),

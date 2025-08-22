@@ -3,7 +3,6 @@ use crate::ui::app_window_controller::App;
 use crate::ui::CardAdapter;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
-use dimple_core::model::DimpleEntity;
 use dimple_core::model::Release;
 use dimple_db::db::query::QuerySubscription;
 use slint::ComponentHandle;
@@ -44,7 +43,7 @@ impl ReleaseListController {
 fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
-            let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
+            let card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
             card
         })
         .collect()

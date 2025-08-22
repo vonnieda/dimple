@@ -37,7 +37,7 @@ impl Plugin for ExamplePlugin {
     fn track_metadata(&self, _host: &Plugins, _library: &Library, _artist: &Track) -> Result<Option<TrackMetadata>, anyhow::Error> {
         Ok(Some(TrackMetadata {
             track: Track {
-                lyrics: Some(format!("(unrecognizable shrieking)")),
+                lyrics: Some("(unrecognizable shrieking)".to_string()),
                 ..Default::default()
             },
             ..Default::default()

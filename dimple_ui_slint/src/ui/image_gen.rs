@@ -95,13 +95,13 @@ pub fn gen_song_waveform(song: &Song, width: u32, height: u32) -> DynamicImage {
     assert!(song.channel_count == 1 || song.channel_count == 2);
 
     // Left is channel 0
-    let l_samples = song.samples.get(0).unwrap();
+    let l_samples = song.samples.first().unwrap();
     // Right is channel 1, or if mono, duplicate the left channel
-    let r_samples = song.samples.get(1).or(song.samples.get(0)).unwrap();
+    let r_samples = song.samples.get(1).or(song.samples.first()).unwrap();
     assert!(l_samples.len() == r_samples.len());
 
-    let l_max = rms(&l_samples);
-    let r_max = rms(&r_samples);
+    let l_max = rms(l_samples);
+    let r_max = rms(r_samples);
 
     let rect_width = 1;
     let num_rects: usize = (width / rect_width) as usize;
@@ -141,9 +141,9 @@ pub fn gen_song_spectrogram(song: &Song, width: u32, height: u32) -> DynamicImag
     assert!(song.channel_count == 1 || song.channel_count == 2);
 
     // Left is channel 0
-    let l_samples = song.samples.get(0).unwrap();
+    let l_samples = song.samples.first().unwrap();
     // Right is channel 1, or if mono, duplicate the left channel
-    let r_samples = song.samples.get(1).or(song.samples.get(0)).unwrap();
+    let r_samples = song.samples.get(1).or(song.samples.first()).unwrap();
     assert!(l_samples.len() == r_samples.len());
 
     let spec_builder = SpecOptionsBuilder::new(2048)

@@ -19,13 +19,13 @@ impl Librarian {
 pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEntity) {
     match model {
         DimpleEntity::Artist(artist) => {
-            for metadata in plugins.artist_metadata(library, &artist) {
+            for metadata in plugins.artist_metadata(library, artist) {
                 let _ = library.db.transaction(|t| 
                     librarian::merge_artist_metadata(t, &metadata, Some(artist.clone())));
             }
         },
         DimpleEntity::Track(track) => {
-            for metadata in plugins.track_metadata(library, &track) {
+            for metadata in plugins.track_metadata(library, track) {
                 let _ = library.db.transaction(|t| 
                     librarian::merge_track_metadata(t, &metadata, Some(track.clone())));
             }
@@ -36,7 +36,7 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
         //     }
         // },
         DimpleEntity::Release(release) => {
-            for metadata in plugins.release_metadata(library, &release) {
+            for metadata in plugins.release_metadata(library, release) {
                 let _ = library.db.transaction(|t| 
                     librarian::merge_release_metadata(t, &metadata, Some(release.clone())));
             }
@@ -59,7 +59,7 @@ pub fn merge_artist_metadata(txn: &DbTransaction, artist: &ArtistMetadata, pre_m
 }
 
 pub fn merge_release_metadata(txn: &DbTransaction, metadata: &ReleaseMetadata, pre_match: Option<Release>) -> Result<Release, anyhow::Error> {
-    let matched = pre_match.or_else(|| match_release(txn, &metadata).ok().flatten()).unwrap_or_default();
+    let matched = pre_match.or_else(|| match_release(txn, metadata).ok().flatten()).unwrap_or_default();
     let mut merged = CrdtRules::merge(matched.clone(), metadata.release.clone());
     if merged != matched {
         merged = txn.save(&merged)?;
@@ -73,7 +73,7 @@ pub fn merge_release_metadata(txn: &DbTransaction, metadata: &ReleaseMetadata, p
 }
 
 pub fn merge_track_metadata(txn: &DbTransaction, metadata: &TrackMetadata, pre_match: Option<Track>) -> Result<Track, anyhow::Error> {
-    let matched = pre_match.or_else(|| match_track(txn, &metadata).ok().flatten()).unwrap_or_default();
+    let matched = pre_match.or_else(|| match_track(txn, metadata).ok().flatten()).unwrap_or_default();
     let mut merged = CrdtRules::merge(matched.clone(), metadata.track.clone());
     if merged != matched {
         merged = txn.save(&merged)?;
@@ -93,7 +93,7 @@ pub fn merge_track_metadata(txn: &DbTransaction, metadata: &TrackMetadata, pre_m
 
 pub fn merge_artist_releases(txn: &DbTransaction, releases: &[ReleaseMetadata], artist: &Artist) -> Result<(), anyhow::Error> {
     for release in releases {
-        let release = merge_release_metadata(txn, &release, None)?;
+        let release = merge_release_metadata(txn, release, None)?;
         ArtistRef::attach(txn, artist, &release.id)?;
     }
     Ok(())
@@ -101,7 +101,7 @@ pub fn merge_artist_releases(txn: &DbTransaction, releases: &[ReleaseMetadata], 
 
 pub fn merge_release_tracks(txn: &DbTransaction, tracks: &[TrackMetadata], release: &Release) -> Result<(), anyhow::Error> {
     for track in tracks {
-        let mut track = merge_track_metadata(txn, &track, None)?;
+        let mut track = merge_track_metadata(txn, track, None)?;
         if track.release_id.is_none() {
             track.release_id = release.id.clone();
             track = txn.save(&track)?;
@@ -172,7 +172,7 @@ pub fn merge_genres(txn: &DbTransaction, genres: &[Genre], model_id: &Option<Str
 
 pub fn merge_artists(txn: &DbTransaction, artists: &[ArtistMetadata], model_id: &Option<String>) -> Result<(), anyhow::Error> {
     for artist in artists {
-        let artist = merge_artist_metadata(txn, &artist, None)?;
+        let artist = merge_artist_metadata(txn, artist, None)?;
         ArtistRef::attach(txn, &artist, model_id)?;
     }
     Ok(())
@@ -320,7 +320,7 @@ pub struct SearchResults {
 }
 
 mod tests {
-    use crate::{librarian::{self, ArtistMetadata}, library::Library, model::Artist};
+    
 
     #[test]
     fn test_merge_artist_metadata() {

@@ -32,7 +32,7 @@ pub fn init_lazy_image_loader(ui: &AppWindow, library: &Library) {
                 async_load(ui_weak, &library, &key, index);
                 index
             });
-        return index as i32
+        index as i32
     });
 }
 
@@ -48,7 +48,7 @@ pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, key: &str, index
             .or_else(|| library.get::<Playlist>(&key).map(DimpleEntity::from))
             ;
         if entity.is_none() {
-            log::warn!("no entity found for key {}", key);
+            log::warn!("no entity found for key {key}");
             return
         }
         let entity = entity.unwrap();

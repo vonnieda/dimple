@@ -47,8 +47,8 @@ impl TrackDetailsController {
             if let Some(track) = tracks.first() {
                 let track = track.clone();
                 ui.upgrade_in_event_loop(move |ui| {
-                    let mut card: CardAdapter = track.clone().into();
-                    ui.global::<TrackDetailsAdapter>().set_card(card.into());
+                    let card: CardAdapter = track.clone().into();
+                    ui.global::<TrackDetailsAdapter>().set_card(card);
                     ui.global::<TrackDetailsAdapter>().set_key(track.id.clone().unwrap_or_default().into());
                     ui.global::<TrackDetailsAdapter>().set_summary(track.summary.clone().unwrap_or_default().into());
                     ui.global::<TrackDetailsAdapter>().set_disambiguation(track.disambiguation.clone().unwrap_or_default().into());
@@ -57,7 +57,7 @@ impl TrackDetailsController {
                         .filter(|s| !s.is_empty())
                         .unwrap_or("(No lyrics, click title to edit.)".to_string());
                     ui.global::<TrackDetailsAdapter>().set_lyrics(lyrics.into());
-                    ui.global::<TrackDetailsAdapter>().set_dump(format!("{:?}", track).into());
+                    ui.global::<TrackDetailsAdapter>().set_dump(format!("{track:?}").into());
                 }).unwrap();
             }
         })?;
@@ -153,8 +153,8 @@ impl TrackDetailsController {
 }
 
 pub fn track_details(url: &str, app: &App, controller: &mut TrackDetailsController) {
-    let url = Url::parse(&url).unwrap();
-    let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
+    let url = Url::parse(url).unwrap();
+    let key = url.path_segments().unwrap().next().unwrap().to_string();
 
     // Set the track in the controller which will handle all subscriptions
     controller.set_track(key, app).unwrap();
@@ -210,7 +210,7 @@ impl From<Release> for LinkAdapter {
 fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
-            let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
+            let card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
             card
         })
         .collect()

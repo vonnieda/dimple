@@ -123,6 +123,12 @@ pub struct MutableStringParam {
     value: Arc<Mutex<String>>,
 }
 
+impl Default for MutableStringParam {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MutableStringParam {
     pub fn new() -> Self {
         MutableStringParam { 

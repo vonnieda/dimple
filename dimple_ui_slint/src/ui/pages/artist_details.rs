@@ -4,7 +4,6 @@ use crate::ui::CardAdapter;
 use crate::ui::Page;
 use dimple_core::librarian;
 use dimple_core::model::Artist;
-use dimple_core::model::DimpleEntity;
 use dimple_core::model::Genre;
 use dimple_core::model::ModelBasics;
 use dimple_core::model::Release;
@@ -39,12 +38,12 @@ impl ArtistDetailsController {
             if let Some(artist) = artists.first() {
                 let artist = artist.clone();
                 ui.upgrade_in_event_loop(move |ui| {
-                    let mut card: CardAdapter = artist.clone().into();                
-                    ui.global::<ArtistDetailsAdapter>().set_card(card.into());
+                    let card: CardAdapter = artist.clone().into();                
+                    ui.global::<ArtistDetailsAdapter>().set_card(card);
                     ui.global::<ArtistDetailsAdapter>().set_key(artist.id.clone().unwrap_or_default().into());
                     ui.global::<ArtistDetailsAdapter>().set_summary(artist.summary.clone().unwrap_or_default().into());
                     ui.global::<ArtistDetailsAdapter>().set_disambiguation(artist.disambiguation.clone().unwrap_or_default().into());
-                    ui.global::<ArtistDetailsAdapter>().set_dump(format!("{:?}", artist).into());
+                    ui.global::<ArtistDetailsAdapter>().set_dump(format!("{artist:?}").into());
                 }).unwrap();
             }
         })?;
@@ -131,8 +130,8 @@ impl ArtistDetailsController {
 }
 
 pub fn artist_details(url: &str, app: &App, controller: &mut ArtistDetailsController) {
-    let url = Url::parse(&url).unwrap();
-    let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
+    let url = Url::parse(url).unwrap();
+    let key = url.path_segments().unwrap().next().unwrap().to_string();
 
     // Set the artist in the controller which will handle all subscriptions
     controller.set_artist(key, app).unwrap();
@@ -155,7 +154,7 @@ fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
 fn release_cards(releases: &[Release]) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
-            let mut card: CardAdapter = release_card(&release);
+            let card: CardAdapter = release_card(&release);
             card
         })
         .collect()

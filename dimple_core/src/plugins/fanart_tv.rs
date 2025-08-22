@@ -78,7 +78,7 @@ impl Plugin for FanartTvPlugin {
                 let mut dimage = Dimage::new(&image);
                 // TODO set correct type based on what is found above
                 dimage.kind = Some(DimageKind::MusicArtistThumb);
-                return Ok(Some(dimage))
+                Ok(Some(dimage))
             },
             _ => Ok(None)
         }

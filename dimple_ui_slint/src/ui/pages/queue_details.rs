@@ -83,13 +83,10 @@ impl QueueDetailsController {
 
         let app1 = app.clone();
         app.player.notifier.observe(move |event| {
-            match event {
-                PlayerEvent::QueueIndex(index) => {
-                    app1.ui.upgrade_in_event_loop(move |ui| {
-                        ui.global::<QueueDetailsAdapter>().set_current_row(index as i32);
-                    }).unwrap();
-                },
-                _ => (),
+            if let PlayerEvent::QueueIndex(index) = event {
+                app1.ui.upgrade_in_event_loop(move |ui| {
+                    ui.global::<QueueDetailsAdapter>().set_current_row(index as i32);
+                }).unwrap();
             }
         });
     }
@@ -109,8 +106,8 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
         let track = track.clone();
         let row = Rc::new(VecModel::default());
         let length = track.length_ms
-            .map(|ms| Duration::from_millis(ms as u64))
-            .map(|dur| format_length(dur));
+            .map(|ms| Duration::from_millis(ms))
+            .map(format_length);
         row.push((i + 1).to_string().as_str().into()); // # (Ordinal)
         row.push(track.title.clone().unwrap_or_default().as_str().into()); // Title
         row.push(track.album_name(library).unwrap_or_default().as_str().into()); // Album
@@ -124,7 +121,7 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
 fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
     let keys: Vec<_> = tracks.iter()
         .map(|track| track.id.clone().unwrap())
-        .map(|key| SharedString::from(key))
+        .map(SharedString::from)
         .collect();
     keys.as_slice().into()
 }
@@ -132,5 +129,5 @@ fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
 fn format_length(length: Duration) -> String {
     let minutes = length.as_secs() / 60;
     let seconds = length.as_secs() % 60;
-    format!("{}:{:02}", minutes, seconds)
+    format!("{minutes}:{seconds:02}")
 }

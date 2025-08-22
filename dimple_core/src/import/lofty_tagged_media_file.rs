@@ -1,9 +1,8 @@
-use std::{collections::{HashMap, HashSet}, fs::File, path::Path, sync::Arc};
+use std::path::Path;
 
 use anyhow::anyhow;
-use image::DynamicImage;
 use itertools::Itertools;
-use lofty::{file::{TaggedFile, TaggedFileExt}, picture::PictureType, tag::{Accessor, ItemKey, Tag, TagExt, TagItem, TagType}};
+use lofty::{file::TaggedFileExt, picture::PictureType, tag::{Accessor, ItemKey, Tag, TagExt}};
 
 use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, model::{dimage::DimageKind, Artist, Dimage, Genre, Link, Release, Track}};
 
@@ -74,7 +73,7 @@ impl LoftyTaggedMediaFile {
         Track {
             title: self.tags.title().map(Into::into),
             position: self.tags.track(),
-            length_ms: self.tags.get_string(&ItemKey::Length).map(|l| u64::from_str_radix(l, 10).ok()).flatten(),
+            length_ms: self.tags.get_string(&ItemKey::Length).and_then(|l| u64::from_str_radix(l, 10).ok()),
             lyrics: self.tags.get_string(&ItemKey::Lyrics).map(Into::into),
             musicbrainz_id: self.tags.get_string(&ItemKey::MusicBrainzTrackId).map(Into::into),
             media_position: self.tags.disk(),
@@ -161,12 +160,12 @@ impl LoftyTaggedMediaFile {
             return artists
         }
         self.tags.get_strings(&ItemKey::TrackArtist)
-            .flat_map(|a| parse_artist_tag(a))
+            .flat_map(parse_artist_tag)
             .zip_longest(self.tags.get_strings(&ItemKey::MusicBrainzArtistId))
             .map(|artist| {
                 ArtistMetadata {
                     artist: Artist {
-                        name: artist.clone().left().map(Into::into),
+                        name: artist.clone().left(),
                         musicbrainz_id: artist.clone().right().map(Into::into),
                         ..Default::default()
                     },

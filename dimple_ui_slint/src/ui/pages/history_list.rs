@@ -72,7 +72,7 @@ fn row_data(events: &[Event]) -> ModelRc<ModelRc<StandardListViewItem>> {
 fn row_selected(app: &App, row: i32) {
     let app = app.clone();
     app.ui.upgrade_in_event_loop(move |_ui| {
-        println!("row_selected {}", row);
+        println!("row_selected {row}");
         // let adapter = ui.get_track_list();
         // let rows = adapter.rows.as_any().downcast_ref::<VecModel<ModelRc<StandardListViewItem>>>().unwrap();
         // let key = adapter.keys.row_data(row as usize).unwrap().to_string();

@@ -29,7 +29,7 @@ pub struct SymphoniaTaggedMediaFile {
 
 impl SymphoniaTaggedMediaFile {
     pub fn new(path: &Path) -> Result<SymphoniaTaggedMediaFile, anyhow::Error> {
-        let media_source = File::open(&path).unwrap();
+        let media_source = File::open(path).unwrap();
         let media_source_stream =
             MediaSourceStream::new(Box::new(media_source), Default::default());
 
@@ -64,7 +64,7 @@ impl SymphoniaTaggedMediaFile {
         }
 
         let mut length_ms = None;
-        if let Some(track) = format.tracks().get(0) {
+        if let Some(track) = format.tracks().first() {
             if let Some(time_base) = track.codec_params.time_base {
                 if let Some(n_frames) = track.codec_params.n_frames {
                     let length = time_base.calc_time(n_frames);

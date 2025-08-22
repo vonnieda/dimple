@@ -48,7 +48,7 @@ impl Track {
     }
 
     pub fn artist(&self, library: &Library) -> Option<Artist> {
-        self.artists(library).get(0).cloned()
+        self.artists(library).first().cloned()
     }
 
     pub fn artist_name(&self, library: &Library) -> Option<String> {

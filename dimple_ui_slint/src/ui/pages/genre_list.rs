@@ -3,7 +3,6 @@ use slint::ComponentHandle as _;
 use crate::ui::app_window_controller::App;
 use crate::ui::CardAdapter;
 use crate::ui::GenreListAdapter;
-use dimple_core::model::DimpleEntity;
 use dimple_core::model::Genre;
 use dimple_db::db::query::QuerySubscription;
 use slint::ModelRc;

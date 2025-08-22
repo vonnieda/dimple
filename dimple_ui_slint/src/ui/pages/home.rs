@@ -1,5 +1,5 @@
 use dimple_core::library::Library;
-use dimple_core::model::{Artist, DimpleEntity, Release};
+use dimple_core::model::{Artist, Release};
 use slint::ComponentHandle as _;
 
 use crate::ui::app_window_controller::App;
@@ -61,21 +61,21 @@ fn update_model(app: &App) {
             sections.push(CardSectionAdapter {
                 title: "Newest Releases".into(),
                 sub_title: Default::default(),
-                url: format!("dimple://home/newest-releases").into(),
+                url: "dimple://home/newest-releases".to_string().into(),
                 cards: release_cards(&newest_releases, &app.library).as_slice().into(),
             });
 
             sections.push(CardSectionAdapter {
                 title: "Favorite Releases".into(),
                 sub_title: Default::default(),
-                url: format!("dimple://home/favorite-releases").into(),
+                url: "dimple://home/favorite-releases".to_string().into(),
                 cards: release_cards(&favorite_releases, &app.library).as_slice().into(),
             });
 
             sections.push(CardSectionAdapter {
                 title: "Favorite Artists".into(),
                 sub_title: Default::default(),
-                url: format!("dimple://home/favorite-artists").into(),
+                url: "dimple://home/favorite-artists".to_string().into(),
                 cards: artist_cards(&favorite_artists).as_slice().into(),
             });
 
@@ -88,7 +88,7 @@ fn update_model(app: &App) {
 fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
     releases.iter().cloned().enumerate()
         .map(|(index, release)| {
-            let mut card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
+            let card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
             card
         })
         .collect()
@@ -120,7 +120,7 @@ fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
 fn artist_cards(artists: &[Artist]) -> Vec<CardAdapter> {
     artists.iter().cloned().enumerate()
         .map(|(index, artist)| {
-            let mut card: CardAdapter = artist_card(&artist);
+            let card: CardAdapter = artist_card(&artist);
             card
         })
         .collect()

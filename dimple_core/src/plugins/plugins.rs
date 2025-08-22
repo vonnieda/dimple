@@ -8,16 +8,12 @@ use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMet
 use super::{plugin::Plugin, USER_AGENT};
 
 #[derive(Clone)]
+#[derive(Default)]
 pub struct Plugins {
     plugins: Arc<RwLock<Vec<Arc<dyn Plugin>>>>,
     cache_dir: String,
 }
 
-impl Default for Plugins {
-    fn default() -> Self {
-        Self { plugins: Default::default(), cache_dir: Default::default() }
-    }
-}
 
 impl Plugins {
     pub fn new(cache_dir: &str) -> Self {
@@ -60,7 +56,7 @@ impl Plugins {
                 },
                 Ok(None) => (),
                 Err(e) => {
-                    log::error!("{}", e);
+                    log::error!("{e}");
                 }
             }
         }
@@ -127,7 +123,7 @@ impl Plugins {
 
     pub fn cache_get(&self, url: &str) -> Option<CachedResponse> {
         let bytes = cacache::read_sync(self.cache_dir.clone(), url).ok()?;
-        Some(serde_json::from_slice(&bytes).ok()?)
+        serde_json::from_slice(&bytes).ok()
     }
 
     pub fn cache_put(&self, url: &str, response: &CachedResponse) {
@@ -170,7 +166,7 @@ impl CachedResponse {
     }    
 
     pub fn bytes(&self) -> Result<Vec<u8>, anyhow::Error> {
-        return Ok(self.response.clone())
+        Ok(self.response.clone())
     }
 
     pub fn status(&self) -> u16 {

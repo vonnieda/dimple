@@ -1,15 +1,7 @@
-use std::io::Cursor;
-use std::sync::Arc;
-use std::sync::Mutex;
 
-use dimple_core::librarian::Librarian;
-use dimple_core::model::DimpleEntity;
 use fast_image_resize::Resizer;
 use image::DynamicImage;
-use image::ImageFormat;
-use slint::Weak;
 use slint::{Rgba8Pixel, SharedPixelBuffer};
-use crate::ui::AppWindow;
 
 pub fn dynamic_to_buffer(dynamic_image: &DynamicImage) -> SharedPixelBuffer<Rgba8Pixel> {
     // TODO this might be cloning twice.

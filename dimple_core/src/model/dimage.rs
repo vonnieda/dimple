@@ -68,7 +68,7 @@ fn calculate_sha256(data: &Vec<u8>) -> String {
     let mut hasher = Sha256::new();
     hasher.update(data);
     let result = hasher.finalize();
-    format!("{:x}", result)
+    format!("{result:x}")
 }            
 
 pub fn resize(image: &DynamicImage, width: u32, height: u32) -> DynamicImage {

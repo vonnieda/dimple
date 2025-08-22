@@ -1,7 +1,6 @@
 use anyhow::Result;
 use crate::ui::app_window_controller::App;
 use crate::ui::CardAdapter;
-use dimple_core::model::DimpleEntity;
 use dimple_core::model::Playlist;
 use dimple_db::db::query::QuerySubscription;
 use slint::Model as _;
@@ -23,7 +22,7 @@ impl PlaylistListController {
                 ui.upgrade_in_event_loop(move |ui| {
                     let cards: Vec<CardAdapter> = playlists.iter().cloned().enumerate()
                         .map(|(index, playlist)| {
-                            let mut card: CardAdapter = playlist.clone().into();
+                            let card: CardAdapter = playlist.clone().into();
                             card
                         })
                         .collect();

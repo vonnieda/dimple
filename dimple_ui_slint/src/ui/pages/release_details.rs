@@ -73,12 +73,12 @@ impl ReleaseDetailsController {
                 ui.upgrade_in_event_loop(move |ui| {
                     let card: CardAdapter = release.clone().into();
 
-                    ui.global::<ReleaseDetailsAdapter>().set_card(card.into());
+                    ui.global::<ReleaseDetailsAdapter>().set_card(card);
                     ui.global::<ReleaseDetailsAdapter>().set_key(release.id.clone().unwrap_or_default().into());
                     ui.global::<ReleaseDetailsAdapter>().set_release_type(release.release_group_type.clone().unwrap_or("Release".to_string()).into());
                     ui.global::<ReleaseDetailsAdapter>().set_summary(release.summary.clone().unwrap_or_default().into());
                     ui.global::<ReleaseDetailsAdapter>().set_disambiguation(release.disambiguation.clone().unwrap_or_default().into());
-                    ui.global::<ReleaseDetailsAdapter>().set_dump(format!("{:?}", release).into());
+                    ui.global::<ReleaseDetailsAdapter>().set_dump(format!("{release:?}").into());
                 }).unwrap();
             }
         })?;
@@ -171,8 +171,8 @@ impl ReleaseDetailsController {
 }
 
 pub fn release_details(url: &str, app: &App, controller: &mut ReleaseDetailsController) {
-    let url = Url::parse(&url).unwrap();
-    let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
+    let url = Url::parse(url).unwrap();
+    let key = url.path_segments().unwrap().next().unwrap().to_string();
 
     // Set the release in the controller which will handle all subscriptions
     controller.set_release(key, app).unwrap();
@@ -213,8 +213,8 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
         let track = track.clone();
         let row = Rc::new(VecModel::default());
         let length = track.length_ms
-            .map(|ms| Duration::from_millis(ms as u64))
-            .map(|dur| format_length(dur));
+            .map(|ms| Duration::from_millis(ms))
+            .map(format_length);
         row.push(track.position.unwrap_or_default().to_string().as_str().into()); // Track #
         row.push(track.title.clone().unwrap_or_default().as_str().into()); // Title
         row.push(track.artist_name(library).unwrap_or_default().as_str().into()); // Artist
@@ -227,7 +227,7 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
 fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
     let keys: Vec<_> = tracks.iter()
         .map(|track| track.id.clone().unwrap())
-        .map(|key| SharedString::from(key))
+        .map(SharedString::from)
         .collect();
     keys.as_slice().into()
 }
@@ -262,6 +262,6 @@ fn link_links(links: &[Link]) -> Vec<LinkAdapter> {
 fn format_length(length: Duration) -> String {
     let minutes = length.as_secs() / 60;
     let seconds = length.as_secs() % 60;
-    format!("{}:{:02}", minutes, seconds)
+    format!("{minutes}:{seconds:02}")
 }
 

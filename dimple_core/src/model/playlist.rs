@@ -1,11 +1,9 @@
-use dimple_db::db::Entity;
 use fractional_index::FractionalIndex;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use crate::{library::Library, model::DimpleEntity};
 use crate::model::ModelBasics as _;
 
-use super::{Artist, ModelBasics as _, PlaylistItem, Release, Track};
+use super::{ModelBasics as _, PlaylistItem, Track};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Playlist {
@@ -61,18 +59,18 @@ impl Playlist {
     // give each one a "grouping_id" and then when we encounter an item, 
     // we can treat items with the same grouping_id as equivalent.
     pub fn insert(&self, library: &Library, model: &DimpleEntity, index: usize) {
-        match &model {
-            &DimpleEntity::Artist(artist) => {
+        match model {
+            DimpleEntity::Artist(artist) => {
                 for (i, release) in artist.releases(library).iter().enumerate() {
                     self.insert(library, &release.into(), index + i);
                 }
             },
-            &DimpleEntity::Release(release) => {
+            DimpleEntity::Release(release) => {
                 for (i, track) in release.tracks(library).iter().enumerate() {
                     self.insert(library, &track.into(), index + i);
                 }
             },
-            &DimpleEntity::Track(track) => {
+            DimpleEntity::Track(track) => {
                 let items = self.items(library);
                 let index = index.min(items.len());
                 let before = if index == 0 { 

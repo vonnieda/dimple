@@ -1,9 +1,7 @@
 pub mod track_downloader;
 
-use std::{sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, time::{Duration, Instant}};
+use std::{sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, time::Duration};
 
-use anyhow::Result;
-use dimple_db::db::Entity;
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
 use crate::{library::Library, model::{Artist, DimpleEntity, Event, ModelBasics as _, Playlist, Release, Track}, notifier::Notifier};
@@ -159,14 +157,14 @@ impl Player {
     /// key can live in Library, and I suppose Library::default_play_queue()
     pub fn queue(&self) -> Playlist {
         let id = format!("__dimple_system_play_queue_{}", self.library.id());
-        let playlist = match self.library.get::<Playlist>(&id) {
+        
+        match self.library.get::<Playlist>(&id) {
             Some(play_queue) => play_queue,
             None => self.library.save(&Playlist {
                 id: Some(id.to_string()),
                 ..Default::default()
             }).unwrap()
-        };
-        playlist
+        }
     }
 
     pub fn current_queue_index(&self) -> usize {
@@ -265,7 +263,7 @@ impl Player {
             let timestamp = chrono::Utc::now();
             self.library.save(&Event {
                 id: None,
-                timestamp: timestamp,
+                timestamp,
                 event_type: event_type.to_string(),
                 artist: current_track.artist_name(&self.library).clone(),
                 album: current_track.album_name(&self.library).clone(),
@@ -309,7 +307,7 @@ impl Player {
         loop {
             match tracks.get(queue_index) {
                 Some(track) => {
-                    match self.downloader.get(&track, &self.library) {
+                    match self.downloader.get(track, &self.library) {
                         TrackDownloadStatus::Downloading => {
                         },
                         TrackDownloadStatus::Ready(song) => { 
@@ -327,7 +325,7 @@ impl Player {
                             return
                         },
                         TrackDownloadStatus::Error(e) => {
-                            log::error!("Error loading next track {:?}, trying next. {}", track, e);
+                            log::error!("Error loading next track {track:?}, trying next. {e}");
                             queue_index += 1;
                             continue
                         },

@@ -49,7 +49,7 @@ pub fn playlist_details(url: &str, app: &App) {
     let url = url.to_owned();
     thread::spawn(move || {
         let url = Url::parse(&url).unwrap();
-        let key = url.path_segments().unwrap().nth(0).unwrap().to_string();
+        let key = url.path_segments().unwrap().next().unwrap().to_string();
         let playlist: Playlist = app.library.get(&key).unwrap();
         let tracks = playlist.tracks(&app.library);
         let library = app.library.clone();
@@ -70,8 +70,8 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
         let track = track.clone();
         let row = Rc::new(VecModel::default());
         let length = track.length_ms
-            .map(|ms| Duration::from_millis(ms as u64))
-            .map(|dur| format_length(dur));
+            .map(|ms| Duration::from_millis(ms))
+            .map(format_length);
         row.push(track.position.unwrap_or_default().to_string().as_str().into()); // Track #
         row.push(track.title.clone().unwrap_or_default().as_str().into()); // Title
         row.push(track.album_name(library).unwrap_or_default().as_str().into()); // Album
@@ -101,5 +101,5 @@ fn play_now(app: &App, key: &str) {
 fn format_length(length: Duration) -> String {
     let minutes = length.as_secs() / 60;
     let seconds = length.as_secs() % 60;
-    format!("{}:{:02}", minutes, seconds)
+    format!("{minutes}:{seconds:02}")
 }

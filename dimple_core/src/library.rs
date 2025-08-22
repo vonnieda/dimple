@@ -1,13 +1,11 @@
-use std::{fmt::Debug, time::Duration};
+use std::fmt::Debug;
 
 use anyhow::Result;
 use dimple_db::{db::{Entity, Migrations}, rusqlite::Params, Db};
 use image::DynamicImage;
 use include_dir::{include_dir, Dir};
-use log::info;
-use uuid::Uuid;
 
-use crate::{model::{Artist, DimpleEntity, Genre, MediaFile, ModelBasics as _, Release, Track, TrackSource}, notifier::Notifier};
+use crate::{model::{DimpleEntity, MediaFile, ModelBasics as _, Track, TrackSource}, notifier::Notifier};
 
 #[derive(Clone)]
 pub struct Library {
@@ -54,12 +52,12 @@ impl Library {
                 match event {
                     dimple_db::db::DbEvent::Insert(type_name, id) => library_clone.notifier.notify(LibraryEvent { 
                         library: library_clone.clone(), 
-                        type_name: type_name, 
+                        type_name, 
                         key: id, 
                     }),
                     dimple_db::db::DbEvent::Update(type_name, id) => library_clone.notifier.notify(LibraryEvent { 
                         library: library_clone.clone(), 
-                        type_name: type_name, 
+                        type_name, 
                         key: id, 
                     }),
                 }
@@ -111,7 +109,7 @@ impl Library {
 
     // TODO need to change these wrappers to return Results
     pub fn save<T: Entity>(&self, obj: &T) -> Result<T> {
-        Ok(self.db.save(obj)?)
+        self.db.save(obj)
     }
 
     pub fn get<T: Entity>(&self, key: &str) -> Option<T> {
@@ -137,46 +135,44 @@ impl Library {
     pub fn image(&self, model: &DimpleEntity) -> Option<DynamicImage> {
         match model {
             DimpleEntity::Artist(artist) => {
-                if let Some(image) = artist.images(self).get(0) {
+                if let Some(image) = artist.images(self).first() {
                     return Some(image.get_image())
                 }
                 for release in artist.releases(self).iter() {
-                    if let Some(image) = release.images(self).get(0) {
+                    if let Some(image) = release.images(self).first() {
                         return Some(image.get_image())
                     }
                 }
             },
             DimpleEntity::Track(track) => {
-                if let Some(image) = track.images(self).get(0) {
+                if let Some(image) = track.images(self).first() {
                     return Some(image.get_image())
                 }
                 if let Some(release) = track.release(self) {
-                    if let Some(image) = release.images(self).get(0) {
+                    if let Some(image) = release.images(self).first() {
                         return Some(image.get_image())
                     }
                 }
                 for artist in track.artists(self).iter() {
-                    if let Some(image) = artist.images(self).get(0) {
+                    if let Some(image) = artist.images(self).first() {
                         return Some(image.get_image())
                     }
                 }
             },
             DimpleEntity::Release(release) => {
-                return release.images(self)
-                    .get(0)
-                    .and_then(|i| Some(i.get_image()))
+                return release.images(self).first().map(|i| i.get_image())
             },
             DimpleEntity::Genre(genre) => {
-                if let Some(image) = genre.images(self).get(0) {
+                if let Some(image) = genre.images(self).first() {
                     return Some(image.get_image())
                 }
                 for artist in genre.artists(self).iter() {
-                    if let Some(image) = artist.images(self).get(0) {
+                    if let Some(image) = artist.images(self).first() {
                         return Some(image.get_image())
                     }
                 }
                 for release in genre.releases(self).iter() {
-                    if let Some(image) = release.images(self).get(0) {
+                    if let Some(image) = release.images(self).first() {
                         return Some(image.get_image())
                     }
                 }
