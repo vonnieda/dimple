@@ -126,8 +126,9 @@ struct ScannedFile {
     file_length: u64,
 }
 
+#[cfg(test)]
 mod tests {
-    
+    use crate::{library::Library, model::MediaFile};
 
     #[test]
     fn import() {

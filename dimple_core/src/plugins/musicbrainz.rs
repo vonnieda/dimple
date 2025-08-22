@@ -222,12 +222,9 @@ struct MusicBrainzPluginConfig {
     pub password: String,
 }
 
+#[cfg(test)]
 mod tests {
-    
-
-    use crate::{librarian::ArtistMetadata, library::Library, model::Artist};
-
-    
+    use crate::{librarian::{self, ArtistMetadata}, library::Library, model::Artist, plugins::{musicbrainz::MusicBrainzPlugin, plugin::Plugin as _, plugins::Plugins}};
 
     #[test]
     fn it_works() {

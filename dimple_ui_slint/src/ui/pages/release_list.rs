@@ -21,9 +21,13 @@ impl ReleaseListController {
         // Subscribe to release changes
         let ui = app.ui.clone();
         let library = app.library.clone();
-        let releases_subscription = app.library.db.query_subscribe(
-            "SELECT * FROM Release ORDER BY title ASC",
-            (),
+        let sql = "
+            SELECT * 
+            FROM Release 
+            -- WHERE save = true OR download = true
+            ORDER BY title ASC
+        ";
+        let releases_subscription = app.library.db.query_subscribe(sql, (),
             move |releases: Vec<Release>| {
                 let library = library.clone();
                 ui.upgrade_in_event_loop(move |ui| {

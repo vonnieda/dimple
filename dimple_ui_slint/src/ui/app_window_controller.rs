@@ -79,7 +79,7 @@ impl AppWindowController {
         let plugins = Plugins::new(cache_dir.to_str().unwrap());
         plugins.add_default_plugins();
         let librarian = Librarian::new(&library, &plugins);
-        init_lazy_image_loader(&ui, &library);
+        init_lazy_image_loader(&ui, &library, &plugins);
         let ui_weak = ui.as_weak();
         // TODO look at this.
         // Create placeholders for detail controllers to break circular dependency

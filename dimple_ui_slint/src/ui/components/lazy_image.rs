@@ -1,14 +1,15 @@
-use dimple_core::{library::Library, model::{Artist, DimpleEntity, Genre, Playlist, Release, Track}};
+use dimple_core::{library::Library, model::{Artist, DimageRef, DimpleEntity, Genre, Playlist, Release, Track}, plugins::plugins::Plugins};
 use slint::{ComponentHandle as _, Model as _, ModelRc, VecModel, Weak};
 
 use crate::ui::{images::dynamic_to_slint, AppWindow, LazyImageLoader, LazyImageModel};
 
-pub fn init_lazy_image_loader(ui: &AppWindow, library: &Library) {
+pub fn init_lazy_image_loader(ui: &AppWindow, library: &Library, plugins: &Plugins) {
     // TODO replace with (and create) HashMapModel or something so we can use
     // keys.
     ui.global::<LazyImageLoader>().set_images(ModelRc::new(VecModel::<LazyImageModel>::default()));
     let ui_weak = ui.as_weak();
     let library = library.clone();
+    let plugins = plugins.clone();
     ui.global::<LazyImageLoader>().on_load(move |images, key, width, height| {
         let ui_weak = ui_weak.clone();
         // Downcast is okay because we explicitly set to VecModel above.
@@ -29,16 +30,17 @@ pub fn init_lazy_image_loader(ui: &AppWindow, library: &Library) {
                     ..Default::default()
                 });
                 let index = images.row_count() - 1;
-                async_load(ui_weak, &library, &key, index);
+                async_load(ui_weak, &library, &plugins, &key, index);
                 index
             });
         index as i32
     });
 }
 
-pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, key: &str, index: usize) {
+pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, plugins: &Plugins, key: &str, index: usize) {
     let key = key.to_string();
     let library = library.clone();
+    let plugins = plugins.clone();
     std::thread::spawn(move || {
         // TODO hax
         let entity: Option<DimpleEntity> = library.get::<Artist>(&key).map(DimpleEntity::from)
@@ -48,13 +50,22 @@ pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, key: &str, index
             .or_else(|| library.get::<Playlist>(&key).map(DimpleEntity::from))
             ;
         if entity.is_none() {
-            log::warn!("no entity found for key {key}");
+            log::warn!("no entity found for key '{key}'");
             return
         }
         let entity = entity.unwrap();
         let image = library.image(&entity);
         if image.is_none() {
-            log::warn!("no image found for entity {} {}", entity.type_name(), key);
+            log::warn!("no image found for entity {} '{}', checking plugins", entity.type_name(), key);
+            if let Some(plugin_image) = plugins.image(&library, &entity).get(0) {
+                log::info!("found one for {key}, saving it");
+                library.db.transaction(|txn| {
+                    let dimage = txn.save(plugin_image)?;
+                    DimageRef::attach(txn, &dimage, &Some(key.clone()))?;
+                    Ok(())
+                }).unwrap();
+                log::info!("okay image for {key} should be there now");
+            }
             return
         }
         let image = image.unwrap();

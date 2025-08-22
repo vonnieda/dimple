@@ -319,8 +319,9 @@ pub struct SearchResults {
     pub genres: Vec<Genre>,
 }
 
+#[cfg(test)]
 mod tests {
-    
+    use crate::{librarian::{self, ArtistMetadata}, library::Library, model::Artist};
 
     #[test]
     fn test_merge_artist_metadata() {
