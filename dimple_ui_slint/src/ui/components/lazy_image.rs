@@ -54,18 +54,23 @@ pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, plugins: &Plugin
             return
         }
         let entity = entity.unwrap();
-        let image = library.image(&entity);
+
+        let image = library.image(&entity)
+            .or_else(|| {
+                if let Some(plugin_image) = plugins.image(&library, &entity).get(0) {
+                    let dimage = library.db.transaction(|txn| {
+                        let dimage = txn.save(plugin_image)?;
+                        DimageRef::attach(txn, &dimage, &Some(key.clone()))?;
+                        Ok(dimage)
+                    }).unwrap();
+                    Some(dimage.get_image())
+                }
+                else {
+                    None
+                }
+            });
         if image.is_none() {
-            log::warn!("no image found for entity {} '{}', checking plugins", entity.type_name(), key);
-            if let Some(plugin_image) = plugins.image(&library, &entity).get(0) {
-                log::info!("found one for {key}, saving it");
-                library.db.transaction(|txn| {
-                    let dimage = txn.save(plugin_image)?;
-                    DimageRef::attach(txn, &dimage, &Some(key.clone()))?;
-                    Ok(())
-                }).unwrap();
-                log::info!("okay image for {key} should be there now");
-            }
+            log::warn!("no image found for entity {} '{}'", entity.type_name(), key);
             return
         }
         let image = image.unwrap();
