@@ -46,6 +46,7 @@ impl ImageMangler {
         images
     }
 
+    // TODO tomorrow, chopping block
     pub fn lazy_get<F>(&self, model: &DimpleEntity, width: u32, height: u32, set_image: F) -> slint::Image
             where F: Fn(AppWindow, Image) + Send + Copy + 'static {
         let cache_key = format!("{}:{}:{}", model.id(), width, height);
@@ -135,3 +136,4 @@ pub fn resize(image: DynamicImage, width: u32, height: u32) -> DynamicImage {
 pub fn dynamic_to_slint(dyn_image: &DynamicImage) -> slint::Image {
     slint::Image::from_rgba8(dynamic_to_buffer(dyn_image))
 }
+

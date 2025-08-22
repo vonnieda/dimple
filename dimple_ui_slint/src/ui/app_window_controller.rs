@@ -1,12 +1,12 @@
-use dimple_core::{librarian::Librarian, library::Library, model::Artist, player::{PlayWhen, Player, PlayerEvent}, plugins::plugins::Plugins};
-use dimple_db::{db::DbEvent, Db};
+use dimple_core::{librarian::Librarian, library::Library, player::{PlayWhen, Player, PlayerEvent}, plugins::plugins::Plugins};
+use dimple_db::Db;
 use std::{collections::VecDeque, env, path::Path, sync::{Arc, Mutex, RwLock}};
 
 use slint::{ComponentHandle, SharedString, Weak};
 
 use directories::ProjectDirs;
 
-use crate::{config::Config, ui::{pages::queue_details::QueueDetailsController, *}};
+use crate::{config::Config, ui::{components::lazy_image::init_lazy_image_loader, pages::queue_details::QueueDetailsController, *}};
 
 use self::images::ImageMangler;
 
@@ -77,6 +77,7 @@ impl AppWindowController {
         plugins.add_default_plugins();
         let librarian = Librarian::new(&library, &plugins);
         let images = ImageMangler::new(librarian.clone(), ui.as_weak().clone(), image_cache_dir.to_str().unwrap());        
+        init_lazy_image_loader(&ui, &library);
         let ui_weak = ui.as_weak();
         // TODO look at this.
         // Create placeholders for detail controllers to break circular dependency
@@ -114,37 +115,6 @@ impl AppWindowController {
         let real_queue_controller = pages::queue_details::QueueDetailsController::new(&app).unwrap();
         *queue_details_controller.write().unwrap() = Some(real_queue_controller);
 
-        // Image "service": Downloads images for new artists, releases, etc.
-        // We'll want this to run periodically for any artists with no art
-        // and whenever a new artist is added.
-        let app_clone = app.clone();
-        std::thread::spawn(move || {
-            let app = app_clone;
-            let rx = app.library.db.subscribe();
-            loop {
-                if let Ok(event) = rx.recv() {
-                    if let DbEvent::Insert(entity_type, entity_id) = event {
-                        if entity_type == "Artist" {
-                            if let Ok(Some(artist)) = app.library.db.get::<Artist>(&entity_id) {
-                                // TODO do something cool
-                                println!("new artist {:?}", artist.name);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        // // Update logging "service"
-        // let app_clone = app.clone();
-        // std::thread::spawn(move || {
-        //     app_clone.library.db.subscribe().iter().for_each(|e| {
-        //         match e {
-        //             DbEvent::Insert(a, b) => println!("insert {} {}", a, b),
-        //             DbEvent::Update(a, b) => println!("update {} {}", a, b),
-        //         }
-        //     });
-        // });
-        
         // Initialize page controllers
         let settings_controller = pages::settings::SettingsController::new(&app).unwrap();
         let history_list_controller = pages::history_list::HistoryListController::new(&app).unwrap();

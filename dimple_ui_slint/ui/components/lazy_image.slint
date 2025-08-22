@@ -1,0 +1,56 @@
+import { ListView } from "std-widgets.slint";
+
+export struct LazyImageModel {
+    key: string,
+    index: int,
+    loaded: bool,
+    image: image,
+}
+
+export global LazyImageLoader {
+    callback load(images: [LazyImageModel], key: string, width: int, height: int) -> int;
+    in-out property <[LazyImageModel]> images;
+}
+
+export component LazyImage inherits Image {
+    in property <string> key;
+    in property <image> placeholder;
+    property <int> index;
+    source: LazyImageLoader.images[index].loaded ? LazyImageLoader.images[index].image : placeholder;
+    init() => {
+        // We pass images in here so that in the backend code we can operate
+        // on it directly without needing to get a strong reference to the
+        // app. I think I could drop it by saving a ModelRc in the main
+        // thread.
+        index = LazyImageLoader.load(LazyImageLoader.images, key, root.width / 1px, root.height / 1px);
+    }
+}
+
+struct ExampleModel {
+    name: string,
+    key: string,
+}
+
+export component Example inherits Window {
+    width: 800px;
+    height: 800px;
+    property <[ExampleModel]> models: [
+        { key: "/icons/phosphor/PNGs/regular/backpack.png" },
+        { key: "images/bug.png" },
+        { key: "images/fire.png" },
+        { key: "images/x-circle.png" },
+        { key: "images/x-logo.png" },
+        { key: "images/x-square.png" },
+        { key: "images/x.png" },
+        { key: "images/vinyl-record.png" },
+    ];
+    ListView {
+        for model in models: LazyImage {
+            width: 200px;
+            height: 200px;
+            placeholder: @image-url("images/question.png");
+            key: model.key;
+        }
+    }
+}
+

@@ -4,12 +4,37 @@ import {StyleMetrics, Palette, StandardButton} from "std-widgets.slint";
 import {ImageLinkAdapter, LinkAdapter} from "../components/link.slint";
 import { Link } from "link.slint";
 import { BorderImage } from "border_image.slint";
+import { LazyImage } from "lazy_image.slint";
 
 export struct CardAdapter {
     image: ImageLinkAdapter,
     title: LinkAdapter,
     sub-title: LinkAdapter,
     key: string,
+}
+
+// TODO temp copied from BorderImage, as to not blow up the whole app
+// but this just gets merged with it. I think every image becomes a lazy
+// image.
+export component LazyBorderImage inherits TouchArea {
+    in property <string> key;
+    in property <image> placeholder;
+    mouse-cursor: MouseCursor.pointer;
+    Rectangle {
+        width: root.width;
+        height: root.height;
+        border-radius: Styles.thumbnail-border-radius;
+        border-color: Palette.border;
+        border-width: Styles.thumbnail-border-width;
+        clip: true;
+        background: white;
+        LazyImage {
+            width: root.width;
+            height: root.height;
+            key: root.key;
+            placeholder: root.placeholder;
+        }
+    }
 }
 
 export component VirtualCard inherits VerticalBox {
@@ -24,10 +49,11 @@ export component VirtualCard inherits VerticalBox {
     padding: 0;
     spacing: 4px;
 
-    BorderImage {
-        source: model.image.image;
+    LazyBorderImage {
         width: root.width;
         height: root.width;
+        placeholder: @image-url("../../icons/phosphor/PNGs/regular/users-three.png");
+        key: model.key;
         clicked => { Navigator.navigate(model.image.url); }
         ContextMenuArea {
             Menu {
