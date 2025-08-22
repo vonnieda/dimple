@@ -2,7 +2,7 @@ import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, Button} from "std-widgets.slint";
-import { CardGrid, CardSectionAdapter } from "../components/card_grid.slint";
+import { CardGrid, CardSectionAdapter, SectionCardGrid } from "../components/card_grid.slint";
 import { Styles, Navigator, AppState, Label, PageTitle, PageSubtitle, SectionTitle, SectionSubtitle } from "../common.slint";
 import { Tag } from "../components/tag.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
@@ -138,22 +138,8 @@ export component GenreDetails inherits ScrollView {
             }
         }
 
-        for section in GenreDetailsAdapter.sections: VerticalBox {
-            alignment: start;
-            padding: 0;
-            padding-bottom: 16px;
-            VerticalLayout {
-                SectionTitle {
-                    text: section.title;
-                }
-                if section.sub-title != "": SectionSubtitle {
-                    text: section.sub-title;
-                }
-            }
-            CardGrid {
-                cards: section.cards;
-                max-rows: 1;
-            }
+        SectionCardGrid {
+            sections: GenreDetailsAdapter.sections;
         }
 
         if GenreDetailsAdapter.links.length > 0: VerticalBox {

@@ -1,6 +1,6 @@
 import { ScrollView, VerticalBox } from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { CardGrid, CardGridAdapter, CardSectionAdapter } from "../components/card_grid.slint";
+import { CardGrid, CardGridAdapter, CardSectionAdapter, SectionCardGrid } from "../components/card_grid.slint";
 import { Styles, Label, PageTitle, SectionTitle, SectionSubtitle, AppState, Navigator } from "../common.slint";
 import { LinkAdapter } from "../components/link.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
@@ -78,22 +78,8 @@ export component SearchResults inherits ScrollView {
             text: "Search";
         }
 
-        for section in SearchResultsAdapter.sections: VerticalBox {
-            alignment: start;
-            padding: 0;
-            padding-bottom: 16px;
-            VerticalLayout {
-                SectionTitle {
-                    text: section.title;
-                }
-                if section.sub-title != "": SectionSubtitle {
-                    text: section.sub-title;
-                }
-            }
-            CardGrid {
-                cards: section.cards;
-                max-rows: 1;
-            }
+        SectionCardGrid {
+            sections: SearchResultsAdapter.sections;
         }
     }
 }
