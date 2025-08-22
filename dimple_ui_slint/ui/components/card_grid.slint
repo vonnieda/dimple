@@ -115,7 +115,7 @@ export component CardGrid inherits VerticalBox {
     property <[CardAdapter]> cards_ph: [card_ph, card_ph2, card_ph, card_ph2, card_ph2, card_ph, card_ph, card_ph2, card_ph2, card_ph2, card_ph, card_ph, card_ph, card_ph2, card_ph];
 }
 
-export component SectionCardGrid {
+export component SectionCardGrid inherits VerticalLayout {    
     in property <[CardSectionAdapter]> sections: [
         { title: "For You", sub-title: "From your listens.", cards: [
             { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
@@ -201,6 +201,13 @@ export component SectionCardGrid {
 export component Example inherits Window {
     TabWidget {
         Tab {
+            title: "SectionCardGrid";
+            ScrollView {
+                SectionCardGrid {    
+                }
+            }
+        }
+        Tab {
             title: "CardGrid";
             ScrollView {
                 VirtualCardGrid {    
@@ -212,13 +219,6 @@ export component Example inherits Window {
             title: "VirtualCardGrid";
             VirtualCardGrid {    
                 cards: cards_ph;
-            }
-        }
-        Tab {
-            title: "SectionCardGrid";
-            ScrollView {
-                SectionCardGrid {    
-                }
             }
         }
     }

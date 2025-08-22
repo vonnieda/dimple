@@ -17,11 +17,10 @@ export component LazyImage inherits Image {
     in property <image> placeholder;
     property <int> index;
     source: LazyImageLoader.images[index].loaded ? LazyImageLoader.images[index].image : placeholder;
+    changed key => {
+        index = LazyImageLoader.load(LazyImageLoader.images, key, root.width / 1px, root.height / 1px);
+    }
     init() => {
-        // We pass images in here so that in the backend code we can operate
-        // on it directly without needing to get a strong reference to the
-        // app. I think I could drop it by saving a ModelRc in the main
-        // thread.
         index = LazyImageLoader.load(LazyImageLoader.images, key, root.width / 1px, root.height / 1px);
     }
 }
