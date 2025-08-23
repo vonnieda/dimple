@@ -38,6 +38,9 @@ pub fn init_lazy_image_loader(ui: &AppWindow, library: &Library, plugins: &Plugi
 }
 
 pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, plugins: &Plugins, key: &str, index: usize) {
+    if key.is_empty() {
+        return
+    }
     let key = key.to_string();
     let library = library.clone();
     let plugins = plugins.clone();

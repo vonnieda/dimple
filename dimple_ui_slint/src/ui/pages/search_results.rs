@@ -1,4 +1,5 @@
 
+use std::collections::HashMap;
 use std::thread;
 
 use anyhow::Result;
@@ -40,52 +41,65 @@ struct SearchResult {
 impl SearchResultsController {
     pub fn new(app: &App) -> Result<Self> {
         let ui = app.ui.clone();
+        // TODO want to use MATCH instead of = (does it matter?) but MATCH
+        // blows up the query parser.
         let sql = "
-            SELECT 0 AS rank, id AS id, 'Artist' AS entity_type, name AS title, coalesce(disambiguation, '') AS sub_title FROM Artist WHERE name LIKE ?1
-            UNION 
-            SELECT 0 AS rank, id AS id, 'Release' AS entity_type, title AS title, coalesce(release_group_type, '') AS sub_title FROM Release WHERE title LIKE ?1
-            UNION 
-            SELECT 0 AS rank, id AS id, 'Genre' AS entity_type, name AS title, coalesce(disambiguation, '') AS sub_title FROM Genre WHERE name LIKE ?1
-            UNION 
-            SELECT 0 AS rank, id AS id, 'Track' AS entity_type, title AS title, coalesce(disambiguation, '') AS sub_title FROM Track WHERE title LIKE ?1
+            SELECT 
+                bm25(ArtistFts) AS rank, 
+                Artist.id AS id, 
+                'Artist' AS entity_type, 
+                Artist.name AS title, 
+                COALESCE(Artist.disambiguation, '') AS sub_title
+            FROM ArtistFts 
+            JOIN Artist ON Artist.rowid = ArtistFts.rowid 
+            WHERE ArtistFts = ?1
+
+            UNION
+
+            SELECT 
+                bm25(ReleaseFts) AS rank, 
+                Release.id AS id, 
+                'Release' AS entity_type, 
+                Release.title AS title, 
+                COALESCE(Release.release_group_type, '') AS sub_title 
+            FROM ReleaseFts 
+            JOIN Release ON Release.rowid = ReleaseFts.rowid 
+            WHERE ReleaseFts = ?1
+
+            UNION
+
+            SELECT 
+                bm25(TrackFts) AS rank, 
+                Track.id AS id, 
+                'Track' AS entity_type, 
+                Track.title AS title, 
+                COALESCE(Track.disambiguation, '') AS sub_title 
+            FROM TrackFts 
+            JOIN Track ON Track.rowid = TrackFts.rowid 
+            WHERE TrackFts = ?1
+
+            UNION
+
+            SELECT 
+                bm25(GenreFts) AS rank, 
+                Genre.id AS id, 
+                'Genre' AS entity_type, 
+                Genre.name AS title, 
+                COALESCE(Genre.disambiguation, '') AS sub_title 
+            FROM GenreFts 
+            JOIN Genre ON Genre.rowid = GenreFts.rowid 
+            WHERE GenreFts = ?1
+
             ORDER BY rank, title
             LIMIT 25
         ";
+
         let query_param = MutableStringParam::new();
+        // TODO blows up the query if empty, can probably fix in query with coalesce
+        query_param.set("c3bb4692169bx7361bc8914b6c9b1239c4");
         let app_clone = app.clone();
         let sub = app.library.db.query_subscribe(sql, (query_param.clone(),), move |results: Vec<SearchResult>| {
             let results = results.into_iter().into_group_map_by(|f| f.entity_type.clone());
-            // TODO this conversion back to entities is legacy and not needed now. 
-            // Can just create a SearchResult card. Which will then line up nicely
-            // with FTS. Still want to break them up into sections though - I like
-            // that.
-            let results = SearchResults {
-                artists: results.get("Artist").cloned().unwrap_or_default().iter().map(|f| Artist {
-                    id: Some(f.id.clone()),
-                    name: Some(f.title.clone()),
-                    disambiguation: Some(f.sub_title.clone()),
-                    ..Default::default()
-                }).collect(),
-                releases: results.get("Release").cloned().unwrap_or_default().iter().map(|f| Release {
-                    id: Some(f.id.clone()),
-                    title: Some(f.title.clone()),
-                    disambiguation: Some(f.sub_title.clone()),
-                    ..Default::default()
-                }).collect(),
-                tracks: results.get("Track").cloned().unwrap_or_default().iter().map(|f| Track {
-                    id: Some(f.id.clone()),
-                    title: Some(f.title.clone()),
-                    disambiguation: Some(f.sub_title.clone()),
-                    ..Default::default()
-                }).collect(),
-                genres: results.get("Genre").cloned().unwrap_or_default().iter().map(|f| Genre {
-                    id: Some(f.id.clone()),
-                    name: Some(f.title.clone()),
-                    disambiguation: Some(f.sub_title.clone()),
-                    ..Default::default()
-                }).collect(),
-                ..Default::default()
-            };
             update_results(&app_clone, results);
         })?;
 
@@ -95,7 +109,7 @@ impl SearchResultsController {
         let library_clone = app.library.clone();
         ui.upgrade_in_event_loop(move |ui| {
             ui.global::<SearchResultsAdapter>().on_query(move |query| {
-                query_param.set(&format!("%{query}%"));
+                query_param.set(&query);
                 sub_clone.refresh();            
                 search_plugins(plugins_clone.clone(), library_clone.clone(), query.to_string());
                 ui_clone.upgrade_in_event_loop(move |ui| ui.set_page(Page::SearchResults)).unwrap();
@@ -116,10 +130,10 @@ fn search_plugins(plugins: Plugins, library: Library, query: String) {
         library.db.transaction(|txn| {
             for result in plugin_results {
                 for artist in result.artists {
-                    librarian::merge_artist(txn, &artist)?;
+                    librarian::merge_artist_metadata(txn, &artist, None)?;
                 }
                 for release in result.releases {
-                    // librarian::merge_release_metadata(txn, &release, None)?;
+                    librarian::merge_release_metadata(txn, &release, None)?;
                 }
             }
             Ok(())
@@ -129,50 +143,20 @@ fn search_plugins(plugins: Plugins, library: Library, query: String) {
     });
 }
 
-fn update_results(app: &App, results: SearchResults) {
-    let artists = results.artists;
-    let tracks = results.tracks;
-    let genres = results.genres;
-    let releases = results.releases;
-                                
+fn update_results(app: &App, results: HashMap<String, Vec<SearchResult>>) {
     let app = app.clone();
     app.ui.upgrade_in_event_loop(move |ui| {
         let mut sections: Vec<CardSectionAdapter> = vec![];
 
-        if !tracks.is_empty() {
-            sections.push(CardSectionAdapter {
-                title: "Tracks".into(),
-                sub_title: Default::default(),
-                cards: track_cards(&tracks, &app.library).as_slice().into(),
-                ..Default::default()
-            });
-        }
-
-        if !artists.is_empty() {
-            sections.push(CardSectionAdapter {
-                title: "Artists".into(),
-                sub_title: Default::default(),
-                cards: artist_cards(&artists).as_slice().into(),
-                ..Default::default()
-            });
-        }
-
-        if !releases.is_empty() {
-            sections.push(CardSectionAdapter {
-                title: "Releases".into(),
-                sub_title: Default::default(),
-                cards: release_cards(&releases, &app.library).as_slice().into(),
-                ..Default::default()
-            });
-        }
-
-        if !genres.is_empty() {
-            sections.push(CardSectionAdapter {
-                title: "Genres".into(),
-                sub_title: Default::default(),
-                cards: genre_cards(&genres).as_slice().into(),
-                ..Default::default()
-            });
+        if let Some(artist_results) = results.get("Artist") {
+            if !artist_results.is_empty() {
+                sections.push(CardSectionAdapter {
+                    title: "Artists".into(),
+                    sub_title: Default::default(),
+                    cards: search_result_cards(artist_results).as_slice().into(),
+                    ..Default::default()
+                });
+            }
         }
 
         let adapter = ui.global::<SearchResultsAdapter>();
@@ -180,124 +164,31 @@ fn update_results(app: &App, results: SearchResults) {
     }).unwrap();
 }
 
-fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
-    releases.iter().cloned().enumerate()
-        .map(|(index, release)| {
-            let card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            card
-        })
-        .collect()
+fn search_result_cards(results: &Vec<SearchResult>) -> Vec<CardAdapter> {
+    results.iter().map(search_result_card).collect()
 }
 
-fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
-    let release = release.clone();
+fn search_result_card(result: &SearchResult) -> CardAdapter {
+    let url = &format!("dimple://{}/{}", result.entity_type.to_lowercase(), &result.id);
+    let title = &result.title;
+    let sub_title = &result.sub_title;
+    let key = &result.id;
     CardAdapter {
-        key: release.id.clone().unwrap_or_default().into(),
+        key: key.into(),
         image: ImageLinkAdapter {
             image: Default::default(),
-            name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
+            name: title.into(),
+            url: url.into(),
             ..Default::default()
         },
         title: LinkAdapter {
-            name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
+            name: title.into(),
+            url: url.into(),
             ..Default::default()
         },
         sub_title: LinkAdapter {
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
-        },
-        ..Default::default()
-    }
-}
-
-fn artist_cards(artists: &[Artist]) -> Vec<CardAdapter> {
-    artists.iter().cloned().enumerate()
-        .map(|(index, artist)| {
-            let card: CardAdapter = artist_card(&artist);
-            card
-        })
-        .collect()
-}
-
-fn artist_card(artist: &Artist) -> CardAdapter {
-    let artist = artist.clone();
-    CardAdapter {
-        key: artist.id.clone().unwrap_or_default().into(),        
-        image: ImageLinkAdapter {
-            image: Default::default(),
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
-        },
-        title: LinkAdapter {
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
-        },
-        sub_title: LinkAdapter {
-            name: artist.disambiguation.unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
-        },
-        ..Default::default()
-    }
-}
-
-fn genre_cards(genres: &[Genre]) -> Vec<CardAdapter> {
-    genres.iter().cloned().enumerate()
-        .map(|(index, genre)| {
-            let card: CardAdapter = genre_card(&genre);
-            card
-        })
-        .collect()
-}
-
-fn genre_card(genre: &Genre) -> CardAdapter {
-    let genre = genre.clone();
-    CardAdapter {
-        key: genre.id.clone().unwrap_or_default().into(),
-        image: ImageLinkAdapter {
-            image: Default::default(),
-            name: genre.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.id.clone().unwrap_or_default()).into(),
-        },
-        title: LinkAdapter {
-            name: genre.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.id.clone().unwrap_or_default()).into(),
-        },
-        sub_title: LinkAdapter {
-            name: genre.disambiguation.clone().unwrap_or_default().into(),
-            url: format!("dimple://genre/{}", genre.id.clone().unwrap_or_default()).into(),
-        },
-    }
-}
-
-fn track_cards(tracks: &[Track], library: &Library) -> Vec<CardAdapter> {
-    tracks.iter().cloned().enumerate()
-        .map(|(index, track)| {
-            let card: CardAdapter = track_card(&track, &track.artist(library).unwrap_or_default());
-            card
-        })
-        .collect()
-}
-
-fn track_card(track: &Track, artist: &Artist) -> CardAdapter {
-    let track = track.clone();
-    CardAdapter {
-        key: track.id.clone().unwrap_or_default().into(),
-        image: ImageLinkAdapter {
-            image: Default::default(),
-            name: track.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://track/{}", track.id.clone().unwrap_or_default()).into(),
-            ..Default::default()
-        },
-        title: LinkAdapter {
-            name: track.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://track/{}", track.id.clone().unwrap_or_default()).into(),
-            ..Default::default()
-        },
-        sub_title: LinkAdapter {
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
+            name: sub_title.into(),
+            url: url.into(),
         },
         ..Default::default()
     }

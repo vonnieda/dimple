@@ -244,6 +244,53 @@ pub fn match_release(txn: &DbTransaction, release: &ReleaseMetadata) -> Result<O
     Ok(None)
 }
 
+#[test]
+fn test_no_merge_releases_with_different_musicbrainz_ids() {
+    let library = Library::open_memory();
+    let (release1, release2) = library.db.transaction(|txn| {
+        // First release with musicbrainz_id
+        let release1 = librarian::merge_release_metadata(txn, &ReleaseMetadata {
+            release: Release {
+                title: Some("Greatest Hits".to_string()),
+                date: Some("2024-01-01".to_string()),
+                musicbrainz_id: Some("mb-id-123".to_string()),
+                ..Default::default()
+            },
+            artists: vec![ArtistMetadata {
+                artist: Artist {
+                    name: Some("Test Artist".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }],
+            ..Default::default()
+        }, None)?;
+        
+        // Second release with same title and date but different musicbrainz_id
+        let release2 = librarian::merge_release_metadata(txn, &ReleaseMetadata {
+            release: Release {
+                title: Some("Greatest Hits".to_string()),
+                date: Some("2024-01-01".to_string()),
+                musicbrainz_id: Some("mb-id-456".to_string()),
+                ..Default::default()
+            },
+            artists: vec![ArtistMetadata {
+                artist: Artist {
+                    name: Some("Test Artist".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }],
+            ..Default::default()
+        }, None)?;
+        
+        Ok((release1, release2))
+    }).unwrap();
+    
+    // Assert that two different releases were created (not merged)
+    assert_ne!(release1.id, release2.id, "Releases with different musicbrainz_ids should not be merged");
+}
+
 // TODO this failed when importing We Were Heading North's albums, then
 // searching for We Were Heading North to link up the artist with mbid,
 // then browsing to any release of theirs. The tracks are all duped.
@@ -314,14 +361,14 @@ pub struct TrackMetadata {
 pub struct SearchResults {
     // TODO Change each to *Metadata so we have more to merge.
     pub tracks: Vec<Track>,
-    pub artists: Vec<Artist>,
-    pub releases: Vec<Release>,
+    pub artists: Vec<ArtistMetadata>,
+    pub releases: Vec<ReleaseMetadata>,
     pub genres: Vec<Genre>,
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{librarian::{self, ArtistMetadata}, library::Library, model::Artist};
+    use crate::{librarian::{self, ArtistMetadata, ReleaseMetadata}, library::Library, model::{Artist, Release}};
 
     #[test]
     fn test_merge_artist_metadata() {
@@ -367,5 +414,46 @@ mod tests {
         assert!(artist1.id != artist3.id);
         assert!(artist1.id == artist2.id);
         assert!(artist3.id == artist4.id);
+    }
+
+    /// Test to ensure that two releases that are the same except for a unique
+    /// id do not get merged together, and instead create two releases.
+    /// 
+    /// TODO this is making me think that artist metadata should really
+    /// not contain releases - it should be two ops
+    /// 
+    /// releases are what exist - and they have artist credits
+    /// not the other way around
+    #[test]
+    fn test_no_merge_releases_with_different_musicbrainz_ids() {
+        let library = Library::open_memory();
+        let (release1, release2) = library.db.transaction(|txn| {
+            // First release with musicbrainz_id
+            let release1 = librarian::merge_release_metadata(txn, &ReleaseMetadata {
+                release: Release {
+                    title: Some("Greatest Hits".to_string()),
+                    date: Some("2024-01-01".to_string()),
+                    musicbrainz_id: Some("mb-id-123".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }, None)?;
+            
+            // Second release with same title and date but different musicbrainz_id
+            let release2 = librarian::merge_release_metadata(txn, &ReleaseMetadata {
+                release: Release {
+                    title: Some("Greatest Hits".to_string()),
+                    date: Some("2024-01-01".to_string()),
+                    musicbrainz_id: Some("mb-id-456".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }, None)?;
+            
+            Ok((release1, release2))
+        }).unwrap();
+        
+        // Assert that two different releases were created (not merged)
+        assert_ne!(release1.id, release2.id, "Releases with different musicbrainz_ids should not be merged");
     }
 }

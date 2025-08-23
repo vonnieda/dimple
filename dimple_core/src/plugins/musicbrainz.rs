@@ -109,13 +109,14 @@ impl Plugin for MusicBrainzPlugin {
         serde_json::to_string(&self.config).unwrap()
     }
 
-    fn artist_metadata(&self, host: &Plugins, _library: &Library, artist: &Artist) 
+    fn artist_metadata(&self, plugins: &Plugins, _library: &Library, artist: &Artist) 
         -> Result<Option<ArtistMetadata>, anyhow::Error> {
 
         if let Some(mbid) = artist.musicbrainz_id.clone() {
-            let url = format!("https://musicbrainz.org/ws/2/artist/{mbid}?fmt=json&inc=releases+release-groups+artist-credits+genres+url-rels");
-            let mb_artist: musicbrainz_rs::entity::artist::Artist = self.get(host, &url)?;
-            let artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
+            let url = format!("https://musicbrainz.org/ws/2/artist/{mbid}?fmt=json&inc=genres+url-rels");
+            let mb_artist: musicbrainz_rs::entity::artist::Artist = self.get(plugins, &url)?;
+            let mut artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
+            artist_metadata.releases = self.artist_releases(plugins, &mbid)?;
             return Ok(Some(artist_metadata))
         }
         Ok(None)
@@ -158,9 +159,13 @@ impl Plugin for MusicBrainzPlugin {
         let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release> = self.get(host, &url)?;
         let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
 
+        // TODO no genres search, just ship the list
+
+        // TODO tracks = recordings
+
         Ok(SearchResults {
-            artists: artists.into_iter().map(|e| e.artist).collect(),
-            releases: releases.into_iter().map(|e| e.release).collect(),
+            artists,
+            releases,
             ..Default::default()
         })
     }
@@ -171,13 +176,32 @@ pub struct ReleasesResponse {
     pub releases: Vec<musicbrainz_rs::entity::release::Release>,
 }
     
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct ReleaseGroupsResponse {
+    pub release_groups: Vec<musicbrainz_rs::entity::release_group::ReleaseGroup>,
+}
+    
 impl MusicBrainzPlugin {
+    // Release (Group) Type and Status
+    // Any query which includes release groups in the results can be filtered
+    // to only include release groups of a certain type. Any query which
+    // includes releases in the results can be filtered to only include 
+    // releases of a certain type and/or status. Valid values are:
+    //  status     official, promotion, bootleg, pseudo-release, withdrawn, cancelled.
+    //  type       album, single, ep, broadcast, other (primary types) / audio drama, audiobook, compilation, demo, dj-mix, field recording, interview, live, mixtape/street, remix, soundtrack, spokenword (secondary types).
+    // See the release status documentation and the release group type 
+    // documentation for info on what these values mean.
+    // Additionally, browsing release groups via artist supports a special 
+    // filter to show the same release groups as in the default website 
+    // overview (excluding ones that contain only releases of status 
+    // promotional, bootleg or pseudo-release). Valid values are:
+    //  release-group-status     website-default, all
     fn artist_releases(&self, plugins: &Plugins, mbid: &str) -> Result<Vec<ReleaseMetadata>> {
-        let limit: usize = 25;
+        let limit: usize = 100;
         let mut offset: usize = 0;
         let mut releases: Vec<ReleaseMetadata> = vec![];
         loop {
-            let url = format!("https://musicbrainz.org/ws/2/release?artist={mbid}&status=official&inc=artist-credits+labels+recordings+release-groups+media+discids+isrcs+tags+genres+url-rels&fmt=json&offset={offset}&limit={limit}");
+            let url = format!("https://musicbrainz.org/ws/2/release?artist={mbid}&status=official&inc=artist-credits+genres+url-rels&fmt=json&offset={offset}&limit={limit}");
             let releases_response: ReleasesResponse = self.get(plugins, &url)?;
             if releases_response.releases.is_empty() {
                 break
