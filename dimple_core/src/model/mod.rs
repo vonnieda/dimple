@@ -1,8 +1,8 @@
-
-
-
 mod artist;
 pub use artist::Artist;
+
+mod blob;
+pub use blob::Blob;
 
 mod track;
 use dimple_db::{db::Entity, rusqlite::Params};
@@ -81,6 +81,8 @@ impl <T: Entity> ModelBasics<T> for T {
     }
 }
 
+/// TODO feels like I could instead have a couple simple traits like HasImage
+/// and Streamable and such. 
 #[derive(Clone, Debug, PartialEq)]
 pub enum DimpleEntity {
     Artist(Artist),

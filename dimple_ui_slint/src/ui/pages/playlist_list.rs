@@ -16,7 +16,9 @@ impl PlaylistListController {
         // Subscribe to playlist changes
         let ui = app.ui.clone();
         let playlists_subscription = app.library.db.query_subscribe(
-            "SELECT * FROM Playlist ORDER BY name ASC",
+            "SELECT * FROM Playlist
+            WHERE name NOT LIKE '__dimple_system_play_queue_%'
+            ORDER BY name ASC",
             (),
             move |playlists: Vec<Playlist>| {
                 ui.upgrade_in_event_loop(move |ui| {

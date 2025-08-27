@@ -22,10 +22,14 @@ impl ReleaseListController {
         let ui = app.ui.clone();
         let library = app.library.clone();
         let sql = "
-            SELECT * 
+            SELECT DISTINCT Release.* 
             FROM Release 
-            -- WHERE save = true OR download = true
-            ORDER BY title ASC
+            JOIN Track ON Track.release_id = Release.id 
+            JOIN TrackSource ON TrackSource.track_id = Track.id 
+            JOIN MediaFile ON MediaFile.id = TrackSource.media_file_id 
+            WHERE content IS NOT NULL 
+                OR Release.save = true 
+            ORDER BY Release.title ASC
         ";
         let releases_subscription = app.library.db.query_subscribe(sql, (),
             move |releases: Vec<Release>| {

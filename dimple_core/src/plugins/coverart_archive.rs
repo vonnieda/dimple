@@ -9,7 +9,12 @@ pub struct CoverArtArchivePlugin {
 
 impl CoverArtArchivePlugin {
     fn get_coverart(&self, url: &str, plugins: &Plugins) -> Result<Option<Dimage>> {
-        let response: CoverArtResponse = plugins.get(url)?.json()?;
+        let response = plugins.get(url)?;
+        if response.status() == 404 {
+            return Ok(None)
+        }
+        let response: CoverArtResponse = response.json()?;
+
         for image in response.images {
             if image.approved && image.front {
                 let image_response = plugins.get(&image.image)?;

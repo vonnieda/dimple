@@ -8,6 +8,9 @@ pub trait CrdtRules {
     /// Commutative: A v B = B v A
     /// Associative: (A v B) v C = A v (B v C)
     /// Idempotent : A v A = A
+    /// 
+    /// TODO sadly, I need to extend this with Result so I can fail on
+    /// conflicts.
     fn merge(l: Self, r: Self) -> Self;
 }
 
@@ -210,7 +213,7 @@ impl <T: CrdtRules + std::hash::Hash + Eq> CrdtRules for Vec<T> {
 
 #[cfg(test)]
 mod test {
-    use crate::{merge::CrdtRules, model::Track};
+    use crate::{crdt_rules::CrdtRules, model::Track};
 
     #[test]
     fn is_crdt() {

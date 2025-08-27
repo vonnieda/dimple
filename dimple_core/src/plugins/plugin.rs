@@ -1,4 +1,6 @@
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, Track}};
+use anyhow::Result;
+
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, Track, TrackSource}};
 
 use super::plugins::Plugins;
 
@@ -17,23 +19,28 @@ pub trait Plugin: Send + Sync {
 
     }
 
-    fn artist_metadata(&self, _host: &Plugins, _library: &Library, _artist: &Artist) -> Result<Option<ArtistMetadata>, anyhow::Error> {
+    fn artist_metadata(&self, _host: &Plugins, _library: &Library, _artist: &Artist) -> Result<Option<ArtistMetadata>> {
         Ok(None)
     }
 
-    fn track_metadata(&self, _host: &Plugins, _library: &Library, _track: &Track) -> Result<Option<TrackMetadata>, anyhow::Error> {
+    fn track_metadata(&self, _host: &Plugins, _library: &Library, _track: &Track) -> Result<Option<TrackMetadata>> {
         Ok(None)
     }
 
-    fn release_metadata(&self, _host: &Plugins, _library: &Library, _release: &Release) -> Result<Option<ReleaseMetadata>, anyhow::Error> {
+    fn release_metadata(&self, _host: &Plugins, _library: &Library, _release: &Release) -> Result<Option<ReleaseMetadata>> {
         Ok(None)
     }
 
-    fn search(&self, _host: &Plugins, _library: &Library, _query: &str) -> Result<SearchResults, anyhow::Error> {
+    fn search(&self, _host: &Plugins, _library: &Library, _query: &str) -> Result<SearchResults> {
         Ok(SearchResults::default())
     }
 
-    fn image(&self, _host: &Plugins, _library: &Library, _model: &DimpleEntity) -> Result<Option<Dimage>, anyhow::Error> {
+    // TODO add DimageKind filter
+    fn image(&self, _host: &Plugins, _library: &Library, _model: &DimpleEntity) -> Result<Option<Dimage>> {
         Ok(None)
+    }
+
+    fn track_sources(&self, _plugins: &Plugins, _library: &Library, _track: &Track) -> Result<Vec<TrackSource>> {
+        Ok(vec![])
     }
 }

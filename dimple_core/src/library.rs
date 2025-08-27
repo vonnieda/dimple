@@ -186,6 +186,37 @@ impl Library {
         self.query("SELECT * FROM TrackSource WHERE track_id = ?", (&track.id,))
     }
         
+    /// TODO so, to do this right I'm eventually going to have to support external
+    /// explicit blobs in dimple_db. In the general case I need to be able to
+    /// de-dupe them in the changelog, and also not store them in the
+    /// changelog and the database AND the original file
+    /// So two things:
+    /// 1. We'll only have one blob in the entire database, in the Blob model.
+    /// 2. In dimple_db, my preference would be to store the blob column in
+    /// the database so that queries remain normal. Which means we don't store
+    /// it in the changelog. So sync would need to be aware. 
+    /// Another option, maybe a lot better:
+    /// dimple_db always treats blob columns as file references. Sync is
+    /// responsible for syncing the files. 
+    /// Maybe this is just a special column marker or something actually.
+    /// So we have a content_id -> path mapping stored in the database. 
+    /// 
+    /// Create a Blob record in the database from the bytes. Stores the blob
+    /// content in the database. Returns the Blob.
+    /// Db.blob_from_bytes(bytes) -> Result<Blob>;
+    /// 
+    /// Create a Blob record in the database from the content of the given
+    /// file. Returns the Blob.
+    /// Db.blob_from_file(path) -> Result<Blob>;
+    /// 
+    /// Look up a Blob by it's sha256 hash. 
+    /// Db.blob(sha256) -> Option<Blob>;
+    /// 
+    /// Read a Blob's content.
+    /// let bytes = Blob.read(&self);
+    /// 
+    /// These are really the only operations I need. On import I can create
+    /// blobs from media files, and everything else gets handled internally.
     pub fn load_track_content(&self, track: &Track) -> Option<Vec<u8>> {
         for source in self.track_sources_for_track(track) {
             if let Some(media_file_id) = source.media_file_id {
