@@ -21,12 +21,8 @@ pub struct TrackListController {
 impl TrackListController {
     pub fn new(app: &App) -> Result<Self> {
         let sql = "
-            SELECT DISTINCT Track.* 
+            SELECT Track.* 
             FROM Track
-            JOIN TrackSource ON TrackSource.track_id = Track.id 
-            JOIN MediaFile ON MediaFile.id = TrackSource.media_file_id 
-            WHERE content IS NOT NULL 
-                OR Track.save = true 
             ORDER BY Track.title ASC
 
         ";

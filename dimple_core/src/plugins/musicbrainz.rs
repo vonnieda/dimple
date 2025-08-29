@@ -168,11 +168,14 @@ impl Plugin for MusicBrainzPlugin {
 
         let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={query}");
         let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release> = self.get(host, &url)?;
-        let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
+        let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect(); 
 
         // TODO no genres search, just ship the list
 
-        // TODO tracks = recordings
+        // TODO tracks
+        // let url = format!("https://musicbrainz.org/ws/2/recording/?fmt=json&query={query}");
+        // let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::recording::Recording> = self.get(host, &url)?;
+        // let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
 
         Ok(SearchResults {
             artists,

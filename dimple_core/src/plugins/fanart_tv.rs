@@ -13,6 +13,7 @@ use super::{plugin::Plugin, plugins::Plugins};
 // TODO fanart.tv does have album art, but it seems like you have to query it
 // by artist mbid, and I don't have a good way to do this with the plugin
 // API right now.
+// 2025-08-29: Okay now I do, cause we can just query the library.
 
 // https://wiki.fanart.tv/General/personal%20api/
 // https://fanart.tv/api-docs/api-v3/

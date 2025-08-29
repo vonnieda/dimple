@@ -10,7 +10,6 @@ use slint::ModelRc;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::LinkAdapter;
 use crate::ui::ReleaseListAdapter;
-use slint::Model as _;
 
 pub struct ReleaseListController {
     _releases_subscription: QuerySubscription,
@@ -18,17 +17,11 @@ pub struct ReleaseListController {
 
 impl ReleaseListController {
     pub fn new(app: &App) -> Result<Self> {
-        // Subscribe to release changes
         let ui = app.ui.clone();
         let library = app.library.clone();
         let sql = "
-            SELECT DISTINCT Release.* 
+            SELECT Release.* 
             FROM Release 
-            JOIN Track ON Track.release_id = Release.id 
-            JOIN TrackSource ON TrackSource.track_id = Track.id 
-            JOIN MediaFile ON MediaFile.id = TrackSource.media_file_id 
-            WHERE content IS NOT NULL 
-                OR Release.save = true 
             ORDER BY Release.title ASC
         ";
         let releases_subscription = app.library.db.query_subscribe(sql, (),
@@ -49,11 +42,8 @@ impl ReleaseListController {
 }
 
 fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
-    releases.iter().cloned().enumerate()
-        .map(|(index, release)| {
-            let card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            card
-        })
+    releases.iter().cloned()
+        .map(|release| release_card(&release, &release.artist(library).unwrap_or_default()))
         .collect()
 }
 

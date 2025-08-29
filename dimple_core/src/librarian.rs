@@ -135,7 +135,7 @@ fn merge_image(txn: &DbTransaction, dimage: &Dimage) -> Result<Dimage, anyhow::E
     txn.save(&merged)
 }
 
-fn merge_genre(txn: &DbTransaction, genre: &Genre) -> Result<Genre, anyhow::Error> {
+pub fn merge_genre(txn: &DbTransaction, genre: &Genre) -> Result<Genre, anyhow::Error> {
     let matched = match_genre(txn, genre)?.unwrap_or_default();
     let merged = CrdtRules::merge(matched.clone(), genre.clone());
     if matched == merged {

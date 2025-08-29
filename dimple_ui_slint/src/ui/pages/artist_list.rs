@@ -16,14 +16,8 @@ pub struct ArtistListController {
 impl ArtistListController {
     pub fn new(app: &App) -> Result<Self> {
         let sql = "
-            SELECT DISTINCT Artist.* 
+            SELECT Artist.* 
             FROM Artist
-            JOIN ArtistRef ON Artist.id = ArtistRef.artist_id
-            JOIN Track ON Track.id = ArtistRef.model_id
-            JOIN TrackSource ON TrackSource.track_id = Track.id 
-            JOIN MediaFile ON MediaFile.id = TrackSource.media_file_id 
-            WHERE content IS NOT NULL 
-                OR Artist.save = true 
             ORDER BY lower(Artist.name) ASC, lower(Artist.disambiguation) ASC
         ";
         let ui = app.ui.clone();

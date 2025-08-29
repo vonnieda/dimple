@@ -91,7 +91,6 @@ impl SearchResultsController {
             WHERE GenreFts = ?1
 
             ORDER BY rank, title
-            LIMIT 25
         ";
 
         let query_param = MutableStringParam::new();
@@ -135,6 +134,12 @@ fn search_plugins(plugins: Plugins, library: Library, query: String) {
                 for release in result.releases {
                     librarian::merge_release_metadata(txn, &release, None)?;
                 }
+                for track in result.tracks {
+                    librarian::merge_track_metadata(txn, &track, None)?;
+                }
+                for genre in result.genres {
+                    librarian::merge_genre(txn, &genre)?;
+                }
             }
             Ok(())
         }).unwrap_or_else(|e| {
@@ -148,12 +153,43 @@ fn update_results(app: &App, results: HashMap<String, Vec<SearchResult>>) {
     app.ui.upgrade_in_event_loop(move |ui| {
         let mut sections: Vec<CardSectionAdapter> = vec![];
 
+        // TODO DRY
         if let Some(artist_results) = results.get("Artist") {
             if !artist_results.is_empty() {
                 sections.push(CardSectionAdapter {
                     title: "Artists".into(),
                     sub_title: Default::default(),
                     cards: search_result_cards(artist_results).as_slice().into(),
+                    ..Default::default()
+                });
+            }
+        }
+        if let Some(release_results) = results.get("Release") {
+            if !release_results.is_empty() {
+                sections.push(CardSectionAdapter {
+                    title: "Releases".into(),
+                    sub_title: Default::default(),
+                    cards: search_result_cards(release_results).as_slice().into(),
+                    ..Default::default()
+                });
+            }
+        }
+        if let Some(track_results) = results.get("Track") {
+            if !track_results.is_empty() {
+                sections.push(CardSectionAdapter {
+                    title: "Tracks".into(),
+                    sub_title: Default::default(),
+                    cards: search_result_cards(track_results).as_slice().into(),
+                    ..Default::default()
+                });
+            }
+        }
+        if let Some(genre_results) = results.get("Genre") {
+            if !genre_results.is_empty() {
+                sections.push(CardSectionAdapter {
+                    title: "Genres".into(),
+                    sub_title: Default::default(),
+                    cards: search_result_cards(genre_results).as_slice().into(),
                     ..Default::default()
                 });
             }

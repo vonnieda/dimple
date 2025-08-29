@@ -82,20 +82,11 @@ impl ArtistDetailsController {
             }).unwrap();
         })?;
 
-        // Set up releases subscription
-        // TODO change this to "release groups" and then to include only those
-        // that we have tracks for, or are saved, like release_list. 
-        // It seems like all these queries need to be in library tho. Anyways..
         let sql = "
             SELECT DISTINCT Release.* 
             FROM Release 
             JOIN ArtistRef ON ArtistRef.model_id = Release.id
-            -- JOIN Track ON Track.release_id = Release.id 
-            -- JOIN TrackSource ON TrackSource.track_id = Track.id 
-            -- JOIN MediaFile ON MediaFile.id = TrackSource.media_file_id 
             WHERE ArtistRef.artist_id = ?
-            --     AND (content IS NOT NULL 
-            --     OR Release.save = true)
             ORDER BY Release.date DESC, Release.title ASC
         ";
         let ui = app.ui.clone();

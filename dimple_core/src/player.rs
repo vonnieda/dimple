@@ -8,9 +8,12 @@ use crate::{library::Library, model::{Artist, DimpleEntity, Event, ModelBasics a
 
 pub use playback_rs::Song;
 
-// TODO STOPSHIP okay heading to bed. I really thought I had it below, but I didn't. Doesn't work for auto-next.
-// I think time to refactor this fuck to Rodio.
+// TODO STOPSHIP okay heading to bed. I really thought I had it below, but I
+// didn't. Doesn't work for auto-next. I think time to refactor this fuck to
+// Rodio.
 
+// TODO STOPSHIP this entire module is a fucking distaster and I should start
+// from scratch. Preferably with someone else at the keyboard.
 #[derive(Clone)]
 pub struct Player {
     library: Arc<Library>,
@@ -275,7 +278,7 @@ impl Player {
                     &current_track.artist_name(&self.library),
                     &current_track.album_name(&self.library),
                     &current_track.title),
-            });
+            }).unwrap();
         }
     }
 
