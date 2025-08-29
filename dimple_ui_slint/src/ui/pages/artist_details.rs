@@ -14,7 +14,6 @@ use url::Url;
 use crate::ui::LinkAdapter;
 use crate::ui::ArtistDetailsAdapter;
 use crate::ui::ImageLinkAdapter;
-use slint::Model as _;
 use dimple_db::db::query::QuerySubscription;
 use anyhow::Result;
 
@@ -43,7 +42,7 @@ impl ArtistDetailsController {
                     ui.global::<ArtistDetailsAdapter>().set_key(artist.id.clone().unwrap_or_default().into());
                     ui.global::<ArtistDetailsAdapter>().set_summary(artist.summary.clone().unwrap_or_default().into());
                     ui.global::<ArtistDetailsAdapter>().set_disambiguation(artist.disambiguation.clone().unwrap_or_default().into());
-                    ui.global::<ArtistDetailsAdapter>().set_dump(format!("{artist:?}").into());
+                    ui.global::<ArtistDetailsAdapter>().set_dump(serde_json::to_string_pretty(&artist).unwrap().into());
                 }).unwrap();
             }
         })?;
@@ -84,11 +83,20 @@ impl ArtistDetailsController {
         })?;
 
         // Set up releases subscription
+        // TODO change this to "release groups" and then to include only those
+        // that we have tracks for, or are saved, like release_list. 
+        // It seems like all these queries need to be in library tho. Anyways..
         let sql = "
-            SELECT r.* FROM Release r
-            JOIN ArtistRef ar ON ar.model_id = r.id
-            WHERE ar.artist_id = ? 
-            ORDER BY r.date DESC, r.title ASC
+            SELECT DISTINCT Release.* 
+            FROM Release 
+            JOIN ArtistRef ON ArtistRef.model_id = Release.id
+            -- JOIN Track ON Track.release_id = Release.id 
+            -- JOIN TrackSource ON TrackSource.track_id = Track.id 
+            -- JOIN MediaFile ON MediaFile.id = TrackSource.media_file_id 
+            WHERE ArtistRef.artist_id = ?
+            --     AND (content IS NOT NULL 
+            --     OR Release.save = true)
+            ORDER BY Release.date DESC, Release.title ASC
         ";
         let ui = app.ui.clone();
         let releases_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |releases: Vec<Release>| {

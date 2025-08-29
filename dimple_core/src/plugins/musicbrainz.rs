@@ -126,8 +126,19 @@ impl Plugin for MusicBrainzPlugin {
         -> Result<Option<ReleaseMetadata>, anyhow::Error> {
 
         if let Some(mbid) = release.musicbrainz_id.clone() {
-            // TODO artists? artist-credits?
-            let url = format!("https://musicbrainz.org/ws/2/release/{mbid}?fmt=json&inc=aliases+annotation+artists+genres+media+ratings+recordings+release-groups+tags+url-rels");
+            // Browse
+            //  /ws/2/release           area, artist, collection, label, track, track_artist, recording, release-group
+            // Inc
+            //  /ws/2/release           artist-credits, labels, recordings, release-groups, media, discids, isrcs (with recordings)
+            // In addition to the inc= values listed above, all entities support:
+            //  annotation, tags, user-tags, genres, user-genres
+            // All entities except area, place, release, and series support:
+            //  ratings, user-ratings
+            let url = format!(concat!(
+                "https://musicbrainz.org/ws/2/release/{}",
+                "?fmt=json",
+                "&inc=artist-credits+recordings+release-groups+media+discids+isrcs+genres+url-rels+ratings",
+            ), mbid);
             let mb_release: musicbrainz_rs::entity::release::Release = self.get(host, &url)?;
             let release_metadata: ReleaseMetadata = ReleaseConverter::from(mb_release).into();
             return Ok(Some(release_metadata))
@@ -201,7 +212,14 @@ impl MusicBrainzPlugin {
         let mut offset: usize = 0;
         let mut releases: Vec<ReleaseMetadata> = vec![];
         loop {
-            let url = format!("https://musicbrainz.org/ws/2/release?artist={mbid}&status=official&inc=artist-credits+genres+url-rels&fmt=json&offset={offset}&limit={limit}");
+            let url = format!(concat!(
+                "https://musicbrainz.org/ws/2/release",
+                "?fmt=json",
+                "&artist={}",
+                "&status=official",
+                "&inc=artist-credits+recordings+release-groups+media+discids+isrcs+genres+url-rels+ratings",
+                "&offset={}",
+                "&limit={}"), mbid, offset, limit);
             let releases_response: ReleasesResponse = self.get(plugins, &url)?;
             if releases_response.releases.is_empty() {
                 break
@@ -265,47 +283,10 @@ mod tests {
         assert!(artist_metadata.genres.len() >= 1);
         assert!(artist_metadata.releases.len() >= 3);
         assert!(artist_metadata.releases[0].artists.len() >= 1);
-        dump_artist_metadata(&artist_metadata);
+        assert!(artist_metadata.releases[0].release.release_group_musicbrainz_id.is_some());
         let _ = library.db.transaction(move |t| {
             librarian::merge_artist_metadata(t, &artist_metadata, None)
         });
-        dump_library(&library);
-    }
-
-    fn dump_artist_metadata(artist_metadata: &ArtistMetadata) {
-        println!("{} {}", artist_metadata.artist.name.as_deref().unwrap_or_default(), artist_metadata.artist.musicbrainz_id.as_deref().unwrap_or_default());
-        println!("Releases:");
-        for release in &artist_metadata.releases {
-            println!("  {} {}", &release.release.title.as_deref().unwrap_or_default(), release.release.musicbrainz_id.as_deref().unwrap_or_default());
-            println!("  Artists:");
-            for artist in &release.artists {
-                println!("    {} {}", &artist.artist.name.as_deref().unwrap_or_default(), &artist.artist.musicbrainz_id.as_deref().unwrap_or_default());
-            }
-            println!("  Tracks:");
-            for track in &release.tracks {
-                println!("    {} {}", &track.track.position.unwrap_or_default(), &track.track.title.as_deref().unwrap_or_default());
-                println!("    Artists:");
-                for artist in &track.artists {
-                    println!("      {} {}", &artist.artist.name.as_deref().unwrap_or_default(), &artist.artist.musicbrainz_id.as_deref().unwrap_or_default());
-                }
-                println!("    Genres:");
-                for genre in &track.genres {
-                    println!("      {} {}", &genre.name.as_deref().unwrap_or_default(), &genre.musicbrainz_id.as_deref().unwrap_or_default());
-                }
-            }
-        }
-    }
-    
-    fn dump_library(library: &Library) {
-        for artist in library.list::<Artist>() {
-            println!("{}", artist.name.as_deref().unwrap_or_default());
-            for release in artist.releases(library) {
-                println!("  {}", &release.title.as_deref().unwrap_or_default());
-                for track in release.tracks(library) {
-                    println!("    {} {}", &track.position.unwrap_or_default(), &track.title.as_deref().unwrap_or_default());
-                }
-            }
-        }
     }
 
     #[test]

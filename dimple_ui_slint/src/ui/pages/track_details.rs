@@ -57,7 +57,7 @@ impl TrackDetailsController {
                         .filter(|s| !s.is_empty())
                         .unwrap_or("(No lyrics, click title to edit.)".to_string());
                     ui.global::<TrackDetailsAdapter>().set_lyrics(lyrics.into());
-                    ui.global::<TrackDetailsAdapter>().set_dump(format!("{track:?}").into());
+                    ui.global::<TrackDetailsAdapter>().set_dump(serde_json::to_string_pretty(&track).unwrap().into());
                 }).unwrap();
             }
         })?;

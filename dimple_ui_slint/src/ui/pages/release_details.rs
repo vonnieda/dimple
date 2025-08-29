@@ -69,16 +69,14 @@ impl ReleaseDetailsController {
         let release_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |releases: Vec<Release>| {
             if let Some(release) = releases.first() {
                 let release = release.clone();
-                let library = library.clone();
                 ui.upgrade_in_event_loop(move |ui| {
                     let card: CardAdapter = release.clone().into();
-
                     ui.global::<ReleaseDetailsAdapter>().set_card(card);
                     ui.global::<ReleaseDetailsAdapter>().set_key(release.id.clone().unwrap_or_default().into());
                     ui.global::<ReleaseDetailsAdapter>().set_release_type(release.release_group_type.clone().unwrap_or("Release".to_string()).into());
                     ui.global::<ReleaseDetailsAdapter>().set_summary(release.summary.clone().unwrap_or_default().into());
                     ui.global::<ReleaseDetailsAdapter>().set_disambiguation(release.disambiguation.clone().unwrap_or_default().into());
-                    ui.global::<ReleaseDetailsAdapter>().set_dump(format!("{release:?}").into());
+                    ui.global::<ReleaseDetailsAdapter>().set_dump(serde_json::to_string_pretty(&release).unwrap().into());
                 }).unwrap();
             }
         })?;

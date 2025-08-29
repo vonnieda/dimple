@@ -18,6 +18,7 @@ pub struct Release {
 
     pub barcode: Option<String>,
     pub country: Option<String>,
+    // TODO need to parse this out to at least year
     pub date: Option<String>,
     pub packaging: Option<String>,
     // "Official"

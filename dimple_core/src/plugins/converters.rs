@@ -85,9 +85,7 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                 title: none_if_empty(value.0.title),
                 packaging: value.0.packaging.map(|f| format!("{f:?}")),
                 release_group_type: value.0.release_group.clone().and_then(|rg| rg.primary_type).map(|pt| format!("{pt:?}")),
-                // TODO add the two release_group fields
-                // release_group: value.0.release_group
-                //     .map(|f| ReleaseGroup::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap(),
+                release_group_musicbrainz_id: value.0.release_group.map(|rg| rg.id),
                 status: value.0.status.map(|f| format!("{f:?}")),
                 quality: value.0.quality.map(|f| format!("{f:?}")),
                 summary: None,

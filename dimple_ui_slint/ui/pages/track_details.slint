@@ -6,6 +6,7 @@ import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
 import { Styles, Navigator, AppState, Label, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
 import { TagList } from "../components/tag.slint";
 import { BorderImage } from "../components/border_image.slint";
+import { SettingsAdapter } from "settings.slint";
 
 export global TrackDetailsAdapter {
     in property <string> key;
@@ -177,5 +178,17 @@ export component TrackDetails inherits ScrollView {
                 name: link.name;
             }
         }
+
+        if SettingsAdapter.debug: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "Debug";
+            }
+            Text {
+                text: TrackDetailsAdapter.dump;
+                wrap: word-wrap;
+            }
+        }        
     }
 }

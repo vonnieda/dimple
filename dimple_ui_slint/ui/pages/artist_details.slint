@@ -7,6 +7,7 @@ import { Styles, Navigator, AppState, Label, PageTitle, PageSubtitle, SectionTit
 import { Tag, TagList } from "../components/tag.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 import { BorderImage } from "../components/border_image.slint";
+import { SettingsAdapter } from "settings.slint";
 
 export global ArtistDetailsAdapter {
     in property <string> key;
@@ -115,6 +116,18 @@ export component ArtistDetails inherits ScrollView {
             for link in ArtistDetailsAdapter.links: Link {
                 url: link.url;
                 name: link.name;
+            }
+        }
+
+        if SettingsAdapter.debug: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "Debug";
+            }
+            Text {
+                text: ArtistDetailsAdapter.dump;
+                wrap: word-wrap;
             }
         }
     }
