@@ -16,6 +16,7 @@ use crate::ui::ArtistDetailsAdapter;
 use crate::ui::ImageLinkAdapter;
 use dimple_db::db::query::QuerySubscription;
 use anyhow::Result;
+use std::collections::HashMap;
 
 pub struct ArtistDetailsController {
     current_key: MutableStringParam,
@@ -92,7 +93,8 @@ impl ArtistDetailsController {
         let ui = app.ui.clone();
         let releases_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |releases: Vec<Release>| {
             ui.upgrade_in_event_loop(move |ui| {
-                let release_cards = release_cards(&releases);
+                let grouped_releases = group_releases_by_release_group(&releases);
+                let release_cards = release_cards(&grouped_releases);
                 ui.global::<ArtistDetailsAdapter>().set_releases(ModelRc::from(release_cards.as_slice()));
             }).unwrap();
         })?;
@@ -151,12 +153,92 @@ fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
 }
 
 fn release_cards(releases: &[Release]) -> Vec<CardAdapter> {
-    releases.iter().cloned().enumerate()
-        .map(|(index, release)| {
+    releases.iter().cloned()
+        .map(|release| {
             let card: CardAdapter = release_card(&release);
             card
         })
         .collect()
+}
+
+fn group_releases_by_release_group(releases: &[Release]) -> Vec<Release> {
+    let mut grouped: HashMap<String, Vec<Release>> = HashMap::new();
+    let mut ungrouped = Vec::new();
+    
+    for release in releases {
+        if let Some(ref release_group_id) = release.release_group_musicbrainz_id {
+            grouped.entry(release_group_id.clone())
+                .or_insert_with(Vec::new)
+                .push(release.clone());
+        } else {
+            ungrouped.push(release.clone());
+        }
+    }
+    
+    let mut result = Vec::new();
+    
+    for (_, mut group) in grouped {
+        let representative = select_representative_release(&mut group);
+        result.push(representative);
+    }
+    
+    result.extend(ungrouped);
+    
+    result.sort_by(|a, b| {
+        match (&b.date, &a.date) {
+            (Some(d1), Some(d2)) => d1.cmp(d2),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (None, None) => match (&a.title, &b.title) {
+                (Some(t1), Some(t2)) => t1.cmp(t2),
+                _ => std::cmp::Ordering::Equal,
+            }
+        }
+    });
+    
+    result
+}
+
+fn select_representative_release(releases: &mut Vec<Release>) -> Release {
+    releases.sort_by(|a, b| {
+        let a_score = release_priority_score(a);
+        let b_score = release_priority_score(b);
+        
+        b_score.cmp(&a_score).then_with(|| {
+            match (&b.date, &a.date) {
+                (Some(d1), Some(d2)) => d1.cmp(d2),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => std::cmp::Ordering::Equal,
+            }
+        })
+    });
+    
+    releases.first().unwrap().clone()
+}
+
+fn release_priority_score(release: &Release) -> u32 {
+    let mut score = 0;
+    
+    if let Some(ref status) = release.status {
+        if status.to_lowercase().contains("official") {
+            score += 100;
+        }
+    }
+    
+    if let Some(ref country) = release.country {
+        match country.as_str() {
+            "XW" | "[Worldwide]" => score += 50,
+            "US" | "GB" | "EU" => score += 30,
+            _ => score += 10,
+        }
+    }
+    
+    if release.date.is_some() {
+        score += 5;
+    }
+    
+    score
 }
 
 fn release_card(release: &Release) -> CardAdapter {
