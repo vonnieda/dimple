@@ -4,7 +4,12 @@ import { LazyImage } from "lazy_image.slint";
 
 export component BorderImage inherits TouchArea {
     in property <string> key;
+    // TODO chasing down putting placeholder everywhere for now, cause quick
+    // but right solution is just using a placeholder KEY and we punch in the
+    // various placeholders at runtime. 
     in property <image> placeholder;
+    in property <brush> placeholder-colorize;
+    in property <brush> background;
     mouse-cursor: MouseCursor.pointer;
     Rectangle {
         width: root.width;
@@ -13,12 +18,13 @@ export component BorderImage inherits TouchArea {
         border-color: Palette.border;
         border-width: Styles.thumbnail-border-width;
         clip: true;
-        background: white;
+        background <=> root.background;
         LazyImage {
             width: root.width;
             height: root.height;
             key: root.key;
-            placeholder: root.placeholder;
+            placeholder <=> root.placeholder;
+            placeholder-colorize <=> root.placeholder-colorize;
         }
     }
 }

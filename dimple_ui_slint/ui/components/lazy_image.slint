@@ -15,8 +15,10 @@ export global LazyImageLoader {
 export component LazyImage inherits Image {
     in property <string> key;
     in property <image> placeholder;
+    in property <brush> placeholder-colorize;
     property <int> index;
     source: LazyImageLoader.images[index].loaded ? LazyImageLoader.images[index].image : placeholder;
+    colorize: LazyImageLoader.images[index].loaded ? transparent : placeholder-colorize;
     changed key => {
         index = LazyImageLoader.load(LazyImageLoader.images, key, root.width / 1px, root.height / 1px);
     }

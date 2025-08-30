@@ -1,4 +1,4 @@
-import { ScrollView, VerticalBox, GridBox, HorizontalBox } from "std-widgets.slint";
+import { ScrollView, VerticalBox, GridBox, HorizontalBox, Palette } from "std-widgets.slint";
 import { CardGrid, CardGridAdapter, VirtualCardGrid } from "../components/card_grid.slint";
 import { CardAdapter, Card } from "../components/card.slint";
 import {Styles, Label, PageTitle, PageSubtitle} from "../common.slint";
@@ -86,6 +86,7 @@ export component ReleaseList inherits VerticalBox {
 
     VirtualCardGrid {
         cards: ReleaseListAdapter.cards;
+        card-placeholder: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png");
     }
 }
 

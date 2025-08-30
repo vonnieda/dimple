@@ -84,6 +84,7 @@ export component GenreList inherits VerticalBox {
     }
     VirtualCardGrid {
         cards: GenreListAdapter.cards;
+        card-placeholder: @image-url("../../icons/phosphor/PNGs/regular/globe-simple.png");
     }
 
     property <CardAdapter> card_ph: {

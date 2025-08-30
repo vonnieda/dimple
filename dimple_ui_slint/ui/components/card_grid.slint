@@ -24,6 +24,10 @@ export component VirtualCardGrid inherits Rectangle {
     in property <length> card-height: Styles.thumbnail-width-large + (Styles.default-font-size * 4.5);
     in property <length> spacing: StyleMetrics.layout-spacing;
 
+    in property <image> card-placeholder: @image-url("../../icons/phosphor/PNGs/regular/question.png");
+    in property <[brush]> card-placeholder-colorizes: Styles.card-placeholder-colorizes;
+    in property <brush> card-background: Palette.background;
+
     // Calculate grid dimensions
     property <length> grid-width: self.width;
     property <int> actual-columns: Math.max(1, Math.floor((grid-width - spacing) / (card-width + spacing)));
@@ -71,6 +75,10 @@ export component VirtualCardGrid inherits Rectangle {
                             width: card-width;
                             height: card-height;
                             model: cards[item-index];
+                            placeholder <=> card-placeholder;
+                            // placeholder-colorize <=> card-placeholder-colorize;
+                            placeholder-colorize: card-placeholder-colorizes[Math.mod(item-index, card-placeholder-colorizes.length)];
+                            background <=> card-background;
                         }
                     }
                 }
@@ -88,6 +96,10 @@ export component CardGrid inherits VerticalBox {
     property <int> rows: self.max-rows >= 1 ? self.max-rows : Math.ceil(cards.length / cols);
     // property <length> addl-spacing: (self.width - ((self.card-width + self.spacing) * cols)) / cols;
 
+    in property <image> card-placeholder: @image-url("../../icons/phosphor/PNGs/regular/question.png");
+    in property <[brush]> card-placeholder-colorizes: Styles.card-placeholder-colorizes;
+    in property <brush> card-background: Palette.background;
+
     alignment: start;
     padding: 0;
 
@@ -95,8 +107,13 @@ export component CardGrid inherits VerticalBox {
         alignment: start;
         padding: 0;
         for col in Math.min(cols, cards.length - (row * cols)): Card {
+            property <int> item-index: row * cols + col;
             // width: root.card-width + addl-spacing;
             model: cards[row * cols + col];
+            placeholder <=> card-placeholder;
+            // placeholder-colorize <=> card-placeholder-colorize;
+            placeholder-colorize: card-placeholder-colorizes[Math.mod(item-index, card-placeholder-colorizes.length)];
+            background <=> card-background;
         }
     }
 

@@ -20,6 +20,10 @@ export component Card inherits VerticalBox {
         sub-title: {name: "Fresh Pliers",url: "internal://artist/9876"},
     };
 
+    in property <image> placeholder;
+    in property <brush> placeholder-colorize;
+    in property <brush> background;
+
     width: Styles.thumbnail-width-large;
     alignment: start;
     padding: 0;
@@ -28,7 +32,9 @@ export component Card inherits VerticalBox {
     BorderImage {
         width: root.width;
         height: root.width;
-        placeholder: @image-url("../../icons/phosphor/PNGs/regular/users-three.png");
+        placeholder <=> root.placeholder;
+        placeholder-colorize <=> root.placeholder-colorize;
+        background <=> root.background;
         key: model.key;
         clicked => { Navigator.navigate(model.image.url); }
         ContextMenuArea {
@@ -52,7 +58,6 @@ export component Card inherits VerticalBox {
             }
         }
     }
-
     Link {
         url: model.title.url;
         name: model.title.name;
