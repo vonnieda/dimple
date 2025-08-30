@@ -136,6 +136,14 @@ impl Config {
     pub fn set_s3_prefix(&self, value: Option<String>) {
         self.set_value("s3_prefix", value)
     }
+
+    pub fn preferred_language(&self) -> Option<String> {
+        self.get_value("preferred_language")
+    }
+
+    pub fn set_preferred_language(&self, value: Option<String>) {
+        self.set_value("preferred_language", value)
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone, PartialEq)]

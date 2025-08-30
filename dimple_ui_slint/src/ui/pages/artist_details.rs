@@ -83,18 +83,31 @@ impl ArtistDetailsController {
             }).unwrap();
         })?;
 
+        // TODO use preferred language as part of the release selection
+        let preferred_language = app.config.preferred_language();
         let sql = "
-            SELECT DISTINCT Release.* 
-            FROM Release 
-            JOIN ArtistRef ON ArtistRef.model_id = Release.id
-            WHERE ArtistRef.artist_id = ?
-            ORDER BY Release.date DESC, Release.title ASC
+            SELECT *
+            FROM (
+                SELECT Release.*,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY Release.release_group_musicbrainz_id
+                            ORDER BY Release.date ASC,
+                                    CASE WHEN Release.status LIKE '%official%' THEN 0 ELSE 1 END,
+                                    Release.rowid ASC
+                        ) as rn
+                FROM Release
+                JOIN ArtistRef ON ArtistRef.model_id = Release.id
+                WHERE ArtistRef.artist_id = ?
+            ) ranked
+            WHERE rn = 1
+            ORDER BY date DESC, title ASC            
+            ;
         ";
         let ui = app.ui.clone();
         let releases_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |releases: Vec<Release>| {
             ui.upgrade_in_event_loop(move |ui| {
-                let grouped_releases = group_releases_by_release_group(&releases);
-                let release_cards = release_cards(&grouped_releases);
+                // let grouped_releases = group_releases_by_release_group(&releases, preferred_language.as_deref());
+                let release_cards = release_cards(&releases);
                 ui.global::<ArtistDetailsAdapter>().set_releases(ModelRc::from(release_cards.as_slice()));
             }).unwrap();
         })?;
@@ -159,86 +172,6 @@ fn release_cards(releases: &[Release]) -> Vec<CardAdapter> {
             card
         })
         .collect()
-}
-
-fn group_releases_by_release_group(releases: &[Release]) -> Vec<Release> {
-    let mut grouped: HashMap<String, Vec<Release>> = HashMap::new();
-    let mut ungrouped = Vec::new();
-    
-    for release in releases {
-        if let Some(ref release_group_id) = release.release_group_musicbrainz_id {
-            grouped.entry(release_group_id.clone())
-                .or_insert_with(Vec::new)
-                .push(release.clone());
-        } else {
-            ungrouped.push(release.clone());
-        }
-    }
-    
-    let mut result = Vec::new();
-    
-    for (_, mut group) in grouped {
-        let representative = select_representative_release(&mut group);
-        result.push(representative);
-    }
-    
-    result.extend(ungrouped);
-    
-    result.sort_by(|a, b| {
-        match (&b.date, &a.date) {
-            (Some(d1), Some(d2)) => d1.cmp(d2),
-            (Some(_), None) => std::cmp::Ordering::Less,
-            (None, Some(_)) => std::cmp::Ordering::Greater,
-            (None, None) => match (&a.title, &b.title) {
-                (Some(t1), Some(t2)) => t1.cmp(t2),
-                _ => std::cmp::Ordering::Equal,
-            }
-        }
-    });
-    
-    result
-}
-
-fn select_representative_release(releases: &mut Vec<Release>) -> Release {
-    releases.sort_by(|a, b| {
-        let a_score = release_priority_score(a);
-        let b_score = release_priority_score(b);
-        
-        b_score.cmp(&a_score).then_with(|| {
-            match (&b.date, &a.date) {
-                (Some(d1), Some(d2)) => d1.cmp(d2),
-                (Some(_), None) => std::cmp::Ordering::Less,
-                (None, Some(_)) => std::cmp::Ordering::Greater,
-                (None, None) => std::cmp::Ordering::Equal,
-            }
-        })
-    });
-    
-    releases.first().unwrap().clone()
-}
-
-fn release_priority_score(release: &Release) -> u32 {
-    let mut score = 0;
-    
-    if let Some(ref status) = release.status {
-        if status.to_lowercase().contains("official") {
-            score += 100;
-        }
-    }
-    
-    if let Some(ref country) = release.country {
-        match country.as_str() {
-            "XW" | "[Worldwide]" => score += 50,
-            "US" | "GB" | "EU" => score += 30,
-            _ => score += 10,
-        }
-    }
-    
-    if release.date.is_some() {
-        score += 5;
-    }
-    
-    score
 }
 
 fn release_card(release: &Release) -> CardAdapter {

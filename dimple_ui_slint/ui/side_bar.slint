@@ -145,5 +145,12 @@ export component SideBar inherits VerticalBox {
     Rectangle {
         
     }
+
+    // Settings button at the bottom
+    SideBarMenuItem {
+        image: @image-url("../icons/phosphor/SVGs/regular/gear.svg");
+        url: "dimple://settings";
+        text: "Settings";
+    }
 }
 

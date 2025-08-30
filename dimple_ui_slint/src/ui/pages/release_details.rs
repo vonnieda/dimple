@@ -15,6 +15,7 @@ use dimple_core::model::ModelBasics;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
 use slint::ComponentHandle as _;
+use slint::Model as _;
 use slint::ModelRc;
 use slint::SharedString;
 use slint::StandardListViewItem;
@@ -32,6 +33,7 @@ pub struct ReleaseDetailsController {
     genres_subscription: QuerySubscription,
     links_subscription: QuerySubscription,
     tracks_subscription: QuerySubscription,
+    versions_subscription: QuerySubscription,
 }
 
 impl ReleaseDetailsController {
@@ -47,6 +49,7 @@ impl ReleaseDetailsController {
 
         // Set up UI event handlers
         let app_clone = app.clone();
+        let current_key_clone = current_key.clone();
         app.ui.upgrade_in_event_loop(move |ui| {
             let app = app_clone.clone();
             ui.global::<ReleaseDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
@@ -60,6 +63,10 @@ impl ReleaseDetailsController {
             ui.global::<ReleaseDetailsAdapter>().on_play_track_next(move |key| play_track_next(&app, &key));
             let app = app_clone.clone();
             ui.global::<ReleaseDetailsAdapter>().on_play_track_later(move |key| play_track_later(&app, &key));
+            let ui_weak = ui.as_weak();
+            ui.global::<ReleaseDetailsAdapter>().on_select_version(move |version_index| {
+                select_version_by_index(&ui_weak, version_index);
+            });
         }).unwrap();
         
         // Set up release subscription
@@ -135,6 +142,33 @@ impl ReleaseDetailsController {
             }).unwrap();
         })?;
 
+        // Set up versions subscription - find all releases in the same release group
+        let sql = "
+            SELECT r.* FROM Release r 
+            JOIN Release current ON current.id = ? 
+            WHERE r.release_group_musicbrainz_id = current.release_group_musicbrainz_id 
+            AND r.release_group_musicbrainz_id IS NOT NULL
+            ORDER BY 
+                r.date ASC,
+                CASE WHEN r.status LIKE '%official%' THEN 0 ELSE 1 END,
+                CASE WHEN r.country IN ('XW', '[Worldwide]') THEN 0 
+                     WHEN r.country IN ('US', 'GB', 'EU') THEN 1 ELSE 2 END,
+                r.title ASC
+        ";
+        let ui = app.ui.clone();
+        let versions_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |releases: Vec<Release>| {
+            ui.upgrade_in_event_loop(move |ui| {
+                let version_options = create_version_options(&releases);
+                let version_ids = create_version_ids(&releases);
+                let current_key = ui.global::<ReleaseDetailsAdapter>().get_key().to_string();
+                let current_index = find_current_version_index(&releases, &current_key);
+                
+                ui.global::<ReleaseDetailsAdapter>().set_version_options(ModelRc::from(version_options.as_slice()));
+                ui.global::<ReleaseDetailsAdapter>().set_version_ids(ModelRc::from(version_ids.as_slice()));
+                ui.global::<ReleaseDetailsAdapter>().set_version_index(current_index);
+            }).unwrap();
+        })?;
+
         Ok(Self {
             current_key,
             release_subscription,
@@ -142,6 +176,7 @@ impl ReleaseDetailsController {
             genres_subscription,
             links_subscription,
             tracks_subscription,
+            versions_subscription,
         })
     }
 
@@ -154,6 +189,7 @@ impl ReleaseDetailsController {
         self.genres_subscription.refresh();
         self.links_subscription.refresh();
         self.tracks_subscription.refresh();
+        self.versions_subscription.refresh();
 
         // Trigger metadata refresh in background
         let app_clone = app.clone();
@@ -261,5 +297,41 @@ fn format_length(length: Duration) -> String {
     let minutes = length.as_secs() / 60;
     let seconds = length.as_secs() % 60;
     format!("{minutes}:{seconds:02}")
+}
+
+fn create_version_options(releases: &[Release]) -> Vec<SharedString> {
+    releases.iter().map(|release| {
+        let title = release.title.clone().unwrap_or("Unknown".to_string());
+        let country = release.country.clone().unwrap_or("Unknown".to_string());
+        let date = release.date.clone().unwrap_or("Unknown".to_string());
+        let packaging = release.packaging.clone().unwrap_or("Unknown".to_string());
+        let status = release.status.clone().unwrap_or("Unknown".to_string());
+        
+        format!("{} ({}, {}, {}, {})", title, country, date, status, packaging).into()
+    }).collect()
+}
+
+fn create_version_ids(releases: &[Release]) -> Vec<SharedString> {
+    releases.iter().map(|release| {
+        release.id.clone().unwrap_or_default().into()
+    }).collect()
+}
+
+fn find_current_version_index(releases: &[Release], current_key: &str) -> i32 {
+    releases.iter()
+        .position(|r| r.id.as_ref().map_or(false, |id| id == current_key))
+        .map(|i| i as i32)
+        .unwrap_or(0)
+}
+
+fn select_version_by_index(ui_weak: &slint::Weak<crate::ui::AppWindow>, version_index: i32) {
+    if let Some(ui) = ui_weak.upgrade() {
+        let version_ids = ui.global::<ReleaseDetailsAdapter>().get_version_ids();
+        if let Some(release_id) = version_ids.row_data(version_index as usize) {
+            let release_id = release_id.to_string();
+            // Navigate to the new release using the navigator global
+            ui.global::<crate::ui::Navigator>().invoke_navigate(format!("dimple://release/{}", release_id).into());
+        }
+    }
 }
 

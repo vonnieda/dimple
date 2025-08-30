@@ -81,6 +81,14 @@ impl SettingsController {
                         "offline" => ui.global::<SettingsAdapter>().set_offline(config_value.value == Some("true".to_string())),
                         "debug" => ui.global::<SettingsAdapter>().set_debug(config_value.value == Some("true".to_string())),
                         "sidebar_open" => ui.global::<SettingsAdapter>().set_sidebar_open(config_value.value == Some("true".to_string())),
+                        "preferred_language" => {
+                            let lang = config_value.value.unwrap_or_default();
+                            // Find the index in the language options
+                            let language_options = vec!["", "en", "es", "fr", "de", "it", "pt", "ru", "ja", "zh", "ko", "nl", "sv", "no", "da", "fi", "pl"];
+                            let index = language_options.iter().position(|&l| l == lang).unwrap_or(0) as i32;
+                            ui.global::<SettingsAdapter>().set_preferred_language_index(index);
+                            ui.global::<SettingsAdapter>().set_preferred_language(lang.into());
+                        },
                         "s3_endpoint" => ui.global::<SettingsAdapter>().set_s3_endpoint(config_value.value.unwrap_or_default().into()),
                         "s3_region" => ui.global::<SettingsAdapter>().set_s3_region(config_value.value.unwrap_or_default().into()),
                         "s3_bucket" => ui.global::<SettingsAdapter>().set_s3_bucket(config_value.value.unwrap_or_default().into()),
@@ -108,6 +116,22 @@ impl SettingsController {
 
             let app = app_.clone();
             ui.global::<SettingsAdapter>().on_set_debug(move |v| app.config.set_debug(v));
+
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_set_preferred_language(move |v| {
+                // Extract ISO code from the dropdown value (e.g., "en - English" -> "en")
+                let value = v.to_string();
+                let iso_code = if value.is_empty() {
+                    None
+                } else if value.contains(" - ") {
+                    // Extract the first 2 characters (ISO code)
+                    Some(value.chars().take(2).collect())
+                } else {
+                    // Already an ISO code
+                    Some(value)
+                };
+                app.config.set_preferred_language(iso_code);
+            });
 
             let app = app_.clone();
             ui.global::<SettingsAdapter>().on_set_s3_endpoint(move |v| app.config.set_s3_endpoint(plugins::plugins::nempty(&v.to_string())));

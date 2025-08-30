@@ -11,7 +11,7 @@
 
 
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox, Slider, Switch, LineEdit, GridBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, GroupBox, Button, CheckBox, Slider, Switch, LineEdit, GridBox, ComboBox} from "std-widgets.slint";
 import { AppState, Styles, Navigator, Label, PageSubtitle, SectionTitle, PageTitle } from "../common.slint";
 
 export struct PluginAdapter {
@@ -25,6 +25,8 @@ export global SettingsAdapter {
     in-out property <bool> offline;
     in-out property <bool> debug;
     in-out property <bool> sidebar-open;
+    in-out property <string> preferred-language;
+    in-out property <int> preferred-language-index;
     in-out property <string> s3-endpoint;
     in-out property <string> s3-region;
     in-out property <string> s3-bucket;
@@ -35,9 +37,16 @@ export global SettingsAdapter {
     in property <[PluginAdapter]> plugins;
     in property <[string]> cache_stats;
     in property <[string]> database_stats;
+    // TODO more langs
+    in property <[string]> language-options: ["", "en - English", 
+        "es - Spanish", "fr - French", "de - German", "it - Italian", 
+        "pt - Portuguese", "ru - Russian", "ja - Japanese", "zh - Chinese", 
+        "ko - Korean", "nl - Dutch", "sv - Swedish", "no - Norwegian", 
+        "da - Danish", "fi - Finnish", "pl - Polish"];
     pure callback set_offline(bool);
     pure callback set_debug(bool);
     pure callback set_sidebar_open(bool);
+    pure callback set_preferred_language(string);
     pure callback set_s3_endpoint(string);
     pure callback set_s3_region(string);
     pure callback set_s3_bucket(string);
@@ -57,6 +66,26 @@ component ActionButton inherits Button {
 component General inherits VerticalBox {
     SectionTitle {
         text: "General";
+    }
+
+    HorizontalBox {
+        alignment: start;
+        
+        Label {
+            text: "Preferred Language:";
+            vertical-alignment: center;
+            width: 200px;
+        }
+
+        ComboBox {
+            model: SettingsAdapter.language-options;
+            current-index: SettingsAdapter.preferred-language-index;
+            width: 200px;
+            selected(value) => {
+                // The value is passed as the full string, we'll parse it in the Rust controller
+                SettingsAdapter.set_preferred_language(value);
+            }
+        }
     }
 
     HorizontalBox {

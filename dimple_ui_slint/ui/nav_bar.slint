@@ -57,8 +57,4 @@ export component NavBar inherits HorizontalBox {
         font-size: Styles.default-font-size;
         height: self.font-size * 2;
     }
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/gear.svg");
-        clicked => { Navigator.navigate("dimple://settings") }
-    }
 }
