@@ -371,11 +371,15 @@ component Import inherits VerticalBox {
 }
 
 export component Settings inherits VerticalBox {
+    alignment: start;
+    padding: 0;
+
     PageTitle {
         text: "Settings";
     }
 
     ScrollView {
+        height: 100%;
         VerticalBox {
             General { }
 

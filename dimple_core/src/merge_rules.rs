@@ -1,7 +1,7 @@
 
 use thiserror::Error;
 
-use crate::model::{Artist, Release};
+use crate::model::{Artist, Release, Track};
 
 
 #[derive(Debug, Error)]
@@ -91,6 +91,41 @@ impl MergeRules<Release> for Release {
                 &r.release_group_musicbrainz_id
             )?,
             
+            discogs_id: merge_field("discogs_id", &l.discogs_id, &r.discogs_id)?,
+            lastfm_id: merge_field("lastfm_id", &l.lastfm_id, &r.lastfm_id)?,
+            musicbrainz_id: merge_field("musicbrainz_id", &l.musicbrainz_id, &r.musicbrainz_id)?,
+            spotify_id: merge_field("spotify_id", &l.spotify_id, &r.spotify_id)?,
+            wikidata_id: merge_field("wikidata_id", &l.wikidata_id, &r.wikidata_id)?,
+        })
+    }
+}
+
+/// TODO okay moving forward with this cause it's better than what I have, but
+/// want to note that I think I probably need to go ahead and add a "quality"
+/// score either to the entity or even to every field. Then, when merging new
+/// data, when there is a conflict, you choose the higher quality. 
+/// I think this really only applies (currently) to merge_field_case_insensitive
+/// since when there is a mix of cases it has to choose one or the other. 
+impl MergeRules<Track> for Track {
+    fn try_merge(l: &Track, r: &Track) -> Result<Track, MergeError> {
+        Ok(Track {
+            id: merge_field("id", &l.id, &r.id)?,
+            title: merge_field_case_insensitive("title", &l.title, &r.title)?,
+            disambiguation: merge_field("disambiguation", &l.disambiguation, &r.disambiguation)?,
+            summary: merge_field("summary", &l.summary, &r.summary)?,
+            save: l.save || r.save,
+            download: l.download || r.download,
+            
+            release_id: merge_field("release_id", &l.release_id, &r.release_id)?,
+            position: merge_field("position", &l.position, &r.position)?,
+            length_ms: merge_field("length_ms", &l.length_ms, &r.length_ms)?,
+            lyrics: merge_field("lyrics", &l.lyrics, &r.lyrics)?,
+            synchronized_lyrics: merge_field("synchronized_lyrics", &l.synchronized_lyrics, &r.synchronized_lyrics)?,
+            media_track_count: merge_field("media_track_count", &l.media_track_count, &r.media_track_count)?,
+            media_position: merge_field("media_position", &l.media_position, &r.media_position)?,
+            media_title: merge_field("media_title", &l.media_title, &r.media_title)?,
+            media_format: merge_field("media_format", &l.media_format, &r.media_format)?,
+
             discogs_id: merge_field("discogs_id", &l.discogs_id, &r.discogs_id)?,
             lastfm_id: merge_field("lastfm_id", &l.lastfm_id, &r.lastfm_id)?,
             musicbrainz_id: merge_field("musicbrainz_id", &l.musicbrainz_id, &r.musicbrainz_id)?,

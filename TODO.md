@@ -104,3 +104,6 @@ Dump new things at the bottom, move things to the top to prioritize.
   take the scroll position into account. Maybe needs to move up and we have
   like a "card event" or something on card grid.
 - player bar is stretching weird with long text
+- Bug: The lockup / crash when right clicking a card seems to only happen
+when music is playing. I suspect that popup is somehow blocking the decode
+thread. Still have not yet seen it in a dev build, only a deployed one.

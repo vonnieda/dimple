@@ -27,10 +27,6 @@ export component NavBar inherits HorizontalBox {
             SettingsAdapter.set_sidebar_open(!SettingsAdapter.sidebar-open); 
         }
     }
-    NavBarButton {
-        source: @image-url("../icons/phosphor/SVGs/regular/queue.svg");
-        clicked => { Navigator.navigate("dimple://queue") }
-    }
     Rectangle {
         width: parent.spacing;
     }

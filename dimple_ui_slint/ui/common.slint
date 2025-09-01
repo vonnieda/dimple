@@ -38,6 +38,11 @@ export global AppState {
     callback play_next(key: string);
     callback play_now(key: string);
     callback play_later(key: string);    
+
+    // TODO okay add a busy activity model here, that will contain bools that say
+    // some "thing" is happening. And it could even have status. And jobs will
+    // set and reset those as they work so the UI can react. 
+    // I guess could just tie directly to know job names.
 }
 
 export component Label inherits Text {
