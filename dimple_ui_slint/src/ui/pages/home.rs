@@ -59,21 +59,21 @@ fn update_model(app: &App) {
             let mut sections: Vec<CardSectionAdapter> = vec![];
 
             sections.push(CardSectionAdapter {
-                title: "Newest Releases".into(),
+                title: "Newest Releases ⟩".into(),
                 sub_title: Default::default(),
                 url: "dimple://home/newest-releases".to_string().into(),
                 cards: release_cards(&newest_releases, &app.library).as_slice().into(),
             });
 
             sections.push(CardSectionAdapter {
-                title: "Favorite Releases".into(),
+                title: "Favorite Releases ⟩".into(),
                 sub_title: Default::default(),
                 url: "dimple://home/favorite-releases".to_string().into(),
                 cards: release_cards(&favorite_releases, &app.library).as_slice().into(),
             });
 
             sections.push(CardSectionAdapter {
-                title: "Favorite Artists".into(),
+                title: "Favorite Artists ⟩".into(),
                 sub_title: Default::default(),
                 url: "dimple://home/favorite-artists".to_string().into(),
                 cards: artist_cards(&favorite_artists).as_slice().into(),
