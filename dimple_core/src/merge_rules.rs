@@ -1,7 +1,7 @@
 
 use thiserror::Error;
 
-use crate::model::{Artist, Release, Track};
+use crate::model::{Artist, Release, ReleaseGroup, Track};
 
 
 #[derive(Debug, Error)]
@@ -84,12 +84,29 @@ impl MergeRules<Release> for Release {
             packaging: merge_field("packaging", &l.packaging, &r.packaging)?,
             status: merge_field("status", &l.status, &r.status)?,
             quality: merge_field("quality", &l.quality, &r.quality)?,
-            release_group_type: merge_field("release_group_type", &l.release_group_type, &r.release_group_type)?,
-            release_group_musicbrainz_id: merge_field(
-                "release_group_musicbrainz_id",
-                &l.release_group_musicbrainz_id,
-                &r.release_group_musicbrainz_id
-            )?,
+            release_group_id: merge_field("release_group_id", &l.release_group_id, &r.release_group_id)?,
+            
+            discogs_id: merge_field("discogs_id", &l.discogs_id, &r.discogs_id)?,
+            lastfm_id: merge_field("lastfm_id", &l.lastfm_id, &r.lastfm_id)?,
+            musicbrainz_id: merge_field("musicbrainz_id", &l.musicbrainz_id, &r.musicbrainz_id)?,
+            spotify_id: merge_field("spotify_id", &l.spotify_id, &r.spotify_id)?,
+            wikidata_id: merge_field("wikidata_id", &l.wikidata_id, &r.wikidata_id)?,
+        })
+    }
+}
+
+impl MergeRules<ReleaseGroup> for ReleaseGroup {
+    fn try_merge(l: &ReleaseGroup, r: &ReleaseGroup) -> Result<ReleaseGroup, MergeError> {
+        Ok(ReleaseGroup {
+            id: merge_field("id", &l.id, &r.id)?,
+            title: merge_field_case_insensitive("title", &l.title, &r.title)?,
+            disambiguation: merge_field("disambiguation", &l.disambiguation, &r.disambiguation)?,
+            summary: merge_field("summary", &l.summary, &r.summary)?,
+            save: l.save || r.save,
+            download: l.download || r.download,
+            
+            first_release_date: merge_field("first_release_date", &l.first_release_date, &r.first_release_date)?,
+            primary_type: l.primary_type.clone().or(r.primary_type.clone()),
             
             discogs_id: merge_field("discogs_id", &l.discogs_id, &r.discogs_id)?,
             lastfm_id: merge_field("lastfm_id", &l.lastfm_id, &r.lastfm_id)?,

@@ -1,8 +1,8 @@
-use dimple_core::{library::Library, model::{Artist, DimageRef, DimpleEntity, Genre, Playlist, Release, Track}, plugins::plugins::Plugins};
+use dimple_core::{library::Library, model::{Artist, DimageRef, DimpleEntity, Genre, Playlist, Release, ReleaseGroup, Track}, plugins::plugins::Plugins};
 use dimple_db::db::DbEvent;
 use slint::{ComponentHandle as _, Model as _, ModelRc, VecModel, Weak};
 
-use crate::ui::{images::dynamic_to_slint, AppWindow, LazyImageLoader, LazyImageModel};
+use crate::ui::{images::{dynamic_to_buffer, dynamic_to_slint, resize}, AppWindow, LazyImageLoader, LazyImageModel};
 
 pub fn init_lazy_image_loader(ui: &AppWindow, library: &Library, plugins: &Plugins) {
     // TODO replace with (and create) HashMapModel or something so we can use
@@ -66,6 +66,7 @@ pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, plugins: &Plugin
         // TODO hax
         let entity: Option<DimpleEntity> = library.get::<Artist>(&key).map(DimpleEntity::from)
             .or_else(|| library.get::<Release>(&key).map(DimpleEntity::from))
+            .or_else(|| library.get::<ReleaseGroup>(&key).map(DimpleEntity::from))
             .or_else(|| library.get::<Genre>(&key).map(DimpleEntity::from))
             .or_else(|| library.get::<Track>(&key).map(DimpleEntity::from))
             .or_else(|| library.get::<Playlist>(&key).map(DimpleEntity::from))
@@ -78,7 +79,11 @@ pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, plugins: &Plugin
 
         let image = library.image(&entity)
             .or_else(|| {
-                // TODO basically trash .get(0)
+                // TODO basically trash, just grabbing the first one for now.
+                // I think maybe (just thought of) the key should actually
+                // be a Dimage key... then the controller controls which image
+                // gets loaded. Then we can pick like the banner for the banner
+                // and the portrait for the artist, etc.
                 if let Some(plugin_image) = plugins.image(&library, &entity).get(0) {
                     let dimage = library.db.transaction(|txn| {
                         let dimage = txn.save(plugin_image)?;
@@ -97,8 +102,9 @@ pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, plugins: &Plugin
         }
         // TODO this goes away when above is done
         let image = image.unwrap();
+        let buffer = dynamic_to_buffer(&image);
         app_weak.upgrade_in_event_loop(move |ui| {
-            let image = dynamic_to_slint(&image);
+            let image = slint::Image::from_rgba8(buffer);
             let images = ui.global::<LazyImageLoader>().get_images();
             let mut model = images.row_data(index).unwrap();
             model.image = image;

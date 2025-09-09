@@ -63,6 +63,7 @@ fn update_model(app: &App) {
                 sub_title: Default::default(),
                 url: "dimple://home/newest-releases".to_string().into(),
                 cards: release_cards(&newest_releases, &app.library).as_slice().into(),
+                ..Default::default()
             });
 
             sections.push(CardSectionAdapter {
@@ -70,6 +71,7 @@ fn update_model(app: &App) {
                 sub_title: Default::default(),
                 url: "dimple://home/favorite-releases".to_string().into(),
                 cards: release_cards(&favorite_releases, &app.library).as_slice().into(),
+                ..Default::default()
             });
 
             sections.push(CardSectionAdapter {
@@ -77,6 +79,7 @@ fn update_model(app: &App) {
                 sub_title: Default::default(),
                 url: "dimple://home/favorite-artists".to_string().into(),
                 cards: artist_cards(&favorite_artists).as_slice().into(),
+                ..Default::default()
             });
 
             let adapter = ui.global::<HomeAdapter>();

@@ -47,6 +47,9 @@ pub use dimage_ref::DimageRef;
 mod playlist_item;
 pub use playlist_item::PlaylistItem;
 
+mod release_group;
+pub use release_group::*;
+
 use crate::library::Library;
 
 // TODO rename EntityBasics, or maybe get rid of. library interface is fine
@@ -89,6 +92,7 @@ pub enum DimpleEntity {
     Track(Track),
     Genre(Genre),
     Release(Release),
+    ReleaseGroup(ReleaseGroup),
     Playlist(Playlist),
 }
 
@@ -99,6 +103,7 @@ impl DimpleEntity {
             DimpleEntity::Track(t) => t.id.clone().expect("Track missing id"),
             DimpleEntity::Genre(g) => g.id.clone().expect("Genre missing id"),
             DimpleEntity::Release(r) => r.id.clone().expect("Release missing id"),
+            DimpleEntity::ReleaseGroup(r) => r.id.clone().expect("ReleaseGroup missing id"),
             DimpleEntity::Playlist(playlist) => playlist.id.clone().expect("Playlist missing id"),
         }
     }
@@ -109,6 +114,7 @@ impl DimpleEntity {
             DimpleEntity::Track(t) => "Track".to_string(),
             DimpleEntity::Genre(t) => "Genre".to_string(),
             DimpleEntity::Release(t) => "Release".to_string(),
+            DimpleEntity::ReleaseGroup(t) => "ReleaseGroup".to_string(),
             DimpleEntity::Playlist(t) => "Playlist".to_string(),
         }
     }
@@ -137,6 +143,7 @@ impl_from_for_dimple_entity! {
     Track => Track,
     Genre => Genre,
     Release => Release,
+    ReleaseGroup => ReleaseGroup,
     Playlist => Playlist
 }
 

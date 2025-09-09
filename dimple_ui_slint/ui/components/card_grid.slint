@@ -10,6 +10,7 @@ export struct CardSectionAdapter {
     title: string,
     sub-title: string,
     cards: [CardAdapter],    
+    max-rows: int,
 }
 
 export struct CardGridAdapter {
@@ -193,7 +194,7 @@ export component SectionCardGrid inherits VerticalLayout {
         }
         CardGrid {
             cards: section.cards;
-            max-rows: 1;
+            max-rows: section.max-rows;
         }
     }
 }

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::library::Library;
@@ -16,16 +17,14 @@ pub struct Release {
     pub save: bool,
     pub download: bool,
 
+    pub release_group_id: Option<String>,
+
     pub barcode: Option<String>,
     pub country: Option<String>,
-    // TODO need to parse this out to at least year
     pub date: Option<String>,
-    pub packaging: Option<String>,
-    // "Official"
-    pub status: Option<String>,
-    pub quality: Option<String>,
-    pub release_group_type: Option<String>,
-    pub release_group_musicbrainz_id: Option<String>,
+    pub packaging: Option<String>, // TODO enum
+    pub status: Option<String>, // TODO enum
+    pub quality: Option<String>, // TODO enum
 
     pub discogs_id: Option<String>,
     pub lastfm_id: Option<String>,
@@ -33,6 +32,25 @@ pub struct Release {
     pub spotify_id: Option<String>,
     pub wikidata_id: Option<String>,
 }
+
+// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// pub enum ReleaseQuality {
+//     Low,
+//     Normal,
+//     High,
+// }
+
+// /// https://musicbrainz.org/doc/Style/Release#Status
+// #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// pub enum ReleaseStatus {
+//     Official,
+//     Promotion,
+//     Bootleg,
+//     Pseudo,
+//     Withdrawn,
+//     Expunged,
+//     Cancelled,
+// }
 
 impl Release {
     pub fn artist(&self, library: &Library) -> Option<Artist> {
@@ -97,6 +115,6 @@ mod tests {
     #[test]
     fn library_crud() {
         let library = Library::open_memory();
-        let mut model = library.save(&Release::default());
+        let _ = library.save(&Release::default());
     }
 }

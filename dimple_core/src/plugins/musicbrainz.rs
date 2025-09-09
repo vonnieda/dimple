@@ -1,9 +1,10 @@
 use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
 use anyhow::Result;
+use musicbrainz_rs::entity::release_group;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Release, Track}, plugins::converters::ReleaseConverter};
+use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Release, ReleaseGroup, Track}, plugins::converters::{ReleaseConverter, ReleaseGroupConverter}};
 
 use super::{converters::ArtistConverter, plugin::Plugin, plugins::Plugins};
 
@@ -116,7 +117,7 @@ impl Plugin for MusicBrainzPlugin {
             let url = format!("https://musicbrainz.org/ws/2/artist/{mbid}?fmt=json&inc=genres+url-rels");
             let mb_artist: musicbrainz_rs::entity::artist::Artist = self.get(plugins, &url)?;
             let mut artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
-            artist_metadata.releases = self.artist_releases(plugins, &mbid)?;
+            // artist_metadata.releases = self.artist_releases(plugins, &mbid)?;
             return Ok(Some(artist_metadata))
         }
         Ok(None)
@@ -146,6 +147,52 @@ impl Plugin for MusicBrainzPlugin {
         Ok(None)
     }
 
+    // fn release_group_metadata(&self, host: &Plugins, _library: &Library, release_group: &ReleaseGroup) 
+    //     -> Result<Option<ReleaseGroupMetadata>, anyhow::Error> {
+
+    //     if let Some(mbid) = release_group.musicbrainz_id.clone() {
+    //         // https://musicbrainz.org/doc/MusicBrainz_API
+    //         // Subqueries
+    //         // The inc= parameter allows you to request more information to be included about the entity. Any of the entities directly linked to the entity can be included.
+    //         //  /ws/2/release-group     artists, releases
+
+    //         // Some additional inc= parameters are supported to specify how much of the data about the linked entities should be included:
+    //         //  - discids           include discids for all media in the releases
+    //         //  - media             include media for all releases, this includes the # of tracks on each medium and its format.
+    //         //  - isrcs             include isrcs for all recordings
+    //         //  - artist-credits    include artists credits for all releases and recordings
+
+    //         // Misc inc= arguments
+    //         // - aliases                   include artist, label, area or work aliases; treat these as a set, as they are not deliberately ordered
+    //         // - annotation                include annotation
+    //         // - tags, ratings             include tags and/or ratings for the entity
+    //         // - user-tags, user-ratings   same as above, but only return the tags and/or ratings submitted by the specified user
+    //         // - genres, user-genres       include genres (tags in the genres list): either all or the ones submitted by the user, respectively
+    //         // 
+
+    //         // The following list shows which linked entities you can use in a browse request:
+    //         //  /ws/2/release-group     artist, collection, release
+
+    //         // Just like with normal lookup requests, the server can be instructed to include more data about the entity using an 'inc=' argument. Supported values for inc= are:
+    //         //  /ws/2/release-group     artist-credits
+
+    //         // In addition to the inc= values listed above, all entities support:
+    //         //  annotation, tags, user-tags, genres, user-genres
+
+    //         // All entities except area, place, release, and series support:
+    //         //  ratings, user-ratings
+    //         let url = format!(concat!(
+    //             "https://musicbrainz.org/ws/2/release-group/{}",
+    //             "?fmt=json",
+    //             "&inc=artist-credits+recordings+release-groups+media+discids+isrcs+genres+url-rels+ratings",
+    //         ), mbid);
+    //         let mb_release: musicbrainz_rs::entity::release::Release = self.get(host, &url)?;
+    //         let release_metadata: ReleaseMetadata = ReleaseConverter::from(mb_release).into();
+    //         return Ok(Some(release_metadata))
+    //     }
+    //     Ok(None)
+    // }
+
     fn track_metadata(&self, host: &Plugins, _library: &Library, track: &Track) 
         -> Result<Option<TrackMetadata>, anyhow::Error> {
         // if let Some(mbid) = track.musicbrainz_id.clone() {
@@ -166,20 +213,25 @@ impl Plugin for MusicBrainzPlugin {
         let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::artist::Artist> = self.get(host, &url)?;
         let artists: Vec<ArtistMetadata> = mb_results.entities.into_iter().map(|e| ArtistConverter::from(e).into()).collect();
 
-        let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={query}");
-        let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release> = self.get(host, &url)?;
-        let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect(); 
+        // http://musicbrainz.org/ws/2/release-group/?fmt=json&query=master+of+puppets
+        let url = format!("https://musicbrainz.org/ws/2/release-group/?fmt=json&query={query}");
+        let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release_group::ReleaseGroup> = self.get(host, &url)?;
+        let release_groups: Vec<ReleaseGroupMetadata> = mb_results.entities.into_iter().map(|e| ReleaseGroupConverter::from(e).into()).collect(); 
+
+        // let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={query}");
+        // let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release> = self.get(host, &url)?;
+        // let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect(); 
 
         // TODO no genres search, just ship the list
 
-        // TODO tracks
+        // TODO recordings
         // let url = format!("https://musicbrainz.org/ws/2/recording/?fmt=json&query={query}");
         // let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::recording::Recording> = self.get(host, &url)?;
         // let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
 
         Ok(SearchResults {
             artists,
-            releases,
+            release_groups,
             ..Default::default()
         })
     }
@@ -190,7 +242,9 @@ pub struct ReleasesResponse {
     pub releases: Vec<musicbrainz_rs::entity::release::Release>,
 }
     
+    
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "kebab-case")]
 pub struct ReleaseGroupsResponse {
     pub release_groups: Vec<musicbrainz_rs::entity::release_group::ReleaseGroup>,
 }
@@ -237,6 +291,32 @@ impl MusicBrainzPlugin {
         Ok(releases)
     }
 
+    fn artist_release_groups(&self, plugins: &Plugins, mbid: &str) -> Result<Vec<ReleaseGroupMetadata>> {
+        let limit: usize = 100;
+        let mut offset: usize = 0;
+        let mut results: Vec<ReleaseGroupMetadata> = vec![];
+        loop {
+            let url = format!(concat!(
+                "https://musicbrainz.org/ws/2/release-group",
+                "?fmt=json",
+                "&artist={}",
+                "&inc=artist-credits+genres+url-rels+ratings",
+                "&offset={}",
+                "&limit={}"), mbid, offset, limit);
+            let response: ReleaseGroupsResponse = self.get(plugins, &url)?;
+            if response.release_groups.is_empty() {
+                break
+            }
+            else {
+                offset += response.release_groups.len();
+            }
+            response.release_groups.into_iter()
+                .map(|src| ReleaseGroupMetadata::from(ReleaseGroupConverter::from(src.clone())))
+                .for_each(|r| results.push(r));
+        }
+        Ok(results)
+    }
+
     fn enforce_rate_limit(&self) {
         let mut last_request_time = self.rate_limit_lock.lock().unwrap();
 
@@ -272,7 +352,7 @@ mod tests {
     use crate::{librarian::{self, ArtistMetadata}, library::Library, model::Artist, plugins::{musicbrainz::MusicBrainzPlugin, plugin::Plugin as _, plugins::Plugins}};
 
     #[test]
-    fn it_works() {
+    fn test_artist_metadata() {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
         let plugins = Plugins::default();
@@ -284,21 +364,45 @@ mod tests {
         assert_eq!(artist_metadata.artist.name, Some("We Were Heading North".to_string()));
         assert!(artist_metadata.links.len() >= 2);
         assert!(artist_metadata.genres.len() >= 1);
-        assert!(artist_metadata.releases.len() >= 3);
-        assert!(artist_metadata.releases[0].artists.len() >= 1);
-        assert!(artist_metadata.releases[0].release.release_group_musicbrainz_id.is_some());
+        // assert!(artist_metadata.releases.len() >= 3);
+        // assert!(artist_metadata.releases[0].artists.len() >= 1);
+        // assert!(artist_metadata.releases[0].release.release_group_musicbrainz_id.is_some());
         let _ = library.db.transaction(move |t| {
             librarian::merge_artist_metadata(t, &artist_metadata, None)
         });
     }
 
+        #[test]
+    fn test_artist_release_groups() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let plugins = Plugins::default();
+        let plugin = MusicBrainzPlugin::default();
+        // Metallica 65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab
+        // We Were Heading North 73084492-3e59-4b7f-aa65-572a9d7691d5
+        let release_groups = plugin.artist_release_groups(&plugins, "65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab").unwrap();
+        // let artist_metadata = plugin.artist_metadata(&plugins, &library, &Artist {
+        //     musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
+        //     ..Default::default()
+        // }).unwrap().unwrap();
+        // assert_eq!(artist_metadata.artist.name, Some("We Were Heading North".to_string()));
+        // assert!(artist_metadata.links.len() >= 2);
+        // assert!(artist_metadata.genres.len() >= 1);
+        // assert!(artist_metadata.releases.len() >= 3);
+        // assert!(artist_metadata.releases[0].artists.len() >= 1);
+        // assert!(artist_metadata.releases[0].release.release_group_musicbrainz_id.is_some());
+        // let _ = library.db.transaction(move |t| {
+        //     librarian::merge_artist_metadata(t, &artist_metadata, None)
+        // });
+    }
+
     #[test]
-    fn search() {
+    fn test_search() {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
         let plugins = Plugins::default();
         let plugin = MusicBrainzPlugin::default();
         let results = plugin.search(&plugins, &library, "death clock").unwrap();
-        dbg!(results);
+        // dbg!(results);
     }    
 }

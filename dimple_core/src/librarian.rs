@@ -1,5 +1,5 @@
 use dimple_db::db::transaction::DbTransaction;
-use crate::{librarian, library::Library, crdt_rules::CrdtRules, merge_rules::{MergeRules, MergeError}, model::{Artist, ArtistRef, Dimage, DimageRef, DimpleEntity, Genre, GenreRef, Link, LinkRef, Release, Track}, plugins::plugins::Plugins};
+use crate::{crdt_rules::CrdtRules, librarian, library::Library, merge_rules::{MergeError, MergeRules}, model::{Artist, ArtistRef, Dimage, DimageRef, DimpleEntity, Genre, GenreRef, Link, LinkRef, Release, ReleaseGroup, ReleaseGroupSecondaryType, Track}, plugins::plugins::Plugins};
 
 #[derive(Clone)]
 pub struct Librarian {
@@ -54,7 +54,7 @@ pub fn merge_artist_metadata(txn: &DbTransaction, artist: &ArtistMetadata, pre_m
     merge_genres(txn, &artist.genres, &merged.id)?;
     merge_links(txn, &artist.links, &merged.id)?;
     merge_images(txn, &artist.images, &merged.id)?;
-    merge_artist_releases(txn, &artist.releases, &merged)?;
+    // merge_artist_releases(txn, &artist.releases, &merged)?;
     Ok(merged)
 }
 
@@ -76,6 +76,20 @@ pub fn merge_release_metadata(txn: &DbTransaction, metadata: &ReleaseMetadata, p
     merge_links(txn, &metadata.links, &merged.id)?;
     merge_images(txn, &metadata.images, &merged.id)?;
     merge_release_tracks(txn, &metadata.tracks, &merged)?;
+    Ok(merged)
+}
+
+pub fn merge_release_group_metadata(txn: &DbTransaction, metadata: &ReleaseGroupMetadata, pre_match: Option<ReleaseGroup>) -> Result<ReleaseGroup, anyhow::Error> {
+    let matched = pre_match.or_else(|| match_release_group(txn, metadata).ok().flatten()).unwrap_or_default();
+    let mut merged = ReleaseGroup::try_merge(&matched, &metadata.release_group).unwrap_or(metadata.release_group.clone());
+    if merged != matched {
+        merged = txn.save(&merged)?;
+    }
+    // dbg!(&merged);
+    merge_artists(txn, &metadata.artists, &merged.id)?;
+    merge_genres(txn, &metadata.genres, &merged.id)?;
+    merge_links(txn, &metadata.links, &merged.id)?;
+    merge_images(txn, &metadata.images, &merged.id)?;
     Ok(merged)
 }
 
@@ -105,6 +119,14 @@ fn merge_artist_releases(txn: &DbTransaction, releases: &[ReleaseMetadata], arti
     }
     Ok(())
 }
+
+// fn merge_artist_release_groups(txn: &DbTransaction, release_groups: &[ReleaseGroupMetadata], artist: &Artist) -> Result<(), anyhow::Error> {
+//     for release_group in release_groups {
+//         let release_group = merge_release_group_metadata(txn, release_group, None)?;
+//         ArtistRef::attach(txn, artist, &release.id)?;
+//     }
+//     Ok(())
+// }
 
 fn merge_release_tracks(txn: &DbTransaction, tracks: &[TrackMetadata], release: &Release) -> Result<(), anyhow::Error> {
     for track in tracks {
@@ -245,6 +267,34 @@ fn match_release(txn: &DbTransaction, release: &ReleaseMetadata) -> Result<Optio
     Ok(None)
 }
 
+fn match_release_group(txn: &DbTransaction, release_group: &ReleaseGroupMetadata) -> Result<Option<ReleaseGroup>, anyhow::Error> {
+    let matched_release_group: Vec<ReleaseGroup> = txn.query("
+        SELECT ReleaseGroup.* 
+        FROM ReleaseGroup 
+        WHERE ReleaseGroup.musicbrainz_id IS NOT NULL AND ReleaseGroup.musicbrainz_id = ?1", 
+        (&release_group.release_group.musicbrainz_id,))?;
+    if !matched_release_group.is_empty() {
+        return Ok(matched_release_group.into_iter().next())
+    }
+    // TODO This should require a minimum of one artist, and then just search by
+    // fuzzy name within that artist's release groups.
+    for artist in release_group.artists.clone() {
+        let matched_release_group: Vec<ReleaseGroup> = txn.query("
+            SELECT r.* FROM ReleaseGroup r
+            LEFT JOIN ArtistRef rar ON (rar.model_id = r.id)
+            LEFT JOIN Artist ra ON (ra.id = rar.artist_id)
+            WHERE (
+                r.title COLLATE NOCASE = ?1 
+                AND ra.name COLLATE NOCASE = ?2
+            )
+            ", (&release_group.release_group.title, artist.artist.name))?;
+        if !matched_release_group.is_empty() {
+            return Ok(matched_release_group.into_iter().next())
+        }
+    }
+    Ok(None)
+}
+
 // TODO this failed when importing We Were Heading North's albums, then
 // searching for We Were Heading North to link up the artist with mbid,
 // then browsing to any release of theirs. The tracks are all duped.
@@ -288,7 +338,7 @@ pub struct ArtistMetadata {
     pub genres: Vec<Genre>,
     pub links: Vec<Link>,
     pub images: Vec<Dimage>,
-    pub releases: Vec<ReleaseMetadata>,
+    // pub releases: Vec<ReleaseMetadata>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
@@ -298,6 +348,16 @@ pub struct ReleaseMetadata {
     pub genres: Vec<Genre>,
     pub links: Vec<Link>,
     pub tracks: Vec<TrackMetadata>,
+    pub images: Vec<Dimage>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
+pub struct ReleaseGroupMetadata {
+    pub release_group: ReleaseGroup,
+    pub secondary_types: Vec<ReleaseGroupSecondaryType>,
+    pub artists: Vec<ArtistMetadata>,
+    pub genres: Vec<Genre>,
+    pub links: Vec<Link>,
     pub images: Vec<Dimage>,
 }
 
@@ -316,6 +376,7 @@ pub struct SearchResults {
     pub tracks: Vec<TrackMetadata>,
     pub artists: Vec<ArtistMetadata>,
     pub releases: Vec<ReleaseMetadata>,
+    pub release_groups: Vec<ReleaseGroupMetadata>,
     pub genres: Vec<Genre>,
 }
 

@@ -2,7 +2,7 @@ import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
 import { CardAdapter } from "../components/card.slint";
 import { StyleMetrics , ScrollView, ListView, Button, Palette} from "std-widgets.slint";
-import { CardGrid } from "../components/card_grid.slint";
+import { CardGrid, CardSectionAdapter, SectionCardGrid } from "../components/card_grid.slint";
 import { Styles, Navigator, AppState, Label, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
 import { Tag, TagList } from "../components/tag.slint";
 import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
@@ -19,7 +19,54 @@ export global ArtistDetailsAdapter {
     in property <string> summary: "Fresh Pliers does it again with 'A Reign of Fish'. Ex nostrud culpa id veniam aliqua aliqua ipsum. Velit do id amet labore mollit id cillum commodo Lorem proident labore eu. Incididunt minim irure culpa excepteur officia sit consequat est mollit. Ipsum anim anim sunt dolore. Laborum consequat deserunt laboris ullamco cillum. Ullamco deserunt ut quis dolore aliquip esse consequat velit amet. Nulla tempor veniam dolor amet occaecat adipisicing nulla laboris.\n\nQui non irure anim irure nisi nulla ex aliquip. Sit do irure esse magna sit do eiusmod. Anim commodo velit non enim nulla.\n\nAnim incididunt dolore nulla laboris eu mollit Lorem minim reprehenderit in quis magna mollit. Labore Lorem esse anim ipsum esse irure ipsum proident deserunt officia consequat sunt sit. Ex laborum ipsum laboris nisi proident. Nulla culpa est commodo dolor. Magna sint id et ut esse mollit qui elit voluptate ea.";
     in property <[LinkAdapter]> genres: [{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},];
     in property <[LinkAdapter]> links: [{name: "https://bandcamp.com/arof",url: "internal://release/1234"}];
-    in property <[CardAdapter]> releases: [card, card, card, card, card, card, card];
+    in-out property <[CardSectionAdapter]> releases: [
+        { title: "Albums ⟩", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"},
+            sub-title: {name: "A Thing With Super Ultra Mega Stuff"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+        { title: "Singles & EPs ⟩", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+        { title: "Live", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+        { title: "Other Releases", cards: [
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+            { image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
+            title: {name: "A Reign of Fish"}},
+        ]},
+    ];
     
     in property <string> dump;
     in property <bool> save;
@@ -99,11 +146,8 @@ export component ArtistDetails inherits ScrollView {
         if ArtistDetailsAdapter.releases.length > 0: VerticalBox {
             alignment: start;
             padding: 0;
-            SectionTitle {
-                text: "Releases";
-            }
-            CardGrid {
-                cards: ArtistDetailsAdapter.releases;
+            SectionCardGrid {
+                sections: ArtistDetailsAdapter.releases;
             }
         }
 

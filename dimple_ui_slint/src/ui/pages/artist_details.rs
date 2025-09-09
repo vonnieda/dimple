@@ -1,6 +1,7 @@
 use crate::ui::app_window_controller::App;
 use crate::ui::common::MutableStringParam;
 use crate::ui::CardAdapter;
+use crate::ui::CardSectionAdapter;
 use crate::ui::Page;
 use dimple_core::librarian;
 use dimple_core::model::Artist;
@@ -8,6 +9,9 @@ use dimple_core::model::Genre;
 use dimple_core::model::ModelBasics;
 use dimple_core::model::Release;
 use dimple_core::model::Link;
+use dimple_core::model::ReleaseGroup;
+use dimple_core::model::ReleaseGroupPrimaryType;
+use itertools::Itertools as _;
 use slint::ComponentHandle as _;
 use slint::ModelRc;
 use url::Url;
@@ -16,14 +20,13 @@ use crate::ui::ArtistDetailsAdapter;
 use crate::ui::ImageLinkAdapter;
 use dimple_db::db::query::QuerySubscription;
 use anyhow::Result;
-use std::collections::HashMap;
 
 pub struct ArtistDetailsController {
     current_key: MutableStringParam,
     artist_subscription: QuerySubscription,
     genres_subscription: QuerySubscription,
     links_subscription: QuerySubscription,
-    releases_subscription: QuerySubscription,
+    release_groups_subscription: QuerySubscription,
 }
 
 
@@ -83,32 +86,21 @@ impl ArtistDetailsController {
             }).unwrap();
         })?;
 
-        // TODO use preferred language as part of the release selection
-        let preferred_language = app.config.preferred_language();
         let sql = "
-            SELECT *
-            FROM (
-                SELECT Release.*,
-                        ROW_NUMBER() OVER (
-                            PARTITION BY Release.release_group_musicbrainz_id
-                            ORDER BY Release.date ASC,
-                                    CASE WHEN Release.status LIKE '%official%' THEN 0 ELSE 1 END,
-                                    Release.rowid ASC
-                        ) as rn
-                FROM Release
-                JOIN ArtistRef ON ArtistRef.model_id = Release.id
-                WHERE ArtistRef.artist_id = ?
-            ) ranked
-            WHERE rn = 1
-            ORDER BY date DESC, title ASC            
+            SELECT ReleaseGroup.*
+            FROM ReleaseGroup
+            JOIN Release ON Release.release_group_id = ReleaseGroup.id
+            JOIN ArtistRef ON ArtistRef.model_id = Release.id
+            WHERE ArtistRef.artist_id = ?
+            ORDER BY ReleaseGroup.first_release_date DESC, ReleaseGroup.title ASC, ReleaseGroup.rowid
             ;
         ";
         let ui = app.ui.clone();
-        let releases_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |releases: Vec<Release>| {
+        let release_groups_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |groups: Vec<ReleaseGroup>| {
             ui.upgrade_in_event_loop(move |ui| {
-                // let grouped_releases = group_releases_by_release_group(&releases, preferred_language.as_deref());
-                let release_cards = release_cards(&releases);
-                ui.global::<ArtistDetailsAdapter>().set_releases(ModelRc::from(release_cards.as_slice()));
+                let sections = release_group_sections(&groups);
+                let adapter = ui.global::<ArtistDetailsAdapter>();
+                adapter.set_releases(sections.as_slice().into());
             }).unwrap();
         })?;
 
@@ -117,7 +109,7 @@ impl ArtistDetailsController {
             artist_subscription,
             genres_subscription,
             links_subscription,
-            releases_subscription,
+            release_groups_subscription,
         })
     }
 
@@ -128,7 +120,7 @@ impl ArtistDetailsController {
         self.artist_subscription.refresh();
         self.genres_subscription.refresh();
         self.links_subscription.refresh();
-        self.releases_subscription.refresh();
+        self.release_groups_subscription.refresh();
 
         // Trigger metadata refresh in background
         let app_clone = app.clone();
@@ -141,6 +133,69 @@ impl ArtistDetailsController {
 
         Ok(())
     }
+}
+
+fn release_group_sections(groups: &[ReleaseGroup]) -> Vec<CardSectionAdapter> {
+    let albums = groups.iter()
+        .filter(|g| match g.primary_type {
+            Some(ReleaseGroupPrimaryType::Album) => true,
+            _ => false
+        })
+        .collect::<Vec<_>>();
+    let singles_and_eps = groups.iter()
+        .filter(|g| match g.primary_type {
+            Some(ReleaseGroupPrimaryType::Single) => true,
+            Some(ReleaseGroupPrimaryType::EP) => true,
+            _ => false
+        })
+        .collect::<Vec<_>>();
+    let others = groups.iter()
+        .filter(|g| match g.primary_type {
+            Some(ReleaseGroupPrimaryType::Broadcast) => true,
+            Some(ReleaseGroupPrimaryType::Other) => true,
+            _ => false
+        })
+        .collect::<Vec<_>>();
+
+    // 4. Map to CardSectionAdapters (Albums, Singles & EPs, Live, Other)
+    let mut sections: Vec<CardSectionAdapter> = vec![];
+    if !albums.is_empty() {
+        let groups = albums.into_iter().sorted_by_key(|r| r.first_release_date.clone()).rev().cloned().collect::<Vec<_>>();
+        sections.push(CardSectionAdapter {
+            title: "Albums ⟩".into(),
+            sub_title: Default::default(),
+            cards: release_group_cards(groups.as_slice()).as_slice().into(),
+            ..Default::default()
+        });
+    }
+    if !singles_and_eps.is_empty() {
+        let groups = singles_and_eps.into_iter().sorted_by_key(|r| r.first_release_date.clone()).rev().cloned().collect::<Vec<_>>();
+        sections.push(CardSectionAdapter {
+            title: "Singles & EPs ⟩".into(),
+            sub_title: Default::default(),
+            cards: release_group_cards(groups.as_slice()).as_slice().into(),
+            ..Default::default()
+        });
+    }
+    if !others.is_empty() {
+        let groups = others.into_iter().sorted_by_key(|r| r.first_release_date.clone()).rev().cloned().collect::<Vec<_>>();
+        sections.push(CardSectionAdapter {
+            title: "Other Releases ⟩".into(),
+            sub_title: Default::default(),
+            cards: release_group_cards(groups.as_slice()).as_slice().into(),
+            ..Default::default()
+        });
+    }
+
+    sections
+}
+
+fn default_release(releases: &[&Release]) -> Option<Release> {
+    releases.iter()
+        .sorted_by_key(|r| r.date.clone().unwrap_or("9999-99-99".to_string()))
+        .next()
+        .cloned()
+        .cloned()
 }
 
 pub fn artist_details(url: &str, app: &App, controller: &mut ArtistDetailsController) {
@@ -165,35 +220,33 @@ fn genre_links(genres: &[Genre]) -> Vec<LinkAdapter> {
     }).collect()
 }
 
-fn release_cards(releases: &[Release]) -> Vec<CardAdapter> {
-    releases.iter().cloned()
-        .map(|release| {
-            let card: CardAdapter = release_card(&release);
+fn release_group_cards(groups: &[ReleaseGroup]) -> Vec<CardAdapter> {
+    groups.iter().cloned()
+        .map(|group| {
+            let card: CardAdapter = release_group_card(&group);
             card
         })
         .collect()
 }
 
-fn release_card(release: &Release) -> CardAdapter {
-    let release = release.clone();
+fn release_group_card(group: &ReleaseGroup) -> CardAdapter {
+    let group = group.clone();
     CardAdapter {
-        key: release.id.clone().unwrap_or_default().into(),
+        key: group.id.clone().unwrap_or_default().into(),
         image: ImageLinkAdapter {
             image: Default::default(),
-            name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
+            name: group.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://release/{}", group.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         title: LinkAdapter {
-            name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
+            name: group.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://release/{}", group.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         sub_title: LinkAdapter {
-            name: format!("{} {}", 
-                release.date.unwrap_or_default(), 
-                release.release_group_type.unwrap_or_default()).into(),
-            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
+            name: format!("{}", group.first_release_date.unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", group.id.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
     }

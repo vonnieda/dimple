@@ -39,7 +39,6 @@ CREATE VIRTUAL TABLE ReleaseFts USING fts5(
     packaging,
     status,
     quality,
-    release_group_type,
     discogs_id,
     lastfm_id,
     musicbrainz_id,
@@ -50,20 +49,20 @@ CREATE VIRTUAL TABLE ReleaseFts USING fts5(
 );
 
 CREATE TRIGGER Release_ai AFTER INSERT ON Release BEGIN
-  INSERT INTO ReleaseFts(rowid, title, disambiguation, summary, barcode, country, date, packaging, status, quality, release_group_type, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
-  VALUES (new.rowid, new.title, new.disambiguation, new.summary, new.barcode, new.country, new.date, new.packaging, new.status, new.quality, new.release_group_type, new.discogs_id, new.lastfm_id, new.musicbrainz_id, new.spotify_id, new.wikidata_id);
+  INSERT INTO ReleaseFts(rowid, title, disambiguation, summary, barcode, country, date, packaging, status, quality, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
+  VALUES (new.rowid, new.title, new.disambiguation, new.summary, new.barcode, new.country, new.date, new.packaging, new.status, new.quality, new.discogs_id, new.lastfm_id, new.musicbrainz_id, new.spotify_id, new.wikidata_id);
 END;
 
 CREATE TRIGGER Release_ad AFTER DELETE ON Release BEGIN
-  INSERT INTO ReleaseFts(ReleaseFts, rowid, title, disambiguation, summary, barcode, country, date, packaging, status, quality, release_group_type, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
-  VALUES('delete', old.rowid, old.title, old.disambiguation, old.summary, old.barcode, old.country, old.date, old.packaging, old.status, old.quality, old.release_group_type, old.discogs_id, old.lastfm_id, old.musicbrainz_id, old.spotify_id, old.wikidata_id);
+  INSERT INTO ReleaseFts(ReleaseFts, rowid, title, disambiguation, summary, barcode, country, date, packaging, status, quality, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
+  VALUES('delete', old.rowid, old.title, old.disambiguation, old.summary, old.barcode, old.country, old.date, old.packaging, old.status, old.quality, old.discogs_id, old.lastfm_id, old.musicbrainz_id, old.spotify_id, old.wikidata_id);
 END;
 
 CREATE TRIGGER Release_au AFTER UPDATE ON Release BEGIN
-  INSERT INTO ReleaseFts(ReleaseFts, rowid, title, disambiguation, summary, barcode, country, date, packaging, status, quality, release_group_type, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
-  VALUES('delete', old.rowid, old.title, old.disambiguation, old.summary, old.barcode, old.country, old.date, old.packaging, old.status, old.quality, old.release_group_type, old.discogs_id, old.lastfm_id, old.musicbrainz_id, old.spotify_id, old.wikidata_id);
-  INSERT INTO ReleaseFts(rowid, title, disambiguation, summary, barcode, country, date, packaging, status, quality, release_group_type, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
-  VALUES (new.rowid, new.title, new.disambiguation, new.summary, new.barcode, new.country, new.date, new.packaging, new.status, new.quality, new.release_group_type, new.discogs_id, new.lastfm_id, new.musicbrainz_id, new.spotify_id, new.wikidata_id);
+  INSERT INTO ReleaseFts(ReleaseFts, rowid, title, disambiguation, summary, barcode, country, date, packaging, status, quality, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
+  VALUES('delete', old.rowid, old.title, old.disambiguation, old.summary, old.barcode, old.country, old.date, old.packaging, old.status, old.quality, old.discogs_id, old.lastfm_id, old.musicbrainz_id, old.spotify_id, old.wikidata_id);
+  INSERT INTO ReleaseFts(rowid, title, disambiguation, summary, barcode, country, date, packaging, status, quality, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
+  VALUES (new.rowid, new.title, new.disambiguation, new.summary, new.barcode, new.country, new.date, new.packaging, new.status, new.quality, new.discogs_id, new.lastfm_id, new.musicbrainz_id, new.spotify_id, new.wikidata_id);
 END;
 
 CREATE VIRTUAL TABLE TrackFts USING fts5(
@@ -128,5 +127,37 @@ CREATE TRIGGER Genre_au AFTER UPDATE ON Genre BEGIN
   VALUES('delete', old.rowid, old.name, old.disambiguation, old.summary, old.discogs_id, old.lastfm_id, old.musicbrainz_id, old.spotify_id, old.wikidata_id);
   INSERT INTO GenreFts(rowid, name, disambiguation, summary, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
   VALUES (new.rowid, new.name, new.disambiguation, new.summary, new.discogs_id, new.lastfm_id, new.musicbrainz_id, new.spotify_id, new.wikidata_id);
+END;
+
+CREATE VIRTUAL TABLE ReleaseGroupFts USING fts5(
+    title,
+    disambiguation,
+    summary,
+    first_release_date,
+    primary_type,
+    discogs_id,
+    lastfm_id,
+    musicbrainz_id,
+    spotify_id,
+    wikidata_id,
+    content='ReleaseGroup',
+    content_rowid='rowid'
+);
+
+CREATE TRIGGER ReleaseGroup_ai AFTER INSERT ON ReleaseGroup BEGIN
+  INSERT INTO ReleaseGroupFts(rowid, title, disambiguation, summary, first_release_date, primary_type, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
+  VALUES (new.rowid, new.title, new.disambiguation, new.summary, new.first_release_date, new.primary_type, new.discogs_id, new.lastfm_id, new.musicbrainz_id, new.spotify_id, new.wikidata_id);
+END;
+
+CREATE TRIGGER ReleaseGroup_ad AFTER DELETE ON ReleaseGroup BEGIN
+  INSERT INTO ReleaseGroupFts(ReleaseGroupFts, rowid, title, disambiguation, summary, first_release_date, primary_type, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
+  VALUES('delete', old.rowid, old.title, old.disambiguation, old.summary, old.first_release_date, old.primary_type, old.discogs_id, old.lastfm_id, old.musicbrainz_id, old.spotify_id, old.wikidata_id);
+END;
+
+CREATE TRIGGER ReleaseGroup_au AFTER UPDATE ON ReleaseGroup BEGIN
+  INSERT INTO ReleaseGroupFts(ReleaseGroupFts, rowid, title, disambiguation, summary, first_release_date, primary_type, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
+  VALUES('delete', old.rowid, old.title, old.disambiguation, old.summary, old.first_release_date, old.primary_type, old.discogs_id, old.lastfm_id, old.musicbrainz_id, old.spotify_id, old.wikidata_id);
+  INSERT INTO ReleaseGroupFts(rowid, title, disambiguation, summary, first_release_date, primary_type, discogs_id, lastfm_id, musicbrainz_id, spotify_id, wikidata_id)
+  VALUES (new.rowid, new.title, new.disambiguation, new.summary, new.first_release_date, new.primary_type, new.discogs_id, new.lastfm_id, new.musicbrainz_id, new.spotify_id, new.wikidata_id);
 END;
 

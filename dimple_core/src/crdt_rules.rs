@@ -91,8 +91,7 @@ impl CrdtRules for Release {
             packaging: CrdtRules::merge(l.packaging, r.packaging),
             status: CrdtRules::merge(l.status, r.status),
             quality: CrdtRules::merge(l.quality, r.quality),
-            release_group_type: CrdtRules::merge(l.release_group_type, r.release_group_type),
-            release_group_musicbrainz_id: CrdtRules::merge(l.release_group_musicbrainz_id, r.release_group_musicbrainz_id),
+            release_group_id: CrdtRules::merge(l.release_group_id, r.release_group_id),
 
             discogs_id: CrdtRules::merge(l.discogs_id, r.discogs_id),
             lastfm_id: CrdtRules::merge(l.lastfm_id, r.lastfm_id),

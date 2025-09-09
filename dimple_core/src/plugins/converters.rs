@@ -1,8 +1,8 @@
 use musicbrainz_rs::entity::relations::RelationContent;
 
 use crate::{
-    librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata},
-    model::{Artist, Link, Release, Track},
+    librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, TrackMetadata},
+    model::{Artist, Link, Release, ReleaseGroup, ReleaseGroupPrimaryType, ReleaseGroupSecondaryType, Track},
 };
 
 // Note that in the converters below ..Default should never be used. If a Default
@@ -38,9 +38,9 @@ impl From<ArtistConverter> for ArtistMetadata {
                 summary: None,
                 ..Default::default()
             },
-            releases: value.0.releases.iter().flatten()
-                .map(|r| ReleaseMetadata::from(ReleaseConverter::from(r.to_owned())))
-                .collect(),
+            // releases: value.0.releases.iter().flatten()
+            //     .map(|r| ReleaseMetadata::from(ReleaseConverter::from(r.to_owned())))
+            //     .collect(),
             genres: value.0.genres.iter().flatten()
                 .map(|f| crate::model::Genre::from(GenreConverter::from(f.to_owned())))
                 .collect(),
@@ -84,8 +84,6 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                 musicbrainz_id: Some(value.0.id.clone()),
                 title: none_if_empty(value.0.title),
                 packaging: value.0.packaging.map(|f| format!("{f:?}")),
-                release_group_type: value.0.release_group.clone().and_then(|rg| rg.primary_type).map(|pt| format!("{pt:?}")),
-                release_group_musicbrainz_id: value.0.release_group.map(|rg| rg.id),
                 status: value.0.status.map(|f| format!("{f:?}")),
                 quality: value.0.quality.map(|f| format!("{f:?}")),
                 summary: None,
@@ -119,6 +117,85 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                 .flat_map(|media| media.tracks.iter())
                 .flat_map(|tracks| tracks.iter())
                 .map(|track| TrackMetadata::from(TrackConverter::from(track.to_owned())))
+                .collect(),
+            images: vec![],
+        }
+    }
+}
+
+pub struct ReleaseGroupConverter(musicbrainz_rs::entity::release_group::ReleaseGroup);
+
+impl From<musicbrainz_rs::entity::release_group::ReleaseGroup> for ReleaseGroupConverter {
+    fn from(value: musicbrainz_rs::entity::release_group::ReleaseGroup) -> Self {
+        ReleaseGroupConverter(value)
+    }
+}
+
+impl From<musicbrainz_rs::entity::release_group::ReleaseGroupPrimaryType> for ReleaseGroupPrimaryType {
+    fn from(value: musicbrainz_rs::entity::release_group::ReleaseGroupPrimaryType) -> Self {
+        match value {
+            musicbrainz_rs::entity::release_group::ReleaseGroupPrimaryType::Album => crate::model::ReleaseGroupPrimaryType::Album,
+            musicbrainz_rs::entity::release_group::ReleaseGroupPrimaryType::Single => crate::model::ReleaseGroupPrimaryType::Single,
+            musicbrainz_rs::entity::release_group::ReleaseGroupPrimaryType::Ep => crate::model::ReleaseGroupPrimaryType::EP,
+            musicbrainz_rs::entity::release_group::ReleaseGroupPrimaryType::Broadcast => crate::model::ReleaseGroupPrimaryType::Broadcast,
+            musicbrainz_rs::entity::release_group::ReleaseGroupPrimaryType::Other => crate::model::ReleaseGroupPrimaryType::Other,
+            _ => crate::model::ReleaseGroupPrimaryType::Unrecognized,
+        }
+    }
+}
+
+impl From<musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType> for ReleaseGroupSecondaryType {
+    fn from(value: musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType) -> Self {
+        match value {
+            musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType::AudioDrama => crate::model::ReleaseGroupSecondaryType::AudioDrama,
+            musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType::Audiobook => crate::model::ReleaseGroupSecondaryType::Audiobook,
+            musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType::Compilation => crate::model::ReleaseGroupSecondaryType::Compilation,
+            musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType::Demo => crate::model::ReleaseGroupSecondaryType::DJMix,
+            musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType::DjMix => crate::model::ReleaseGroupSecondaryType::Demo,
+            musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType::Interview => crate::model::ReleaseGroupSecondaryType::Interview,
+            musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType::Live => crate::model::ReleaseGroupSecondaryType::Live,
+            musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType::MixtapeStreet => crate::model::ReleaseGroupSecondaryType::MixtapeStreet,
+            musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType::Remix => crate::model::ReleaseGroupSecondaryType::Remix,
+            musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType::Soundtrack => crate::model::ReleaseGroupSecondaryType::Soundtrack,
+            musicbrainz_rs::entity::release_group::ReleaseGroupSecondaryType::Spokenword => crate::model::ReleaseGroupSecondaryType::Spokenword,
+            _ => crate::model::ReleaseGroupSecondaryType::Unrecognized,
+        }
+    }
+}
+
+impl From<ReleaseGroupConverter> for ReleaseGroupMetadata {
+    fn from(value: ReleaseGroupConverter) -> Self {
+        Self {
+            release_group: ReleaseGroup {
+                first_release_date: value.0.first_release_date.map(|f| f.to_string()),
+                disambiguation: none_if_empty(value.0.disambiguation),
+                id: None,
+                musicbrainz_id: Some(value.0.id.clone()),
+                title: none_if_empty(value.0.title),
+                primary_type: value.0.primary_type.map(Into::into),
+                ..Default::default()                
+            },
+            secondary_types: value.0.secondary_types.iter().cloned().map(Into::into).collect::<Vec<_>>(),
+            artists: value.0.artist_credit.iter().flatten()
+                .map(|f| ArtistMetadata::from(ArtistConverter::from(f.artist.to_owned())))
+                .collect(),
+            genres: value.0.genres.iter().flatten()
+                .map(|f| crate::model::Genre::from(GenreConverter::from(f.to_owned())))
+                .collect(),
+            links: value.0.relations.iter().flatten()
+                .filter_map(|r| match &r.content {
+                    RelationContent::Url(u) => Some(u.resource.to_string()),
+                    _ => None,
+                })
+                .chain(
+                    std::iter::once(value.0.id.clone())
+                        .map(|mbid| format!("https://musicbrainz.org/release-group/{mbid}")),
+                )
+                .map(|s| Link {
+                    id: None,
+                    name: None,
+                    url: s,
+                })
                 .collect(),
             images: vec![],
         }

@@ -30,7 +30,7 @@ CREATE TABLE Release (
     packaging TEXT,
     status TEXT,
     quality TEXT,
-    release_group_type TEXT,
+    release_group_id TEXT,
 
     discogs_id TEXT,
     lastfm_id TEXT,
@@ -40,6 +40,32 @@ CREATE TABLE Release (
 );
 CREATE INDEX Release_title ON Release (title);
 CREATE INDEX Release_musicbrainz_id ON Release (musicbrainz_id);
+
+CREATE TABLE ReleaseGroup (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    disambiguation TEXT,
+    summary TEXT,
+    save BOOL NOT NULL DEFAULT false,
+    download BOOL NOT NULL DEFAULT false,
+
+    first_release_date TEXT,
+    primary_type TEXT,
+
+    discogs_id TEXT,
+    lastfm_id TEXT,
+    musicbrainz_id TEXT,
+    spotify_id TEXT,
+    wikidata_id TEXT
+);
+CREATE INDEX ReleaseGroup_title ON ReleaseGroup (title);
+CREATE INDEX ReleaseGroup_musicbrainz_id ON ReleaseGroup (musicbrainz_id);
+
+CREATE TABLE ReleaseGroupSecondaryTypeRef (
+    id TEXT PRIMARY KEY,
+    release_group_id TEXT NOT NULL,
+    secondary_type TEXT NOT NULL
+);
 
 CREATE TABLE Track (
     id TEXT PRIMARY KEY,
@@ -111,9 +137,11 @@ CREATE TABLE PlaylistItem (
     id TEXT PRIMARY KEY,
     playlist_id TEXT NOT NULL,
     ordinal TEXT NOT NULL,
-    track_id TEXT NOT NULL
+    track_id TEXT NOT NULL,
+    deleted BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE INDEX PlaylistItem_playlist_id_ordinal ON PlaylistItem (playlist_id, ordinal);
+CREATE INDEX PlaylistItem_deleted ON PlaylistItem (deleted);
 
 CREATE TABLE MediaFile (
     id TEXT PRIMARY KEY,

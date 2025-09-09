@@ -190,8 +190,8 @@ impl SymphoniaTaggedMediaFile {
             packaging: self.tag(StandardTagKey::MediaFormat),
             quality: None,
             status: self.tag(StandardTagKey::MusicBrainzReleaseStatus),
-            release_group_type: self.tag(StandardTagKey::MusicBrainzReleaseType),
-            release_group_musicbrainz_id: self.tag(StandardTagKey::MusicBrainzReleaseGroupId),
+
+            release_group_id: None,
         }
     }
 

@@ -45,7 +45,13 @@ impl Plugin for CoverArtArchivePlugin {
                 let url = format!("http://coverartarchive.org/release/{mbid}");
                 let dimage = self.get_coverart(&url, host)?;
                 Ok(dimage)
-            }
+            },
+            DimpleEntity::ReleaseGroup(release_group) => {
+                let mbid = release_group.musicbrainz_id.clone().ok_or(Error::msg("mbid required"))?;
+                let url = format!("http://coverartarchive.org/release-group/{mbid}");
+                let dimage = self.get_coverart(&url, host)?;
+                Ok(dimage)
+            },
             _ => Ok(None)
         }
     }

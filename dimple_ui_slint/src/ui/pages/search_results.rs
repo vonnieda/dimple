@@ -4,12 +4,7 @@ use std::thread;
 
 use anyhow::Result;
 use dimple_core::librarian;
-use dimple_core::librarian::SearchResults;
 use dimple_core::library::Library;
-use dimple_core::model::Artist;
-use dimple_core::model::Genre;
-use dimple_core::model::Release;
-use dimple_core::model::Track;
 use dimple_core::plugins::plugins::Plugins;
 use dimple_db::db::query::QuerySubscription;
 use itertools::Itertools;
@@ -61,10 +56,22 @@ impl SearchResultsController {
                 Release.id AS id, 
                 'Release' AS entity_type, 
                 Release.title AS title, 
-                COALESCE(Release.release_group_type, '') AS sub_title 
+                '' AS sub_title 
             FROM ReleaseFts 
             JOIN Release ON Release.rowid = ReleaseFts.rowid 
             WHERE ReleaseFts = ?1
+
+            UNION
+
+            SELECT 
+                bm25(ReleaseGroupFts) AS rank, 
+                ReleaseGroup.id AS id, 
+                'ReleaseGroup' AS entity_type, 
+                ReleaseGroup.title AS title, 
+                COALESCE(ReleaseGroup.primary_type, '') AS sub_title 
+            FROM ReleaseGroupFts 
+            JOIN ReleaseGroup ON ReleaseGroup.rowid = ReleaseGroupFts.rowid 
+            WHERE ReleaseGroupFts = ?1
 
             UNION
 
@@ -134,6 +141,9 @@ fn search_plugins(plugins: Plugins, library: Library, query: String) {
                 for release in result.releases {
                     librarian::merge_release_metadata(txn, &release, None)?;
                 }
+                for release_group in result.release_groups {
+                    librarian::merge_release_group_metadata(txn, &release_group, None)?;
+                }
                 for track in result.tracks {
                     librarian::merge_track_metadata(txn, &track, None)?;
                 }
@@ -170,6 +180,16 @@ fn update_results(app: &App, results: HashMap<String, Vec<SearchResult>>) {
                     title: "Releases".into(),
                     sub_title: Default::default(),
                     cards: search_result_cards(release_results).as_slice().into(),
+                    ..Default::default()
+                });
+            }
+        }
+        if let Some(release_groups_results) = results.get("ReleaseGroup") {
+            if !release_groups_results.is_empty() {
+                sections.push(CardSectionAdapter {
+                    title: "Release Groups".into(),
+                    sub_title: Default::default(),
+                    cards: search_result_cards(release_groups_results).as_slice().into(),
                     ..Default::default()
                 });
             }
