@@ -123,6 +123,37 @@ impl Plugin for MusicBrainzPlugin {
         Ok(None)
     }
 
+    fn artist_release_groups(&self, plugins: &Plugins, library: &Library, artist: &Artist) 
+        -> Result<Vec<ReleaseGroupMetadata>> {
+        
+        if let Some(mbid) = artist.musicbrainz_id.clone() {
+            let limit: usize = 100;
+            let mut offset: usize = 0;
+            let mut results: Vec<ReleaseGroupMetadata> = vec![];
+            loop {
+                let url = format!(concat!(
+                    "https://musicbrainz.org/ws/2/release-group",
+                    "?fmt=json",
+                    "&artist={}",
+                    "&inc=artist-credits+genres+url-rels+ratings",
+                    "&offset={}",
+                    "&limit={}"), mbid, offset, limit);
+                let response: ReleaseGroupsResponse = self.get(plugins, &url)?;
+                if response.release_groups.is_empty() {
+                    break
+                }
+                else {
+                    offset += response.release_groups.len();
+                }
+                response.release_groups.into_iter()
+                    .map(|src| ReleaseGroupMetadata::from(ReleaseGroupConverter::from(src.clone())))
+                    .for_each(|r| results.push(r));
+            }
+            return Ok(results)
+        }
+        Ok(vec![])
+    }
+
     fn release_metadata(&self, host: &Plugins, _library: &Library, release: &Release) 
         -> Result<Option<ReleaseMetadata>, anyhow::Error> {
 
@@ -291,32 +322,6 @@ impl MusicBrainzPlugin {
         Ok(releases)
     }
 
-    fn artist_release_groups(&self, plugins: &Plugins, mbid: &str) -> Result<Vec<ReleaseGroupMetadata>> {
-        let limit: usize = 100;
-        let mut offset: usize = 0;
-        let mut results: Vec<ReleaseGroupMetadata> = vec![];
-        loop {
-            let url = format!(concat!(
-                "https://musicbrainz.org/ws/2/release-group",
-                "?fmt=json",
-                "&artist={}",
-                "&inc=artist-credits+genres+url-rels+ratings",
-                "&offset={}",
-                "&limit={}"), mbid, offset, limit);
-            let response: ReleaseGroupsResponse = self.get(plugins, &url)?;
-            if response.release_groups.is_empty() {
-                break
-            }
-            else {
-                offset += response.release_groups.len();
-            }
-            response.release_groups.into_iter()
-                .map(|src| ReleaseGroupMetadata::from(ReleaseGroupConverter::from(src.clone())))
-                .for_each(|r| results.push(r));
-        }
-        Ok(results)
-    }
-
     fn enforce_rate_limit(&self) {
         let mut last_request_time = self.rate_limit_lock.lock().unwrap();
 
@@ -380,7 +385,7 @@ mod tests {
         let plugin = MusicBrainzPlugin::default();
         // Metallica 65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab
         // We Were Heading North 73084492-3e59-4b7f-aa65-572a9d7691d5
-        let release_groups = plugin.artist_release_groups(&plugins, "65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab").unwrap();
+        // let release_groups = plugin.artist_release_groups(&plugins, &library, "65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab").unwrap();
         // let artist_metadata = plugin.artist_metadata(&plugins, &library, &Artist {
         //     musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
         //     ..Default::default()

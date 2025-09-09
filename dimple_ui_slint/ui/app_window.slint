@@ -14,6 +14,7 @@ import { HomeAdapter } from "./pages/home.slint";
 import { PlayerBarAdapter, PlayerState } from "./player_bar.slint";
 import { ArtistDetails } from "pages/artist_details.slint";
 import { ReleaseDetails } from "pages/release_details.slint";
+import { ReleaseGroupDetails, ReleaseGroupDetailsAdapter } from "pages/release_group_details.slint";
 import { TrackDetails, TrackDetailsAdapter } from "pages/track_details.slint";
 import { TrackListAdapter } from "pages/track_list.slint";
 import { Home } from "pages/home.slint";
@@ -50,12 +51,14 @@ export { Navigator, Styles, AppState, TrackListAdapter,
     ReleaseDetailsAdapter, ArtistDetailsAdapter, GenreDetailsAdapter, 
     ReleaseListAdapter, HomeAdapter, SearchResultsAdapter, CardSectionAdapter, 
     ArtistListAdapter, GenreListAdapter,
-    LazyImageModel, LazyImageLoader 
+    LazyImageModel, LazyImageLoader,
+    ReleaseGroupDetailsAdapter,
 }
 
 export enum Page { Home, SearchResults,
     ArtistList, ArtistDetails,
     ReleaseList, ReleaseDetails,
+    ReleaseGroupDetails,
     TrackList, TrackDetails,
     PlaylistList, PlaylistDetails,
     Settings, GenreList, GenreDetails,
@@ -111,7 +114,8 @@ export component AppWindow inherits Window {
                 if page == Page.ArtistList: ArtistList {}
                 if page == Page.ArtistDetails: ArtistDetails {}
                 if page == Page.ReleaseList: ReleaseList {}
-                if page == Page.ReleaseDetails: ReleaseDetails {}                
+                if page == Page.ReleaseDetails: ReleaseDetails {}
+                if page == Page.ReleaseGroupDetails: ReleaseGroupDetails {}
                 if page == Page.TrackList: TrackList {}
                 if page == Page.TrackDetails: TrackDetails {}  
                 if page == Page.GenreList: GenreList {}

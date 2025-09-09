@@ -89,8 +89,7 @@ impl ArtistDetailsController {
         let sql = "
             SELECT ReleaseGroup.*
             FROM ReleaseGroup
-            JOIN Release ON Release.release_group_id = ReleaseGroup.id
-            JOIN ArtistRef ON ArtistRef.model_id = Release.id
+            JOIN ArtistRef ON ArtistRef.model_id = ReleaseGroup.id
             WHERE ArtistRef.artist_id = ?
             ORDER BY ReleaseGroup.first_release_date DESC, ReleaseGroup.title ASC, ReleaseGroup.rowid
             ;
@@ -151,9 +150,10 @@ fn release_group_sections(groups: &[ReleaseGroup]) -> Vec<CardSectionAdapter> {
         .collect::<Vec<_>>();
     let others = groups.iter()
         .filter(|g| match g.primary_type {
-            Some(ReleaseGroupPrimaryType::Broadcast) => true,
-            Some(ReleaseGroupPrimaryType::Other) => true,
-            _ => false
+            Some(ReleaseGroupPrimaryType::Album) => false,
+            Some(ReleaseGroupPrimaryType::Single) => false,
+            Some(ReleaseGroupPrimaryType::EP) => false,
+            _ => true
         })
         .collect::<Vec<_>>();
 

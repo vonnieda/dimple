@@ -3,7 +3,7 @@ use std::{sync::{Arc, RwLock}};
 use reqwest::blocking::Client;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, Track}, plugins::{coverart_archive::CoverArtArchivePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, the_audio_db::TheAudioDbPlugin, wikidata::WikidataPlugin}};
+use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, Track}, plugins::{coverart_archive::CoverArtArchivePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, the_audio_db::TheAudioDbPlugin, wikidata::WikidataPlugin}};
 
 use super::{plugin::Plugin, USER_AGENT};
 
@@ -36,6 +36,16 @@ impl Plugins {
         self.add_plugin(Arc::new(CoverArtArchivePlugin::default()));
     }
 
+    pub fn search(&self, library: &Library, query: &str) -> Vec<SearchResults> {
+        let mut results = vec![];
+        for plugin in self.plugins.read().unwrap().iter() {
+            if let Ok(sr) = plugin.search(self, library, query) {
+                results.push(sr);
+            }
+        }
+        results
+    }
+
     pub fn artist_metadata(&self, library: &Library, artist: &Artist) -> Vec<ArtistMetadata> {
         let mut results = vec![];
         for plugin in self.plugins.read().unwrap().iter() {
@@ -46,18 +56,11 @@ impl Plugins {
         results
     }
 
-    pub fn image(&self, library: &Library, model: &DimpleEntity) -> Vec<Dimage> {
+    pub fn artist_release_groups(&self, library: &Library, artist: &Artist) -> Vec<ReleaseGroupMetadata> {
         let mut results = vec![];
         for plugin in self.plugins.read().unwrap().iter() {
-            let result = plugin.image(self, library, model);
-            match result {
-                Ok(Some(image)) => {
-                    results.push(image);
-                },
-                Ok(None) => (),
-                Err(e) => {
-                    log::error!("{e}");
-                }
+            if let Ok(sr) = plugin.artist_release_groups(self, library, artist) {
+                results.extend_from_slice(&sr);
             }
         }
         results
@@ -83,11 +86,18 @@ impl Plugins {
         results
     }
 
-    pub fn search(&self, library: &Library, query: &str) -> Vec<SearchResults> {
+    pub fn image(&self, library: &Library, model: &DimpleEntity) -> Vec<Dimage> {
         let mut results = vec![];
         for plugin in self.plugins.read().unwrap().iter() {
-            if let Ok(sr) = plugin.search(self, library, query) {
-                results.push(sr);
+            let result = plugin.image(self, library, model);
+            match result {
+                Ok(Some(image)) => {
+                    results.push(image);
+                },
+                Ok(None) => (),
+                Err(e) => {
+                    log::error!("{e}");
+                }
             }
         }
         results

@@ -24,6 +24,7 @@ pub struct App {
     pub librarian: Librarian,
     pub artist_details_controller: Arc<RwLock<Option<pages::artist_details::ArtistDetailsController>>>,
     pub release_details_controller: Arc<RwLock<Option<pages::release_details::ReleaseDetailsController>>>,
+    pub release_group_details_controller: Arc<RwLock<Option<pages::release_group_details::ReleaseGroupDetailsController>>>,
     pub track_details_controller: Arc<RwLock<Option<pages::track_details::TrackDetailsController>>>,
     pub queue_details_controller: Arc<RwLock<Option<pages::queue_details::QueueDetailsController>>>,
 }
@@ -85,6 +86,7 @@ impl AppWindowController {
         // Create placeholders for detail controllers to break circular dependency
         let artist_details_controller = Arc::new(RwLock::new(None));
         let release_details_controller = Arc::new(RwLock::new(None));
+        let release_group_details_controller = Arc::new(RwLock::new(None));
         let track_details_controller = Arc::new(RwLock::new(None));
         let queue_details_controller = Arc::new(RwLock::new(None));
         
@@ -101,6 +103,7 @@ impl AppWindowController {
             release_details_controller: release_details_controller.clone(),
             track_details_controller: track_details_controller.clone(),
             queue_details_controller: queue_details_controller.clone(),
+            release_group_details_controller: release_group_details_controller.clone(),
         };
         
         // Now create the real controllers and replace the placeholders
@@ -215,6 +218,11 @@ impl App {
         else if url.starts_with("dimple://release/") {
             if let Some(ref mut controller) = self.release_details_controller.write().unwrap().as_mut() {
                 crate::ui::pages::release_details::release_details(&url, self, controller);
+            }
+        }
+        else if url.starts_with("dimple://releasegroup/") {
+            if let Some(ref mut controller) = self.release_group_details_controller.write().unwrap().as_mut() {
+                crate::ui::pages::release_group_details::release_group_details(&url, self, controller);
             }
         }
         else if url.starts_with("dimple://tracks") {

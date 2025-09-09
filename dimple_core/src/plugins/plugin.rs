@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, Track, TrackSource}};
+use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, ReleaseGroup, Track, TrackSource}};
 
 use super::plugins::Plugins;
 
@@ -19,24 +19,32 @@ pub trait Plugin: Send + Sync {
 
     }
 
-    fn artist_metadata(&self, _host: &Plugins, _library: &Library, _artist: &Artist) -> Result<Option<ArtistMetadata>> {
+    fn artist_metadata(&self, _plugins: &Plugins, _library: &Library, _artist: &Artist) -> Result<Option<ArtistMetadata>> {
         Ok(None)
     }
 
-    fn track_metadata(&self, _host: &Plugins, _library: &Library, _track: &Track) -> Result<Option<TrackMetadata>> {
+    fn artist_release_groups(&self, _plugins: &Plugins, _library: &Library, _artist: &Artist) -> Result<Vec<ReleaseGroupMetadata>> {
+        Ok(vec![])
+    }
+
+    fn track_metadata(&self, _plugins: &Plugins, _library: &Library, _track: &Track) -> Result<Option<TrackMetadata>> {
         Ok(None)
     }
 
-    fn release_metadata(&self, _host: &Plugins, _library: &Library, _release: &Release) -> Result<Option<ReleaseMetadata>> {
+    fn release_group_metadata(&self, _plugins: &Plugins, _library: &Library, _release: &ReleaseGroup) -> Result<Option<ReleaseGroupMetadata>> {
         Ok(None)
     }
 
-    fn search(&self, _host: &Plugins, _library: &Library, _query: &str) -> Result<SearchResults> {
+    fn release_metadata(&self, _plugins: &Plugins, _library: &Library, _release: &Release) -> Result<Option<ReleaseMetadata>> {
+        Ok(None)
+    }
+
+    fn search(&self, _plugins: &Plugins, _library: &Library, _query: &str) -> Result<SearchResults> {
         Ok(SearchResults::default())
     }
 
     // TODO add DimageKind filter
-    fn image(&self, _host: &Plugins, _library: &Library, _model: &DimpleEntity) -> Result<Option<Dimage>> {
+    fn image(&self, _plugins: &Plugins, _library: &Library, _model: &DimpleEntity) -> Result<Option<Dimage>> {
         Ok(None)
     }
 

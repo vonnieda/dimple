@@ -1,5 +1,5 @@
 use dimple_db::db::transaction::DbTransaction;
-use crate::{crdt_rules::CrdtRules, librarian, library::Library, merge_rules::{MergeError, MergeRules}, model::{Artist, ArtistRef, Dimage, DimageRef, DimpleEntity, Genre, GenreRef, Link, LinkRef, Release, ReleaseGroup, ReleaseGroupSecondaryType, Track}, plugins::plugins::Plugins};
+use crate::{crdt_rules::CrdtRules, librarian, library::Library, merge_rules::{MergeError, MergeRules}, model::{Artist, ArtistRef, Dimage, DimageRef, DimpleEntity, Genre, GenreRef, Link, LinkRef, Release, ReleaseGroup, ReleaseGroupSecondaryType, ReleaseGroupSecondaryTypeRef, Track}, plugins::plugins::Plugins};
 
 #[derive(Clone)]
 pub struct Librarian {
@@ -22,6 +22,10 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
             for metadata in plugins.artist_metadata(library, artist) {
                 let _ = library.db.transaction(|t| 
                     librarian::merge_artist_metadata(t, &metadata, Some(artist.clone())));
+            }
+            for metadata in plugins.artist_release_groups(library, artist) {
+                let _ = library.db.transaction(|t| 
+                    librarian::merge_release_group_metadata(t, &metadata, None));
             }
         },
         DimpleEntity::Track(track) => {
@@ -85,7 +89,9 @@ pub fn merge_release_group_metadata(txn: &DbTransaction, metadata: &ReleaseGroup
     if merged != matched {
         merged = txn.save(&merged)?;
     }
-    // dbg!(&merged);
+    for secondary_type in metadata.secondary_types.iter() {
+        let _ = ReleaseGroupSecondaryTypeRef::attach(txn, &merged, secondary_type.clone());
+    }
     merge_artists(txn, &metadata.artists, &merged.id)?;
     merge_genres(txn, &metadata.genres, &merged.id)?;
     merge_links(txn, &metadata.links, &merged.id)?;
