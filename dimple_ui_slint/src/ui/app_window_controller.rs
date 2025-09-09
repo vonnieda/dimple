@@ -23,7 +23,6 @@ pub struct App {
     pub plugins: Plugins,
     pub librarian: Librarian,
     pub artist_details_controller: Arc<RwLock<Option<pages::artist_details::ArtistDetailsController>>>,
-    pub release_details_controller: Arc<RwLock<Option<pages::release_details::ReleaseDetailsController>>>,
     pub release_group_details_controller: Arc<RwLock<Option<pages::release_group_details::ReleaseGroupDetailsController>>>,
     pub track_details_controller: Arc<RwLock<Option<pages::track_details::TrackDetailsController>>>,
     pub queue_details_controller: Arc<RwLock<Option<pages::queue_details::QueueDetailsController>>>,
@@ -85,7 +84,6 @@ impl AppWindowController {
         // TODO look at this.
         // Create placeholders for detail controllers to break circular dependency
         let artist_details_controller = Arc::new(RwLock::new(None));
-        let release_details_controller = Arc::new(RwLock::new(None));
         let release_group_details_controller = Arc::new(RwLock::new(None));
         let track_details_controller = Arc::new(RwLock::new(None));
         let queue_details_controller = Arc::new(RwLock::new(None));
@@ -100,7 +98,6 @@ impl AppWindowController {
             plugins,
             librarian,
             artist_details_controller: artist_details_controller.clone(),
-            release_details_controller: release_details_controller.clone(),
             track_details_controller: track_details_controller.clone(),
             queue_details_controller: queue_details_controller.clone(),
             release_group_details_controller: release_group_details_controller.clone(),
@@ -110,8 +107,8 @@ impl AppWindowController {
         let real_artist_controller = pages::artist_details::ArtistDetailsController::new(&app).unwrap();
         *artist_details_controller.write().unwrap() = Some(real_artist_controller);
         
-        let real_release_controller = pages::release_details::ReleaseDetailsController::new(&app).unwrap();
-        *release_details_controller.write().unwrap() = Some(real_release_controller);
+        let real_release_group_details_controller = pages::release_group_details::ReleaseGroupDetailsController::new(&app).unwrap();
+        *release_group_details_controller.write().unwrap() = Some(real_release_group_details_controller);
         
         let real_track_controller = pages::track_details::TrackDetailsController::new(&app).unwrap();
         *track_details_controller.write().unwrap() = Some(real_track_controller);
@@ -214,11 +211,6 @@ impl App {
         }
         else if url.starts_with("dimple://releases") {
             self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::ReleaseList)).unwrap();
-        }
-        else if url.starts_with("dimple://release/") {
-            if let Some(ref mut controller) = self.release_details_controller.write().unwrap().as_mut() {
-                crate::ui::pages::release_details::release_details(&url, self, controller);
-            }
         }
         else if url.starts_with("dimple://releasegroup/") {
             if let Some(ref mut controller) = self.release_group_details_controller.write().unwrap().as_mut() {

@@ -47,10 +47,14 @@ impl Plugin for WikidataPlugin {
     fn release_metadata(&self, _host: &Plugins, _library: &crate::library::Library, _release: &crate::model::Release) -> Result<Option<crate::librarian::ReleaseMetadata>, anyhow::Error> {
         Ok(None)
     }    
+
+    fn release_group_metadata(&self, _host: &Plugins, _library: &crate::library::Library, _release_group: &crate::model::ReleaseGroup) -> Result<Option<crate::librarian::ReleaseGroupMetadata>, anyhow::Error> {
+        // TODO
+        Ok(None)
+    }    
 }
 
 impl WikidataPlugin {
-    /// Helper method to create ArtistMetadata with consistent structure
     fn create_artist_metadata(summary: String, wikidata_url: Option<String>) -> ArtistMetadata {
         ArtistMetadata {
             artist: Artist {

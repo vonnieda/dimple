@@ -31,8 +31,12 @@ pub trait Plugin: Send + Sync {
         Ok(None)
     }
 
-    fn release_group_metadata(&self, _plugins: &Plugins, _library: &Library, _release: &ReleaseGroup) -> Result<Option<ReleaseGroupMetadata>> {
+    fn release_group_metadata(&self, _plugins: &Plugins, _library: &Library, _release_group: &ReleaseGroup) -> Result<Option<ReleaseGroupMetadata>> {
         Ok(None)
+    }
+
+    fn release_group_releases(&self, _plugins: &Plugins, _library: &Library, _release_group: &ReleaseGroup) -> Result<Vec<ReleaseMetadata>> {
+        Ok(vec![])
     }
 
     fn release_metadata(&self, _plugins: &Plugins, _library: &Library, _release: &Release) -> Result<Option<ReleaseMetadata>> {

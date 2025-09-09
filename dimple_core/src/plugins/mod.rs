@@ -1,7 +1,7 @@
 pub mod example;
 pub mod plugin;
 pub mod plugins;
-pub mod converters;
+pub mod mb_converters;
 
 pub mod lrclib;
 pub mod musicbrainz;

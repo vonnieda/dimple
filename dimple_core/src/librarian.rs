@@ -45,6 +45,16 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
                     librarian::merge_release_metadata(t, &metadata, Some(release.clone())));
             }
         },
+        DimpleEntity::ReleaseGroup(release_group) => {
+            for metadata in plugins.release_group_metadata(library, release_group) {
+                let _ = library.db.transaction(|t| 
+                    librarian::merge_release_group_metadata(t, &metadata, Some(release_group.clone())));
+            }
+            for metadata in plugins.release_group_releases(library, release_group) {
+                let _ = library.db.transaction(|t| 
+                    librarian::merge_release_metadata(t, &metadata, None));
+            }
+        },
         _ => todo!()
     }
 }
@@ -63,18 +73,11 @@ pub fn merge_artist_metadata(txn: &DbTransaction, artist: &ArtistMetadata, pre_m
 }
 
 pub fn merge_release_metadata(txn: &DbTransaction, metadata: &ReleaseMetadata, pre_match: Option<Release>) -> Result<Release, anyhow::Error> {
-    // dbg!("=====================");
-    // TODO find potential candidates for merging, try to merge each in turn,
-    // if all fail, create a new one.
-    // dbg!(&metadata.release);
     let matched = pre_match.or_else(|| match_release(txn, metadata).ok().flatten()).unwrap_or_default();
-    // dbg!(&matched);
     let mut merged = Release::try_merge(&matched, &metadata.release).unwrap_or(metadata.release.clone());
-    // dbg!(&merged);
     if merged != matched {
         merged = txn.save(&merged)?;
     }
-    // dbg!(&merged);
     merge_artists(txn, &metadata.artists, &merged.id)?;
     merge_genres(txn, &metadata.genres, &merged.id)?;
     merge_links(txn, &metadata.links, &merged.id)?;

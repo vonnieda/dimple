@@ -5,6 +5,7 @@ use dimple_core::model::Artist;
 use dimple_core::model::Genre;
 use dimple_core::model::Playlist;
 use dimple_core::model::Release;
+use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
 use dimple_db::rusqlite::types::ToSqlOutput;
 use dimple_db::rusqlite::ToSql;
@@ -49,6 +50,27 @@ impl From<Release> for CardAdapter {
             sub_title: LinkAdapter {
                 name: format!("{} {}", value.date.unwrap_or_default(), value.country.unwrap_or_default()).into(),
                 url: format!("dimple://release/{}", value.id.clone().unwrap_or_default()).into(),
+            },
+        }
+    }
+}
+
+impl From<ReleaseGroup> for CardAdapter {
+    fn from(value: ReleaseGroup) -> Self {
+        CardAdapter {
+            key: value.id.clone().unwrap_or_default().into(),
+            image: ImageLinkAdapter {
+                image: Default::default(),
+                name: value.title.clone().unwrap_or_default().into(),
+                url: format!("dimple://releasegroup/{}", value.id.clone().unwrap_or_default()).into(),
+            },
+            title: LinkAdapter {
+                name: value.title.clone().unwrap_or_default().into(),
+                url: format!("dimple://releasegroup/{}", value.id.clone().unwrap_or_default()).into(),
+            },
+            sub_title: LinkAdapter {
+                name: value.first_release_date.unwrap_or_default().into(),
+                url: format!("dimple://releasegroup/{}", value.id.clone().unwrap_or_default()).into(),
             },
         }
     }

@@ -51,6 +51,19 @@ pub enum ReleaseGroupPrimaryType {
     Unrecognized,
 }
 
+impl fmt::Display for ReleaseGroupPrimaryType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ReleaseGroupPrimaryType::Album => write!(f, "Album"),
+            ReleaseGroupPrimaryType::Broadcast => write!(f, "Broadcast"),
+            ReleaseGroupPrimaryType::EP => write!(f, "EP"),
+            ReleaseGroupPrimaryType::Other => write!(f, "Other"),
+            ReleaseGroupPrimaryType::Single => write!(f, "Single"),
+            ReleaseGroupPrimaryType::Unrecognized => write!(f, "Unrecognized"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ReleaseGroupSecondaryType {
     Compilation,

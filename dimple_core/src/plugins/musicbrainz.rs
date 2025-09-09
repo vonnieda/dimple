@@ -4,9 +4,9 @@ use anyhow::Result;
 use musicbrainz_rs::entity::release_group;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Release, ReleaseGroup, Track}, plugins::converters::{ReleaseConverter, ReleaseGroupConverter}};
+use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Release, ReleaseGroup, Track}, plugins::mb_converters::{ReleaseConverter, ReleaseGroupConverter}};
 
-use super::{converters::ArtistConverter, plugin::Plugin, plugins::Plugins};
+use super::{mb_converters::ArtistConverter, plugin::Plugin, plugins::Plugins};
 
 // https://musicbrainz.org/doc/MusicBrainz_API
 // Subqueries
@@ -110,6 +110,37 @@ impl Plugin for MusicBrainzPlugin {
         serde_json::to_string(&self.config).unwrap()
     }
 
+    fn search(&self, host: &Plugins, library: &Library, query: &str) 
+        -> Result<crate::librarian::SearchResults, anyhow::Error> {
+        
+        // http://musicbrainz.org/ws/2/artist/?query=artist:klok
+        let url = format!("https://musicbrainz.org/ws/2/artist/?fmt=json&query={query}");
+        let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::artist::Artist> = self.get(host, &url)?;
+        let artists: Vec<ArtistMetadata> = mb_results.entities.into_iter().map(|e| ArtistConverter::from(e).into()).collect();
+
+        // http://musicbrainz.org/ws/2/release-group/?fmt=json&query=master+of+puppets
+        let url = format!("https://musicbrainz.org/ws/2/release-group/?fmt=json&query={query}");
+        let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release_group::ReleaseGroup> = self.get(host, &url)?;
+        let release_groups: Vec<ReleaseGroupMetadata> = mb_results.entities.into_iter().map(|e| ReleaseGroupConverter::from(e).into()).collect(); 
+
+        // let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={query}");
+        // let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release> = self.get(host, &url)?;
+        // let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect(); 
+
+        // TODO no genres search, just ship the list
+
+        // TODO recordings
+        // let url = format!("https://musicbrainz.org/ws/2/recording/?fmt=json&query={query}");
+        // let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::recording::Recording> = self.get(host, &url)?;
+        // let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
+
+        Ok(SearchResults {
+            artists,
+            release_groups,
+            ..Default::default()
+        })
+    }
+
     fn artist_metadata(&self, plugins: &Plugins, _library: &Library, artist: &Artist) 
         -> Result<Option<ArtistMetadata>, anyhow::Error> {
 
@@ -117,7 +148,6 @@ impl Plugin for MusicBrainzPlugin {
             let url = format!("https://musicbrainz.org/ws/2/artist/{mbid}?fmt=json&inc=genres+url-rels");
             let mb_artist: musicbrainz_rs::entity::artist::Artist = self.get(plugins, &url)?;
             let mut artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
-            // artist_metadata.releases = self.artist_releases(plugins, &mbid)?;
             return Ok(Some(artist_metadata))
         }
         Ok(None)
@@ -154,18 +184,58 @@ impl Plugin for MusicBrainzPlugin {
         Ok(vec![])
     }
 
+    fn release_group_metadata(&self, host: &Plugins, _library: &Library, release_group: &ReleaseGroup) 
+        -> Result<Option<ReleaseGroupMetadata>, anyhow::Error> {
+
+        if let Some(mbid) = release_group.musicbrainz_id.clone() {
+            let url = format!(concat!(
+                "https://musicbrainz.org/ws/2/release-group/{}",
+                "?fmt=json",
+                "&inc=artist-credits+releases+media+discids+genres+url-rels+ratings",
+            ), mbid);
+            let mb_group: musicbrainz_rs::entity::release_group::ReleaseGroup = self.get(host, &url)?;
+            let release_group_metadata: ReleaseGroupMetadata = ReleaseGroupConverter::from(mb_group).into();
+            return Ok(Some(release_group_metadata))
+        }
+        Ok(None)
+    }
+
+    fn release_group_releases(&self, plugins: &Plugins, library: &Library, release_group: &ReleaseGroup) -> Result<Vec<ReleaseMetadata>> {
+        if let Some(mbid) = release_group.musicbrainz_id.clone() {
+            let limit: usize = 100;
+            let mut offset: usize = 0;
+            let mut releases: Vec<ReleaseMetadata> = vec![];
+            loop {
+                let url = format!(concat!(
+                    "https://musicbrainz.org/ws/2/release",
+                    "?fmt=json",
+                    "&release-group={}",
+                    "&status=official",
+                    "&inc=artist-credits+recordings+media+discids+isrcs+genres+url-rels+ratings",
+                    "&offset={}",
+                    "&limit={}"), mbid, offset, limit);
+                let releases_response: ReleasesResponse = self.get(plugins, &url)?;
+                if releases_response.releases.is_empty() {
+                    break
+                }
+                else {
+                    offset += releases_response.releases.len();
+                }
+                releases_response.releases.into_iter()
+                    .map(|src| ReleaseMetadata::from(ReleaseConverter::from(src.clone())))
+                    .for_each(|r| releases.push(r));
+            }
+            Ok(releases)
+        }
+        else {
+            Ok(vec![])
+        }
+    }        
+
     fn release_metadata(&self, host: &Plugins, _library: &Library, release: &Release) 
         -> Result<Option<ReleaseMetadata>, anyhow::Error> {
 
         if let Some(mbid) = release.musicbrainz_id.clone() {
-            // Browse
-            //  /ws/2/release           area, artist, collection, label, track, track_artist, recording, release-group
-            // Inc
-            //  /ws/2/release           artist-credits, labels, recordings, release-groups, media, discids, isrcs (with recordings)
-            // In addition to the inc= values listed above, all entities support:
-            //  annotation, tags, user-tags, genres, user-genres
-            // All entities except area, place, release, and series support:
-            //  ratings, user-ratings
             let url = format!(concat!(
                 "https://musicbrainz.org/ws/2/release/{}",
                 "?fmt=json",
@@ -178,52 +248,6 @@ impl Plugin for MusicBrainzPlugin {
         Ok(None)
     }
 
-    // fn release_group_metadata(&self, host: &Plugins, _library: &Library, release_group: &ReleaseGroup) 
-    //     -> Result<Option<ReleaseGroupMetadata>, anyhow::Error> {
-
-    //     if let Some(mbid) = release_group.musicbrainz_id.clone() {
-    //         // https://musicbrainz.org/doc/MusicBrainz_API
-    //         // Subqueries
-    //         // The inc= parameter allows you to request more information to be included about the entity. Any of the entities directly linked to the entity can be included.
-    //         //  /ws/2/release-group     artists, releases
-
-    //         // Some additional inc= parameters are supported to specify how much of the data about the linked entities should be included:
-    //         //  - discids           include discids for all media in the releases
-    //         //  - media             include media for all releases, this includes the # of tracks on each medium and its format.
-    //         //  - isrcs             include isrcs for all recordings
-    //         //  - artist-credits    include artists credits for all releases and recordings
-
-    //         // Misc inc= arguments
-    //         // - aliases                   include artist, label, area or work aliases; treat these as a set, as they are not deliberately ordered
-    //         // - annotation                include annotation
-    //         // - tags, ratings             include tags and/or ratings for the entity
-    //         // - user-tags, user-ratings   same as above, but only return the tags and/or ratings submitted by the specified user
-    //         // - genres, user-genres       include genres (tags in the genres list): either all or the ones submitted by the user, respectively
-    //         // 
-
-    //         // The following list shows which linked entities you can use in a browse request:
-    //         //  /ws/2/release-group     artist, collection, release
-
-    //         // Just like with normal lookup requests, the server can be instructed to include more data about the entity using an 'inc=' argument. Supported values for inc= are:
-    //         //  /ws/2/release-group     artist-credits
-
-    //         // In addition to the inc= values listed above, all entities support:
-    //         //  annotation, tags, user-tags, genres, user-genres
-
-    //         // All entities except area, place, release, and series support:
-    //         //  ratings, user-ratings
-    //         let url = format!(concat!(
-    //             "https://musicbrainz.org/ws/2/release-group/{}",
-    //             "?fmt=json",
-    //             "&inc=artist-credits+recordings+release-groups+media+discids+isrcs+genres+url-rels+ratings",
-    //         ), mbid);
-    //         let mb_release: musicbrainz_rs::entity::release::Release = self.get(host, &url)?;
-    //         let release_metadata: ReleaseMetadata = ReleaseConverter::from(mb_release).into();
-    //         return Ok(Some(release_metadata))
-    //     }
-    //     Ok(None)
-    // }
-
     fn track_metadata(&self, host: &Plugins, _library: &Library, track: &Track) 
         -> Result<Option<TrackMetadata>, anyhow::Error> {
         // if let Some(mbid) = track.musicbrainz_id.clone() {
@@ -234,38 +258,7 @@ impl Plugin for MusicBrainzPlugin {
         //     return Ok(Some(track_metadata))
         // }
         Ok(None)
-    }
-    
-    fn search(&self, host: &Plugins, library: &Library, query: &str) 
-        -> Result<crate::librarian::SearchResults, anyhow::Error> {
-        
-        // http://musicbrainz.org/ws/2/artist/?query=artist:klok
-        let url = format!("https://musicbrainz.org/ws/2/artist/?fmt=json&query={query}");
-        let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::artist::Artist> = self.get(host, &url)?;
-        let artists: Vec<ArtistMetadata> = mb_results.entities.into_iter().map(|e| ArtistConverter::from(e).into()).collect();
-
-        // http://musicbrainz.org/ws/2/release-group/?fmt=json&query=master+of+puppets
-        let url = format!("https://musicbrainz.org/ws/2/release-group/?fmt=json&query={query}");
-        let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release_group::ReleaseGroup> = self.get(host, &url)?;
-        let release_groups: Vec<ReleaseGroupMetadata> = mb_results.entities.into_iter().map(|e| ReleaseGroupConverter::from(e).into()).collect(); 
-
-        // let url = format!("https://musicbrainz.org/ws/2/release/?fmt=json&query={query}");
-        // let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::release::Release> = self.get(host, &url)?;
-        // let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect(); 
-
-        // TODO no genres search, just ship the list
-
-        // TODO recordings
-        // let url = format!("https://musicbrainz.org/ws/2/recording/?fmt=json&query={query}");
-        // let mb_results: musicbrainz_rs::entity::search::SearchResult<musicbrainz_rs::entity::recording::Recording> = self.get(host, &url)?;
-        // let releases: Vec<ReleaseMetadata> = mb_results.entities.into_iter().map(|e| ReleaseConverter::from(e).into()).collect();
-
-        Ok(SearchResults {
-            artists,
-            release_groups,
-            ..Default::default()
-        })
-    }
+    }    
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -281,47 +274,6 @@ pub struct ReleaseGroupsResponse {
 }
     
 impl MusicBrainzPlugin {
-    // Release (Group) Type and Status
-    // Any query which includes release groups in the results can be filtered
-    // to only include release groups of a certain type. Any query which
-    // includes releases in the results can be filtered to only include 
-    // releases of a certain type and/or status. Valid values are:
-    //  status     official, promotion, bootleg, pseudo-release, withdrawn, cancelled.
-    //  type       album, single, ep, broadcast, other (primary types) / audio drama, audiobook, compilation, demo, dj-mix, field recording, interview, live, mixtape/street, remix, soundtrack, spokenword (secondary types).
-    // See the release status documentation and the release group type 
-    // documentation for info on what these values mean.
-    // Additionally, browsing release groups via artist supports a special 
-    // filter to show the same release groups as in the default website 
-    // overview (excluding ones that contain only releases of status 
-    // promotional, bootleg or pseudo-release). Valid values are:
-    //  release-group-status     website-default, all
-    fn artist_releases(&self, plugins: &Plugins, mbid: &str) -> Result<Vec<ReleaseMetadata>> {
-        let limit: usize = 100;
-        let mut offset: usize = 0;
-        let mut releases: Vec<ReleaseMetadata> = vec![];
-        loop {
-            let url = format!(concat!(
-                "https://musicbrainz.org/ws/2/release",
-                "?fmt=json",
-                "&artist={}",
-                "&status=official",
-                "&inc=artist-credits+recordings+release-groups+media+discids+isrcs+genres+url-rels+ratings",
-                "&offset={}",
-                "&limit={}"), mbid, offset, limit);
-            let releases_response: ReleasesResponse = self.get(plugins, &url)?;
-            if releases_response.releases.is_empty() {
-                break
-            }
-            else {
-                offset += releases_response.releases.len();
-            }
-            releases_response.releases.into_iter()
-                .map(|src| ReleaseMetadata::from(ReleaseConverter::from(src.clone())))
-                .for_each(|r| releases.push(r));
-        }
-        Ok(releases)
-    }
-
     fn enforce_rate_limit(&self) {
         let mut last_request_time = self.rate_limit_lock.lock().unwrap();
 
@@ -354,7 +306,7 @@ struct MusicBrainzPluginConfig {
 
 #[cfg(test)]
 mod tests {
-    use crate::{librarian::{self, ArtistMetadata}, library::Library, model::Artist, plugins::{musicbrainz::MusicBrainzPlugin, plugin::Plugin as _, plugins::Plugins}};
+    use crate::{librarian::{self, ArtistMetadata}, library::Library, model::{Artist, ReleaseGroup}, plugins::{musicbrainz::MusicBrainzPlugin, plugin::Plugin as _, plugins::Plugins}};
 
     #[test]
     fn test_artist_metadata() {
@@ -399,6 +351,19 @@ mod tests {
         // let _ = library.db.transaction(move |t| {
         //     librarian::merge_artist_metadata(t, &artist_metadata, None)
         // });
+    }
+
+    #[test]
+    fn test_release_group_metadata() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let plugins = Plugins::default();
+        let plugin = MusicBrainzPlugin::default();
+        let release_group = plugin.release_group_metadata(&plugins, &library, &ReleaseGroup {
+            musicbrainz_id: Some("bded9aa5-c420-35bf-912c-94bd25283d0f".to_string()),
+            ..Default::default()
+        }).unwrap();
+        dbg!(release_group);
     }
 
     #[test]

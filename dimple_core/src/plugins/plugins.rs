@@ -1,9 +1,10 @@
+use core::panic;
 use std::{sync::{Arc, RwLock}};
 
 use reqwest::blocking::Client;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, Track}, plugins::{coverart_archive::CoverArtArchivePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, the_audio_db::TheAudioDbPlugin, wikidata::WikidataPlugin}};
+use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, ReleaseGroup, Track}, plugins::{coverart_archive::CoverArtArchivePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, the_audio_db::TheAudioDbPlugin, wikidata::WikidataPlugin}};
 
 use super::{plugin::Plugin, USER_AGENT};
 
@@ -71,6 +72,26 @@ impl Plugins {
         for plugin in self.plugins.read().unwrap().iter() {
             if let Ok(Some(metadata)) = plugin.release_metadata(self, library, release) {
                 results.push(metadata);
+            }
+        }
+        results
+    }
+
+    pub fn release_group_metadata(&self, library: &Library, release_group: &ReleaseGroup) -> Vec<ReleaseGroupMetadata> {
+        let mut results = vec![];
+        for plugin in self.plugins.read().unwrap().iter() {
+            if let Ok(Some(metadata)) = plugin.release_group_metadata(self, library, release_group) {
+                results.push(metadata);
+            }
+        }
+        results
+    }
+
+    pub fn release_group_releases(&self, library: &Library, release_group: &ReleaseGroup) -> Vec<ReleaseMetadata> {
+        let mut results = vec![];
+        for plugin in self.plugins.read().unwrap().iter() {
+            if let Ok(sr) = plugin.release_group_releases(self, library, release_group) {
+                results.extend_from_slice(&sr);
             }
         }
         results

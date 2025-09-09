@@ -4,6 +4,7 @@ use std::time::Duration;
 use crate::ui::app_window_controller::App;
 use crate::ui::common::MutableStringParam;
 use crate::ui::CardAdapter;
+use crate::ui::ImageLinkAdapter;
 use crate::ui::Page;
 use crate::ui::ReleaseGroupDetailsAdapter;
 use dimple_core::librarian;
@@ -28,22 +29,24 @@ use dimple_db::db::query::QuerySubscription;
 use anyhow::Result;
 
 pub struct ReleaseGroupDetailsController {
-    current_key: MutableStringParam,
-    release_subscription: QuerySubscription,
+    release_group_id: MutableStringParam,
+    release_id: MutableStringParam,
+
+    release_group_subscription: QuerySubscription,
     artists_subscription: QuerySubscription,
     genres_subscription: QuerySubscription,
     links_subscription: QuerySubscription,
     tracks_subscription: QuerySubscription,
-    versions_subscription: QuerySubscription,
+    releases_subscription: QuerySubscription,
 }
 
 impl ReleaseGroupDetailsController {
     pub fn new(app: &App) -> Result<Self> {
-        let current_key = MutableStringParam::new();
+        let release_group_id = MutableStringParam::new();
+        let release_id = MutableStringParam::new();
         
         // Set up UI event handlers
         let app_clone = app.clone();
-        let current_key_clone = current_key.clone();
         app.ui.upgrade_in_event_loop(move |ui| {
             let app = app_clone.clone();
             ui.global::<ReleaseGroupDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
@@ -57,27 +60,26 @@ impl ReleaseGroupDetailsController {
             ui.global::<ReleaseGroupDetailsAdapter>().on_play_track_next(move |key| play_track_next(&app, &key));
             let app = app_clone.clone();
             ui.global::<ReleaseGroupDetailsAdapter>().on_play_track_later(move |key| play_track_later(&app, &key));
-            let ui_weak = ui.as_weak();
-            ui.global::<ReleaseGroupDetailsAdapter>().on_select_version(move |version_index| {
-                select_version_by_index(&ui_weak, version_index);
-            });
+            // let ui_weak = ui.as_weak();
+            // ui.global::<ReleaseGroupDetailsAdapter>().on_select_version(move |version_index| {
+            //     select_version_by_index(&ui_weak, version_index);
+            // });
         }).unwrap();
         
-        // Set up release subscription
-        let sql = "SELECT * FROM Release WHERE id = ?";
+        let sql = "SELECT * FROM ReleaseGroup WHERE id = ?";
         let ui = app.ui.clone();
-        let library = app.library.clone();
-        let release_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |releases: Vec<Release>| {
-            if let Some(release) = releases.first() {
-                let release = release.clone();
+        // let library = app.library.clone();
+        let release_group_subscription = app.library.db.query_subscribe(sql, (release_group_id.clone(),), move |groups: Vec<ReleaseGroup>| {
+            if let Some(group) = groups.first() {
+                let group = group.clone();
                 ui.upgrade_in_event_loop(move |ui| {
-                    let card: CardAdapter = release.clone().into();
+                    let card: CardAdapter = group.clone().into();
                     ui.global::<ReleaseGroupDetailsAdapter>().set_card(card);
-                    ui.global::<ReleaseGroupDetailsAdapter>().set_key(release.id.clone().unwrap_or_default().into());
+                    ui.global::<ReleaseGroupDetailsAdapter>().set_key(group.id.clone().unwrap_or_default().into());
                     // ui.global::<ReleaseDetailsAdapter>().set_release_type(release.release_group_type.clone().unwrap_or("Release".to_string()).into());
-                    ui.global::<ReleaseGroupDetailsAdapter>().set_summary(release.summary.clone().unwrap_or_default().into());
-                    ui.global::<ReleaseGroupDetailsAdapter>().set_disambiguation(release.disambiguation.clone().unwrap_or_default().into());
-                    ui.global::<ReleaseGroupDetailsAdapter>().set_dump(serde_json::to_string_pretty(&release).unwrap().into());
+                    ui.global::<ReleaseGroupDetailsAdapter>().set_summary(group.summary.clone().unwrap_or_default().into());
+                    ui.global::<ReleaseGroupDetailsAdapter>().set_disambiguation(group.disambiguation.clone().unwrap_or_default().into());
+                    ui.global::<ReleaseGroupDetailsAdapter>().set_dump(serde_json::to_string_pretty(&group).unwrap().into());
                 }).unwrap();
             }
         })?;
@@ -89,7 +91,7 @@ impl ReleaseGroupDetailsController {
             WHERE ar.model_id = ?
         ";
         let ui = app.ui.clone();
-        let artists_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |artists: Vec<Artist>| {
+        let artists_subscription = app.library.db.query_subscribe(sql, (release_group_id.clone(),), move |artists: Vec<Artist>| {
             ui.upgrade_in_event_loop(move |ui| {
                 let artist_links = artist_links(&artists);
                 ui.global::<ReleaseGroupDetailsAdapter>().set_artists(ModelRc::from(artist_links.as_slice()));
@@ -103,7 +105,7 @@ impl ReleaseGroupDetailsController {
             WHERE gr.model_id = ?
         ";
         let ui = app.ui.clone();
-        let genres_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |genres: Vec<Genre>| {
+        let genres_subscription = app.library.db.query_subscribe(sql, (release_group_id.clone(),), move |genres: Vec<Genre>| {
             ui.upgrade_in_event_loop(move |ui| {
                 let genre_links = genre_links(&genres);
                 ui.global::<ReleaseGroupDetailsAdapter>().set_genres(ModelRc::from(genre_links.as_slice()));
@@ -117,10 +119,28 @@ impl ReleaseGroupDetailsController {
             WHERE lr.model_id = ?
         ";
         let ui = app.ui.clone();
-        let links_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |links: Vec<Link>| {
+        let links_subscription = app.library.db.query_subscribe(sql, (release_group_id.clone(),), move |links: Vec<Link>| {
             ui.upgrade_in_event_loop(move |ui| {
                 let link_adapters = link_links(&links);
                 ui.global::<ReleaseGroupDetailsAdapter>().set_links(ModelRc::from(link_adapters.as_slice()));
+            }).unwrap();
+        })?;
+
+        let sql = "
+            SELECT Release.* 
+            FROM Release 
+            JOIN ReleaseGroup ON ReleaseGroup.id = Release.release_group_id
+            WHERE ReleaseGroup.id = ?
+            ORDER BY Release.date ASC, Release.title ASC, Release.rowid ASC
+        ";
+        let ui = app.ui.clone();
+        let library = app.library.clone();
+        let releases_subscription = app.library.db.query_subscribe(sql, (release_group_id.clone(),), move |releases: Vec<Release>| {
+            let library = library.clone();
+            ui.upgrade_in_event_loop(move |ui| {
+                let adapter = ui.global::<ReleaseGroupDetailsAdapter>();
+                let cards = release_cards(&releases, &library);
+                adapter.set_releases(ModelRc::from(cards.as_slice()));
             }).unwrap();
         })?;
 
@@ -128,70 +148,67 @@ impl ReleaseGroupDetailsController {
         let sql = "SELECT * FROM Track WHERE release_id = ? ORDER BY position ASC";
         let ui = app.ui.clone();
         let library = app.library.clone();
-        let tracks_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |tracks: Vec<Track>| {
+        let tracks_subscription = app.library.db.query_subscribe(sql, (release_group_id.clone(),), move |tracks: Vec<Track>| {
             let library = library.clone();
             ui.upgrade_in_event_loop(move |ui| {
-                ui.global::<ReleaseGroupDetailsAdapter>().set_row_data(row_data(&library, &tracks));
-                ui.global::<ReleaseGroupDetailsAdapter>().set_row_keys(row_keys(&tracks));
-            }).unwrap();
-        })?;
-
-        // Set up versions subscription - find all releases in the same release group
-        // TODO I'm wasrting so much time with this - I need to get back to release
-        // groups. artist details shows a list of release groups, you click on one
-        // and you are seeing release group details and that includes all the versions
-        // with one selected by default, and then we can store the user's preferred
-        // release on the release group.
-        let sql = "
-            SELECT r.* 
-            FROM Release r 
-            JOIN Release current ON current.id = ? 
-            -- WHERE r.release_group_musicbrainz_id = current.release_group_musicbrainz_id 
-            -- AND r.release_group_musicbrainz_id IS NOT NULL
-            ORDER BY r.date ASC, r.title ASC, r.rowid
-        ";
-        let ui = app.ui.clone();
-        let versions_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |releases: Vec<Release>| {
-            ui.upgrade_in_event_loop(move |ui| {
-                let version_options = create_version_options(&releases);
-                let version_ids = create_version_ids(&releases);
-                let current_key = ui.global::<ReleaseGroupDetailsAdapter>().get_key().to_string();
-                let current_index = find_current_version_index(&releases, &current_key);
-                
-                ui.global::<ReleaseGroupDetailsAdapter>().set_version_options(ModelRc::from(version_options.as_slice()));
-                ui.global::<ReleaseGroupDetailsAdapter>().set_version_ids(ModelRc::from(version_ids.as_slice()));
-                ui.global::<ReleaseGroupDetailsAdapter>().set_version_index(current_index);
+                ui.global::<ReleaseGroupDetailsAdapter>().set_track_items(track_items(&library, &tracks));
+                ui.global::<ReleaseGroupDetailsAdapter>().set_track_keys(track_keys(&tracks));
             }).unwrap();
         })?;
 
         Ok(Self {
-            current_key,
-            release_subscription,
+            release_group_id,
+            release_id,
+            release_group_subscription,
             artists_subscription,
             genres_subscription,
             links_subscription,
             tracks_subscription,
-            versions_subscription,
+            releases_subscription,
         })
     }
 
-    pub fn set_release(&mut self, key: String, app: &App) -> Result<()> {
-        self.current_key.set(&key);
+    pub fn set_release_group(&mut self, release_group_id: String, app: &App) -> Result<()> {
+        self.release_group_id.set(&release_group_id);
         
         // Refresh all subscriptions
-        self.release_subscription.refresh();
+        // TODO might be worth looking at rxrust for this type of thing
+        self.release_group_subscription.refresh();
         self.artists_subscription.refresh();
         self.genres_subscription.refresh();
         self.links_subscription.refresh();
         self.tracks_subscription.refresh();
-        self.versions_subscription.refresh();
+        self.releases_subscription.refresh();
 
         // Trigger metadata refresh in background
         let app_clone = app.clone();
-        let key_clone = key.clone();
+        let release_group_id_clone = release_group_id.clone();
         std::thread::spawn(move || {
-            if let Some(release) = ReleaseGroup::get(&app_clone.library, &key_clone) {
-                librarian::refresh_metadata(&app_clone.library, &app_clone.plugins, &release.into());
+            if let Some(release_group) = ReleaseGroup::get(&app_clone.library, &release_group_id_clone) {
+                librarian::refresh_metadata(&app_clone.library, &app_clone.plugins, &release_group.into());
+            }
+        });
+
+        Ok(())
+    }
+
+    pub fn set_release(&mut self, release_id: String, app: &App) -> Result<()> {
+        self.release_id.set(&release_id);
+        
+        // Refresh all subscriptions
+        self.release_group_subscription.refresh();
+        self.artists_subscription.refresh();
+        self.genres_subscription.refresh();
+        self.links_subscription.refresh();
+        self.tracks_subscription.refresh();
+        self.releases_subscription.refresh();
+
+        // Trigger metadata refresh in background
+        let app_clone = app.clone();
+        let release_id_clone = release_id.clone();
+        std::thread::spawn(move || {
+            if let Some(release_group) = ReleaseGroup::get(&app_clone.library, &release_id_clone) {
+                librarian::refresh_metadata(&app_clone.library, &app_clone.plugins, &release_group.into());
             }
         });
 
@@ -204,11 +221,11 @@ pub fn release_group_details(url: &str, app: &App, controller: &mut ReleaseGroup
     let key = url.path_segments().unwrap().next().unwrap().to_string();
 
     // Set the release in the controller which will handle all subscriptions
-    controller.set_release(key, app).unwrap();
+    controller.set_release_group(key, app).unwrap();
     
     // Navigate to the release details page
     app.ui.upgrade_in_event_loop(move |ui| {
-        ui.set_page(Page::ReleaseDetails);
+        ui.set_page(Page::ReleaseGroupDetails);
     }).unwrap();
 }
 
@@ -236,8 +253,8 @@ fn play_track_later(app: &App, key: &str) {
     app.player.play_later(&DimpleEntity::from(&Track::get(&app.library, key).unwrap()));
 }
 
-fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
-    let row_data: Rc<VecModel<ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
+fn track_items(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardListViewItem>> {
+    let track_items: Rc<VecModel<ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
     for track in tracks {
         let track = track.clone();
         let row = Rc::new(VecModel::default());
@@ -248,12 +265,12 @@ fn row_data(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardList
         row.push(track.title.clone().unwrap_or_default().as_str().into()); // Title
         row.push(track.artist_name(library).unwrap_or_default().as_str().into()); // Artist
         row.push(length.unwrap_or_default().as_str().into()); // Length
-        row_data.push(row.into());
+        track_items.push(row.into());
     }
-    row_data.into()
+    track_items.into()
 }
 
-fn row_keys(tracks: &[Track]) -> ModelRc<SharedString> {
+fn track_keys(tracks: &[Track]) -> ModelRc<SharedString> {
     let keys: Vec<_> = tracks.iter()
         .map(|track| track.id.clone().unwrap())
         .map(SharedString::from)
@@ -294,39 +311,68 @@ fn format_length(length: Duration) -> String {
     format!("{minutes}:{seconds:02}")
 }
 
-fn create_version_options(releases: &[Release]) -> Vec<SharedString> {
-    releases.iter().map(|release| {
-        let title = release.title.clone().unwrap_or("Unknown".to_string());
-        let country = release.country.clone().unwrap_or("Unknown".to_string());
-        let date = release.date.clone().unwrap_or("Unknown".to_string());
-        let packaging = release.packaging.clone().unwrap_or("Unknown".to_string());
-        let status = release.status.clone().unwrap_or("Unknown".to_string());
+// fn create_version_options(releases: &[Release]) -> Vec<SharedString> {
+//     releases.iter().map(|release| {
+//         let title = release.title.clone().unwrap_or("Unknown".to_string());
+//         let country = release.country.clone().unwrap_or("Unknown".to_string());
+//         let date = release.date.clone().unwrap_or("Unknown".to_string());
+//         let packaging = release.packaging.clone().unwrap_or("Unknown".to_string());
+//         let status = release.status.clone().unwrap_or("Unknown".to_string());
         
-        format!("{} ({}, {}, {}, {})", title, country, date, status, packaging).into()
-    }).collect()
+//         format!("{} ({}, {}, {}, {})", title, country, date, status, packaging).into()
+//     }).collect()
+// }
+
+// fn create_version_ids(releases: &[Release]) -> Vec<SharedString> {
+//     releases.iter().map(|release| {
+//         release.id.clone().unwrap_or_default().into()
+//     }).collect()
+// }
+
+// fn find_current_version_index(releases: &[Release], current_key: &str) -> i32 {
+//     releases.iter()
+//         .position(|r| r.id.as_ref().map_or(false, |id| id == current_key))
+//         .map(|i| i as i32)
+//         .unwrap_or(0)
+// }
+
+// fn select_version_by_index(ui_weak: &slint::Weak<crate::ui::AppWindow>, version_index: i32) {
+//     if let Some(ui) = ui_weak.upgrade() {
+//         let version_ids = ui.global::<ReleaseGroupDetailsAdapter>().get_version_ids();
+//         if let Some(release_id) = version_ids.row_data(version_index as usize) {
+//             let release_id = release_id.to_string();
+//             // Navigate to the new release using the navigator global
+//             ui.global::<crate::ui::Navigator>().invoke_navigate(format!("dimple://release/{}", release_id).into());
+//         }
+//     }
+// }
+
+fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
+    releases.iter().cloned()
+        .map(|release| release_card(&release, &release.artist(library).unwrap_or_default()))
+        .collect()
 }
 
-fn create_version_ids(releases: &[Release]) -> Vec<SharedString> {
-    releases.iter().map(|release| {
-        release.id.clone().unwrap_or_default().into()
-    }).collect()
-}
-
-fn find_current_version_index(releases: &[Release], current_key: &str) -> i32 {
-    releases.iter()
-        .position(|r| r.id.as_ref().map_or(false, |id| id == current_key))
-        .map(|i| i as i32)
-        .unwrap_or(0)
-}
-
-fn select_version_by_index(ui_weak: &slint::Weak<crate::ui::AppWindow>, version_index: i32) {
-    if let Some(ui) = ui_weak.upgrade() {
-        let version_ids = ui.global::<ReleaseGroupDetailsAdapter>().get_version_ids();
-        if let Some(release_id) = version_ids.row_data(version_index as usize) {
-            let release_id = release_id.to_string();
-            // Navigate to the new release using the navigator global
-            ui.global::<crate::ui::Navigator>().invoke_navigate(format!("dimple://release/{}", release_id).into());
-        }
+fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
+    let release = release.clone();
+    CardAdapter {
+        key: release.id.clone().unwrap_or_default().into(),        
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: release.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
+            ..Default::default()
+        },
+        title: LinkAdapter {
+            name: release.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
+            ..Default::default()
+        },
+        sub_title: LinkAdapter {
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
+        },
+        ..Default::default()
     }
 }
 
