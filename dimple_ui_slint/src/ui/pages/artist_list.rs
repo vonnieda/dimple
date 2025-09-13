@@ -18,6 +18,7 @@ impl ArtistListController {
         let sql = "
             SELECT Artist.* 
             FROM Artist
+            WHERE save = TRUE
             ORDER BY lower(Artist.name) ASC, lower(Artist.disambiguation) ASC
         ";
         let ui = app.ui.clone();

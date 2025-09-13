@@ -42,6 +42,7 @@ impl ArtistDetailsController {
                     let card: CardAdapter = artist.clone().into();                
                     ui.global::<ArtistDetailsAdapter>().set_card(card);
                     ui.global::<ArtistDetailsAdapter>().set_key(artist.id.clone().unwrap_or_default().into());
+                    ui.global::<ArtistDetailsAdapter>().set_save(artist.save);
                     ui.global::<ArtistDetailsAdapter>().set_summary(artist.summary.clone().unwrap_or_default().into());
                     ui.global::<ArtistDetailsAdapter>().set_disambiguation(artist.disambiguation.clone().unwrap_or_default().into());
                     ui.global::<ArtistDetailsAdapter>().set_dump(serde_json::to_string_pretty(&artist).unwrap().into());
@@ -104,6 +105,19 @@ impl ArtistDetailsController {
                 let adapter = ui.global::<ArtistDetailsAdapter>();
                 adapter.set_releases(sections.as_slice().into());
             }).unwrap();
+        })?;
+
+        let key_clone = current_key.clone();
+        let library = app.library.clone();
+        app.ui.upgrade_in_event_loop(move |ui| {
+            ui.global::<ArtistDetailsAdapter>().on_toggle_heart(move || {
+                library.db.transaction(|txn| {
+                    let mut artist: Artist = txn.get(&key_clone.value())?.expect("artist not found");
+                    artist.save = !artist.save;
+                    Ok(txn.save(&artist)?)
+                }).unwrap();
+
+            });
         })?;
 
         Ok(Self {

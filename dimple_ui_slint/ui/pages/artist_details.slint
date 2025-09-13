@@ -73,9 +73,7 @@ export global ArtistDetailsAdapter {
     in property <bool> love;
     in property <bool> download;
     
-    pure callback set_save(bool);
-    pure callback set_love(bool);
-    pure callback set_download(bool);
+    pure callback toggle_heart();
 }
 
 export component ArtistDetails inherits ScrollView {
@@ -97,21 +95,40 @@ export component ArtistDetails inherits ScrollView {
                     placeholder: @image-url("../../icons/phosphor/SVGs/regular/users-three.svg");
                 }
                 HorizontalBox {
+                    padding-left: 0;
+                    padding-right: 0;
                     alignment: space-between;
                     Button {
-                        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
-                        colorize-icon: true;                
-                        clicked => { AppState.play_later(ArtistDetailsAdapter.key); }
-                    }
-                    Button {
-                        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
-                        colorize-icon: true;
-                        clicked => { AppState.play_next(ArtistDetailsAdapter.key); }
-                    }
-                    Button {
                         icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-                        colorize-icon: true;                
+                        colorize-icon: true;
                         clicked => { AppState.play_now(ArtistDetailsAdapter.key); }
+                    }
+                    menu-area := ContextMenuArea {
+                        Button {
+                            icon: @image-url("../../icons/phosphor/SVGs/regular/dots-three.svg");
+                            colorize-icon: true;
+                            clicked => { menu-area.show({ x: self.width / 2, y: self.height / 2 }); }
+                        }
+                        Menu {
+                            MenuItem {
+                                title: "Play Later";
+                                activated => { AppState.play_later(ArtistDetailsAdapter.key); }
+                            }
+                            MenuItem {
+                                title: "Play Next";
+                                activated => { AppState.play_next(ArtistDetailsAdapter.key); }
+                            }
+                            MenuItem {
+                                title: "Play Now";
+                                activated => { AppState.play_now(ArtistDetailsAdapter.key); }
+                            }
+                        }
+                    }
+                    Button {
+                        icon: ArtistDetailsAdapter.save ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg")
+                            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+                        colorize-icon: true;                
+                        clicked => { ArtistDetailsAdapter.toggle_heart(); }
                     }
                 }
             }

@@ -161,6 +161,10 @@ impl MutableStringParam {
     pub fn set(&self, value: &str) {
         *self.value.lock().unwrap() = value.to_string();
     }
+
+    pub fn value(&self) -> String {
+        self.value.lock().unwrap().clone()
+    }
 }
 
 impl ToSql for MutableStringParam {
