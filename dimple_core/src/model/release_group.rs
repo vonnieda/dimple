@@ -8,6 +8,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::library::Library;
+use crate::model::Dimage;
 
 // https://musicbrainz.org/doc/ReleaseGroup
 // https://musicbrainz.org/ws/2/release-group/1b4f4b3c-ca01-37b7-af1d-3e37989f86ad?inc=aliases%2Bartist-credits%2Breleases&fmt=json
@@ -38,6 +39,14 @@ impl ReleaseGroup {
         ";
         let refs: Vec<ReleaseGroupSecondaryTypeRef> = library.query(sql, (self.id.clone(),));
         Ok(refs.iter().map(|r| r.secondary_type.clone()).collect::<Vec<_>>())
+    }
+
+    pub fn images(&self, library: &Library) -> Vec<Dimage> {
+        library.query("
+            SELECT d.* FROM DimageRef dr 
+            JOIN Dimage d ON (d.id = dr.dimage_id) 
+            WHERE dr.model_id = ?1
+        ", (self.id.clone().unwrap(),))
     }
 }
 

@@ -84,11 +84,16 @@ impl ArtistDetailsController {
             }).unwrap();
         })?;
 
+        // TODO for now, only showing release groups with no secondary types
+        // like live. When we have filtering on the card grid we can show more
+        // but for now it's too much.
         let sql = "
             SELECT ReleaseGroup.*
             FROM ReleaseGroup
             JOIN ArtistRef ON ArtistRef.model_id = ReleaseGroup.id
+            LEFT JOIN ReleaseGroupSecondaryTypeRef ON ReleaseGroupSecondaryTypeRef.release_group_id = ReleaseGroup.id
             WHERE ArtistRef.artist_id = ?
+            AND ReleaseGroupSecondaryTypeRef.id IS NULL
             ORDER BY ReleaseGroup.first_release_date DESC, ReleaseGroup.title ASC, ReleaseGroup.rowid
             ;
         ";
@@ -172,6 +177,7 @@ fn release_group_sections(groups: &[ReleaseGroup]) -> Vec<CardSectionAdapter> {
             title: "Singles & EPs ⟩".into(),
             sub_title: Default::default(),
             cards: release_group_cards(groups.as_slice()).as_slice().into(),
+            max_rows: 3,
             ..Default::default()
         });
     }
@@ -181,6 +187,7 @@ fn release_group_sections(groups: &[ReleaseGroup]) -> Vec<CardSectionAdapter> {
             title: "Other Releases ⟩".into(),
             sub_title: Default::default(),
             cards: release_group_cards(groups.as_slice()).as_slice().into(),
+            max_rows: 3,
             ..Default::default()
         });
     }

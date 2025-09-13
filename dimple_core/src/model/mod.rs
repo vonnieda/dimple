@@ -50,6 +50,9 @@ pub use playlist_item::PlaylistItem;
 mod release_group;
 pub use release_group::*;
 
+mod recording;
+pub use recording::*;
+
 use crate::library::Library;
 
 // TODO rename EntityBasics, or maybe get rid of. library interface is fine

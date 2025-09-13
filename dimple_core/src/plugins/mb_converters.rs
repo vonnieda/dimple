@@ -182,6 +182,9 @@ impl From<ReleaseGroupConverter> for ReleaseGroupMetadata {
             genres: value.0.genres.iter().flatten()
                 .map(|f| crate::model::Genre::from(GenreConverter::from(f.to_owned())))
                 .collect(),
+            releases: value.0.releases.iter().flatten()
+                .map(|f| ReleaseMetadata::from(ReleaseConverter::from(f.to_owned())))
+                .collect(),
             links: value.0.relations.iter().flatten()
                 .filter_map(|r| match &r.content {
                     RelationContent::Url(u) => Some(u.resource.to_string()),
@@ -265,30 +268,10 @@ impl From<TrackConverter> for TrackMetadata {
                     url: s,
                 })
                 .collect(),
-            release: None,
             images: vec![],            
         }
     }
 }
-
-                // links: value.0.relations.iter().flatten()
-                //     .filter_map(|r| match &r.content {
-                //         RelationContent::Url(u) => Some(u.resource.to_string()),
-                //         _ => None,
-                //     })
-                //     .chain(std::iter::once(value.0.id.clone())
-                //         .map(|mbid| format!("https://musicbrainz.org/release/{}", mbid)))
-                //     .map(|s| Link { key: None, name: None, url: s })
-                //     .collect(),
-
-                // artist_credits: value.0.recording.artist_credit.iter().flatten()
-                //     .map(|artist_credit| ArtistCredit::from(ArtistCreditConverter::from(artist_credit.to_owned())))
-                //     .collect(),
-                // genres: value.0.recording.genres.iter().flatten()
-                //     .map(|f| Genre::from(GenreConverter::from(f.to_owned())))
-                //     .collect(),
-
-
 
 pub struct GenreConverter(musicbrainz_rs::entity::genre::Genre);
 
@@ -304,14 +287,6 @@ impl From<GenreConverter> for crate::model::Genre {
             disambiguation: None,
             id: None,
             musicbrainz_id: value.0.id,
-            //     ..Default::default()
-            // },
-            // links: value.0.relations.iter().flatten()
-            //     .filter_map(|r| match &r.content {
-            //         RelationContent::Url(u) => Some(u.resource.to_string()),
-            //         _ => None,
-            //     })
-            //     .collect(),
             name: none_if_empty(value.0.name),
             summary: None,
             ..Default::default()

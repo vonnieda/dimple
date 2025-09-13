@@ -11,7 +11,8 @@ description = "Dimple is an open source, cross-platform music player that celebr
 [dependencies]
 log = "0.4.19"
 env_logger = "0.11.8"
-slint = { version = "=1.12.1", default-features = true, features = ["raw-window-handle-06"] }
+# slint = { version = "=1.12.1", default-features = false, features = ["raw-window-handle-06", "compat-1-2", "backend-winit", "renderer-skia"] }
+slint = { version = "=1.12.1", default-features = false, features = ["raw-window-handle-06", "compat-1-2", "backend-winit", "renderer-femtovg"] }
 dimple_core = { path = "../dimple_core" }
 dimple_db = { git = "https://github.com/vonnieda/dimple_db", branch = "dev" }
 serde = "1.0.175"

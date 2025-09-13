@@ -4,7 +4,7 @@ use std::{sync::{Arc, RwLock}};
 use reqwest::blocking::Client;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, ReleaseGroup, Track}, plugins::{coverart_archive::CoverArtArchivePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, the_audio_db::TheAudioDbPlugin, wikidata::WikidataPlugin}};
+use crate::{librarian::{self, ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, ReleaseGroup, Track}, plugins::{coverart_archive::CoverArtArchivePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, the_audio_db::TheAudioDbPlugin, wikidata::WikidataPlugin}};
 
 use super::{plugin::Plugin, USER_AGENT};
 

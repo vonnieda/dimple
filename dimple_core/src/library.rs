@@ -162,6 +162,9 @@ impl Library {
             DimpleEntity::Release(release) => {
                 return release.images(self).first().map(|i| i.get_image())
             },
+            DimpleEntity::ReleaseGroup(release_group) => {
+                return release_group.images(self).first().map(|i| i.get_image())
+            },
             DimpleEntity::Genre(genre) => {
                 if let Some(image) = genre.images(self).first() {
                     return Some(image.get_image())
