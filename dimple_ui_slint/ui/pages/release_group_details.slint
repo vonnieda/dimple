@@ -61,28 +61,12 @@ export global ReleaseGroupDetailsAdapter {
             sub-title: {name: "CD Folk • 2014-03-14"},
         },
     ];
-    in property <[string]> version-ids: [];
-    in property <int> version-index: 0;
-
     in property <string> dump;
     in property <bool> save;
-    in property <bool> love;
-    in property <bool> download;
 
-    pure callback set_save(bool);
-    pure callback set_download(bool);
-    pure callback set_love(bool);
-
-    pure callback play_now(string /* key */);
-    pure callback play_next(string /* key */);
-    pure callback play_later(string /* key */);
-
-    pure callback play_track_now(string /* key */);
-    pure callback play_track_next(string /* key */);
-    pure callback play_track_later(string /* key */);
+    pure callback toggle_heart();
 
     pure callback sort_table(int /* column */, bool /* ascending */);
-    pure callback select_version(int /* version_index */);
 }
 
 component RowMenu inherits PopupMenu {
@@ -133,21 +117,40 @@ export component ReleaseGroupDetails inherits ScrollView {
                     placeholder: @image-url("../../icons/phosphor/SVGs/regular/vinyl-record.svg");
                 }
                 HorizontalBox {
+                    padding-left: 0;
+                    padding-right: 0;
                     alignment: space-between;
                     Button {
-                        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
-                        colorize-icon: true;                
-                        clicked => { AppState.play_later(ReleaseGroupDetailsAdapter.key); }
-                    }
-                    Button {
-                        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
-                        colorize-icon: true;                
-                        clicked => { AppState.play_next(ReleaseGroupDetailsAdapter.key); }
-                    }
-                    Button {
                         icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-                        colorize-icon: true;                
+                        colorize-icon: true;
                         clicked => { AppState.play_now(ReleaseGroupDetailsAdapter.key); }
+                    }
+                    menu-area := ContextMenuArea {
+                        Button {
+                            icon: @image-url("../../icons/phosphor/SVGs/regular/dots-three.svg");
+                            colorize-icon: true;
+                            clicked => { menu-area.show({ x: self.width / 2, y: self.height / 2 }); }
+                        }
+                        Menu {
+                            MenuItem {
+                                title: "Play Later";
+                                activated => { AppState.play_later(ReleaseGroupDetailsAdapter.key); }
+                            }
+                            MenuItem {
+                                title: "Play Next";
+                                activated => { AppState.play_next(ReleaseGroupDetailsAdapter.key); }
+                            }
+                            MenuItem {
+                                title: "Play Now";
+                                activated => { AppState.play_now(ReleaseGroupDetailsAdapter.key); }
+                            }
+                        }
+                    }
+                    Button {
+                        icon: ReleaseGroupDetailsAdapter.save ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg")
+                            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+                        colorize-icon: true;                
+                        clicked => { ReleaseGroupDetailsAdapter.toggle_heart(); }
                     }
                 }
             }

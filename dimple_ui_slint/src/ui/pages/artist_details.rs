@@ -30,12 +30,26 @@ pub struct ArtistDetailsController {
 
 impl ArtistDetailsController {
     pub fn new(app: &App) -> Result<Self> {
-        let current_key = MutableStringParam::new();
+        let artist_id = MutableStringParam::new();
         
+        // Set up UI event handlers
+        let app_clone = app.clone();
+        let artist_id_clone = artist_id.clone();
+        app.ui.upgrade_in_event_loop(move |ui| {
+            let app = app_clone.clone();
+            ui.global::<ArtistDetailsAdapter>().on_toggle_heart(move || {
+                app.library.db.transaction(|txn| {
+                    let mut artist: Artist = txn.get(&artist_id_clone.value())?.expect("artist not found");
+                    artist.save = !artist.save;
+                    Ok(txn.save(&artist)?)
+                }).unwrap();
+            });
+        })?;
+
         // Set up artist subscription
         let sql = "SELECT * FROM Artist WHERE id = ?";
         let ui = app.ui.clone();
-        let artist_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |artists: Vec<Artist>| {
+        let artist_subscription = app.library.db.query_subscribe(sql, (artist_id.clone(),), move |artists: Vec<Artist>| {
             if let Some(artist) = artists.first() {
                 let artist = artist.clone();
                 ui.upgrade_in_event_loop(move |ui| {
@@ -58,7 +72,7 @@ impl ArtistDetailsController {
             ORDER BY name ASC
         ";
         let ui = app.ui.clone();
-        let genres_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |genres: Vec<Genre>| {
+        let genres_subscription = app.library.db.query_subscribe(sql, (artist_id.clone(),), move |genres: Vec<Genre>| {
             ui.upgrade_in_event_loop(move |ui| {
                 let genre_links = genre_links(&genres);
                 ui.global::<ArtistDetailsAdapter>().set_genres(ModelRc::from(genre_links.as_slice()));
@@ -73,7 +87,7 @@ impl ArtistDetailsController {
             ORDER BY name ASC, url ASC
         ";
         let ui = app.ui.clone();
-        let links_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |links: Vec<Link>| {
+        let links_subscription = app.library.db.query_subscribe(sql, (artist_id.clone(),), move |links: Vec<Link>| {
             ui.upgrade_in_event_loop(move |ui| {
                 let link_adapters: Vec<LinkAdapter> = links.iter().map(|link| {
                     LinkAdapter {
@@ -99,7 +113,7 @@ impl ArtistDetailsController {
             ;
         ";
         let ui = app.ui.clone();
-        let release_groups_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |groups: Vec<ReleaseGroup>| {
+        let release_groups_subscription = app.library.db.query_subscribe(sql, (artist_id.clone(),), move |groups: Vec<ReleaseGroup>| {
             ui.upgrade_in_event_loop(move |ui| {
                 let sections = release_group_sections(&groups);
                 let adapter = ui.global::<ArtistDetailsAdapter>();
@@ -107,21 +121,8 @@ impl ArtistDetailsController {
             }).unwrap();
         })?;
 
-        let key_clone = current_key.clone();
-        let library = app.library.clone();
-        app.ui.upgrade_in_event_loop(move |ui| {
-            ui.global::<ArtistDetailsAdapter>().on_toggle_heart(move || {
-                library.db.transaction(|txn| {
-                    let mut artist: Artist = txn.get(&key_clone.value())?.expect("artist not found");
-                    artist.save = !artist.save;
-                    Ok(txn.save(&artist)?)
-                }).unwrap();
-
-            });
-        })?;
-
         Ok(Self {
-            current_key,
+            current_key: artist_id,
             artist_subscription,
             genres_subscription,
             links_subscription,

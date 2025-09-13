@@ -47,24 +47,18 @@ impl ReleaseGroupDetailsController {
         
         // Set up UI event handlers
         let app_clone = app.clone();
+        let release_group_id_clone = release_group_id.clone();
         app.ui.upgrade_in_event_loop(move |ui| {
             let app = app_clone.clone();
-            ui.global::<ReleaseGroupDetailsAdapter>().on_play_now(move |key| play_now(&app, &key));
-            let app = app_clone.clone();
-            ui.global::<ReleaseGroupDetailsAdapter>().on_play_next(move |key| play_next(&app, &key));
-            let app = app_clone.clone();
-            ui.global::<ReleaseGroupDetailsAdapter>().on_play_later(move |key| play_later(&app, &key));
-            let app = app_clone.clone();
-            ui.global::<ReleaseGroupDetailsAdapter>().on_play_track_now(move |key| play_track_now(&app, &key));
-            let app = app_clone.clone();
-            ui.global::<ReleaseGroupDetailsAdapter>().on_play_track_next(move |key| play_track_next(&app, &key));
-            let app = app_clone.clone();
-            ui.global::<ReleaseGroupDetailsAdapter>().on_play_track_later(move |key| play_track_later(&app, &key));
-            // let ui_weak = ui.as_weak();
-            // ui.global::<ReleaseGroupDetailsAdapter>().on_select_version(move |version_index| {
-            //     select_version_by_index(&ui_weak, version_index);
-            // });
-        }).unwrap();
+            ui.global::<ReleaseGroupDetailsAdapter>().on_toggle_heart(move || {
+                app.library.db.transaction(|txn| {
+                    let mut release_group: ReleaseGroup = txn.get(&release_group_id_clone.value())?.expect("release group not found");
+                    release_group.save = !release_group.save;
+                    Ok(txn.save(&release_group)?)
+                }).unwrap();
+
+            });
+        })?;
         
         let sql = "SELECT * FROM ReleaseGroup WHERE id = ?";
         let ui = app.ui.clone();
@@ -76,7 +70,7 @@ impl ReleaseGroupDetailsController {
                     let card: CardAdapter = group.clone().into();
                     ui.global::<ReleaseGroupDetailsAdapter>().set_card(card);
                     ui.global::<ReleaseGroupDetailsAdapter>().set_key(group.id.clone().unwrap_or_default().into());
-                    // ui.global::<ReleaseDetailsAdapter>().set_release_type(release.release_group_type.clone().unwrap_or("Release".to_string()).into());
+                    ui.global::<ReleaseGroupDetailsAdapter>().set_save(group.save);
                     ui.global::<ReleaseGroupDetailsAdapter>().set_summary(group.summary.clone().unwrap_or_default().into());
                     ui.global::<ReleaseGroupDetailsAdapter>().set_disambiguation(group.disambiguation.clone().unwrap_or_default().into());
                     ui.global::<ReleaseGroupDetailsAdapter>().set_dump(serde_json::to_string_pretty(&group).unwrap().into());

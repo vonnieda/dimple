@@ -8,6 +8,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::library::Library;
+use crate::model::Artist;
 use crate::model::Dimage;
 
 // https://musicbrainz.org/doc/ReleaseGroup
@@ -32,6 +33,25 @@ pub struct ReleaseGroup {
 }
 
 impl ReleaseGroup {
+    pub fn artist(&self, library: &Library) -> Option<Artist> {
+        self.artists(library).first().cloned()
+    }
+
+    pub fn artist_name(&self, library: &Library) -> Option<String> {
+        self.artist(library).and_then(|a| a.name)
+    }
+
+    /// TODO this should return the artists in order, with the primary being
+    /// first. I'm not exactly sure how to indicate primary yet.
+    pub fn artists(&self, library: &Library) -> Vec<Artist> {
+        library.query("
+            SELECT a.* FROM ArtistRef ar 
+            JOIN Artist a ON (a.id = ar.artist_id) 
+            WHERE ar.model_id = ?1
+            ORDER BY ar.rowid ASC
+        ", (self.id.clone().unwrap(),))
+    }
+
     pub fn secondary_types(&self, library: &Library) -> anyhow::Result<Vec<ReleaseGroupSecondaryType>> {
         let sql = "
             SELECT ReleaseGroupSecondaryTypeRef.* FROM ReleaseGroupSecondaryTypeRef
