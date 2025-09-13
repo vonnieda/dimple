@@ -20,7 +20,7 @@ use dimple_db::db::query::QuerySubscription;
 use anyhow::Result;
 
 pub struct ArtistDetailsController {
-    current_key: MutableStringParam,
+    artist_id: MutableStringParam,
     artist_subscription: QuerySubscription,
     genres_subscription: QuerySubscription,
     links_subscription: QuerySubscription,
@@ -122,7 +122,7 @@ impl ArtistDetailsController {
         })?;
 
         Ok(Self {
-            current_key: artist_id,
+            artist_id,
             artist_subscription,
             genres_subscription,
             links_subscription,
@@ -131,7 +131,7 @@ impl ArtistDetailsController {
     }
 
     pub fn set_artist(&mut self, key: String, app: &App) -> Result<()> {
-        self.current_key.set(&key);
+        self.artist_id.set(&key);
         
         // Refresh all subscriptions
         self.artist_subscription.refresh();

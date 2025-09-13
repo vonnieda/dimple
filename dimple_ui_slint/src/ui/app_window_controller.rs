@@ -6,7 +6,7 @@ use slint::{ComponentHandle, SharedString, Weak};
 
 use directories::ProjectDirs;
 
-use crate::{config::Config, ui::{components::lazy_image::init_lazy_image_loader, pages::queue_details::QueueDetailsController, *}};
+use crate::{config::Config, ui::{components::lazy_image::init_lazy_image_loader, pages::{genre_details::GenreDetailsController, queue_details::QueueDetailsController}, *}};
 
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 
@@ -24,6 +24,7 @@ pub struct App {
     pub librarian: Librarian,
     pub artist_details_controller: Arc<RwLock<Option<pages::artist_details::ArtistDetailsController>>>,
     pub release_group_details_controller: Arc<RwLock<Option<pages::release_group_details::ReleaseGroupDetailsController>>>,
+    pub genre_details_controller: Arc<RwLock<Option<pages::genre_details::GenreDetailsController>>>,
     pub track_details_controller: Arc<RwLock<Option<pages::track_details::TrackDetailsController>>>,
     pub queue_details_controller: Arc<RwLock<Option<pages::queue_details::QueueDetailsController>>>,
 }
@@ -85,6 +86,7 @@ impl AppWindowController {
         // Create placeholders for detail controllers to break circular dependency
         let artist_details_controller = Arc::new(RwLock::new(None));
         let release_group_details_controller = Arc::new(RwLock::new(None));
+        let genre_details_controller = Arc::new(RwLock::new(None));
         let track_details_controller = Arc::new(RwLock::new(None));
         let queue_details_controller = Arc::new(RwLock::new(None));
         
@@ -98,9 +100,10 @@ impl AppWindowController {
             plugins,
             librarian,
             artist_details_controller: artist_details_controller.clone(),
+            release_group_details_controller: release_group_details_controller.clone(),
+            genre_details_controller: genre_details_controller.clone(),
             track_details_controller: track_details_controller.clone(),
             queue_details_controller: queue_details_controller.clone(),
-            release_group_details_controller: release_group_details_controller.clone(),
         };
         
         // Now create the real controllers and replace the placeholders
@@ -112,6 +115,9 @@ impl AppWindowController {
         
         let real_track_controller = pages::track_details::TrackDetailsController::new(&app).unwrap();
         *track_details_controller.write().unwrap() = Some(real_track_controller);
+
+        let real_genre_details_controller = pages::genre_details::GenreDetailsController::new(&app).unwrap();
+        *genre_details_controller.write().unwrap() = Some(real_genre_details_controller);
         
         let real_queue_controller = pages::queue_details::QueueDetailsController::new(&app).unwrap();
         *queue_details_controller.write().unwrap() = Some(real_queue_controller);
@@ -128,7 +134,6 @@ impl AppWindowController {
         
         Self {
             ui,
-            app,
             _settings_controller: settings_controller,
             _history_list_controller: history_list_controller,
             _artist_list_controller: artist_list_controller,
@@ -137,6 +142,7 @@ impl AppWindowController {
             _release_list_controller: release_list_controller,
             _track_list_controller: track_list_controller,
             _search_results_controller: search_results_controller,
+            app,
         }
     }
 
@@ -160,7 +166,6 @@ impl AppWindowController {
         let _player_bar = PlayerBar::new(&self.app);
 
         pages::home::home_init(&self.app);
-        pages::genre_details::genre_details_init(&self.app);
         pages::playlist_details::playlist_details_init(&self.app);
 
         self.ui.global::<Navigator>().invoke_navigate("dimple://home".into());
@@ -229,7 +234,9 @@ impl App {
             self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::GenreList)).unwrap();
         }
         else if url.starts_with("dimple://genre/") {
-            crate::ui::pages::genre_details::genre_details(&url, self);
+            if let Some(ref mut controller) = self.genre_details_controller.write().unwrap().as_mut() {
+                controller.navigate(&url);
+            }
         }
         else if url.starts_with("dimple://playlists") {
             self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::PlaylistList)).unwrap();

@@ -17,7 +17,7 @@ impl GenreListController {
     pub fn new(app: &App) -> Result<Self> {
         let ui = app.ui.clone();
         let genres_subscription = app.library.db.query_subscribe(
-            "SELECT * FROM Genre ORDER BY name ASC, disambiguation ASC",
+            "SELECT * FROM Genre WHERE save = TRUE ORDER BY name ASC, disambiguation ASC",
             (),
             move |genres: Vec<Genre>| {
                 ui.upgrade_in_event_loop(move |ui| {
