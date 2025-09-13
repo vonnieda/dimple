@@ -274,6 +274,7 @@ pub struct ReleaseGroupsResponse {
 }
     
 impl MusicBrainzPlugin {
+    /// https://community.metabrainz.org/t/api-rate-limit/725714/3
     fn enforce_rate_limit(&self) {
         let mut last_request_time = self.rate_limit_lock.lock().unwrap();
 
@@ -289,6 +290,7 @@ impl MusicBrainzPlugin {
     }
 
     fn get<T: DeserializeOwned>(&self, host: &Plugins, url: &str) -> Result<T, anyhow::Error> {
+        // TODO handle rate limit overage, with backoff
         let response = host.get(url)?;
         if !response.cached() {
             self.enforce_rate_limit();
@@ -309,6 +311,16 @@ mod tests {
     use crate::{librarian::{self, ArtistMetadata}, library::Library, model::{Artist, ReleaseGroup}, plugins::{musicbrainz::MusicBrainzPlugin, plugin::Plugin as _, plugins::Plugins}};
 
     #[test]
+    fn test_search() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let plugins = Plugins::default();
+        let plugin = MusicBrainzPlugin::default();
+        let results = plugin.search(&plugins, &library, "death clock").unwrap();
+        assert_eq!(results.artists[0].artist.name, Some("Dethklok".to_string()));
+    }    
+
+    #[test]
     fn test_artist_metadata() {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
@@ -321,36 +333,24 @@ mod tests {
         assert_eq!(artist_metadata.artist.name, Some("We Were Heading North".to_string()));
         assert!(artist_metadata.links.len() >= 2);
         assert!(artist_metadata.genres.len() >= 1);
-        // assert!(artist_metadata.releases.len() >= 3);
-        // assert!(artist_metadata.releases[0].artists.len() >= 1);
-        // assert!(artist_metadata.releases[0].release.release_group_musicbrainz_id.is_some());
         let _ = library.db.transaction(move |t| {
             librarian::merge_artist_metadata(t, &artist_metadata, None)
         });
     }
 
-        #[test]
+    #[test]
     fn test_artist_release_groups() {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
         let plugins = Plugins::default();
         let plugin = MusicBrainzPlugin::default();
-        // Metallica 65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab
-        // We Were Heading North 73084492-3e59-4b7f-aa65-572a9d7691d5
-        // let release_groups = plugin.artist_release_groups(&plugins, &library, "65f4f0c5-ef9e-490c-aee3-909e7ae6b2ab").unwrap();
-        // let artist_metadata = plugin.artist_metadata(&plugins, &library, &Artist {
-        //     musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
-        //     ..Default::default()
-        // }).unwrap().unwrap();
-        // assert_eq!(artist_metadata.artist.name, Some("We Were Heading North".to_string()));
-        // assert!(artist_metadata.links.len() >= 2);
-        // assert!(artist_metadata.genres.len() >= 1);
-        // assert!(artist_metadata.releases.len() >= 3);
-        // assert!(artist_metadata.releases[0].artists.len() >= 1);
-        // assert!(artist_metadata.releases[0].release.release_group_musicbrainz_id.is_some());
-        // let _ = library.db.transaction(move |t| {
-        //     librarian::merge_artist_metadata(t, &artist_metadata, None)
-        // });
+        let artist = Artist {
+            musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
+            ..Default::default()
+        };
+        let release_groups = plugin.artist_release_groups(&plugins, &library, &artist).unwrap();
+        assert!(release_groups.len() >= 3);
+        assert_eq!(release_groups[0].release_group.title, Some("Lightness".to_string()));
     }
 
     #[test]
@@ -362,17 +362,21 @@ mod tests {
         let release_group = plugin.release_group_metadata(&plugins, &library, &ReleaseGroup {
             musicbrainz_id: Some("bded9aa5-c420-35bf-912c-94bd25283d0f".to_string()),
             ..Default::default()
-        }).unwrap();
-        dbg!(release_group);
+        }).unwrap().unwrap();
+        assert_eq!(release_group.release_group.title, Some("The Youth Are Getting Restless".to_string()));
     }
 
     #[test]
-    fn test_search() {
+    fn test_release_group_releases() {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
         let plugins = Plugins::default();
         let plugin = MusicBrainzPlugin::default();
-        let results = plugin.search(&plugins, &library, "death clock").unwrap();
-        // dbg!(results);
-    }    
+
+        let releases = plugin.release_group_releases(&plugins, &library, &ReleaseGroup {
+            musicbrainz_id: Some("bded9aa5-c420-35bf-912c-94bd25283d0f".to_string()),
+            ..Default::default()
+        }).unwrap();
+        assert_eq!(releases[0].release.date, Some("1990-01-01".to_string()));
+    }
 }
