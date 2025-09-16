@@ -2,6 +2,11 @@ use anyhow::anyhow;
 use dimple_db::db::transaction::DbTransaction;
 use crate::{crdt_rules::CrdtRules, librarian, library::Library, merge_rules::{MergeError, MergeRules}, model::{Artist, ArtistRef, Dimage, DimageRef, DimpleEntity, Genre, GenreRef, Link, LinkRef, Release, ReleaseGroup, ReleaseGroupSecondaryType, ReleaseGroupSecondaryTypeRef, Track}, plugins::plugins::Plugins};
 
+/// TODO currently trying two different methods in the match portion of this
+/// module: fts5, and direct query. I think fts5 is overall better because we
+/// can score it and has weights already built in. direct query primarily
+/// solves the issue I was having where I could not include other clauses
+/// in the where clause. 
 #[derive(Clone)]
 pub struct Librarian {
     pub library: Library,
@@ -75,8 +80,17 @@ pub fn merge_artist(txn: &DbTransaction, artist: &Artist) -> Result<Artist, anyh
     else if let Some(name) = &artist.name {
         query_fragments.push(format!("name:{}", quote_fts5(name)));
     }
+    if let Some(discogs_id) = &artist.discogs_id {
+        query_fragments.push(format!("discogs_id:{}", quote_fts5(discogs_id)));
+    }
+    if let Some(lastfm_id) = &artist.lastfm_id {
+        query_fragments.push(format!("lastfm_id:{}", quote_fts5(lastfm_id)));
+    }
     if let Some(musicbrainz_id) = &artist.musicbrainz_id {
         query_fragments.push(format!("musicbrainz_id:{}", quote_fts5(musicbrainz_id)));
+    }
+    if let Some(spotify_id) = &artist.spotify_id {
+        query_fragments.push(format!("spotify_id:{}", quote_fts5(spotify_id)));
     }
     let query = query_fragments.join(" OR ");
     let sql = format!("
@@ -236,7 +250,57 @@ pub fn merge_release_metadata(txn: &DbTransaction, release: &Release, metadata: 
     merge_entity_genres(txn, &merged.id, &metadata.genres)?;
     merge_entity_links(txn, &merged.id, &metadata.links)?;
     merge_entity_images(txn, &merged.id, &metadata.images)?;
-    // TODO tracks
+    for track_metadata in metadata.tracks.iter() {
+        let track = merge_release_track(txn, release, &track_metadata.track)?;
+        let _ = merge_track_metadata(txn, &track, &track_metadata)?;
+    }
+    Ok(merged)
+}
+
+pub fn merge_release_track(txn: &DbTransaction, release: &Release, track: &Track) -> Result<Track, anyhow::Error> {
+     let sql = format!("
+        SELECT Track.* 
+        FROM Track
+        WHERE Track.release_id = ?1
+        AND (
+            (Track.title IS NOT NULL AND Track.title COLLATE NOCASE = ?2 AND ((Track.disambiguation IS NULL AND ?3 IS NULL) OR (Track.disambiguation COLLATE NOCASE = ?3)))
+            OR (Track.discogs_id IS NOT NULL AND Track.discogs_id = ?4)
+            OR (Track.lastfm_id IS NOT NULL AND Track.lastfm_id = ?5)
+            OR (Track.musicbrainz_id IS NOT NULL AND Track.musicbrainz_id = ?6)
+            OR (Track.spotify_id IS NOT NULL AND Track.spotify_id = ?7)
+        )
+    ");
+
+    let candidates: Vec<Track> = txn.query(&sql, (&release.id, 
+        &release.title, 
+        &release.disambiguation, 
+        &release.discogs_id, 
+        &release.lastfm_id, 
+        &release.musicbrainz_id,
+        &release.spotify_id,)
+    )?;
+    for candidate in candidates.iter() {
+        if let Ok(merged) = Track::try_merge(candidate, track) {
+            if merged != *track {
+                return txn.save(&merged)
+            }
+        }
+    }
+    let mut track = track.clone();
+    track.release_id = release.id.clone();
+    txn.save(&track)
+}
+
+
+pub fn merge_track_metadata(txn: &DbTransaction, track: &Track, metadata: &TrackMetadata) -> Result<Track, anyhow::Error> {
+    let mut merged = Track::try_merge(track, &metadata.track)?;
+    if merged != *track {
+        merged = txn.save(&merged)?;
+    }
+    merge_entity_artists(txn, &merged.id, &metadata.artists)?;
+    merge_entity_genres(txn, &merged.id, &metadata.genres)?;
+    merge_entity_links(txn, &merged.id, &metadata.links)?;
+    merge_entity_images(txn, &merged.id, &metadata.images)?;
     Ok(merged)
 }
 
@@ -385,7 +449,56 @@ pub struct SearchResults {
 }
 
 mod tests {
-    use crate::{librarian::{self, ArtistMetadata, ReleaseMetadata}, library::Library, model::{Artist, ModelBasics, Release, ReleaseGroup}, plugins::plugins::Plugins};
+    use crate::{librarian::{self, ArtistMetadata, ReleaseMetadata}, library::Library, model::{Artist, ModelBasics, Release, ReleaseGroup, Track}, plugins::plugins::Plugins};
+
+    #[test]
+    fn smoke_test() -> anyhow::Result<()>{
+        let library = Library::open_memory();
+        let artist = library.db.transaction(|txn| {
+            librarian::merge_artist(txn, &Artist {
+                name: Some("Wyld Stallions".to_string()),
+                ..Default::default()
+            })
+        })?;
+        let release_group = library.db.transaction(|txn| {
+            librarian::merge_artist_release_group(txn, &artist, &ReleaseGroup {
+                title: Some("Epic Anthems".to_string()),
+                ..Default::default()
+            })
+        })?;
+        let release = library.db.transaction(|txn| {
+            librarian::merge_release_group_release(txn, &release_group, &Release {
+                title: Some("Epic Anthems".to_string()),
+                country: Some("us".to_string()),
+                ..Default::default()
+            })
+        })?;
+        let (track1, track2, track3) = library.db.transaction(|txn| {
+            let track1 = librarian::merge_release_track(txn, &release, &Track {
+                title: Some("Station".to_string()),
+                position: Some(1),
+                ..Default::default()
+            })?;
+            let track2 = librarian::merge_release_track(txn, &release, &Track {
+                title: Some("Straight to Heck".to_string()),
+                position: Some(2),
+                ..Default::default()
+            })?;
+            let track3 = librarian::merge_release_track(txn, &release, &Track {
+                title: Some("Don't Fear Mr. Grim Reaper Man".to_string()),
+                position: Some(3),
+                ..Default::default()
+            })?;
+            Ok((track1, track2, track3))
+        })?;
+
+        assert_eq!(release_group.artist(&library).unwrap().id, artist.id);
+        assert_eq!(release.release_group_id, release_group.id);
+        assert_eq!(track1.release_id, release.id);
+        assert_eq!(track2.release_id, release.id);
+        assert_eq!(track3.release_id, release.id);
+        Ok(())
+    }
 
     #[test]
     fn test_merge_artist() -> anyhow::Result<()> {
