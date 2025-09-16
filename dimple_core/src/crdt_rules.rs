@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use chrono::{DateTime, Utc};
 
-use crate::model::{Artist, Dimage, Genre, Link, MediaFile, Release, Track};
+use crate::model::{Artist, Dimage, Genre, Link, MediaFile, Release, ReleaseGroup, Track};
 
 pub trait CrdtRules {
     /// Commutative: A v B = B v A
@@ -65,6 +65,29 @@ impl CrdtRules for Artist {
             download: CrdtRules::merge(l.download, r.download),
             
             country: CrdtRules::merge(l.country, r.country),
+
+            discogs_id: CrdtRules::merge(l.discogs_id, r.discogs_id),
+            lastfm_id: CrdtRules::merge(l.lastfm_id, r.lastfm_id),
+            musicbrainz_id: CrdtRules::merge(l.musicbrainz_id, r.musicbrainz_id),
+            spotify_id: CrdtRules::merge(l.spotify_id, r.spotify_id),
+            wikidata_id: CrdtRules::merge(l.wikidata_id, r.wikidata_id),
+        }
+    }
+}
+
+impl CrdtRules for ReleaseGroup {
+    fn merge(l: Self, r: Self) -> Self {
+        Self {
+            id: CrdtRules::merge(l.id, r.id),
+            title: CrdtRules::merge(l.title, r.title),
+            disambiguation: CrdtRules::merge(l.disambiguation, r.disambiguation),
+            summary: CrdtRules::merge(l.summary, r.summary),
+            save: CrdtRules::merge(l.save, r.save),
+            download: CrdtRules::merge(l.download, r.download),
+            
+            primary_type: l.primary_type.or_else(|| r.primary_type),
+            first_release_date: CrdtRules::merge(l.first_release_date, r.first_release_date),
+            
 
             discogs_id: CrdtRules::merge(l.discogs_id, r.discogs_id),
             lastfm_id: CrdtRules::merge(l.lastfm_id, r.lastfm_id),

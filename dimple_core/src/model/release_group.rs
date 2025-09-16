@@ -10,6 +10,7 @@ use serde::Serialize;
 use crate::library::Library;
 use crate::model::Artist;
 use crate::model::Dimage;
+use crate::model::Release;
 
 // https://musicbrainz.org/doc/ReleaseGroup
 // https://musicbrainz.org/ws/2/release-group/1b4f4b3c-ca01-37b7-af1d-3e37989f86ad?inc=aliases%2Bartist-credits%2Breleases&fmt=json
@@ -66,6 +67,15 @@ impl ReleaseGroup {
             SELECT d.* FROM DimageRef dr 
             JOIN Dimage d ON (d.id = dr.dimage_id) 
             WHERE dr.model_id = ?1
+        ", (self.id.clone().unwrap(),))
+    }
+
+    pub fn releases(&self, library: &Library) -> Vec<Release> {
+        library.query("
+            SELECT Release.* 
+            FROM Release 
+            WHERE Release.release_group_id = ?
+            ORDER BY Release.date ASC NULLS LAST, Release.title ASC, Release.id ASC
         ", (self.id.clone().unwrap(),))
     }
 }

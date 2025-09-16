@@ -89,12 +89,11 @@ fn update_model(app: &App) {
 }
 
 fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
-    releases.iter().cloned().enumerate()
-        .map(|(index, release)| {
-            let card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
-            card
-        })
-        .collect()
+    releases.iter().cloned().map(|release| {
+        let card: CardAdapter = release_card(&release, &release.artist(library).unwrap_or_default());
+        card
+    })
+    .collect()
 }
 
 fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
@@ -121,12 +120,12 @@ fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
 }
 
 fn artist_cards(artists: &[Artist]) -> Vec<CardAdapter> {
-    artists.iter().cloned().enumerate()
-        .map(|(index, artist)| {
-            let card: CardAdapter = artist_card(&artist);
-            card
-        })
-        .collect()
+    artists.iter().cloned()
+    .map(|artist| {
+        let card: CardAdapter = artist_card(&artist);
+        card
+    })
+    .collect()
 }
 
 fn artist_card(artist: &Artist) -> CardAdapter {

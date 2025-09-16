@@ -51,12 +51,13 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
                 }).unwrap();
             }
         },
-        // DimpleEntity::Track(track) => {
-        //     for metadata in plugins.track_metadata(library, track) {
-        //         let _ = library.db.transaction(|t| 
-        //             librarian::merge_track_metadata(t, &metadata, Some(track.clone())));
-        //     }
-        // },
+        DimpleEntity::Track(track) => {
+            for metadata in plugins.track_metadata(library, track) {
+                library.db.transaction(|t| {
+                    merge_track_metadata(t, track, &metadata)
+                }).unwrap();
+            }
+        },
         // DimpleEntity::Genre(genre) => {
         //     if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
         //         library.save(&CrdtRules::merge(genre, metadata));
@@ -113,7 +114,7 @@ pub fn merge_artist(txn: &DbTransaction, artist: &Artist) -> Result<Artist, anyh
 }
 
 pub fn merge_artist_metadata(txn: &DbTransaction, artist: &Artist, metadata: &ArtistMetadata) -> Result<Artist, anyhow::Error> {
-    let mut merged = Artist::try_merge(artist, &metadata.artist)?;
+    let mut merged = CrdtRules::merge(artist.clone(), metadata.artist.clone());
     if merged != *artist {
         merged = txn.save(&merged)?;
     }
@@ -193,7 +194,7 @@ pub fn merge_release_group(txn: &DbTransaction, release_group: &ReleaseGroup) ->
 }
 
 pub fn merge_release_group_metadata(txn: &DbTransaction, release_group: &ReleaseGroup, metadata: &ReleaseGroupMetadata) -> Result<ReleaseGroup, anyhow::Error> {
-    let mut merged = ReleaseGroup::try_merge(release_group, &metadata.release_group)?;
+    let mut merged = CrdtRules::merge(release_group.clone(), metadata.release_group.clone());
     if merged != *release_group {
         merged = txn.save(&merged)?;
     }
@@ -242,7 +243,7 @@ pub fn merge_release_group_release(txn: &DbTransaction, release_group: &ReleaseG
 }
 
 pub fn merge_release_metadata(txn: &DbTransaction, release: &Release, metadata: &ReleaseMetadata) -> Result<Release, anyhow::Error> {
-    let mut merged = Release::try_merge(release, &metadata.release)?;
+    let mut merged = CrdtRules::merge(release.clone(), metadata.release.clone());
     if merged != *release {
         merged = txn.save(&merged)?;
     }
@@ -293,7 +294,7 @@ pub fn merge_release_track(txn: &DbTransaction, release: &Release, track: &Track
 
 
 pub fn merge_track_metadata(txn: &DbTransaction, track: &Track, metadata: &TrackMetadata) -> Result<Track, anyhow::Error> {
-    let mut merged = Track::try_merge(track, &metadata.track)?;
+    let mut merged = CrdtRules::merge(track.clone(), metadata.track.clone());
     if merged != *track {
         merged = txn.save(&merged)?;
     }

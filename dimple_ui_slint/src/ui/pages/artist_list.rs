@@ -37,29 +37,6 @@ impl ArtistListController {
 }
 
 fn artist_cards(artists: &[Artist]) -> Vec<CardAdapter> {
-    artists.iter().cloned()
-        .map(|artist| artist_card(&artist))
-        .collect()
-}
-
-fn artist_card(artist: &Artist) -> CardAdapter {
-    let artist = artist.clone();
-    CardAdapter {
-        key: artist.id.clone().unwrap_or_default().into(),        
-        image: ImageLinkAdapter {
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
-            image: Default::default(),
-        },
-        title: LinkAdapter {
-            name: artist.name.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
-        },
-        sub_title: LinkAdapter {
-            name: artist.disambiguation.unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
-        },
-        ..Default::default()
-    }
+    artists.iter().cloned().map(Into::into).collect()
 }
 

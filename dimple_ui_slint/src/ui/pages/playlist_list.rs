@@ -3,7 +3,6 @@ use crate::ui::app_window_controller::App;
 use crate::ui::CardAdapter;
 use dimple_core::model::Playlist;
 use dimple_db::db::query::QuerySubscription;
-use slint::Model as _;
 use crate::ui::PlaylistListAdapter;
 use slint::ComponentHandle;
 
@@ -18,16 +17,12 @@ impl PlaylistListController {
         let playlists_subscription = app.library.db.query_subscribe(
             "SELECT * FROM Playlist
             WHERE name NOT LIKE '__dimple_system_play_queue_%'
+            AND save = TRUE
             ORDER BY name ASC",
             (),
             move |playlists: Vec<Playlist>| {
                 ui.upgrade_in_event_loop(move |ui| {
-                    let cards: Vec<CardAdapter> = playlists.iter().cloned().enumerate()
-                        .map(|(index, playlist)| {
-                            let card: CardAdapter = playlist.clone().into();
-                            card
-                        })
-                        .collect();
+                    let cards: Vec<CardAdapter> = playlists.iter().cloned().map(Into::into).collect();
                     ui.global::<PlaylistListAdapter>().set_cards(cards.as_slice().into());
                 }).unwrap();
             },

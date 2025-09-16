@@ -23,8 +23,8 @@ impl TrackListController {
         let sql = "
             SELECT Track.* 
             FROM Track
+            WHERE Track.save = TRUE
             ORDER BY Track.title ASC
-
         ";
         let ui = app.ui.clone();
         let library = app.library.clone();

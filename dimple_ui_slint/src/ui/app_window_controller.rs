@@ -172,7 +172,9 @@ impl AppWindowController {
         
         let app = self.app.clone();
         self.ui.window().on_close_requested(move || {
-            app.ui.upgrade_in_event_loop(|ui| ui.window().set_minimized(true)).unwrap();
+            app.ui.upgrade_in_event_loop(|ui| {
+                ui.window().hide().unwrap();
+            }).unwrap();
             slint::CloseRequestResponse::KeepWindowShown
         });
 
@@ -218,8 +220,8 @@ impl App {
             self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::ReleaseList)).unwrap();
         }
         else if url.starts_with("dimple://releasegroup/") {
-            if let Some(ref mut controller) = self.release_group_details_controller.write().unwrap().as_mut() {
-                crate::ui::pages::release_group_details::release_group_details(&url, self, controller);
+            if let Some(ref mut controller) = self.release_group_details_controller.read().unwrap().as_ref() {
+                controller.navigate(&url, self);
             }
         }
         else if url.starts_with("dimple://tracks") {
