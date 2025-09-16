@@ -68,6 +68,25 @@ fn merge_field_case_insensitive(
     }
 }
 
+impl MergeRules<Artist> for Artist {
+    fn try_merge(l: &Artist, r: &Artist) -> Result<Artist, MergeError> {
+        Ok(Artist {
+            id: merge_field("id", &l.id, &r.id)?,
+            name: merge_field_case_insensitive("name", &l.name, &r.name)?,
+            disambiguation: merge_field("disambiguation", &l.disambiguation, &r.disambiguation)?,
+            summary: merge_field("summary", &l.summary, &r.summary)?,
+            save: l.save || r.save,
+            download: l.download || r.download,
+            country: merge_field("country", &l.country, &r.country)?,
+            discogs_id: merge_field("discogs_id", &l.discogs_id, &r.discogs_id)?,
+            lastfm_id: merge_field("lastfm_id", &l.lastfm_id, &r.lastfm_id)?,
+            musicbrainz_id: merge_field("musicbrainz_id", &l.musicbrainz_id, &r.musicbrainz_id)?,
+            spotify_id: merge_field("spotify_id", &l.spotify_id, &r.spotify_id)?,
+            wikidata_id: merge_field("wikidata_id", &l.wikidata_id, &r.wikidata_id)?,
+        })
+    }
+}
+
 impl MergeRules<Release> for Release {
     fn try_merge(l: &Release, r: &Release) -> Result<Release, MergeError> {
         Ok(Release {

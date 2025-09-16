@@ -19,40 +19,85 @@ pub trait Plugin: Send + Sync {
 
     }
 
-    fn artist_metadata(&self, _plugins: &Plugins, _library: &Library, _artist: &Artist) -> Result<Option<ArtistMetadata>> {
+    fn artist_metadata(&self, 
+        _plugins: &Plugins, 
+        _library: &Library, 
+        _artist: &Artist) 
+        -> Result<Option<ArtistMetadata>> {
+        
         Ok(None)
     }
 
-    fn artist_release_groups(&self, _plugins: &Plugins, _library: &Library, _artist: &Artist) -> Result<Vec<ReleaseGroupMetadata>> {
+    fn artist_release_groups(&self, 
+        _plugins: &Plugins, 
+        _library: &Library, 
+        _artist: &Artist) 
+        -> Result<Vec<ReleaseGroupMetadata>> {
+        
         Ok(vec![])
     }
 
-    fn track_metadata(&self, _plugins: &Plugins, _library: &Library, _track: &Track) -> Result<Option<TrackMetadata>> {
+    fn track_metadata(&self, 
+        _plugins: &Plugins, 
+        _library: &Library, 
+        _track: &Track) 
+        -> Result<Option<TrackMetadata>> {
+        
         Ok(None)
     }
 
-    fn release_group_metadata(&self, _plugins: &Plugins, _library: &Library, _release_group: &ReleaseGroup) -> Result<Option<ReleaseGroupMetadata>> {
+    fn release_group_metadata(&self, 
+        _plugins: &Plugins, 
+        _library: &Library, 
+        _release_group: &ReleaseGroup) 
+        -> Result<Option<ReleaseGroupMetadata>> {
+        
         Ok(None)
     }
 
-    fn release_group_releases(&self, _plugins: &Plugins, _library: &Library, _release_group: &ReleaseGroup) -> Result<Vec<ReleaseMetadata>> {
+    fn release_group_releases(&self, 
+        _plugins: &Plugins, 
+        _library: &Library, 
+        _release_group: &ReleaseGroup) 
+        -> Result<Vec<ReleaseMetadata>> {
+        
         Ok(vec![])
     }
 
-    fn release_metadata(&self, _plugins: &Plugins, _library: &Library, _release: &Release) -> Result<Option<ReleaseMetadata>> {
+    fn release_metadata(&self, 
+        _plugins: &Plugins, 
+        _library: &Library, 
+        _release: &Release) 
+        -> Result<Option<ReleaseMetadata>> {
+        
         Ok(None)
     }
 
-    fn search(&self, _plugins: &Plugins, _library: &Library, _query: &str) -> Result<SearchResults> {
+    fn search(&self, 
+        _plugins: &Plugins, 
+        _library: &Library, 
+        _query: &str) 
+        -> Result<SearchResults> {
+        
         Ok(SearchResults::default())
     }
 
     // TODO add DimageKind filter
-    fn image(&self, _plugins: &Plugins, _library: &Library, _model: &DimpleEntity) -> Result<Option<Dimage>> {
+    fn image(&self, 
+        _plugins: &Plugins, 
+        _library: &Library, 
+        _for_entity: &DimpleEntity) 
+        -> Result<Option<Dimage>> {
+        
         Ok(None)
     }
 
-    fn track_sources(&self, _plugins: &Plugins, _library: &Library, _track: &Track) -> Result<Vec<TrackSource>> {
+    fn track_sources(&self, 
+        _plugins: &Plugins, 
+        _library: &Library, 
+        _track: &Track) 
+        -> Result<Vec<TrackSource>> {
+        
         Ok(vec![])
     }
 }

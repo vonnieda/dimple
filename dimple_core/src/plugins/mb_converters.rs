@@ -182,9 +182,9 @@ impl From<ReleaseGroupConverter> for ReleaseGroupMetadata {
             genres: value.0.genres.iter().flatten()
                 .map(|f| crate::model::Genre::from(GenreConverter::from(f.to_owned())))
                 .collect(),
-            releases: value.0.releases.iter().flatten()
-                .map(|f| ReleaseMetadata::from(ReleaseConverter::from(f.to_owned())))
-                .collect(),
+            // releases: value.0.releases.iter().flatten()
+            //     .map(|f| ReleaseMetadata::from(ReleaseConverter::from(f.to_owned())))
+            //     .collect(),
             links: value.0.relations.iter().flatten()
                 .filter_map(|r| match &r.content {
                     RelationContent::Url(u) => Some(u.resource.to_string()),
@@ -268,7 +268,7 @@ impl From<TrackConverter> for TrackMetadata {
                     url: s,
                 })
                 .collect(),
-            images: vec![],            
+            images: vec![],
         }
     }
 }

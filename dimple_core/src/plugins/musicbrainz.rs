@@ -333,9 +333,6 @@ mod tests {
         assert_eq!(artist_metadata.artist.name, Some("We Were Heading North".to_string()));
         assert!(artist_metadata.links.len() >= 2);
         assert!(artist_metadata.genres.len() >= 1);
-        let _ = library.db.transaction(move |t| {
-            librarian::merge_artist_metadata(t, &artist_metadata, None)
-        });
     }
 
     #[test]

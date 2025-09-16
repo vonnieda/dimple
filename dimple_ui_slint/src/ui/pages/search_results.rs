@@ -135,18 +135,20 @@ fn search_plugins(plugins: Plugins, library: Library, query: String) {
 
         library.db.transaction(|txn| {
             for result in plugin_results {
-                for artist in result.artists {
-                    librarian::merge_artist_metadata(txn, &artist, None)?;
+                for metadata in result.artists {
+                    let artist = librarian::merge_artist(txn, &metadata.artist)?;
+                    librarian::merge_artist_metadata(txn, &artist, &metadata)?;
                 }
-                for release in result.releases {
-                    librarian::merge_release_metadata(txn, &release, None)?;
+                for metadata in result.release_groups {
+                    let release_group = librarian::merge_release_group(txn, &metadata.release_group)?;
+                    librarian::merge_release_group_metadata(txn, &release_group, &metadata)?;
                 }
-                for release_group in result.release_groups {
-                    librarian::merge_release_group_metadata(txn, &release_group, None)?;
-                }
-                for track in result.tracks {
-                    librarian::merge_track_metadata(txn, &track, None)?;
-                }
+                // for release in result.releases {
+                //     librarian::merge_release_metadata(txn, &release, None)?;
+                // }
+                // for track in result.tracks {
+                //     librarian::merge_track_metadata(txn, &track, None)?;
+                // }
                 for genre in result.genres {
                     librarian::merge_genre(txn, &genre)?;
                 }

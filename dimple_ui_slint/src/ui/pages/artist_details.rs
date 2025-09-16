@@ -52,6 +52,7 @@ impl ArtistDetailsController {
         let artist_subscription = app.library.db.query_subscribe(sql, (artist_id.clone(),), move |artists: Vec<Artist>| {
             if let Some(artist) = artists.first() {
                 let artist = artist.clone();
+                // TODO add changes to dump, or to a second debug section
                 ui.upgrade_in_event_loop(move |ui| {
                     let card: CardAdapter = artist.clone().into();                
                     ui.global::<ArtistDetailsAdapter>().set_card(card);

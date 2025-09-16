@@ -120,6 +120,7 @@ impl ReleaseGroupDetailsController {
             }).unwrap();
         })?;
 
+        // Set up releases (versions) subscription
         let sql = "
             SELECT Release.* 
             FROM Release 
@@ -201,8 +202,8 @@ impl ReleaseGroupDetailsController {
         let app_clone = app.clone();
         let release_id_clone = release_id.clone();
         std::thread::spawn(move || {
-            if let Some(release_group) = ReleaseGroup::get(&app_clone.library, &release_id_clone) {
-                librarian::refresh_metadata(&app_clone.library, &app_clone.plugins, &release_group.into());
+            if let Some(release) = Release::get(&app_clone.library, &release_id_clone) {
+                librarian::refresh_metadata(&app_clone.library, &app_clone.plugins, &release.into());
             }
         });
 
