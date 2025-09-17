@@ -54,7 +54,6 @@ impl ReleaseGroupDetailsController {
                     release_group.save = !release_group.save;
                     Ok(txn.save(&release_group)?)
                 }).unwrap();
-
             });
         })?;
         
@@ -119,22 +118,6 @@ impl ReleaseGroupDetailsController {
             }).unwrap();
         })?;
 
-        // Set up releases (versions) subscription
-        let sql = "
-            SELECT Release.* 
-            FROM Release 
-            WHERE Release.release_group_id = ?
-            ORDER BY Release.date ASC NULLS LAST, Release.title ASC, Release.id ASC
-        ";
-        let ui = app.ui.clone();
-        let releases_subscription = app.library.db.query_subscribe(sql, (release_group_id.clone(),), move |releases: Vec<Release>| {
-            ui.upgrade_in_event_loop(move |ui| {
-                let adapter = ui.global::<ReleaseGroupDetailsAdapter>();
-                let cards = release_version_cards(&releases);
-                adapter.set_releases(ModelRc::from(cards.as_slice()));
-            }).unwrap();
-        })?;
-
         // Set up tracks subscription
         let sql = "
             SELECT * 
@@ -145,11 +128,38 @@ impl ReleaseGroupDetailsController {
         let ui = app.ui.clone();
         let library = app.library.clone();
         let tracks_subscription = app.library.db.query_subscribe(sql, (release_id.clone(),), move |tracks: Vec<Track>| {
-            dbg!(&tracks);
             let library = library.clone();
             ui.upgrade_in_event_loop(move |ui| {
                 ui.global::<ReleaseGroupDetailsAdapter>().set_track_items(track_items(&library, &tracks));
                 ui.global::<ReleaseGroupDetailsAdapter>().set_track_keys(track_keys(&tracks));
+            }).unwrap();
+        })?;
+
+        // Set up releases (versions) subscription
+        let sql = "
+            SELECT Release.* 
+            FROM Release 
+            WHERE Release.release_group_id = ?
+            ORDER BY Release.date ASC NULLS LAST, Release.title ASC, Release.id ASC
+        ";
+        let ui = app.ui.clone();
+        let release_id_clone = release_id.clone();
+        let tracks_subscription_clone = tracks_subscription.clone();
+        let releases_subscription = app.library.db.query_subscribe(sql, 
+            (release_group_id.clone(),), move |releases: Vec<Release>| {
+
+            if let Some(release) = releases.get(0) {
+                release_id_clone.set(release.id.clone().unwrap().as_ref());
+            }
+            else {
+                release_id_clone.set("");
+            }
+            tracks_subscription_clone.refresh();
+
+            ui.upgrade_in_event_loop(move |ui| {
+                let adapter = ui.global::<ReleaseGroupDetailsAdapter>();
+                let cards = release_version_cards(&releases);
+                adapter.set_releases(ModelRc::from(cards.as_slice()));
             }).unwrap();
         })?;
 
@@ -165,13 +175,13 @@ impl ReleaseGroupDetailsController {
         })
     }
 
-    pub fn navigate(&self, url: &str, app: &App) {
-        let url = Url::parse(url).unwrap();
-        let release_group_id = url.path_segments().unwrap().next().unwrap().to_string();
-        self.release_group_id.set(&release_group_id);
-
+    pub fn set_release_group_id(&self, release_group_id: &str, app: &App) {
         let release_group = ReleaseGroup::get(&app.library, &release_group_id).unwrap();
-        let releases = release_group.releases(&app.library);
+        self.release_group_id.set(&release_group.id.clone().unwrap());
+        // Changing the release_group_id means we need to reload the releases,
+        // and pick one, so clear that and it will happen in the subcription
+        // callbacks.
+        self.release_id.set("");
 
         self.release_group_subscription.refresh();
         self.artists_subscription.refresh();
@@ -183,10 +193,17 @@ impl ReleaseGroupDetailsController {
         let app_clone = app.clone();
         std::thread::spawn(move || {
             librarian::refresh_metadata(&app_clone.library, &app_clone.plugins, &release_group.into());
-            if let Some(release) = releases.get(0) {
-                librarian::refresh_metadata(&app_clone.library, &app_clone.plugins, &release.into());
-            }
+            // if let Some(release) = releases.get(0) {
+            //     // TODO should be on selected release
+            //     librarian::refresh_metadata(&app_clone.library, &app_clone.plugins, &release.into());
+            // }
         });
+    }
+
+    pub fn navigate(&self, url: &str, app: &App) {
+        let url = Url::parse(url).unwrap();
+        let release_group_id = url.path_segments().unwrap().next().unwrap().to_string();
+        self.set_release_group_id(&release_group_id, app);
 
         app.ui.upgrade_in_event_loop(move |ui| {
             ui.set_page(Page::ReleaseGroupDetails);
@@ -275,10 +292,9 @@ fn release_version_card(release: &Release) -> CardAdapter {
             url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
-        // TODO
         sub_title: LinkAdapter {
             name: release.disambiguation.clone().unwrap_or_default().into(),
-            url: format!("dimple://artist/{}", release.id.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
         },
         ..Default::default()
     }

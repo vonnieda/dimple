@@ -36,8 +36,6 @@ struct SearchResult {
 impl SearchResultsController {
     pub fn new(app: &App) -> Result<Self> {
         let ui = app.ui.clone();
-        // TODO want to use MATCH instead of = (does it matter?) but MATCH
-        // blows up the query parser.
         let sql = "
             SELECT 
                 bm25(ArtistFts) AS rank, 
@@ -97,7 +95,7 @@ impl SearchResultsController {
             JOIN Genre ON Genre.rowid = GenreFts.rowid 
             WHERE GenreFts = ?1
 
-            ORDER BY rank, title
+            ORDER BY rank DESC, title ASC
         ";
 
         let query_param = MutableStringParam::new();

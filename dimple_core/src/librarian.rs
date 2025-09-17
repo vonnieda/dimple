@@ -63,12 +63,13 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
         //         library.save(&CrdtRules::merge(genre, metadata));
         //     }
         // },
-        // DimpleEntity::Release(release) => {
-        //     for metadata in plugins.release_metadata(library, release) {
-        //         let _ = library.db.transaction(|t| 
-        //             librarian::merge_release_metadata(t, &metadata, Some(release.clone())));
-        //     }
-        // },
+        DimpleEntity::Release(release) => {
+            for metadata in plugins.release_metadata(library, release) {
+                library.db.transaction(|t| {
+                    merge_release_metadata(t, release, &metadata)
+                }).unwrap();
+            }
+        },
         _ => todo!()
     }
 }
@@ -273,12 +274,12 @@ pub fn merge_release_track(txn: &DbTransaction, release: &Release, track: &Track
     ");
 
     let candidates: Vec<Track> = txn.query(&sql, (&release.id, 
-        &release.title, 
-        &release.disambiguation, 
-        &release.discogs_id, 
-        &release.lastfm_id, 
-        &release.musicbrainz_id,
-        &release.spotify_id,)
+        &track.title, 
+        &track.disambiguation, 
+        &track.discogs_id, 
+        &track.lastfm_id, 
+        &track.musicbrainz_id,
+        &track.spotify_id,)
     )?;
     for candidate in candidates.iter() {
         if let Ok(merged) = Track::try_merge(candidate, track) {

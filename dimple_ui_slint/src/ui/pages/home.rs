@@ -1,5 +1,5 @@
 use dimple_core::library::Library;
-use dimple_core::model::{Artist, Release};
+use dimple_core::model::{Artist, Release, ReleaseGroup};
 use slint::ComponentHandle as _;
 
 use crate::ui::app_window_controller::App;
@@ -25,7 +25,7 @@ fn update_model(app: &App) {
     let app = app.clone();
     std::thread::spawn(move || { 
         let newest_releases = app.library.query("
-            SELECT * FROM Release ORDER BY date DESC LIMIT 10 
+            SELECT * FROM ReleaseGroup ORDER BY first_release_date DESC LIMIT 10 
         ", ());
 
         let favorite_releases = app.library.query("
@@ -62,7 +62,8 @@ fn update_model(app: &App) {
                 title: "Newest Releases ⟩".into(),
                 sub_title: Default::default(),
                 url: "dimple://home/newest-releases".to_string().into(),
-                cards: release_cards(&newest_releases, &app.library).as_slice().into(),
+                cards: release_group_cards(&newest_releases, &app.library).as_slice().into(),
+                max_rows: 1,
                 ..Default::default()
             });
 
@@ -71,6 +72,7 @@ fn update_model(app: &App) {
                 sub_title: Default::default(),
                 url: "dimple://home/favorite-releases".to_string().into(),
                 cards: release_cards(&favorite_releases, &app.library).as_slice().into(),
+                max_rows: 1,
                 ..Default::default()
             });
 
@@ -79,6 +81,7 @@ fn update_model(app: &App) {
                 sub_title: Default::default(),
                 url: "dimple://home/favorite-artists".to_string().into(),
                 cards: artist_cards(&favorite_artists).as_slice().into(),
+                max_rows: 1,
                 ..Default::default()
             });
 
@@ -86,6 +89,37 @@ fn update_model(app: &App) {
             adapter.set_sections(sections.as_slice().into());
         }).unwrap();
     });
+}
+
+fn release_group_cards(release_groups: &[ReleaseGroup], library: &Library) -> Vec<CardAdapter> {
+    release_groups.iter().cloned().map(|release_group| {
+        let card: CardAdapter = release_group_card(&release_group, &release_group.artist(library).unwrap_or_default());
+        card
+    })
+    .collect()
+}
+
+fn release_group_card(release_group: &ReleaseGroup, artist: &Artist) -> CardAdapter {
+    let release_group = release_group.clone();
+    CardAdapter {
+        key: release_group.id.clone().unwrap_or_default().into(),
+        image: ImageLinkAdapter {
+            image: Default::default(),
+            name: release_group.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://releasegroup/{}", release_group.id.clone().unwrap_or_default()).into(),
+            ..Default::default()
+        },
+        title: LinkAdapter {
+            name: release_group.title.clone().unwrap_or_default().into(),
+            url: format!("dimple://releasegroup/{}", release_group.id.clone().unwrap_or_default()).into(),
+            ..Default::default()
+        },
+        sub_title: LinkAdapter {
+            name: artist.name.clone().unwrap_or_default().into(),
+            url: format!("dimple://artist/{}", artist.id.clone().unwrap_or_default()).into(),
+        },
+        ..Default::default()
+    }
 }
 
 fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
