@@ -1686,6 +1686,7 @@ dependencies = [
  "env_logger",
  "fakeit",
  "fast_image_resize",
+ "futures",
  "futures-signals",
  "image",
  "itertools 0.14.0",

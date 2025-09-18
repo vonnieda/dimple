@@ -8,6 +8,7 @@ use crate::ui::CardAdapter;
 use crate::ui::ImageLinkAdapter;
 use crate::ui::Page;
 use crate::ui::ReleaseGroupDetailsAdapter;
+use dimple_core::librarian;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
 use dimple_core::model::Genre;
@@ -16,6 +17,8 @@ use dimple_core::model::ModelBasics;
 use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
+use dimple_core::plugins::plugins::Plugins;
+use futures_signals::map_ref;
 use futures_signals::signal::Mutable;
 use futures_signals::signal::SignalExt;
 use slint::ComponentHandle as _;
@@ -25,15 +28,17 @@ use slint::StandardListViewItem;
 use slint::VecModel;
 use slint::Weak;
 use tokio::spawn;
+// use tokio::spawn;
 use url::Url;
 use crate::ui::LinkAdapter;
 use anyhow::Result;
 
-// TODO 
+// TODO
 #[derive(Clone)]
 pub struct ReleaseGroupDetailsController {
     library: Library,
     ui: Weak<AppWindow>,
+    plugins: Plugins,
 
     release_group_id: Mutable<String>,
     release_group: Mutable<Option<ReleaseGroup>>,
@@ -41,7 +46,7 @@ pub struct ReleaseGroupDetailsController {
     artists: Mutable<Vec<Artist>>,
     links: Mutable<Vec<Link>>,
     releases: Mutable<Vec<Release>>,
-    release_id: Mutable<String>,
+    release_id: Mutable<Option<String>>,
     release: Mutable<Option<Release>>,
     tracks: Mutable<Vec<Track>>,
 }
@@ -51,6 +56,7 @@ impl ReleaseGroupDetailsController {
         let controller = ReleaseGroupDetailsController {
             library: app.library.clone(),
             ui: app.ui.clone(),
+            plugins: app.plugins.clone(),
             release_group_id: Default::default(),
             release_group: Default::default(),
             genres: Default::default(),
@@ -65,18 +71,14 @@ impl ReleaseGroupDetailsController {
         Ok(controller)
     }
 
-    /// digraph G {
-    ///   release_group_id;
-    ///   release_group -> release_group_id;
-    ///   genres -> release_group;
-    ///   artists -> release_group;
-    ///   links -> release_group;
-    ///   releases -> release_group;
-    ///   release_id -> releases;
-    ///   release -> {releases release_id};
-    ///   tracks -> release;
-    /// }
-    fn init(&self) -> anyhow::Result<()> {
+    // digraph G {
+    //     release_group_id -> release_group;
+    //     release_group -> {genres artists links releases};
+    //     {releases release_id}-> release;
+    //     release -> tracks;
+    // }
+    fn init(&self) -> anyhow::Result<()> {        
+        // When release_group_id changes look up the release group and set it.
         let library_clone = self.library.clone();
         let release_group_clone = self.release_group.clone();
         spawn(self.release_group_id.signal_cloned().for_each(move |release_group_id| {
@@ -84,12 +86,16 @@ impl ReleaseGroupDetailsController {
             future::ready(())
         }));
 
+        // When release_group changes load the genres, artists, links, and
+        // releases and push them to the UI.
         let library_clone = self.library.clone();
         let genres_clone = self.genres.clone();
         let artists_clone = self.artists.clone();
         let links_clone = self.links.clone();
         let releases_clone = self.releases.clone();
         let ui_clone = self.ui.clone();
+        let plugins_clone = self.plugins.clone();
+        let release_id_clone = self.release_id.clone();
         spawn(self.release_group.signal_cloned().for_each(move |release_group| {
             if let Some(release_group) = release_group {
                 genres_clone.set(release_group.genres(&library_clone));
@@ -97,7 +103,11 @@ impl ReleaseGroupDetailsController {
                 links_clone.set(release_group.links(&library_clone));
                 releases_clone.set(release_group.releases(&library_clone));
 
+                release_id_clone.set(None);
+
+                let release_group_clone = release_group.clone();
                 ui_clone.upgrade_in_event_loop(move |ui| {
+                    let release_group = release_group_clone;
                     let card: CardAdapter = release_group.clone().into();
                     ui.global::<ReleaseGroupDetailsAdapter>().set_card(card);
                     ui.global::<ReleaseGroupDetailsAdapter>().set_key(release_group.id.clone().unwrap_or_default().into());
@@ -106,6 +116,12 @@ impl ReleaseGroupDetailsController {
                     ui.global::<ReleaseGroupDetailsAdapter>().set_disambiguation(release_group.disambiguation.clone().unwrap_or_default().into());
                     ui.global::<ReleaseGroupDetailsAdapter>().set_dump(serde_json::to_string_pretty(&release_group).unwrap().into());
                 }).unwrap();
+
+                let library_clone = library_clone.clone();
+                let plugins_clone = plugins_clone.clone();
+                std::thread::spawn(move || {
+                    librarian::refresh_metadata(&library_clone, &plugins_clone, &release_group.into());
+                });
             }
             future::ready(())
         }));
@@ -137,20 +153,95 @@ impl ReleaseGroupDetailsController {
             future::ready(())
         }));
 
+        // When the list of releases changes, set the current release_id to
+        // a default if it's not set and push the releases to the UI.
+        let ui_clone = self.ui.clone();
+        let release_id_clone = self.release_id.clone();
         spawn(self.releases.signal_cloned().for_each(move |releases| {
+            if release_id_clone.get_cloned().is_none() && !releases.is_empty() {
+                release_id_clone.set(releases.get(0).unwrap().id.clone());
+            }
+
+            ui_clone.upgrade_in_event_loop(move |ui| {
+                let cards = release_version_cards(&releases);
+                ui.global::<ReleaseGroupDetailsAdapter>().set_releases(ModelRc::from(cards.as_slice()));
+            }).unwrap();
             future::ready(())
         }));
+
+        // When either release_id or releases changes, find the release by
+        // id in the releases list and set it on release.
+        let release_id_and_releases = map_ref! {
+            let release_id = self.release_id.signal_cloned(),
+            let releases = self.releases.signal_cloned() =>
+            (release_id.clone(), releases.clone())
+        };
+        let release_clone = self.release.clone();
+        spawn(release_id_and_releases.for_each(move |(release_id, releases)| {
+            let release = releases.iter().find(|r| r.id == release_id);
+            release_clone.set(release.cloned());            
+            future::ready(())
+        }));
+
+        // When release changes, load and set the tracks.
+        let tracks_clone = self.tracks.clone();
+        let library_clone = self.library.clone();
+        let plugins_clone = self.plugins.clone();
+        spawn(self.release.signal_cloned().for_each(move |release| {
+            if let Some(release) = release {
+                tracks_clone.set(release.tracks(&library_clone));
+                let library_clone = library_clone.clone();
+                let plugins_clone = plugins_clone.clone();
+                std::thread::spawn(move || {
+                    librarian::refresh_metadata(&library_clone, &plugins_clone, &release.into());
+                });
+            }
+            else {
+                tracks_clone.set(vec![]);
+            }
+
+            future::ready(())
+        }));
+
+        // When the tracks change push them to the UI. 
+        let ui_clone = self.ui.clone();
+        let library_clone = self.library.clone();
+        spawn(self.tracks.signal_cloned().for_each(move |tracks| {
+            let library_clone = library_clone.clone();
+            ui_clone.upgrade_in_event_loop(move |ui| {
+                ui.global::<ReleaseGroupDetailsAdapter>().set_track_items(track_items(&library_clone, &tracks));
+                ui.global::<ReleaseGroupDetailsAdapter>().set_track_keys(track_keys(&tracks));
+            }).unwrap();
+            future::ready(())
+        }));
+
+        // let library_clone = self.library.clone();
+        // thread::spawn(move || {
+        //     block_on(async {
+
+        //     });
+        //     let db_events = library_clone.db.subscribe();
+        //     for event in db_events.iter() {
+        //         dbg!(&event);
+        //     }
+        // });
 
         Ok(())
     }
 
     pub fn navigate(&self, url: &str) {
         let url = Url::parse(url).unwrap();
-        let release_group_id = url.path_segments().unwrap().next().unwrap().to_string();
-        self.release_group_id.set(release_group_id);
-        self.ui.upgrade_in_event_loop(move |ui| {
-            ui.set_page(Page::ReleaseGroupDetails);
-        }).unwrap();
+        if url.as_str().starts_with("dimple://releasegroup/") {
+            let release_group_id = url.path_segments().unwrap().next().unwrap().to_string();
+            self.release_group_id.set(release_group_id);
+            self.ui.upgrade_in_event_loop(move |ui| {
+                ui.set_page(Page::ReleaseGroupDetails);
+            }).unwrap();
+        }
+        else if url.as_str().starts_with("dimple://release/") {
+            let release_id = url.path_segments().unwrap().next().unwrap().to_string();
+            self.release_id.set(Some(release_id));
+        }
     }
 }
 

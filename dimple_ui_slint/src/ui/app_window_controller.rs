@@ -219,7 +219,7 @@ impl App {
         else if url.starts_with("dimple://releases") {
             self.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::ReleaseList)).unwrap();
         }
-        else if url.starts_with("dimple://releasegroup/") {
+        else if url.starts_with("dimple://releasegroup/") || url.starts_with("dimple://release/") {
             if let Some(ref mut controller) = self.release_group_details_controller.read().unwrap().as_ref() {
                 controller.navigate(&url);
             }
