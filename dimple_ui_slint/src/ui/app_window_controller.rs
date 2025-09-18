@@ -221,7 +221,7 @@ impl App {
         }
         else if url.starts_with("dimple://releasegroup/") {
             if let Some(ref mut controller) = self.release_group_details_controller.read().unwrap().as_ref() {
-                controller.navigate(&url, self);
+                controller.navigate(&url);
             }
         }
         else if url.starts_with("dimple://tracks") {

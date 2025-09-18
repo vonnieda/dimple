@@ -10,6 +10,8 @@ use serde::Serialize;
 use crate::library::Library;
 use crate::model::Artist;
 use crate::model::Dimage;
+use crate::model::Genre;
+use crate::model::Link;
 use crate::model::Release;
 
 // https://musicbrainz.org/doc/ReleaseGroup
@@ -70,12 +72,28 @@ impl ReleaseGroup {
         ", (self.id.clone().unwrap(),))
     }
 
+    pub fn links(&self, library: &Library) -> Vec<Link> {
+        library.query("
+            SELECT l.* FROM LinkRef lr 
+            JOIN Link l ON (l.id = lr.link_id) 
+            WHERE lr.model_id = ?1
+        ", (self.id.clone().unwrap(),))
+    }
+
     pub fn releases(&self, library: &Library) -> Vec<Release> {
         library.query("
             SELECT Release.* 
             FROM Release 
             WHERE Release.release_group_id = ?
             ORDER BY Release.date ASC NULLS LAST, Release.title ASC, Release.id ASC
+        ", (self.id.clone().unwrap(),))
+    }
+
+    pub fn genres(&self, library: &Library) -> Vec<Genre> {
+        library.query("
+            SELECT g.* FROM GenreRef gr 
+            JOIN Genre g ON (g.id = gr.genre_id) 
+            WHERE gr.model_id = ?1
         ", (self.id.clone().unwrap(),))
     }
 }

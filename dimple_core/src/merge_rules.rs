@@ -142,6 +142,10 @@ impl MergeRules<ReleaseGroup> for ReleaseGroup {
 /// data, when there is a conflict, you choose the higher quality. 
 /// I think this really only applies (currently) to merge_field_case_insensitive
 /// since when there is a mix of cases it has to choose one or the other. 
+/// 
+/// After more thought, I think just combine this with CrdtRules, and specify
+/// a MergeType, which will be an enum of like UseMine, UseTheir, LWW, etc.
+/// and those probably go all the way down to each property.
 impl MergeRules<Track> for Track {
     fn try_merge(l: &Track, r: &Track) -> Result<Track, MergeError> {
         Ok(Track {

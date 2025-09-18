@@ -6,7 +6,8 @@ pub mod config;
 
 use ui::app_window_controller::AppWindowController;
 
-fn main() -> Result<(), slint::PlatformError> {
+#[tokio::main(flavor = "multi_thread", worker_threads = 4)]
+async fn main() -> Result<(), slint::PlatformError> {
     let mut builder = env_logger::Builder::new();
     builder.filter_level(log::LevelFilter::Info);
     builder.format_timestamp_millis();
