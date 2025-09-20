@@ -9,7 +9,6 @@ use crate::{model::{DimpleEntity, MediaFile, ModelBasics as _, Track, TrackSourc
 
 #[derive(Clone)]
 pub struct Library {
-    pub notifier: Notifier<LibraryEvent>,
     pub db: Db,
 }
 
@@ -17,11 +16,9 @@ impl Library {
     pub fn open_memory() -> Self {
         let library = Self {
             db: Db::open_memory().unwrap(),
-            notifier: Notifier::new(),
         };
 
         library.initialize_db();
-        library.setup_temporary_notifier();
 
         library
     }
@@ -33,36 +30,11 @@ impl Library {
     pub fn open(database_path: &str) -> Self {
         let library = Self {
             db: Db::open(database_path).unwrap(),
-            notifier: Notifier::new(),
         };
 
         library.initialize_db();
-        library.setup_temporary_notifier();
 
         library
-    }
-
-    // TODO most listeners will switch to query_subscribe, if not all then
-    // those can subscribe to db directly.
-    fn setup_temporary_notifier(&self) {
-        let library_clone = self.clone();
-        std::thread::spawn(move || {
-            let rx = library_clone.db.subscribe();
-            while let Ok(event) = rx.recv() {
-                match event {
-                    dimple_db::db::DbEvent::Insert(type_name, id) => library_clone.notifier.notify(LibraryEvent { 
-                        library: library_clone.clone(), 
-                        type_name, 
-                        key: id, 
-                    }),
-                    dimple_db::db::DbEvent::Update(type_name, id) => library_clone.notifier.notify(LibraryEvent { 
-                        library: library_clone.clone(), 
-                        type_name, 
-                        key: id, 
-                    }),
-                }
-            }
-        });
     }
 
     fn initialize_db(&self) {

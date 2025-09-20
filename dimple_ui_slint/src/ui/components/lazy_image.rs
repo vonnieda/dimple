@@ -18,14 +18,14 @@ pub fn init_lazy_image_loader(ui: &AppWindow, library: &Library, plugins: &Plugi
     let rx = library.db.subscribe();
     std::thread::spawn(move || {
         for event in rx.iter() {
-            match event {
-                DbEvent::Insert(type_name, id) => {
-                    // TODO I think I'll need to know what keys are in the UI.
-                },
-                DbEvent::Update(type_name, id) => {
+            // match event {
+            //     DbEvent::Insert(type_name, id) => {
+            //         // TODO I think I'll need to know what keys are in the UI.
+            //     },
+            //     DbEvent::Update(type_name, id) => {
 
-                },
-            }
+            //     },
+            // }
         }
     });
     ui.global::<LazyImageLoader>().on_load(move |images, key, width, height| {
