@@ -1,9 +1,9 @@
 use anyhow::Result;
+use dimple_core::model::Release;
 use crate::ui::app_window_controller::App;
 use crate::ui::CardAdapter;
 use dimple_core::library::Library;
 use dimple_core::model::Artist;
-use dimple_core::model::ReleaseGroup;
 use dimple_db::db::query::QuerySubscription;
 use slint::ComponentHandle;
 use slint::ModelRc;
@@ -20,13 +20,13 @@ impl ReleaseListController {
         let ui = app.ui.clone();
         let library = app.library.clone();
         let sql = "
-            SELECT ReleaseGroup.* 
-            FROM ReleaseGroup 
+            SELECT Release.* 
+            FROM Release
             WHERE save = TRUE
-            ORDER BY ReleaseGroup.title ASC
+            ORDER BY Release.title ASC
         ";
         let releases_subscription = app.library.db.query_subscribe(sql, (),
-            move |releases: Vec<ReleaseGroup>| {
+            move |releases: Vec<Release>| {
                 let library = library.clone();
                 ui.upgrade_in_event_loop(move |ui| {
                     let cards = release_cards(&releases, &library);
@@ -42,25 +42,25 @@ impl ReleaseListController {
     }
 }
 
-fn release_cards(releases: &[ReleaseGroup], library: &Library) -> Vec<CardAdapter> {
+fn release_cards(releases: &[Release], library: &Library) -> Vec<CardAdapter> {
     releases.iter().cloned()
         .map(|release| release_card(&release, &release.artist(library).unwrap_or_default()))
         .collect()
 }
 
-fn release_card(release: &ReleaseGroup, artist: &Artist) -> CardAdapter {
+fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
     let release = release.clone();
     CardAdapter {
         key: release.id.clone().unwrap_or_default().into(),        
         image: ImageLinkAdapter {
             image: Default::default(),
             name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://releasegroup/{}", release.id.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         title: LinkAdapter {
             name: release.title.clone().unwrap_or_default().into(),
-            url: format!("dimple://releasegroup/{}", release.id.clone().unwrap_or_default()).into(),
+            url: format!("dimple://release/{}", release.id.clone().unwrap_or_default()).into(),
             ..Default::default()
         },
         sub_title: LinkAdapter {

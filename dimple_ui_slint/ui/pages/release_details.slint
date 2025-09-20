@@ -14,7 +14,7 @@ import { BasicTableView } from "../components/basic_table_view.slint";
 import { SettingsAdapter } from "settings.slint";
 import { CardGrid } from "../components/card_grid.slint";
 
-export global ReleaseGroupDetailsAdapter {
+export global ReleaseDetailsAdapter {
     in property <string> key;
     in property <string> primary-type: "Album";
     in property <[string]> secondary-types: ["Live"];
@@ -39,7 +39,7 @@ export global ReleaseGroupDetailsAdapter {
     ];
     in property <[string]> track_keys;
 
-    in property <[CardAdapter]> releases: [
+    in property <[CardAdapter]> other-versions: [
         {
             image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
             title: {name: "A Reign of Fish"},
@@ -94,7 +94,7 @@ component RowMenu inherits PopupMenu {
     }
 }    
 
-export component ReleaseGroupDetails inherits ScrollView {
+export component ReleaseDetails inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
 
     in-out property <length> row-menu-x: 0;
@@ -113,7 +113,7 @@ export component ReleaseGroupDetails inherits ScrollView {
                 BorderImage {
                     width: Styles.thumbnail-width-extra-large;
                     height: Styles.thumbnail-width-extra-large;
-                    key: ReleaseGroupDetailsAdapter.key;
+                    key: ReleaseDetailsAdapter.key;
                     placeholder: @image-url("../../icons/phosphor/SVGs/regular/vinyl-record.svg");
                 }
                 HorizontalBox {
@@ -123,7 +123,7 @@ export component ReleaseGroupDetails inherits ScrollView {
                     Button {
                         icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
                         colorize-icon: true;
-                        clicked => { AppState.play_now(ReleaseGroupDetailsAdapter.key); }
+                        clicked => { AppState.play_now(ReleaseDetailsAdapter.key); }
                     }
                     menu-area := ContextMenuArea {
                         Button {
@@ -134,23 +134,23 @@ export component ReleaseGroupDetails inherits ScrollView {
                         Menu {
                             MenuItem {
                                 title: "Play Later";
-                                activated => { AppState.play_later(ReleaseGroupDetailsAdapter.key); }
+                                activated => { AppState.play_later(ReleaseDetailsAdapter.key); }
                             }
                             MenuItem {
                                 title: "Play Next";
-                                activated => { AppState.play_next(ReleaseGroupDetailsAdapter.key); }
+                                activated => { AppState.play_next(ReleaseDetailsAdapter.key); }
                             }
                             MenuItem {
                                 title: "Play Now";
-                                activated => { AppState.play_now(ReleaseGroupDetailsAdapter.key); }
+                                activated => { AppState.play_now(ReleaseDetailsAdapter.key); }
                             }
                         }
                     }
                     Button {
-                        icon: ReleaseGroupDetailsAdapter.save ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg")
+                        icon: ReleaseDetailsAdapter.save ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg")
                             : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
                         colorize-icon: true;                
-                        clicked => { ReleaseGroupDetailsAdapter.toggle_heart(); }
+                        clicked => { ReleaseDetailsAdapter.toggle_heart(); }
                     }
                 }
             }
@@ -161,10 +161,10 @@ export component ReleaseGroupDetails inherits ScrollView {
 
                 VerticalLayout {
                     PageTitle {
-                        text: ReleaseGroupDetailsAdapter.card.title.name;
+                        text: ReleaseDetailsAdapter.card.title.name;
                     }
-                    if ReleaseGroupDetailsAdapter.disambiguation != "": PageSubtitle {
-                        text: ReleaseGroupDetailsAdapter.disambiguation;
+                    if ReleaseDetailsAdapter.disambiguation != "": PageSubtitle {
+                        text: ReleaseDetailsAdapter.disambiguation;
                     }
                 }
 
@@ -174,18 +174,18 @@ export component ReleaseGroupDetails inherits ScrollView {
                         font-size: Styles.default-font-size * 1.1;
                     }
                     Links {
-                        links: ReleaseGroupDetailsAdapter.artists;
+                        links: ReleaseDetailsAdapter.artists;
                         height: self.preferred-height;
                         font-size: Styles.default-font-size * 1.1;
                     }
                 }
 
                 TagList {
-                    tags: ReleaseGroupDetailsAdapter.genres;
+                    tags: ReleaseDetailsAdapter.genres;
                     height: self.preferred-height;
                 }
-                if ReleaseGroupDetailsAdapter.summary != "": Label {
-                    text: ReleaseGroupDetailsAdapter.summary;
+                if ReleaseDetailsAdapter.summary != "": Label {
+                    text: ReleaseDetailsAdapter.summary;
                     wrap: word-wrap;
                     font-family: Styles.text-block-font-family;
                 }
@@ -213,44 +213,44 @@ export component ReleaseGroupDetails inherits ScrollView {
                     { title: "Artist", horizontal_stretch: 0.30 },
                     { title: "Length", horizontal_stretch: 0.10 },
                     ];
-                rows: ReleaseGroupDetailsAdapter.track_items;
-                sort-ascending(index) => { ReleaseGroupDetailsAdapter.sort_table(index, true); }
-                sort-descending(index) => { ReleaseGroupDetailsAdapter.sort_table(index, false); }
+                rows: ReleaseDetailsAdapter.track_items;
+                sort-ascending(index) => { ReleaseDetailsAdapter.sort_table(index, true); }
+                sort-descending(index) => { ReleaseDetailsAdapter.sort_table(index, false); }
                 row-pointer-event(row, event, point) => {
                     if event.button == PointerEventButton.right 
                             && event.kind == PointerEventKind.down {
                         row-menu-x = point.x;
                         row-menu-y = point.y;
-                        row-menu-key = ReleaseGroupDetailsAdapter.track_keys[row];
+                        row-menu-key = ReleaseDetailsAdapter.track_keys[row];
                         row-menu.show();
                     }
                     else if event.button == PointerEventButton.left 
                             && row == table.current-row
                             && event.kind == PointerEventKind.down {
-                        Navigator.navigate("dimple://track/" + ReleaseGroupDetailsAdapter.track_keys[row]);
+                        Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.track_keys[row]);
                     }
                 }
             }
         }
 
-        if ReleaseGroupDetailsAdapter.releases.length > 0: VerticalBox {
+        if ReleaseDetailsAdapter.other-versions.length > 0: VerticalBox {
             alignment: start;
             padding: 0;
             SectionTitle {
                 text: "Other Versions";
             }
             CardGrid {
-                cards: ReleaseGroupDetailsAdapter.releases;
+                cards: ReleaseDetailsAdapter.other-versions;
             }
         }     
         
-        if ReleaseGroupDetailsAdapter.links.length > 0: VerticalBox {
+        if ReleaseDetailsAdapter.links.length > 0: VerticalBox {
             alignment: start;
             padding: 0;
             SectionTitle {
                 text: "Links";
             }
-            for link in ReleaseGroupDetailsAdapter.links: Link {
+            for link in ReleaseDetailsAdapter.links: Link {
                 url: link.url;
                 name: link.name;
             }
@@ -263,7 +263,7 @@ export component ReleaseGroupDetails inherits ScrollView {
                 text: "Debug";
             }
             Text {
-                text: ReleaseGroupDetailsAdapter.dump;
+                text: ReleaseDetailsAdapter.dump;
                 wrap: word-wrap;
             }
         }        

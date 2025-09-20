@@ -25,7 +25,7 @@ fn update_model(app: &App) {
     let app = app.clone();
     std::thread::spawn(move || { 
         let newest_releases = app.library.query("
-            SELECT * FROM ReleaseGroup ORDER BY first_release_date DESC LIMIT 10 
+            SELECT * FROM Release ORDER BY date DESC LIMIT 10 
         ", ());
 
         let favorite_releases = app.library.query("
@@ -62,7 +62,7 @@ fn update_model(app: &App) {
                 title: "Newest Releases ⟩".into(),
                 sub_title: Default::default(),
                 url: "dimple://home/newest-releases".to_string().into(),
-                cards: release_group_cards(&newest_releases, &app.library).as_slice().into(),
+                cards: release_cards(&newest_releases, &app.library).as_slice().into(),
                 max_rows: 1,
                 ..Default::default()
             });
