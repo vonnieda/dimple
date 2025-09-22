@@ -143,6 +143,31 @@ CREATE TABLE PlaylistItem (
 CREATE INDEX PlaylistItem_playlist_id_ordinal ON PlaylistItem (playlist_id, ordinal);
 CREATE INDEX PlaylistItem_deleted ON PlaylistItem (deleted);
 
+CREATE TABLE Dimage (
+    id TEXT PRIMARY KEY,
+    kind TEXT,
+    width INT NOT NULL,
+    height INT NOT NULL,
+    png_thumbnail BLOB NOT NULL,
+    png_data BLOB NOT NULL,
+    sha256 NOT NULL
+);
+
+CREATE TABLE Scrobble (
+    id TEXT PRIMARY KEY,
+    timestamp TEXT NOT NULL,
+    scrobble_type TEXT NOT NULL,
+    artist TEXT,
+    album TEXT,
+    title TEXT,
+    source_type TEXT NOT NULL,
+    source TEXT NOT NULL
+);
+CREATE INDEX Scrobble_idx_1 ON Scrobble (timestamp, scrobble_type);
+CREATE INDEX Scrobble_idx_2 ON Scrobble (timestamp);
+CREATE INDEX Scrobble_idx_3 ON Scrobble (scrobble_type);
+CREATE INDEX Scrobble_idx_4 ON Scrobble (source_type, source);
+
 CREATE TABLE MediaFile (
     id TEXT PRIMARY KEY,
     file_path TEXT NOT NULL,
@@ -157,32 +182,6 @@ CREATE TABLE TrackSource (
     media_file_id TEXT
 );
 CREATE INDEX TrackSource_idx_media_file_id ON TrackSource (media_file_id);
-
-CREATE TABLE Dimage (
-    id TEXT PRIMARY KEY,
-    kind TEXT,
-    width INT NOT NULL,
-    height INT NOT NULL,
-    png_thumbnail BLOB NOT NULL,
-    png_data BLOB NOT NULL,
-    sha256 NOT NULL
-);
-
--- TODO Rename to Scrobble, I think.
-CREATE TABLE Event (
-    id TEXT PRIMARY KEY,
-    timestamp TEXT NOT NULL,
-    event_type TEXT NOT NULL,
-    artist TEXT,
-    album TEXT,
-    title TEXT,
-    source_type TEXT NOT NULL,
-    source TEXT NOT NULL
-);
-CREATE INDEX Event_idx_1 ON Event (timestamp, event_type);
-CREATE INDEX Event_idx_2 ON Event (timestamp);
-CREATE INDEX Event_idx_3 ON Event (event_type);
-CREATE INDEX Event_idx_4 ON Event (source_type, source);
 
 CREATE TABLE DimageRef (
     id TEXT PRIMARY KEY,

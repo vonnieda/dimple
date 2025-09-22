@@ -67,6 +67,16 @@ impl Plugins {
         results
     }
 
+    pub fn artist_releases(&self, library: &Library, artist: &Artist) -> Vec<ReleaseMetadata> {
+        let mut results = vec![];
+        for plugin in self.plugins.read().unwrap().iter() {
+            if let Ok(sr) = plugin.artist_releases(self, library, artist) {
+                results.extend_from_slice(&sr);
+            }
+        }
+        results
+    }
+
     pub fn release_metadata(&self, library: &Library, release: &Release) -> Vec<ReleaseMetadata> {
         let mut results = vec![];
         for plugin in self.plugins.read().unwrap().iter() {

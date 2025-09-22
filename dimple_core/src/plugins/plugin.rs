@@ -37,6 +37,15 @@ pub trait Plugin: Send + Sync {
         Ok(vec![])
     }
 
+    fn artist_releases(&self, 
+        _plugins: &Plugins, 
+        _library: &Library, 
+        _artist: &Artist) 
+        -> Result<Vec<ReleaseMetadata>> {
+        
+        Ok(vec![])
+    }
+
     fn track_metadata(&self, 
         _plugins: &Plugins, 
         _library: &Library, 

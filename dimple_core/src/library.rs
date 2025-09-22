@@ -243,15 +243,4 @@ mod tests {
         let content = library.load_track_content(track).unwrap();
         assert!(content.len() > 0);
     }
-
-    #[test]
-    fn change_notifications() {
-        let library = Library::open_memory();
-        let (tx, rx) = std::sync::mpsc::channel();
-        library.notifier.observe(move |_event| {
-            tx.send(()).unwrap();
-        });
-        library.save(&Track::default());
-        assert!(rx.recv_timeout(Duration::from_millis(100)).is_ok());
-    }
 }

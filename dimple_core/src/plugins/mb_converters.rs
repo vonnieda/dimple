@@ -119,6 +119,7 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                 .map(|track| TrackMetadata::from(TrackConverter::from(track.to_owned())))
                 .collect(),
             images: vec![],
+            release_group: value.0.release_group.map(|f| ReleaseGroupMetadata::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap()
         }
     }
 }

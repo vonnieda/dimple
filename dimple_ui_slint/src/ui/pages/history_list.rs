@@ -5,7 +5,7 @@ use dimple_db::db::query::QuerySubscription;
 use crate::ui::app_window_controller::App;
 use crate::ui::HistoryListAdapter;
 use crate::ui::Page;
-use dimple_core::model::Event;
+use dimple_core::model::Scrobble;
 use slint::Model as _;
 use slint::ModelRc;
 use slint::StandardListViewItem;
@@ -22,9 +22,9 @@ impl HistoryListController {
         // Subscribe to Event table changes
         let ui = app.ui.clone();
         let events_subscription = app.library.db.query_subscribe(
-        "SELECT * FROM Event ORDER BY timestamp DESC",
+        "SELECT * FROM Scrobble ORDER BY timestamp DESC",
         (),
-        move |events: Vec<Event>| {
+        move |events: Vec<Scrobble>| {
             ui.upgrade_in_event_loop(move |ui| {
                 ui.global::<HistoryListAdapter>().set_row_data(row_data(&events));
             }).unwrap();
@@ -54,13 +54,13 @@ pub fn history_list(app: &App) {
     app.ui.upgrade_in_event_loop(|ui| ui.set_page(Page::HistoryList)).unwrap();
 }
 
-fn row_data(events: &[Event]) -> ModelRc<ModelRc<StandardListViewItem>> {
+fn row_data(events: &[Scrobble]) -> ModelRc<ModelRc<StandardListViewItem>> {
     let row_data: Rc<VecModel<ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
     for event in events {
         let event = event.clone();
         let row = Rc::new(VecModel::default());
         row.push(StandardListViewItem::from(event.timestamp.to_string().as_str())); // Date
-        row.push(StandardListViewItem::from(event.event_type.as_str())); // Type
+        row.push(StandardListViewItem::from(event.scrobble_type.as_str())); // Type
         row.push(StandardListViewItem::from(event.artist.unwrap_or_default().as_str())); // Artist
         row.push(StandardListViewItem::from(event.album.unwrap_or_default().as_str())); // Album
         row.push(StandardListViewItem::from(event.title.unwrap_or_default().as_str())); // Title

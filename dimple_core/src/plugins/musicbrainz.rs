@@ -9,76 +9,6 @@ use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, S
 use super::{mb_converters::ArtistConverter, plugin::Plugin, plugins::Plugins};
 
 // https://musicbrainz.org/doc/MusicBrainz_API
-// Subqueries
-// The inc= parameter allows you to request more information to be included about the entity. Any of the entities directly linked to the entity can be included.
-//  /ws/2/area
-//  /ws/2/artist            recordings, releases, release-groups, works
-//  /ws/2/collection        user-collections (includes private collections, requires authentication)
-//  /ws/2/event
-//  /ws/2/genre
-//  /ws/2/instrument
-//  /ws/2/label             releases
-//  /ws/2/place
-//  /ws/2/recording         artists, releases, release-groups, isrcs, url-rels
-//  /ws/2/release           artists, collections, labels, recordings, release-groups
-//  /ws/2/release-group     artists, releases
-//  /ws/2/series
-//  /ws/2/work
-//  /ws/2/url
-
-// Some additional inc= parameters are supported to specify how much of the data about the linked entities should be included:
-//  - discids           include discids for all media in the releases
-//  - media             include media for all releases, this includes the # of tracks on each medium and its format.
-//  - isrcs             include isrcs for all recordings
-//  - artist-credits    include artists credits for all releases and recordings
-//  - various-artists   include only those releases where the artist appears on one of the tracks, 
-//                      but not in the artist credit for the release itself (this is only valid on a
-//                      /ws/2/artist?inc=releases request).
-
-// Misc inc= arguments
-// - aliases                   include artist, label, area or work aliases; treat these as a set, as they are not deliberately ordered
-// - annotation                include annotation
-// - tags, ratings             include tags and/or ratings for the entity
-// - user-tags, user-ratings   same as above, but only return the tags and/or ratings submitted by the specified user
-// - genres, user-genres       include genres (tags in the genres list): either all or the ones submitted by the user, respectively
-// 
-
-// The following list shows which linked entities you can use in a browse request:
-//  /ws/2/area              collection
-//  /ws/2/artist            area, collection, recording, release, release-group, work
-//  /ws/2/collection        area, artist, editor, event, label, place, recording, release, release-group, work
-//  /ws/2/event             area, artist, collection, place
-//  /ws/2/genre             collection
-//  /ws/2/instrument        collection
-//  /ws/2/label             area, collection, release
-//  /ws/2/place             area, collection
-//  /ws/2/recording         artist, collection, release, work
-//  /ws/2/release           area, artist, collection, label, track, track_artist, recording, release-group
-//  /ws/2/release-group     artist, collection, release
-//  /ws/2/series            collection
-//  /ws/2/work              artist, collection
-
-// Just like with normal lookup requests, the server can be instructed to include more data about the entity using an 'inc=' argument. Supported values for inc= are:
-//  /ws/2/area              aliases
-//  /ws/2/artist            aliases
-//  /ws/2/event             aliases
-//  /ws/2/instrument        aliases
-//  /ws/2/label             aliases
-//  /ws/2/place             aliases
-//  /ws/2/recording         artist-credits, isrcs
-//  /ws/2/release           artist-credits, labels, recordings, release-groups, media, discids, isrcs (with recordings)
-//  /ws/2/release-group     artist-credits
-//  /ws/2/series            aliases
-//  /ws/2/work              aliases
-//  /ws/2/area              aliases
-//  /ws/2/url               (only relationship includes)
-
-// In addition to the inc= values listed above, all entities support:
-//  annotation, tags, user-tags, genres, user-genres
-
-// All entities except area, place, release, and series support:
-//  ratings, user-ratings
-
 pub struct MusicBrainzPlugin {
     config: MusicBrainzPluginConfig,
     rate_limit_lock: Arc<Mutex<Instant>>,
@@ -147,7 +77,7 @@ impl Plugin for MusicBrainzPlugin {
         if let Some(mbid) = artist.musicbrainz_id.clone() {
             let url = format!("https://musicbrainz.org/ws/2/artist/{mbid}?fmt=json&inc=genres+url-rels");
             let mb_artist: musicbrainz_rs::entity::artist::Artist = self.get(plugins, &url)?;
-            let mut artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
+            let artist_metadata: ArtistMetadata = ArtistConverter::from(mb_artist).into();
             return Ok(Some(artist_metadata))
         }
         Ok(None)
@@ -177,6 +107,37 @@ impl Plugin for MusicBrainzPlugin {
                 }
                 response.release_groups.into_iter()
                     .map(|src| ReleaseGroupMetadata::from(ReleaseGroupConverter::from(src.clone())))
+                    .for_each(|r| results.push(r));
+            }
+            return Ok(results)
+        }
+        Ok(vec![])
+    }
+
+    fn artist_releases(&self, plugins: &Plugins, library: &Library, artist: &Artist) 
+        -> Result<Vec<ReleaseMetadata>> {
+        
+        if let Some(mbid) = artist.musicbrainz_id.clone() {
+            let limit: usize = 100;
+            let mut offset: usize = 0;
+            let mut results: Vec<ReleaseMetadata> = vec![];
+            loop {
+                let url = format!(concat!(
+                    "https://musicbrainz.org/ws/2/release",
+                    "?fmt=json",
+                    "&artist={}",
+                    "&inc=artist-credits+labels+recordings+release-groups+media+discids+isrcs+genres+url-rels+ratings",
+                    "&offset={}",
+                    "&limit={}"), mbid, offset, limit);
+                let response: ReleasesResponse = self.get(plugins, &url)?;
+                if response.releases.is_empty() {
+                    break
+                }
+                else {
+                    offset += response.releases.len();
+                }
+                response.releases.into_iter()
+                    .map(|src| ReleaseMetadata::from(ReleaseConverter::from(src.clone())))
                     .for_each(|r| results.push(r));
             }
             return Ok(results)
@@ -348,6 +309,21 @@ mod tests {
         let release_groups = plugin.artist_release_groups(&plugins, &library, &artist).unwrap();
         assert!(release_groups.len() >= 3);
         assert_eq!(release_groups[0].release_group.title, Some("Lightness".to_string()));
+    }
+
+    #[test]
+    fn test_artist_releases() {
+        let _ = env_logger::try_init();
+        let library = Library::open_memory();
+        let plugins = Plugins::default();
+        let plugin = MusicBrainzPlugin::default();
+        let artist = Artist {
+            musicbrainz_id: Some("73084492-3e59-4b7f-aa65-572a9d7691d5".to_string()),
+            ..Default::default()
+        };
+        let releases = plugin.artist_releases(&plugins, &library, &artist).unwrap();
+        assert!(releases.len() >= 3);
+        assert_eq!(releases[0].release.title, Some("three".to_string()));
     }
 
     #[test]

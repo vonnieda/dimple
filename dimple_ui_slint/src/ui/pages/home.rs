@@ -35,8 +35,8 @@ fn update_model(app: &App) {
             JOIN Artist ON (Artist.id = ArtistRef.artist_id)
             JOIN 
                 (SELECT artist,album,count(title) AS cnt 
-                    FROM Event 
-                    WHERE (event_type = 'track_played' OR event_type = 'track_restarted') 
+                    FROM Scrobble 
+                    WHERE (scrobble_type = 'track_played' OR scrobble_type = 'track_restarted') 
                     GROUP BY artist,album) AS Ranks 
                 ON (Release.title = Ranks.album AND Artist.name = Ranks.artist)
             ORDER BY Ranks.cnt DESC LIMIT 10;
@@ -47,8 +47,8 @@ fn update_model(app: &App) {
             FROM Artist 
             JOIN 
                 (SELECT artist,count(title) AS cnt 
-                    FROM Event 
-                    WHERE (event_type = 'track_played' OR event_type = 'track_restarted') 
+                    FROM Scrobble 
+                    WHERE (scrobble_type = 'track_played' OR scrobble_type = 'track_restarted') 
                     GROUP BY artist) AS Ranks 
                 ON (Artist.name = Ranks.artist)
             ORDER BY Ranks.cnt DESC LIMIT 10;

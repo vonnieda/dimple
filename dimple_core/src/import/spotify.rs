@@ -1,6 +1,6 @@
 use std::fs::{self};
 
-use crate::{library::Library, model::Event};
+use crate::{library::Library, model::Scrobble};
 
 use chrono::DateTime;
 use walkdir::{DirEntry, WalkDir};
@@ -37,9 +37,9 @@ fn import_streaming_history_audio(library: &Library, json_file: &DirEntry) {
         // There is a unique index on (source_type, source) so if we're
         // re-importing the same data we'll just update the existing row.
         // TODO no longer true since removing upsert, will blow up
-        library.save(&Event {
+        library.save(&Scrobble {
             timestamp: DateTime::parse_from_rfc3339(&entry.ts.clone().unwrap()).unwrap().into(),
-            event_type: match entry.skipped {
+            scrobble_type: match entry.skipped {
                 Some(true) => "track_skipped",
                 _ => "track_played",
             }.to_string(),
@@ -92,15 +92,15 @@ struct StreamingHistoryAudioEntry {
 
 #[cfg(test)]
 mod tests {
-    use crate::{import, library::Library, model::Event};
+    use crate::{import, library::Library, model::Scrobble};
 
     #[test]
     fn it_works() {
         let _ = env_logger::try_init();
         let library = Library::open_memory();
-        assert!(library.list::<Event>().len() == 0);
+        assert!(library.list::<Scrobble>().len() == 0);
         import::spotify::import(&library, "tests/data/spotify_history");
-        assert!(library.list::<Event>().len() > 0);
+        assert!(library.list::<Scrobble>().len() > 0);
     }
 }
 

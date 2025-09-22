@@ -37,6 +37,14 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
                     merge_release_group_metadata(t, &release_group, &metadata)
                 }).unwrap();
             }
+            for metadata in plugins.artist_releases(library, artist) {
+                library.db.transaction(|txn| {
+                    let release_group = merge_artist_release_group(txn, artist, &metadata.release_group.release_group)?;
+                    merge_release_group_metadata(txn, &release_group, &metadata.release_group)?;
+                    let release = merge_release_group_release(txn, &release_group, &metadata.release)?;
+                    merge_release_metadata(txn, &release, &metadata)
+                }).unwrap();
+            }
         },
         DimpleEntity::ReleaseGroup(release_group) => {
             for metadata in plugins.release_group_metadata(library, release_group) {
@@ -159,6 +167,44 @@ pub fn merge_artist_release_group(txn: &DbTransaction, artist: &Artist,
         }
     }
     let merged = txn.save(release_group)?;
+    ArtistRef::attach(txn, artist, &merged.id)?;
+    return Ok(merged)
+}
+
+pub fn merge_artist_release(txn: &DbTransaction, artist: &Artist, 
+    release: &Release) 
+    -> Result<Release, anyhow::Error> {
+    
+    let sql = format!("
+        SELECT Release.* 
+        FROM Release
+        JOIN ArtistRef ON (Release.id = ArtistRef.model_id)
+        WHERE ArtistRef.artist_id = ?1
+        AND (
+            (Release.title IS NOT NULL AND Release.title COLLATE NOCASE = ?2 AND ((Release.disambiguation IS NULL AND ?3 IS NULL) OR (Release.disambiguation COLLATE NOCASE = ?3)))
+            OR (Release.discogs_id IS NOT NULL AND Release.discogs_id = ?4)
+            OR (Release.lastfm_id IS NOT NULL AND Release.lastfm_id = ?5)
+            OR (Release.musicbrainz_id IS NOT NULL AND Release.musicbrainz_id = ?6)
+            OR (Release.spotify_id IS NOT NULL AND Release.spotify_id = ?7)
+        )
+    ");
+
+    let candidates: Vec<Release> = txn.query(&sql, (&artist.id, 
+        &release.title, 
+        &release.disambiguation, 
+        &release.discogs_id, 
+        &release.lastfm_id, 
+        &release.musicbrainz_id,
+        &release.spotify_id,)
+    )?;
+    for candidate in candidates.iter() {
+        if let Ok(merged) = Release::try_merge(candidate, release) {
+            if merged != *release {
+                return txn.save(&merged)
+            }
+        }
+    }
+    let merged = txn.save(release)?;
     ArtistRef::attach(txn, artist, &merged.id)?;
     return Ok(merged)
 }
@@ -430,6 +476,7 @@ pub struct ReleaseMetadata {
     pub links: Vec<Link>,
     pub tracks: Vec<TrackMetadata>,
     pub images: Vec<Dimage>,
+    pub release_group: ReleaseGroupMetadata,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]

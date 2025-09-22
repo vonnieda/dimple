@@ -23,8 +23,8 @@ pub use genre::Genre;
 mod release;
 pub use release::Release;
 
-mod event;
-pub use event::Event;
+mod scrobble;
+pub use scrobble::Scrobble;
 
 mod artist_ref;
 pub use artist_ref::ArtistRef;

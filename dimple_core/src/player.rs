@@ -4,7 +4,7 @@ use std::{sync::{mpsc::{Receiver, Sender}, Arc, RwLock}, time::Duration};
 
 use track_downloader::{TrackDownloadStatus, TrackDownloader};
 
-use crate::{library::Library, model::{Artist, DimpleEntity, Event, ModelBasics as _, Playlist, Release, Track}, notifier::Notifier};
+use crate::{library::Library, model::{Artist, DimpleEntity, Scrobble, ModelBasics as _, Playlist, Release, Track}, notifier::Notifier};
 
 pub use playback_rs::Song;
 
@@ -259,22 +259,22 @@ impl Player {
     // I'm storing in case I kill my database.
     // TODO figure out how to detect a rewind / replay of a section and scrobble
     // them shits.
-    fn scrobble(&self, event_type: &str) {
+    fn scrobble(&self, scrobble_type: &str) {
         if let Some(current_track) = self.current_queue_track() {
             // TODO quick hack, getting a feel for this, but also want to be
             // storing the history I'm listening to.
             let timestamp = chrono::Utc::now();
-            self.library.save(&Event {
+            self.library.save(&Scrobble {
                 id: None,
                 timestamp,
-                event_type: event_type.to_string(),
+                scrobble_type: scrobble_type.to_string(),
                 artist: current_track.artist_name(&self.library).clone(),
                 album: current_track.album_name(&self.library).clone(),
                 title: current_track.title.clone(),
                 source_type: "dimple_testing".to_string(),
                 source: format!("{}:{}:{:?}:{:?}:{:?}",
                     &timestamp,
-                    event_type,
+                    scrobble_type,
                     &current_track.artist_name(&self.library),
                     &current_track.album_name(&self.library),
                     &current_track.title),
