@@ -193,7 +193,6 @@ fn release_group_sections(groups: &[ReleaseGroup]) -> Vec<CardSectionAdapter> {
             title: "Singles & EPs ⟩".into(),
             sub_title: Default::default(),
             cards: release_group_cards(groups.as_slice()).as_slice().into(),
-            max_rows: 3,
             ..Default::default()
         });
     }
@@ -203,7 +202,6 @@ fn release_group_sections(groups: &[ReleaseGroup]) -> Vec<CardSectionAdapter> {
             title: "Other Releases ⟩".into(),
             sub_title: Default::default(),
             cards: release_group_cards(groups.as_slice()).as_slice().into(),
-            max_rows: 3,
             ..Default::default()
         });
     }

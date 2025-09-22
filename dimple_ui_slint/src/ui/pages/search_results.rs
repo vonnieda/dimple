@@ -221,7 +221,10 @@ fn update_results(app: &App, results: HashMap<String, Vec<SearchResult>>) {
 }
 
 fn search_result_cards(results: &Vec<SearchResult>) -> Vec<CardAdapter> {
-    results.iter().map(search_result_card).collect()
+    results.iter()
+        .sorted_by(|a, b| a.rank.partial_cmp(&b.rank).unwrap())
+        .map(search_result_card)
+        .collect()
 }
 
 fn search_result_card(result: &SearchResult) -> CardAdapter {

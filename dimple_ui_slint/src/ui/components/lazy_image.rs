@@ -1,8 +1,9 @@
 use dimple_core::{library::Library, model::{Artist, DimageRef, DimpleEntity, Genre, Playlist, Release, ReleaseGroup, Track}, plugins::plugins::Plugins};
 use dimple_db::db::DbEvent;
+use image::DynamicImage;
 use slint::{ComponentHandle as _, Model as _, ModelRc, VecModel, Weak};
 
-use crate::ui::{images::{dynamic_to_buffer, dynamic_to_slint, resize}, AppWindow, LazyImageLoader, LazyImageModel};
+use crate::ui::{images::{self, dynamic_to_buffer, dynamic_to_slint, resize}, AppWindow, LazyImageLoader, LazyImageModel};
 
 pub fn init_lazy_image_loader(ui: &AppWindow, library: &Library, plugins: &Plugins) {
     // TODO replace with (and create) HashMapModel or something so we can use
@@ -100,8 +101,14 @@ pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, plugins: &Plugin
             log::warn!("no image found for entity {} '{}'", entity.type_name(), key);
             return
         }
-        // TODO this goes away when above is done
+        // TODO temporary? hack to improve memory usage. 
         let image = image.unwrap();
+        let width = image.width() as f32;
+        let height = image.height() as f32;
+        let ratio = width / height;
+        let new_width = 275 as f32;
+        let new_height = new_width / ratio;
+        let image = images::resize(image, new_width as u32, new_height as u32);
         let buffer = dynamic_to_buffer(&image);
         app_weak.upgrade_in_event_loop(move |ui| {
             let image = slint::Image::from_rgba8(buffer);
@@ -113,3 +120,4 @@ pub fn async_load(app_weak: Weak<AppWindow>, library: &Library, plugins: &Plugin
         }).unwrap();
     });
 }
+
