@@ -55,6 +55,7 @@ impl TrackDetailsController {
                     let lyrics = track.lyrics.clone()
                         .map(|s| s.trim().replace("\r", ""))
                         .filter(|s| !s.is_empty())
+                        // TODO better if this is in the UI I think
                         .unwrap_or("(No lyrics, click title to edit.)".to_string());
                     ui.global::<TrackDetailsAdapter>().set_lyrics(lyrics.into());
                     ui.global::<TrackDetailsAdapter>().set_dump(serde_json::to_string_pretty(&track).unwrap().into());

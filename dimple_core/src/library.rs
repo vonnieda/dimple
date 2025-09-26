@@ -132,10 +132,24 @@ impl Library {
                 }
             },
             DimpleEntity::Release(release) => {
-                return release.images(self).first().map(|i| i.get_image())
+                if let Some(image) = release.images(self).first() {
+                    return Some(image.get_image())
+                }
+                if let Some(release_group) = release.release_group(self) {
+                    if let Some(image) = release_group.images(self).first() {
+                        return Some(image.get_image())
+                    }
+                }
             },
             DimpleEntity::ReleaseGroup(release_group) => {
-                return release_group.images(self).first().map(|i| i.get_image())
+                if let Some(image) = release_group.images(self).first() {
+                    return Some(image.get_image())
+                }
+                for release in release_group.releases(self).iter() {
+                    if let Some(image) = release.images(self).first() {
+                        return Some(image.get_image())
+                    }
+                }
             },
             DimpleEntity::Genre(genre) => {
                 if let Some(image) = genre.images(self).first() {

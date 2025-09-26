@@ -37,14 +37,6 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
                     merge_release_group_metadata(t, &release_group, &metadata)
                 }).unwrap();
             }
-            for metadata in plugins.artist_releases(library, artist) {
-                library.db.transaction(|txn| {
-                    let release_group = merge_artist_release_group(txn, artist, &metadata.release_group.release_group)?;
-                    merge_release_group_metadata(txn, &release_group, &metadata.release_group)?;
-                    let release = merge_release_group_release(txn, &release_group, &metadata.release)?;
-                    merge_release_metadata(txn, &release, &metadata)
-                }).unwrap();
-            }
         },
         DimpleEntity::ReleaseGroup(release_group) => {
             for metadata in plugins.release_group_metadata(library, release_group) {
@@ -261,7 +253,9 @@ pub fn merge_release_group_release(txn: &DbTransaction, release_group: &ReleaseG
         FROM Release
         WHERE Release.release_group_id = ?1
         AND (
-            (Release.title IS NOT NULL AND Release.title COLLATE NOCASE = ?2 AND ((Release.disambiguation IS NULL AND ?3 IS NULL) OR (Release.disambiguation COLLATE NOCASE = ?3)))
+            (Release.title IS NOT NULL AND Release.title COLLATE NOCASE = ?2 
+                AND ((Release.disambiguation IS NULL AND ?3 IS NULL) 
+                OR (Release.disambiguation COLLATE NOCASE = ?3)))
             OR (Release.discogs_id IS NOT NULL AND Release.discogs_id = ?4)
             OR (Release.lastfm_id IS NOT NULL AND Release.lastfm_id = ?5)
             OR (Release.musicbrainz_id IS NOT NULL AND Release.musicbrainz_id = ?6)
@@ -311,7 +305,9 @@ pub fn merge_release_track(txn: &DbTransaction, release: &Release, track: &Track
         FROM Track
         WHERE Track.release_id = ?1
         AND (
-            (Track.title IS NOT NULL AND Track.title COLLATE NOCASE = ?2 AND ((Track.disambiguation IS NULL AND ?3 IS NULL) OR (Track.disambiguation COLLATE NOCASE = ?3)))
+            (Track.title IS NOT NULL AND Track.title COLLATE NOCASE = ?2 
+                AND ((Track.disambiguation IS NULL AND ?3 IS NULL) 
+                OR (Track.disambiguation COLLATE NOCASE = ?3)))
             OR (Track.discogs_id IS NOT NULL AND Track.discogs_id = ?4)
             OR (Track.lastfm_id IS NOT NULL AND Track.lastfm_id = ?5)
             OR (Track.musicbrainz_id IS NOT NULL AND Track.musicbrainz_id = ?6)
@@ -326,7 +322,7 @@ pub fn merge_release_track(txn: &DbTransaction, release: &Release, track: &Track
         &track.lastfm_id, 
         &track.musicbrainz_id,
         &track.spotify_id,)
-    )?;
+    )?; 
     for candidate in candidates.iter() {
         if let Ok(merged) = Track::try_merge(candidate, track) {
             if merged != *track {
@@ -334,6 +330,8 @@ pub fn merge_release_track(txn: &DbTransaction, release: &Release, track: &Track
             }
         }
     }
+    // TODO STOPSHIP this is potentially violating a constraint that we cannot
+    // have two tracks with the same unique identifiers in the release.
     let mut track = track.clone();
     track.release_id = release.id.clone();
     txn.save(&track)
@@ -476,7 +474,7 @@ pub struct ReleaseMetadata {
     pub links: Vec<Link>,
     pub tracks: Vec<TrackMetadata>,
     pub images: Vec<Dimage>,
-    pub release_group: ReleaseGroupMetadata,
+    // pub release_group: ReleaseGroupMetadata,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
@@ -498,7 +496,7 @@ pub struct SearchResults {
 }
 
 mod tests {
-    use crate::{librarian::{self, ArtistMetadata, ReleaseMetadata}, library::Library, model::{Artist, ModelBasics, Release, ReleaseGroup, Track}, plugins::plugins::Plugins};
+    use crate::{librarian::{self, ArtistMetadata, ReleaseMetadata, TrackMetadata}, library::Library, model::{Artist, ModelBasics, Release, ReleaseGroup, Track}, plugins::plugins::Plugins};
 
     #[test]
     fn smoke_test() -> anyhow::Result<()>{
@@ -629,6 +627,50 @@ mod tests {
             Ok(())
         })?;
         assert_eq!(Release::list(&library).len(), 2);
+        Ok(())
+    }
+
+    /// Test for a bug where merging extraneous metadata from a lyrics request
+    /// changes the length of a track, causing a metadata refresh to duplicate
+    /// the track.
+    #[test]
+    fn test_bug_track_merge_metadata_duplication() -> anyhow::Result<()> {
+        let library = Library::open_memory();
+
+        library.db.transaction(|t| {
+            let artist = librarian::merge_artist(t, &Artist {
+                name: Some("Test Artist".to_string()),
+                ..Default::default()
+            })?;
+            let release = librarian::merge_artist_release(t, &artist, &Release {
+                title: Some("Test Release".to_string()),
+                ..Default::default()
+            })?;
+            let track1 = librarian::merge_release_track(t, &release, &Track {
+                title: Some("Test Track".to_string()),
+                position: Some(1),
+                length_ms: Some(30000),
+                ..Default::default()
+            })?;
+            let track2 = librarian::merge_track_metadata(t, &track1, &TrackMetadata {
+                track: Track {
+                    length_ms: Some(35000),
+                    lyrics: Some("Test lyrics.".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            })?;
+            let track3 = librarian::merge_release_track(t, &release, &Track {
+                title: Some("Test Track".to_string()),
+                position: Some(1),
+                length_ms: Some(30000),
+                ..Default::default()
+            })?;
+            assert_eq!(track1.id, track2.id);
+            assert_eq!(track2.id, track3.id);
+            assert_eq!(track3.id, track1.id);
+            Ok(())
+        })?;
         Ok(())
     }
 

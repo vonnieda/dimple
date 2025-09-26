@@ -64,7 +64,7 @@ impl LoftyTaggedMediaFile {
             artists: self.track_artists(),
             genres: self.track_genres(),
             links: self.track_links(),
-            release: Some(self.release_metadata()),            
+            // release: Some(self.release_metadata()),            
             images: self.images(),
         }   
     }
@@ -90,6 +90,7 @@ impl LoftyTaggedMediaFile {
             genres: self.release_genres(),            
             images: self.images(),
             tracks: vec![],
+            ..Default::default()
         }
     }    
 

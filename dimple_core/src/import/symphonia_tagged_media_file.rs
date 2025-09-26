@@ -118,7 +118,7 @@ impl SymphoniaTaggedMediaFile {
             artists: self.track_artists().into_iter().map(|artist| ArtistMetadata { artist, ..Default::default() }).collect(),
             genres: self.track_genres(),
             links: self.track_links(),
-            release: Some(self.release_metadata()),
+            // release: Some(self.release_metadata()),
             ..Default::default()
         }   
     }

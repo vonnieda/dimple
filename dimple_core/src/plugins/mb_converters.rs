@@ -113,13 +113,15 @@ impl From<ReleaseConverter> for ReleaseMetadata {
                     url: s,
                 })
                 .collect(),
+            // TODO need to pull in the media data here, for the track fields
+            // that denormalize it.
             tracks: value.0.media.iter().flatten()
                 .flat_map(|media| media.tracks.iter())
                 .flat_map(|tracks| tracks.iter())
                 .map(|track| TrackMetadata::from(TrackConverter::from(track.to_owned())))
                 .collect(),
             images: vec![],
-            release_group: value.0.release_group.map(|f| ReleaseGroupMetadata::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap()
+            // release_group: value.0.release_group.map(|f| ReleaseGroupMetadata::from(ReleaseGroupConverter::from(f.to_owned()))).unwrap()
         }
     }
 }

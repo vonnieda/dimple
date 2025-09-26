@@ -13,4 +13,5 @@ pub mod search_results;
 pub mod track_list;
 pub mod track_details;
 pub mod release_details;
+pub mod release_group_details;
 pub mod now_playing;

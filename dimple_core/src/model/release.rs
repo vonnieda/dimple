@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::library::Library;
+use crate::{library::Library, model::{ModelBasics, ReleaseGroup}};
 
 use super::{Artist, Dimage, Genre, Link, Track};
 
@@ -59,6 +59,10 @@ impl Release {
 
     pub fn artist_name(&self, library: &Library) -> Option<String> {
         self.artist(library).and_then(|a| a.name)
+    }
+
+    pub fn release_group(&self, library: &Library) -> Option<ReleaseGroup> {
+        self.release_group_id.as_ref().and_then(|id| ReleaseGroup::get(library, id))
     }
 
     /// TODO this should return the artists in order, with the primary being
