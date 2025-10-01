@@ -5,5 +5,4 @@ pub mod import;
 pub mod player;
 pub mod notifier;
 pub mod plugins;
-pub mod crdt_rules;
 pub mod merge_rules;

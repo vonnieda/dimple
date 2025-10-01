@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use anyhow::Result;
 
 use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, ReleaseGroup, Track, TrackSource}};
@@ -108,5 +110,16 @@ pub trait Plugin: Send + Sync {
         -> Result<Vec<TrackSource>> {
         
         Ok(vec![])
+    }
+
+    // TODO I think things have settled enough now that we can move the importers
+    // into plugins. They should return an entity if possible, or none if returning
+    // an entity doesn't make sense, and only error to indicate a true failure.
+    fn import(&self, 
+        _plugins: &Plugins, 
+        _library: &Library, 
+        _path: &Path) 
+        -> Result<Option<DimpleEntity>> {
+        Ok(None)
     }
 }
