@@ -1,6 +1,5 @@
-use anyhow::anyhow;
-use dimple_db::db::{transaction::DbTransaction, Entity};
-use crate::{librarian, library::Library, merge_rules::{MergeExtend}, model::{Artist, ArtistRef, Dimage, DimageRef, DimpleEntity, Genre, GenreRef, Link, LinkRef, Release, ReleaseGroup, ReleaseGroupSecondaryType, ReleaseGroupSecondaryTypeRef, Track}, plugins::plugins::Plugins};
+use dimple_db::db::transaction::DbTransaction;
+use crate::{library::Library, merge_rules::{MergeExtend}, model::{Artist, ArtistRef, Dimage, DimageRef, DimpleEntity, Genre, GenreRef, Link, LinkRef, Release, ReleaseGroup, ReleaseGroupSecondaryType, ReleaseGroupSecondaryTypeRef, Track}, plugins::plugins::Plugins};
 
 #[derive(Clone)]
 pub struct Librarian {
@@ -28,7 +27,7 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
             }
             for metadata in plugins.artist_release_groups(library, artist) {
                 library.db.transaction(|t| {
-                    let release_group = resolve_artist_release_group(t, &artist, &metadata.release_group)?;       
+                    let release_group = merge_artist_release_group(t, &artist, &metadata.release_group)?;       
                     merge_release_group_metadata(t, &release_group, &metadata)
                 }).unwrap();
             }
@@ -41,8 +40,15 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
             }
             for metadata in plugins.release_group_releases(library, release_group) {
                 library.db.transaction(|t| {
-                    let release = resolve_release_group_release(t, &release_group, &metadata.release)?;
+                    let release = merge_release_group_release(t, &release_group, &metadata.release)?;
                     merge_release_metadata(t, &release, &metadata)
+                }).unwrap();
+            }
+        },
+        DimpleEntity::Release(release) => {
+            for metadata in plugins.release_metadata(library, release) {
+                library.db.transaction(|t| {
+                    merge_release_metadata(t, release, &metadata)
                 }).unwrap();
             }
         },
@@ -53,25 +59,13 @@ pub fn refresh_metadata(library: &Library, plugins: &Plugins, model: &DimpleEnti
                 }).unwrap();
             }
         },
-        // DimpleEntity::Genre(genre) => {
-        //     if let Some(metadata) = plugins.metadata(library, &genre.clone()) {
-        //         library.save(&CrdtRules::merge(genre, metadata));
-        //     }
-        // },
-        DimpleEntity::Release(release) => {
-            for metadata in plugins.release_metadata(library, release) {
-                library.db.transaction(|t| {
-                    merge_release_metadata(t, release, &metadata)
-                }).unwrap();
-            }
-        },
         _ => todo!()
     }
 }
 
 /// Find or create an Artist that matches all of the identifying fields of
-/// the given Artist. 
-pub fn resolve_artist(txn: &DbTransaction, artist: &Artist) -> Result<Artist, anyhow::Error> {
+/// the given Artist
+pub fn merge_artist(txn: &DbTransaction, artist: &Artist) -> Result<Artist, anyhow::Error> {
     let sql = "
         SELECT Artist.*
         FROM Artist
@@ -107,7 +101,7 @@ pub fn merge_artist_metadata(txn: &DbTransaction, artist: &Artist, metadata: &Ar
 
 /// Find or create a ReleaseGroup that matches all of the identifying fields of
 /// the given ReleaseGroup, scoped to a specific Artist.
-pub fn resolve_artist_release_group(txn: &DbTransaction, artist: &Artist,
+pub fn merge_artist_release_group(txn: &DbTransaction, artist: &Artist,
     release_group: &ReleaseGroup)
     -> Result<ReleaseGroup, anyhow::Error> {
 
@@ -139,7 +133,7 @@ pub fn resolve_artist_release_group(txn: &DbTransaction, artist: &Artist,
 
 /// Find or create a Release that matches all of the identifying fields of
 /// the given Release, scoped to a specific Artist.
-pub fn resolve_artist_release(txn: &DbTransaction, artist: &Artist,
+pub fn merge_artist_release(txn: &DbTransaction, artist: &Artist,
     release: &Release)
     -> Result<Release, anyhow::Error> {
 
@@ -175,7 +169,8 @@ pub fn resolve_artist_release(txn: &DbTransaction, artist: &Artist,
 /// TODO This is sus, cause we should at least be trying for an artist.
 /// This is used by search to merge ReleaseGroupMetadata, and I think we
 /// probably want to change that to use artist. Or something. I dunno.
-pub fn resolve_release_group(txn: &DbTransaction, release_group: &ReleaseGroup) -> anyhow::Result<ReleaseGroup> {
+/// Could just use first artist credit, and abort if none
+pub fn merge_release_group(txn: &DbTransaction, release_group: &ReleaseGroup) -> anyhow::Result<ReleaseGroup> {
     let sql = "
         SELECT ReleaseGroup.*
         FROM ReleaseGroup
@@ -213,10 +208,9 @@ pub fn merge_release_group_metadata(txn: &DbTransaction, release_group: &Release
     Ok(merged)
 }
 
-
 /// Find or create a Release that matches all of the identifying fields of
 /// the given Release, scoped to a specific ReleaseGroup.
-pub fn resolve_release_group_release(txn: &DbTransaction, release_group: &ReleaseGroup, release: &Release) -> Result<Release, anyhow::Error> {
+pub fn merge_release_group_release(txn: &DbTransaction, release_group: &ReleaseGroup, release: &Release) -> Result<Release, anyhow::Error> {
     let sql = "
         SELECT Release.*
         FROM Release
@@ -251,7 +245,7 @@ pub fn merge_release_metadata(txn: &DbTransaction, release: &Release, metadata: 
     merge_entity_links(txn, &merged.id, &metadata.links)?;
     merge_entity_images(txn, &merged.id, &metadata.images)?;
     for track_metadata in metadata.tracks.iter() {
-        let track = resolve_release_track(txn, release, &track_metadata.track)?;
+        let track = merge_release_track(txn, release, &track_metadata.track)?;
         let _ = merge_track_metadata(txn, &track, &track_metadata)?;
     }
     Ok(merged)
@@ -259,7 +253,7 @@ pub fn merge_release_metadata(txn: &DbTransaction, release: &Release, metadata: 
 
 /// Find or create a Track that matches all of the identifying fields of
 /// the given Track, scoped to a specific Release.
-pub fn resolve_release_track(txn: &DbTransaction, release: &Release, track: &Track) -> Result<Track, anyhow::Error> {
+pub fn merge_release_track(txn: &DbTransaction, release: &Release, track: &Track) -> Result<Track, anyhow::Error> {
     let sql = "
         SELECT Track.*
         FROM Track
@@ -299,7 +293,7 @@ pub fn merge_track_metadata(txn: &DbTransaction, track: &Track, metadata: &Track
 
 fn merge_entity_artists(txn: &DbTransaction, entity_id: &Option<String>, artists: &[ArtistMetadata]) -> Result<(), anyhow::Error> {
     for metadata in artists {
-        let artist = resolve_artist(txn, &metadata.artist)?;
+        let artist = merge_artist(txn, &metadata.artist)?;
         let artist = merge_artist_metadata(txn, &artist, &metadata)?;
         ArtistRef::attach(txn, &artist, entity_id)?;
     }
@@ -308,7 +302,7 @@ fn merge_entity_artists(txn: &DbTransaction, entity_id: &Option<String>, artists
 
 fn merge_entity_images(txn: &DbTransaction, entity_id: &Option<String>, images: &[Dimage]) -> Result<(), anyhow::Error> {
     for dimage in images {
-        let dimage = merge_image(txn, dimage)?;
+        let dimage = merge_dimage(txn, dimage)?;
         DimageRef::attach(txn, &dimage, entity_id)?;
     }
     Ok(())
@@ -331,34 +325,29 @@ fn merge_entity_genres(txn: &DbTransaction, entity_id: &Option<String>, genres: 
 }
 
 fn merge_link(txn: &DbTransaction, link: &Link) -> Result<Link, anyhow::Error> {
-    let matched = match_link(txn, link)?.unwrap_or_default();
-    let merged = matched.merge_extend(&link);
-    if matched == merged {
-        return Ok(matched)
-    }
+    let sql = "
+        SELECT Link.* 
+        FROM Link 
+        WHERE (Link.url = ?1)
+    ";
+    let matched = txn.find::<Link, _>(&sql, (&link.url,))?.unwrap_or_default();
+    let merged = matched.merge_extend(link);
     txn.save(&merged)
 }
 
-fn merge_image(txn: &DbTransaction, dimage: &Dimage) -> Result<Dimage, anyhow::Error> {
-    let matched = match_dimage(txn, dimage)?.unwrap_or_default();
-    let merged = matched.merge_extend(&dimage);
-    if matched == merged {
-        return Ok(matched)
-    }
+fn merge_dimage(txn: &DbTransaction, dimage: &Dimage) -> Result<Dimage, anyhow::Error> {
+    let sql = "
+        SELECT Dimage.* 
+        FROM Dimage 
+        WHERE (Dimage.sha256 = ?1)
+    ";
+    let matched = txn.find::<Dimage, _>(&sql, (&dimage.sha256,))?.unwrap_or_default();
+    let merged = matched.merge_extend(dimage);
     txn.save(&merged)
 }
 
 pub fn merge_genre(txn: &DbTransaction, genre: &Genre) -> Result<Genre, anyhow::Error> {
-    let matched = match_genre(txn, genre)?.unwrap_or_default();
-    let merged = matched.merge_extend(&genre);
-    if matched == merged {
-        return Ok(matched)
-    }
-    txn.save(&merged)
-}
-
-fn match_genre(txn: &DbTransaction, genre: &Genre) -> Result<Option<Genre>, anyhow::Error> {
-    let results = txn.query("
+    let sql = "
         SELECT Genre.* 
         FROM Genre 
         WHERE (Genre.name IS NOT NULL AND Genre.name COLLATE NOCASE = ?1 AND ((Genre.disambiguation IS NULL AND ?2 IS NULL) OR (Genre.disambiguation COLLATE NOCASE = ?2)))
@@ -366,33 +355,15 @@ fn match_genre(txn: &DbTransaction, genre: &Genre) -> Result<Option<Genre>, anyh
         OR (Genre.lastfm_id IS NOT NULL AND Genre.lastfm_id = ?4)
         OR (Genre.musicbrainz_id IS NOT NULL AND Genre.musicbrainz_id = ?5)
         OR (Genre.spotify_id IS NOT NULL AND Genre.spotify_id = ?6)
-        ", (&genre.name, &genre.disambiguation, 
-            &genre.discogs_id, &genre.lastfm_id, &genre.musicbrainz_id, 
-            &genre.spotify_id,)
-    )?;
-    Ok(results.into_iter().next())
-}
-
-fn match_link(txn: &DbTransaction, link: &Link) -> Result<Option<Link>, anyhow::Error> {
-    let results = txn.query("
-        SELECT Link.* 
-        FROM Link 
-        WHERE (Link.url = ?1)
-        ", (&link.url,))?;
-    Ok(results.into_iter().next())
-}
-
-fn match_dimage(txn: &DbTransaction, dimage: &Dimage) -> Result<Option<Dimage>, anyhow::Error> {
-    let results = txn.query("
-        SELECT Dimage.* 
-        FROM Dimage 
-        WHERE (Dimage.sha256 = ?1)
-        ", (&dimage.sha256,))?;
-    Ok(results.into_iter().next())
-}
-
-fn quote_fts5(s: &String) -> String {
-    format!("\"{}\"", s.replace("\"", "\"\""))
+    ";
+    let matched = txn.find::<Genre, _>(&sql, (&genre.name,
+        &genre.disambiguation,
+        &genre.discogs_id,
+        &genre.lastfm_id,
+        &genre.musicbrainz_id,
+        &genre.spotify_id))?.unwrap_or_default();
+    let merged = matched.merge_extend(genre);
+    txn.save(&merged)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
@@ -419,9 +390,10 @@ pub struct ReleaseMetadata {
     pub artists: Vec<ArtistMetadata>,
     pub genres: Vec<Genre>,
     pub links: Vec<Link>,
-    pub tracks: Vec<TrackMetadata>,
     pub images: Vec<Dimage>,
-    // pub release_group: ReleaseGroupMetadata,
+    // TODO still struggling with whether this belongs here. If it does, why not
+    // releases on release_group?
+    pub tracks: Vec<TrackMetadata>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
@@ -443,42 +415,42 @@ pub struct SearchResults {
 }
 
 mod tests {
-    use crate::{librarian::{self, ArtistMetadata, ReleaseMetadata, TrackMetadata}, library::Library, model::{Artist, ModelBasics, Release, ReleaseGroup, Track}, plugins::plugins::Plugins};
+    use crate::{librarian::{self, TrackMetadata}, library::Library, model::{Artist, Genre, ModelBasics, Release, ReleaseGroup, Track}};
 
     #[test]
     fn smoke_test() -> anyhow::Result<()>{
         let library = Library::open_memory();
         let artist = library.db.transaction(|txn| {
-            librarian::resolve_artist(txn, &Artist {
+            librarian::merge_artist(txn, &Artist {
                 name: Some("Wyld Stallions".to_string()),
                 ..Default::default()
             })
         })?;
         let release_group = library.db.transaction(|txn| {
-            librarian::resolve_artist_release_group(txn, &artist, &ReleaseGroup {
+            librarian::merge_artist_release_group(txn, &artist, &ReleaseGroup {
                 title: Some("Epic Anthems".to_string()),
                 ..Default::default()
             })
         })?;
         let release = library.db.transaction(|txn| {
-            librarian::resolve_release_group_release(txn, &release_group, &Release {
+            librarian::merge_release_group_release(txn, &release_group, &Release {
                 title: Some("Epic Anthems".to_string()),
                 country: Some("us".to_string()),
                 ..Default::default()
             })
         })?;
         let (track1, track2, track3) = library.db.transaction(|txn| {
-            let track1 = librarian::resolve_release_track(txn, &release, &Track {
+            let track1 = librarian::merge_release_track(txn, &release, &Track {
                 title: Some("Station".to_string()),
                 position: Some(1),
                 ..Default::default()
             })?;
-            let track2 = librarian::resolve_release_track(txn, &release, &Track {
+            let track2 = librarian::merge_release_track(txn, &release, &Track {
                 title: Some("Straight to Heck".to_string()),
                 position: Some(2),
                 ..Default::default()
             })?;
-            let track3 = librarian::resolve_release_track(txn, &release, &Track {
+            let track3 = librarian::merge_release_track(txn, &release, &Track {
                 title: Some("Don't Fear Mr. Grim Reaper Man".to_string()),
                 position: Some(3),
                 ..Default::default()
@@ -498,16 +470,16 @@ mod tests {
     fn test_merge_artist() -> anyhow::Result<()> {
         let library = Library::open_memory();
         library.db.transaction(|txn| {
-            librarian::resolve_artist(txn, &Artist {
+            librarian::merge_artist(txn, &Artist {
                 name: Some("Wyld Stallions".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_artist(txn, &Artist {
+            librarian::merge_artist(txn, &Artist {
                 name: Some("Wyld Stallions".to_string()),
                 musicbrainz_id: Some("123-123-123-123".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_artist(txn, &Artist {
+            librarian::merge_artist(txn, &Artist {
                 name: Some("Wyld Stallions".to_string()),
                 musicbrainz_id: Some("456-456-456-456".to_string()),
                 ..Default::default()
@@ -523,20 +495,20 @@ mod tests {
     fn test_merge_artist_release_group() -> anyhow::Result<()> {
         let library = Library::open_memory();
         library.db.transaction(|txn| {
-            let artist = librarian::resolve_artist(txn, &Artist {
+            let artist = librarian::merge_artist(txn, &Artist {
                 name: Some("Wyld Stallions".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_artist_release_group(txn, &artist, &&ReleaseGroup {
+            librarian::merge_artist_release_group(txn, &artist, &&ReleaseGroup {
                 title: Some("Awesome Rock Songs".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_artist_release_group(txn, &artist, &ReleaseGroup {
+            librarian::merge_artist_release_group(txn, &artist, &ReleaseGroup {
                 title: Some("Awesome Rock Songs".to_string()),
                 musicbrainz_id: Some("456-456-456-456".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_artist_release_group(txn, &artist, &ReleaseGroup {
+            librarian::merge_artist_release_group(txn, &artist, &ReleaseGroup {
                 title: Some("Badass Metal Songs".to_string()),
                 ..Default::default()
             })?;
@@ -550,30 +522,30 @@ mod tests {
     fn test_merge_release_group_release() -> anyhow::Result<()> {
         let library = Library::open_memory();
         library.db.transaction(|txn| {
-            let artist = librarian::resolve_artist(txn, &Artist {
+            let artist = librarian::merge_artist(txn, &Artist {
                 name: Some("Wyld Stallions".to_string()),
                 ..Default::default()
             })?;
-            let release_group = librarian::resolve_artist_release_group(txn, &artist, &ReleaseGroup {
+            let release_group = librarian::merge_artist_release_group(txn, &artist, &ReleaseGroup {
                 title: Some("Awesome Rock Songs".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_release_group_release(txn, &release_group, &Release {
+            librarian::merge_release_group_release(txn, &release_group, &Release {
                 title: Some("Awesome Rock Songs".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_release_group_release(txn, &release_group, &Release {
+            librarian::merge_release_group_release(txn, &release_group, &Release {
                 title: Some("Awesome Rock Songs".to_string()),
                 musicbrainz_id: Some("888-888-888-888".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_release_group_release(txn, &release_group, &Release {
+            librarian::merge_release_group_release(txn, &release_group, &Release {
                 title: Some("Awesome Rock Songs".to_string()),
                 musicbrainz_id: Some("888-888-888-888".to_string()),
                 country: Some("us".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_release_group_release(txn, &release_group, &Release {
+            librarian::merge_release_group_release(txn, &release_group, &Release {
                 title: Some("Awesome Rock Songs".to_string()),
                 country: Some("it".to_string()),
                 ..Default::default()
@@ -588,20 +560,20 @@ mod tests {
     fn test_resolve_artist_release() -> anyhow::Result<()> {
         let library = Library::open_memory();
         library.db.transaction(|txn| {
-            let artist = librarian::resolve_artist(txn, &Artist {
+            let artist = librarian::merge_artist(txn, &Artist {
                 name: Some("Test Artist".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_artist_release(txn, &artist, &Release {
+            librarian::merge_artist_release(txn, &artist, &Release {
                 title: Some("Test Album".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_artist_release(txn, &artist, &Release {
+            librarian::merge_artist_release(txn, &artist, &Release {
                 title: Some("Test Album".to_string()),
                 country: Some("us".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_artist_release(txn, &artist, &Release {
+            librarian::merge_artist_release(txn, &artist, &Release {
                 title: Some("Another Album".to_string()),
                 ..Default::default()
             })?;
@@ -615,26 +587,26 @@ mod tests {
     fn test_resolve_release_track() -> anyhow::Result<()> {
         let library = Library::open_memory();
         library.db.transaction(|txn| {
-            let artist = librarian::resolve_artist(txn, &Artist {
+            let artist = librarian::merge_artist(txn, &Artist {
                 name: Some("Test Artist".to_string()),
                 ..Default::default()
             })?;
-            let release = librarian::resolve_artist_release(txn, &artist, &Release {
+            let release = librarian::merge_artist_release(txn, &artist, &Release {
                 title: Some("Test Album".to_string()),
                 ..Default::default()
             })?;
-            librarian::resolve_release_track(txn, &release, &Track {
+            librarian::merge_release_track(txn, &release, &Track {
                 title: Some("Song One".to_string()),
                 position: Some(1),
                 ..Default::default()
             })?;
-            librarian::resolve_release_track(txn, &release, &Track {
+            librarian::merge_release_track(txn, &release, &Track {
                 title: Some("Song One".to_string()),
                 position: Some(1),
                 length_ms: Some(30000),
                 ..Default::default()
             })?;
-            librarian::resolve_release_track(txn, &release, &Track {
+            librarian::merge_release_track(txn, &release, &Track {
                 title: Some("Song Two".to_string()),
                 position: Some(2),
                 ..Default::default()
@@ -649,11 +621,11 @@ mod tests {
     fn test_artist_extend_only() -> anyhow::Result<()> {
         let library = Library::open_memory();
         let (artist1, artist2) = library.db.transaction(|txn| {
-            let artist1 = librarian::resolve_artist(txn, &Artist {
+            let artist1 = librarian::merge_artist(txn, &Artist {
                 name: Some("Metallica".to_string()),
                 ..Default::default()
             })?;
-            let artist2 = librarian::resolve_artist(txn, &Artist {
+            let artist2 = librarian::merge_artist(txn, &Artist {
                 name: Some("Metallica".to_string()),
                 country: Some("US".to_string()),
                 ..Default::default()
@@ -671,34 +643,22 @@ mod tests {
     /// the song length. Since we generically merge metadata, we end up changing
     /// the length of the track. Then, eventually, we refresh the metadata for
     /// the release and end up creating a new track for the release.
-    ///
-    /// The root cause is that in CrdtRules, when merging two Some(u64) we
-    /// take the max of the two to avoid conflicts. This ensures that all
-    /// replicas eventually arrive at the same value, but it's obviously
-    /// wrong.
-    ///
-    /// My instinct is to drop CrdtRules entirely, and change the match/merge
-    /// functions to be something more like resolve/extend, where resolve
-    /// only looks up or creates an object, and does not merge anything,
-    /// and extend fills in empty values, but we never overwrite an existing
-    /// value.
-    ///
-    /// And I think tracks need to be considered metadata of the release,
-    /// rather than creatable objects on their own.
+    /// This was fixed by replacing CrdtRules with MergeExtend - we no longer
+    /// change existing fields, only fill them when empty.
     #[test]
     fn test_bug_track_merge_metadata_duplication() -> anyhow::Result<()> {
         let library = Library::open_memory();
 
         library.db.transaction(|t| {
-            let artist = librarian::resolve_artist(t, &Artist {
+            let artist = librarian::merge_artist(t, &Artist {
                 name: Some("Test Artist".to_string()),
                 ..Default::default()
             })?;
-            let release = librarian::resolve_artist_release(t, &artist, &Release {
+            let release = librarian::merge_artist_release(t, &artist, &Release {
                 title: Some("Test Release".to_string()),
                 ..Default::default()
             })?;
-            let track1 = librarian::resolve_release_track(t, &release, &Track {
+            let track1 = librarian::merge_release_track(t, &release, &Track {
                 title: Some("Test Track".to_string()),
                 position: Some(1),
                 length_ms: Some(30000),
@@ -712,7 +672,7 @@ mod tests {
                 },
                 ..Default::default()
             })?;
-            let track3 = librarian::resolve_release_track(t, &release, &Track {
+            let track3 = librarian::merge_release_track(t, &release, &Track {
                 title: Some("Test Track".to_string()),
                 position: Some(1),
                 length_ms: Some(30000),
@@ -725,4 +685,32 @@ mod tests {
         })?;
         Ok(())
     }
+
+    #[test]
+    fn test_resolve_genre() -> anyhow::Result<()> {
+        let library = Library::open_memory();
+        library.db.transaction(|txn| {
+            librarian::merge_genre(txn, &Genre {
+                name: Some("metal".to_string()),
+                ..Default::default()
+            })?;
+            librarian::merge_genre(txn, &Genre {
+                name: Some("Metal".to_string()),
+                ..Default::default()
+            })?;
+            librarian::merge_genre(txn, &Genre {
+                name: Some("METAL".to_string()),
+                disambiguation: Some("metal! yea!".to_string()),
+                musicbrainz_id: Some("123-123-123-123".to_string()),
+                ..Default::default()
+            })?;
+            librarian::merge_genre(txn, &Genre {
+                name: Some("metal".to_string()),
+                ..Default::default()
+            })?;
+            Ok(())
+        })?;
+        assert_eq!(Genre::list(&library).len(), 2);
+        Ok(())
+    }    
 }

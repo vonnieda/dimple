@@ -4,7 +4,7 @@ pub mod symphonia_tagged_media_file;
 
 use std::path::Path;
 
-use crate::{import::symphonia_tagged_media_file::SymphoniaTaggedMediaFile, librarian, library::Library, model::{MediaFile, ModelBasics as _, Track, TrackSource}};
+use crate::{import::symphonia_tagged_media_file::SymphoniaTaggedMediaFile, librarian::{self, ReleaseGroupMetadata, ReleaseMetadata, TrackMetadata}, library::Library, model::{MediaFile, ModelBasics as _, Track, TrackSource}};
 
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
@@ -30,6 +30,9 @@ pub fn import(library: &Library, path: &str) {
 }
 
 fn scan(path: &str) -> Vec<ScannedFile> {
+    // TODO was trying to defer to Symphonia, but I think it's reasonable to
+    // know which files are supported based on the playback library. So, change
+    // to INCLUDE_EXTENSIONS, basically. 
     const IGNORE_EXTENSIONS: [&str;5] = ["jpg", "png", "pdf", "m4p", "DS_Store"];
     const IGNORE_FILENAMES: [&str;1] = [".DS_Store"];
 
@@ -53,71 +56,80 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     }
     log::debug!("Importing {path:?}.");
 
-    todo!();
-    // // Read the tags from the file.
-    // let tags = LoftyTaggedMediaFile::new(path)?;
-    // let mut track_metadata = tags.track_metadata();
-    // if track_metadata.track.title.is_none() {
-    //     log::warn!("  No track title {}", path.to_string_lossy());
-    // }
-    // if track_metadata.release.is_none() {
-    //     log::warn!("  No release info {}", path.to_string_lossy());
-    // }
-    // if track_metadata.release.clone().unwrap().release.title.is_none() {
-    //     log::warn!("  No release title {}", path.to_string_lossy());
-    // }
-    // if track_metadata.artists.is_empty() {
-    //     log::warn!("  No artists {}", path.to_string_lossy());
-    // }
-    // if track_metadata.track.length_ms.is_none() {
-    //     log::debug!("  No track length found {}, attempting to calculate", path.to_string_lossy());
-    //     let symph = SymphoniaTaggedMediaFile::new(path)?;
-    //     if let Some(length) = symph.track_metadata().track.length_ms {
-    //         track_metadata.track.length_ms = Some(length);
-    //     }
-    //     else {
-    //        return Err(anyhow!("Unable to find or calculate track length {}", path.to_string_lossy()))
-    //     }
-    // }
+    // Read the tags from the file.
+    let tags = LoftyTaggedMediaFile::new(path)?;
+    let metadata = tags.metadata();
+    dbg!(&metadata);
+    let mut track_metadata = metadata.track;
+    if track_metadata.track.length_ms.is_none() {
+        log::warn!("  No track length found {}, attempting to calculate", path.to_string_lossy());
+        let symph = SymphoniaTaggedMediaFile::new(path)?;
+        if let Some(length) = symph.track_metadata().track.length_ms {
+            track_metadata.track.length_ms = Some(length);
+        }
+        else {
+           return Err(anyhow!("Unable to find or calculate track length {}", path.to_string_lossy()))
+        }
+    }
 
-    // let file_path = path.to_str().unwrap();
-    // let file_content = Some(std::fs::read(path)?);
-    // let track_source = library.db.transaction(|txn| {
-    //     // Create or update a MediaFile by the file path.
-    //     let mut media_file: MediaFile = txn
-    //         .find("SELECT * FROM MediaFile WHERE file_path = ?", (file_path,))?
-    //         .unwrap_or_default();
-    //     media_file.file_path = path.to_str().unwrap().to_string();
-    //     media_file.last_imported = Utc::now();
-    //     media_file.last_modified = path.metadata()?.modified()?.into();
-    //     // TODO temporary, waiting on blob support
-    //     media_file.content = file_content; 
-    //     let media_file = txn.save(&media_file)?;
+    let file_path = path.to_str().unwrap();
+    // TODO Don't wanna read the whole file, just check modified unless forced.
+    let file_content = Some(std::fs::read(path)?);
+    let track_source = library.db.transaction(|txn| {
+        // Create or update a MediaFile by the file path.
+        let mut media_file: MediaFile = txn
+            .find("SELECT * FROM MediaFile WHERE file_path = ?", (file_path,))?
+            .unwrap_or_default();
+        media_file.file_path = path.to_str().unwrap().to_string();
+        media_file.last_imported = Utc::now();
+        media_file.last_modified = path.metadata()?.modified()?.into();
+        // TODO temporary, waiting on blob support
+        media_file.content = file_content; 
+        let media_file = txn.save(&media_file)?;
 
-    //     // Find or create a TrackSource by the MediaFile id. This is not yet saved,
-    //     // since it will be updated below.
-    //     let mut track_source: TrackSource = txn
-    //         .find("SELECT * FROM TrackSource WHERE media_file_id = ?",  (&media_file.id,))?
-    //         .unwrap_or_default();
-        
-    //     // Match and merge the Track, preferring the one on the TrackSource if it
-    //     // exists.
-    //     let pre_match: Option<Track> = track_source.track_id.clone().and_then(|id| txn.get(&id).ok()).flatten();
-    //     let track = librarian::merge_track_metadata(txn, &track_metadata, pre_match)?;        
-    //     // Update the TrackSource with the saved track_id.
-    //     track_source.track_id = track.id.clone();
-    //     track_source.media_file_id = media_file.id.clone();
-    //     let track_source = txn.save(&track_source)?;        
-    //     Ok(track_source)
-    // }).unwrap();
+        // Find or create a TrackSource by the MediaFile id. This is not yet saved,
+        // since it will be updated below.
+        let mut track_source: TrackSource = txn
+            .find("SELECT * FROM TrackSource WHERE media_file_id = ?",  (&media_file.id,))?
+            .unwrap_or_default();
 
-    // log::info!("Imported {} {} {}: {}", 
-    //     track_metadata.track.title.unwrap_or("(Unknown Title)".to_string()),
-    //     track_metadata.release.unwrap().release.title.unwrap_or("(Unknown Release)".to_string()),
-    //     track_metadata.artists.iter().map(|f| f.artist.name.clone().unwrap_or("(Unknown Artist)".to_string()).to_string()).join(","),
-    //     path.file_name().unwrap().to_str().unwrap(),
-    // );
-    // Ok(track_source)
+        // TODO pick up here tomorrow.
+        // Need to merge release group, release, and track, and need to make
+        // sure each can potentially be assigned to unknown and re-assigned
+        // if new data is added.
+
+
+        // Match and merge the Track, preferring the one on the TrackSource if it
+        // exists.
+        // if let Some(track_id) = track_source.track_id.as_ref() {
+        //     if let Some(track) = txn.get(track_id)? {
+        //         librarian::merge_track_metadata(txn, &track, &metadata.track)?;
+        //         librarian::merge_release_metadata(txn, release, metadata)
+        //     }
+        // }
+        // let pre_match: Option<Track> = track_source.track_id.clone().and_then(|id| txn.get(&id).ok()).flatten();
+        // let track = librarian::merge_track_metadata(txn, &track_metadata, pre_match)?;
+        // // Update the TrackSource with the saved track_id.
+        // track_source.track_id = track.id.clone();
+        // track_source.media_file_id = media_file.id.clone();
+        // let track_source = txn.save(&track_source)?;        
+        Ok(track_source)
+    }).unwrap();
+
+    log::info!("Imported {} {}: {}", 
+        track_metadata.track.title.unwrap_or("(Unknown Title)".to_string()),
+        // track_metadata.release.unwrap().release.title.unwrap_or("(Unknown Release)".to_string()),
+        track_metadata.artists.iter().map(|f| f.artist.name.clone().unwrap_or("(Unknown Artist)".to_string()).to_string()).join(","),
+        path.file_name().unwrap().to_str().unwrap(),
+    );
+    Ok(track_source)
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
+pub struct MediaFileMetadata {
+    pub release_group: ReleaseGroupMetadata,
+    pub release: ReleaseMetadata,
+    pub track: TrackMetadata,
 }
 
 #[derive(Debug)]

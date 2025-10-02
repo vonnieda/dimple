@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use lofty::{file::TaggedFileExt, picture::PictureType, tag::{Accessor, ItemKey, Tag, TagExt}};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, model::{dimage::DimageKind, Artist, Dimage, Genre, Link, Release, Track}};
+use crate::{import::MediaFileMetadata, librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, TrackMetadata}, model::{dimage::DimageKind, Artist, Dimage, Genre, Link, Release, ReleaseGroup, Track}};
 
 /// https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
@@ -40,6 +40,8 @@ impl LoftyTaggedMediaFile {
         Ok(media_file)
     }
 
+    // TODO This actually just moves into metadata, then they can be placed in
+    // the correct buckets.
     pub fn images(&self) -> Vec<Dimage> {
         self.tags.pictures().iter().filter_map(|pic| {
             if let Ok(dymage) = image::load_from_memory(pic.data()) {
@@ -58,13 +60,42 @@ impl LoftyTaggedMediaFile {
         .collect()
     }
 
-    pub fn track_metadata(&self) -> TrackMetadata {
+    pub fn metadata(&self) -> MediaFileMetadata {
+        MediaFileMetadata { 
+            release_group: self.release_group_metadata(), 
+            release: self.release_metadata(),
+            track: self.track_metadata(),
+        }
+    }
+
+    fn release_group_metadata(&self) -> ReleaseGroupMetadata {
+        ReleaseGroupMetadata {
+            release_group: self.release_group(),
+            artists: self.release_group_artists(),
+            links: self.release_group_links(),
+            genres: self.release_group_genres(),            
+            // images: self.images(),
+            ..Default::default()
+        }
+    }    
+
+    fn release_group(&self) -> ReleaseGroup {
+        ReleaseGroup {
+            title: self.tags.get_string(&ItemKey::AlbumTitle).map(Into::into),
+            musicbrainz_id: self.tags.get_string(&ItemKey::MusicBrainzReleaseGroupId).map(Into::into),
+            first_release_date: self.tags.get_string(&ItemKey::OriginalReleaseDate).map(Into::into),
+            // TODO, map enum
+            // primary_type: self.tags.get_string(&ItemKey::OriginalMediaType).map(Into::into),
+            ..Default::default()
+        }    
+    }
+
+    fn track_metadata(&self) -> TrackMetadata {
         TrackMetadata {
             track: self.track(),
             artists: self.track_artists(),
             genres: self.track_genres(),
             links: self.track_links(),
-            // release: Some(self.release_metadata()),            
             images: self.images(),
         }   
     }
@@ -104,6 +135,16 @@ impl LoftyTaggedMediaFile {
             .collect()
     }
 
+    fn release_group_genres(&self) -> Vec<Genre> {
+        self.tags.get_string(&ItemKey::Genre).iter()
+            .flat_map(|s| parse_genre_tag(s))
+            .map(|s| Genre {
+                name: Some(s.to_string()),
+                ..Default::default()
+            })
+            .collect()
+    }
+
     fn track_genres(&self) -> Vec<Genre> {
         self.tags.get_string(&ItemKey::Genre).iter()
             .flat_map(|s| parse_genre_tag(s))
@@ -119,11 +160,32 @@ impl LoftyTaggedMediaFile {
             title: self.tags.album().map(Into::into),
             barcode: self.tags.get_string(&ItemKey::Barcode).map(Into::into),
             musicbrainz_id: self.tags.get_string(&ItemKey::MusicBrainzReleaseId).map(Into::into),
+            date: self.tags.get_string(&ItemKey::ReleaseDate).map(Into::into),
             ..Default::default()
         }    
     }
 
     fn release_artists(&self) -> Vec<ArtistMetadata> {
+        let artists = self.tags.get_strings(&ItemKey::AlbumArtist)
+            .zip_longest(self.tags.get_strings(&ItemKey::MusicBrainzReleaseArtistId))
+            .map(|artist| {
+                ArtistMetadata {
+                    artist: Artist {
+                        name: artist.clone().left().map(Into::into),
+                        musicbrainz_id: artist.clone().right().map(Into::into),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }
+            })
+            .collect::<Vec<ArtistMetadata>>();
+        if !artists.is_empty() {
+            return artists
+        }
+        artists
+    }
+
+    fn release_group_artists(&self) -> Vec<ArtistMetadata> {
         let artists = self.tags.get_strings(&ItemKey::AlbumArtist)
             .zip_longest(self.tags.get_strings(&ItemKey::MusicBrainzReleaseArtistId))
             .map(|artist| {
@@ -177,6 +239,10 @@ impl LoftyTaggedMediaFile {
     }
     
     fn release_links(&self) -> Vec<Link> {
+        vec![]
+    }
+
+    fn release_group_links(&self) -> Vec<Link> {
         vec![]
     }
 
