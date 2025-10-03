@@ -93,26 +93,33 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
             .find("SELECT * FROM TrackSource WHERE media_file_id = ?",  (&media_file.id,))?
             .unwrap_or_default();
 
-        // TODO pick up here tomorrow.
-        // Need to merge release group, release, and track, and need to make
-        // sure each can potentially be assigned to unknown and re-assigned
-        // if new data is added.
+        // TODO need to complete handling of missing release group, release,
+        // artists, and title. 
 
+        // Resolve and merge the ReleaseGroup from the metadata.
+        // If we have an artist in the metadata, use merge_artist_release_group to scope
+        // the search to that artist. Otherwise, use the generic merge_release_group.
+        let release_group = if let Some(artist_metadata) = metadata.release_group.artists.first() {
+            let artist = librarian::merge_artist(txn, &artist_metadata.artist)?;
+            librarian::merge_artist_release_group(txn, &artist, &metadata.release_group.release_group)?
+        } else {
+            librarian::merge_release_group(txn, &metadata.release_group.release_group)?
+        };
+        let release_group = librarian::merge_release_group_metadata(txn, &release_group, &metadata.release_group)?;
 
-        // Match and merge the Track, preferring the one on the TrackSource if it
-        // exists.
-        // if let Some(track_id) = track_source.track_id.as_ref() {
-        //     if let Some(track) = txn.get(track_id)? {
-        //         librarian::merge_track_metadata(txn, &track, &metadata.track)?;
-        //         librarian::merge_release_metadata(txn, release, metadata)
-        //     }
-        // }
-        // let pre_match: Option<Track> = track_source.track_id.clone().and_then(|id| txn.get(&id).ok()).flatten();
-        // let track = librarian::merge_track_metadata(txn, &track_metadata, pre_match)?;
-        // // Update the TrackSource with the saved track_id.
-        // track_source.track_id = track.id.clone();
-        // track_source.media_file_id = media_file.id.clone();
-        // let track_source = txn.save(&track_source)?;        
+        // Resolve and merge the Release, scoped to the ReleaseGroup.
+        let release = librarian::merge_release_group_release(txn, &release_group, &metadata.release.release)?;
+        let release = librarian::merge_release_metadata(txn, &release, &metadata.release)?;
+
+        // Resolve and merge the Track, scoped to the Release.
+        let track = librarian::merge_release_track(txn, &release, &track_metadata.track)?;
+        let track = librarian::merge_track_metadata(txn, &track, &track_metadata)?;
+
+        // Update the TrackSource with the saved track_id and media_file_id.
+        track_source.track_id = track.id.clone();
+        track_source.media_file_id = media_file.id.clone();
+        let track_source = txn.save(&track_source)?;
+
         Ok(track_source)
     }).unwrap();
 
@@ -146,12 +153,12 @@ mod tests {
     #[test]
     fn import() {
         let library = Library::open_memory();
-        assert!(library.list::<MediaFile>().len() == 0);
+        assert_eq!(library.list::<MediaFile>().len(), 0);
         library.import("tests/data/media_files");
         let num_mediafiles = library.list::<MediaFile>().len();
-        assert!(library.list::<MediaFile>().len() > 0);
+        assert_eq!(library.list::<MediaFile>().len(), 3);
         library.import("tests/data/media_files");
-        assert!(library.list::<MediaFile>().len() == num_mediafiles);
+        assert_eq!(library.list::<MediaFile>().len(), num_mediafiles);
     }    
 }
 

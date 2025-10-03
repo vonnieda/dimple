@@ -134,11 +134,12 @@ fn search_plugins(plugins: Plugins, library: Library, query: String) {
         library.db.transaction(|txn| {
             for result in plugin_results {
                 for metadata in result.artists {
-                    let artist = librarian::resolve_artist(txn, &metadata.artist)?;
+                    let artist = librarian::merge_artist(txn, &metadata.artist)?;
                     librarian::merge_artist_metadata(txn, &artist, &metadata)?;
                 }
                 for metadata in result.release_groups {
-                    let release_group = librarian::resolve_release_group(txn, &metadata.release_group)?;
+                    // TODO Change to merge_artist_release_group
+                    let release_group = librarian::merge_release_group(txn, &metadata.release_group)?;
                     librarian::merge_release_group_metadata(txn, &release_group, &metadata)?;
                 }
                 // for release in result.releases {
