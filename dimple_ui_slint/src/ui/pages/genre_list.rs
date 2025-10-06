@@ -15,10 +15,13 @@ impl GenreListController {
     pub fn new(app: &App) -> Result<Self> {
         let ui = app.ui.clone();
         let genres_subscription = app.library.db.query_subscribe("
-            SELECT * 
-            FROM Genre 
-            WHERE save = TRUE 
-            ORDER BY name ASC, disambiguation ASC
+            SELECT DISTINCT Genre.*
+            FROM Genre
+            LEFT JOIN GenreRef ON GenreRef.genre_id = Genre.id
+            LEFT JOIN TrackSource ON TrackSource.track_id = GenreRef.model_id
+            WHERE Genre.save = TRUE
+               OR TrackSource.id IS NOT NULL
+            ORDER BY Genre.name ASC, Genre.disambiguation ASC
         ", (), move |genres: Vec<Genre>| {
                 ui.upgrade_in_event_loop(move |ui| {
                     let cards = genre_cards(&genres);

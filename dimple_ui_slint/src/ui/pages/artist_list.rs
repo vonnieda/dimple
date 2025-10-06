@@ -16,10 +16,14 @@ pub struct ArtistListController {
 impl ArtistListController {
     pub fn new(app: &App) -> Result<Self> {
         let sql = "
-            SELECT Artist.* 
+            SELECT DISTINCT Artist.*
             FROM Artist
-            WHERE save = TRUE
+            LEFT JOIN ArtistRef ON ArtistRef.artist_id = Artist.id
+            LEFT JOIN TrackSource ON TrackSource.track_id = ArtistRef.model_id
+            WHERE Artist.save = TRUE
+               OR TrackSource.id IS NOT NULL
             ORDER BY lower(Artist.name) ASC, lower(Artist.disambiguation) ASC
+            ;
         ";
         let ui = app.ui.clone();
         let artists_subscription = app.library.db.query_subscribe(sql, (), move |artists| {

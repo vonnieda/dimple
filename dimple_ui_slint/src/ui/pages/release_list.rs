@@ -20,9 +20,12 @@ impl ReleaseListController {
         let ui = app.ui.clone();
         let library = app.library.clone();
         let sql = "
-            SELECT Release.* 
+            SELECT DISTINCT Release.*
             FROM Release
-            WHERE save = TRUE
+            LEFT JOIN Track ON Track.release_id = Release.id
+            LEFT JOIN TrackSource ON TrackSource.track_id = Track.id
+            WHERE Release.save = TRUE
+               OR TrackSource.id IS NOT NULL
             ORDER BY Release.title ASC
         ";
         let releases_subscription = app.library.db.query_subscribe(sql, (),

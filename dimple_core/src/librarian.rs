@@ -70,12 +70,12 @@ pub fn merge_artist(txn: &DbTransaction, artist: &Artist) -> Result<Artist, anyh
         SELECT Artist.*
         FROM Artist
         WHERE (Artist.name IS NULL OR Artist.name COLLATE NOCASE = ?1)
-        AND (Artist.disambiguation IS NULL OR Artist.disambiguation COLLATE NOCASE = ?2)
-        AND (Artist.country IS NULL OR Artist.country COLLATE NOCASE = ?3)
-        AND (Artist.discogs_id IS NULL OR Artist.discogs_id = ?4)
-        AND (Artist.lastfm_id IS NULL OR Artist.lastfm_id = ?5)
-        AND (Artist.musicbrainz_id IS NULL OR Artist.musicbrainz_id = ?6)
-        AND (Artist.spotify_id IS NULL OR Artist.spotify_id = ?7)
+        AND (?2 IS NULL OR Artist.disambiguation IS NULL OR Artist.disambiguation COLLATE NOCASE = ?2)
+        AND (?3 IS NULL OR Artist.country IS NULL OR Artist.country COLLATE NOCASE = ?3)
+        AND (?4 IS NULL OR Artist.discogs_id IS NULL OR Artist.discogs_id = ?4)
+        AND (?5 IS NULL OR Artist.lastfm_id IS NULL OR Artist.lastfm_id = ?5)
+        AND (?6 IS NULL OR Artist.musicbrainz_id IS NULL OR Artist.musicbrainz_id = ?6)
+        AND (?7 IS NULL OR Artist.spotify_id IS NULL OR Artist.spotify_id = ?7)
     ";
     let matched = txn.find::<Artist, _>(&sql, (&artist.name,
         &artist.disambiguation,
@@ -111,11 +111,11 @@ pub fn merge_artist_release_group(txn: &DbTransaction, artist: &Artist,
         JOIN ArtistRef ON (ReleaseGroup.id = ArtistRef.model_id)
         WHERE ArtistRef.artist_id = ?1
         AND (ReleaseGroup.title IS NULL OR ReleaseGroup.title COLLATE NOCASE = ?2)
-        AND (ReleaseGroup.disambiguation IS NULL OR ReleaseGroup.disambiguation COLLATE NOCASE = ?3)
-        AND (ReleaseGroup.discogs_id IS NULL OR ReleaseGroup.discogs_id = ?4)
-        AND (ReleaseGroup.lastfm_id IS NULL OR ReleaseGroup.lastfm_id = ?5)
-        AND (ReleaseGroup.musicbrainz_id IS NULL OR ReleaseGroup.musicbrainz_id = ?6)
-        AND (ReleaseGroup.spotify_id IS NULL OR ReleaseGroup.spotify_id = ?7)
+        AND (?3 IS NULL OR ReleaseGroup.disambiguation IS NULL OR ReleaseGroup.disambiguation COLLATE NOCASE = ?3)
+        AND (?4 IS NULL OR ReleaseGroup.discogs_id IS NULL OR ReleaseGroup.discogs_id = ?4)
+        AND (?5 IS NULL OR ReleaseGroup.lastfm_id IS NULL OR ReleaseGroup.lastfm_id = ?5)
+        AND (?6 IS NULL OR ReleaseGroup.musicbrainz_id IS NULL OR ReleaseGroup.musicbrainz_id = ?6)
+        AND (?7 IS NULL OR ReleaseGroup.spotify_id IS NULL OR ReleaseGroup.spotify_id = ?7)
     ";
 
     let matched = txn.find::<ReleaseGroup, _>(&sql, (&artist.id,
@@ -143,11 +143,11 @@ pub fn merge_artist_release(txn: &DbTransaction, artist: &Artist,
         JOIN ArtistRef ON (Release.id = ArtistRef.model_id)
         WHERE ArtistRef.artist_id = ?1
         AND (Release.title IS NULL OR Release.title COLLATE NOCASE = ?2)
-        AND (Release.disambiguation IS NULL OR Release.disambiguation COLLATE NOCASE = ?3)
-        AND (Release.discogs_id IS NULL OR Release.discogs_id = ?4)
-        AND (Release.lastfm_id IS NULL OR Release.lastfm_id = ?5)
-        AND (Release.musicbrainz_id IS NULL OR Release.musicbrainz_id = ?6)
-        AND (Release.spotify_id IS NULL OR Release.spotify_id = ?7)
+        AND (?3 IS NULL OR Release.disambiguation IS NULL OR Release.disambiguation COLLATE NOCASE = ?3)
+        AND (?4 IS NULL OR Release.discogs_id IS NULL OR Release.discogs_id = ?4)
+        AND (?5 IS NULL OR Release.lastfm_id IS NULL OR Release.lastfm_id = ?5)
+        AND (?6 IS NULL OR Release.musicbrainz_id IS NULL OR Release.musicbrainz_id = ?6)
+        AND (?7 IS NULL OR Release.spotify_id IS NULL OR Release.spotify_id = ?7)
     ";
 
     let matched = txn.find::<Release, _>(&sql, (&artist.id,
@@ -175,11 +175,11 @@ pub fn merge_release_group(txn: &DbTransaction, release_group: &ReleaseGroup) ->
         SELECT ReleaseGroup.*
         FROM ReleaseGroup
         WHERE (ReleaseGroup.title IS NULL OR ReleaseGroup.title COLLATE NOCASE = ?1)
-        AND (ReleaseGroup.disambiguation IS NULL OR ReleaseGroup.disambiguation COLLATE NOCASE = ?2)
-        AND (ReleaseGroup.discogs_id IS NULL OR ReleaseGroup.discogs_id = ?3)
-        AND (ReleaseGroup.lastfm_id IS NULL OR ReleaseGroup.lastfm_id = ?4)
-        AND (ReleaseGroup.musicbrainz_id IS NULL OR ReleaseGroup.musicbrainz_id = ?5)
-        AND (ReleaseGroup.spotify_id IS NULL OR ReleaseGroup.spotify_id = ?6)
+        AND (?2 IS NULL OR ReleaseGroup.disambiguation IS NULL OR ReleaseGroup.disambiguation COLLATE NOCASE = ?2)
+        AND (?3 IS NULL OR ReleaseGroup.discogs_id IS NULL OR ReleaseGroup.discogs_id = ?3)
+        AND (?4 IS NULL OR ReleaseGroup.lastfm_id IS NULL OR ReleaseGroup.lastfm_id = ?4)
+        AND (?5 IS NULL OR ReleaseGroup.musicbrainz_id IS NULL OR ReleaseGroup.musicbrainz_id = ?5)
+        AND (?6 IS NULL OR ReleaseGroup.spotify_id IS NULL OR ReleaseGroup.spotify_id = ?6)
     ";
 
     let matched = txn.find::<ReleaseGroup, _>(&sql,
@@ -216,11 +216,11 @@ pub fn merge_release_group_release(txn: &DbTransaction, release_group: &ReleaseG
         FROM Release
         WHERE Release.release_group_id = ?1
         AND (Release.title IS NULL OR Release.title COLLATE NOCASE = ?2)
-        AND (Release.disambiguation IS NULL OR Release.disambiguation COLLATE NOCASE = ?3)
-        AND (Release.discogs_id IS NULL OR Release.discogs_id = ?4)
-        AND (Release.lastfm_id IS NULL OR Release.lastfm_id = ?5)
-        AND (Release.musicbrainz_id IS NULL OR Release.musicbrainz_id = ?6)
-        AND (Release.spotify_id IS NULL OR Release.spotify_id = ?7)
+        AND (?3 IS NULL OR Release.disambiguation IS NULL OR Release.disambiguation COLLATE NOCASE = ?3)
+        AND (?4 IS NULL OR Release.discogs_id IS NULL OR Release.discogs_id = ?4)
+        AND (?5 IS NULL OR Release.lastfm_id IS NULL OR Release.lastfm_id = ?5)
+        AND (?6 IS NULL OR Release.musicbrainz_id IS NULL OR Release.musicbrainz_id = ?6)
+        AND (?7 IS NULL OR Release.spotify_id IS NULL OR Release.spotify_id = ?7)
     ";
 
     let matched = txn.find::<Release, _>(&sql, (&release_group.id,
@@ -259,11 +259,11 @@ pub fn merge_release_track(txn: &DbTransaction, release: &Release, track: &Track
         FROM Track
         WHERE Track.release_id = ?1
         AND (Track.title IS NULL OR Track.title COLLATE NOCASE = ?2)
-        AND (Track.disambiguation IS NULL OR Track.disambiguation COLLATE NOCASE = ?3)
-        AND (Track.discogs_id IS NULL OR Track.discogs_id = ?4)
-        AND (Track.lastfm_id IS NULL OR Track.lastfm_id = ?5)
-        AND (Track.musicbrainz_id IS NULL OR Track.musicbrainz_id = ?6)
-        AND (Track.spotify_id IS NULL OR Track.spotify_id = ?7)
+        AND (?3 IS NULL OR Track.disambiguation IS NULL OR Track.disambiguation COLLATE NOCASE = ?3)
+        AND (?4 IS NULL OR Track.discogs_id IS NULL OR Track.discogs_id = ?4)
+        AND (?5 IS NULL OR Track.lastfm_id IS NULL OR Track.lastfm_id = ?5)
+        AND (?6 IS NULL OR Track.musicbrainz_id IS NULL OR Track.musicbrainz_id = ?6)
+        AND (?7 IS NULL OR Track.spotify_id IS NULL OR Track.spotify_id = ?7)
     ";
 
     let matched = txn.find::<Track, _>(&sql, (&release.id,
@@ -289,6 +289,27 @@ pub fn merge_track_metadata(txn: &DbTransaction, track: &Track, metadata: &Track
     merge_entity_links(txn, &merged.id, &metadata.links)?;
     merge_entity_images(txn, &merged.id, &metadata.images)?;
     Ok(merged)
+}
+
+pub fn merge_genre(txn: &DbTransaction, genre: &Genre) -> Result<Genre, anyhow::Error> {
+    let sql = "
+        SELECT Genre.*
+        FROM Genre
+        WHERE (Genre.name IS NULL OR Genre.name COLLATE NOCASE = ?1)
+        AND (?2 IS NULL OR Genre.disambiguation IS NULL OR Genre.disambiguation COLLATE NOCASE = ?2)
+        AND (?3 IS NULL OR Genre.discogs_id IS NULL OR Genre.discogs_id = ?3)
+        AND (?4 IS NULL OR Genre.lastfm_id IS NULL OR Genre.lastfm_id = ?4)
+        AND (?5 IS NULL OR Genre.musicbrainz_id IS NULL OR Genre.musicbrainz_id = ?5)
+        AND (?6 IS NULL OR Genre.spotify_id IS NULL OR Genre.spotify_id = ?6)
+    ";
+    let matched = txn.find::<Genre, _>(&sql, (&genre.name,
+        &genre.disambiguation,
+        &genre.discogs_id,
+        &genre.lastfm_id,
+        &genre.musicbrainz_id,
+        &genre.spotify_id))?.unwrap_or_default();
+    let merged = matched.merge_extend(genre);
+    txn.save(&merged)
 }
 
 fn merge_entity_artists(txn: &DbTransaction, entity_id: &Option<String>, artists: &[ArtistMetadata]) -> Result<(), anyhow::Error> {
@@ -346,26 +367,6 @@ fn merge_dimage(txn: &DbTransaction, dimage: &Dimage) -> Result<Dimage, anyhow::
     txn.save(&merged)
 }
 
-pub fn merge_genre(txn: &DbTransaction, genre: &Genre) -> Result<Genre, anyhow::Error> {
-    let sql = "
-        SELECT Genre.* 
-        FROM Genre 
-        WHERE (Genre.name IS NOT NULL AND Genre.name COLLATE NOCASE = ?1 AND ((Genre.disambiguation IS NULL AND ?2 IS NULL) OR (Genre.disambiguation COLLATE NOCASE = ?2)))
-        OR (Genre.discogs_id IS NOT NULL AND Genre.discogs_id = ?3)
-        OR (Genre.lastfm_id IS NOT NULL AND Genre.lastfm_id = ?4)
-        OR (Genre.musicbrainz_id IS NOT NULL AND Genre.musicbrainz_id = ?5)
-        OR (Genre.spotify_id IS NOT NULL AND Genre.spotify_id = ?6)
-    ";
-    let matched = txn.find::<Genre, _>(&sql, (&genre.name,
-        &genre.disambiguation,
-        &genre.discogs_id,
-        &genre.lastfm_id,
-        &genre.musicbrainz_id,
-        &genre.spotify_id))?.unwrap_or_default();
-    let merged = matched.merge_extend(genre);
-    txn.save(&merged)
-}
-
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct ArtistMetadata {
     pub artist: Artist,
@@ -415,7 +416,7 @@ pub struct SearchResults {
 }
 
 mod tests {
-    use crate::{librarian::{self, TrackMetadata}, library::Library, model::{Artist, Genre, ModelBasics, Release, ReleaseGroup, Track}};
+    use crate::{librarian::{self, merge_artist, TrackMetadata}, library::Library, model::{Artist, Genre, ModelBasics, Release, ReleaseGroup, Track}};
 
     #[test]
     fn smoke_test() -> anyhow::Result<()>{
@@ -712,5 +713,30 @@ mod tests {
         })?;
         assert_eq!(Genre::list(&library).len(), 2);
         Ok(())
-    }    
+    }   
+
+    #[test]
+    fn test_match_artist_musicbrainz_id() -> anyhow::Result<()> {
+        // country
+        let library = Library::open_memory();
+        library.db.transaction(|txn| {
+            let artist1 = merge_artist(txn, &Artist {
+                name: Some("The Napkin".to_string()),
+                ..Default::default()
+            })?;
+            let artist2 = merge_artist(txn, &Artist {
+                name: Some("The Napkin".to_string()),
+                musicbrainz_id: Some("The Napkin".to_string()),
+                ..Default::default()
+            })?;   
+            let artist3 = merge_artist(txn, &Artist {
+                name: Some("The Napkin".to_string()),
+                ..Default::default()
+            })?;
+            assert_eq!(artist1.id, artist2.id);
+            assert_eq!(artist2.id, artist3.id);
+            Ok(())
+        })?;
+        Ok(())
+    }
 }

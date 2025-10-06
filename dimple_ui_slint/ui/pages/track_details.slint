@@ -6,6 +6,7 @@ import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
 import { Styles, Navigator, AppState, Label, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
 import { TagList } from "../components/tag.slint";
 import { BorderImage } from "../components/border_image.slint";
+import { BasicTableView } from "../components/basic_table_view.slint";
 import { SettingsAdapter } from "settings.slint";
 
 export global TrackDetailsAdapter {
@@ -23,7 +24,11 @@ export global TrackDetailsAdapter {
     in property <[LinkAdapter]> isrcs;
     in property <[CardAdapter]> releases: [card, card, card];
     in property <string> release-date: "2024-03-19";
-    
+    in property <[[StandardListViewItem]]> source_items: [
+        [ { text: "/path/to/file.mp3" }, { text: "2024-01-15 14:30:00" } ],
+        [ { text: "/another/path/song.flac" }, { text: "2024-02-20 09:15:00" } ],
+    ];
+
     in property <string> dump;
     in property <bool> save;
     in property <bool> love;
@@ -153,17 +158,32 @@ export component TrackDetails inherits ScrollView {
                         text: "Cancel";
                         clicked => {
                             // TODO reset if changed
-                            lyrics_editing = false;                
+                            lyrics_editing = false;
                         }
                     }
                     Button {
                         text: "Save";
                         clicked => {
-                            lyrics_editing = false;                
+                            lyrics_editing = false;
                             TrackDetailsAdapter.set_lyrics(TrackDetailsAdapter.key, text_edit.text);
                         }
                     }
                 }
+            }
+        }
+
+        if TrackDetailsAdapter.source_items.length > 0: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "Media Sources";
+            }
+            BasicTableView {
+                columns: [
+                    { title: "File Path", horizontal_stretch: 0.70 },
+                    { title: "Last Imported", horizontal_stretch: 0.30 },
+                ];
+                rows: TrackDetailsAdapter.source_items;
             }
         }
 

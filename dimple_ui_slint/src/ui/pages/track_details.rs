@@ -4,10 +4,16 @@ use dimple_core::model::Artist;
 use dimple_core::model::DimpleEntity;
 use dimple_core::model::Genre;
 use dimple_core::model::Link;
+use dimple_core::model::MediaFile;
 use dimple_core::model::ModelBasics as _;
 use dimple_core::model::Release;
 use dimple_core::model::Track;
+use dimple_core::model::TrackSource;
 use slint::ModelRc;
+use slint::SharedString;
+use slint::StandardListViewItem;
+use slint::VecModel;
+use std::rc::Rc;
 use url::Url;
 use crate::ui::app_window_controller::App;
 use crate::ui::common::MutableStringParam;
@@ -27,6 +33,7 @@ pub struct TrackDetailsController {
     genres_subscription: QuerySubscription,
     links_subscription: QuerySubscription,
     release_subscription: QuerySubscription,
+    sources_subscription: QuerySubscription,
 }
 
 impl TrackDetailsController {
@@ -120,6 +127,21 @@ impl TrackDetailsController {
             }).unwrap();
         })?;
 
+        // Set up media sources subscription
+        let sql = "
+            SELECT MediaFile.*
+            FROM TrackSource
+            JOIN MediaFile ON MediaFile.id = TrackSource.media_file_id
+            WHERE TrackSource.track_id = ?
+            ORDER BY MediaFile.file_path ASC
+        ";
+        let ui = app.ui.clone();
+        let sources_subscription = app.library.db.query_subscribe(sql, (current_key.clone(),), move |media_files: Vec<MediaFile>| {
+            ui.upgrade_in_event_loop(move |ui| {
+                ui.global::<TrackDetailsAdapter>().set_source_items(source_items(&media_files));
+            }).unwrap();
+        })?;
+
         Ok(Self {
             current_key,
             track_subscription,
@@ -127,18 +149,20 @@ impl TrackDetailsController {
             genres_subscription,
             links_subscription,
             release_subscription,
+            sources_subscription,
         })
     }
 
     pub fn set_track(&mut self, key: String, app: &App) -> Result<()> {
         self.current_key.set(&key);
-        
+
         // Refresh all subscriptions
         self.track_subscription.refresh();
         self.artists_subscription.refresh();
         self.genres_subscription.refresh();
         self.links_subscription.refresh();
         self.release_subscription.refresh();
+        self.sources_subscription.refresh();
 
         // Trigger metadata refresh in background
         let app_clone = app.clone();
@@ -238,4 +262,15 @@ fn release_card(release: &Release, artist: &Artist) -> CardAdapter {
         },
         ..Default::default()
     }
+}
+
+fn source_items(media_files: &[MediaFile]) -> ModelRc<ModelRc<StandardListViewItem>> {
+    let source_items: Rc<VecModel<ModelRc<StandardListViewItem>>> = Rc::new(VecModel::default());
+    for media_file in media_files {
+        let row = Rc::new(VecModel::default());
+        row.push(media_file.file_path.as_str().into());
+        row.push(media_file.last_imported.format("%Y-%m-%d %H:%M:%S").to_string().as_str().into());
+        source_items.push(row.into());
+    }
+    source_items.into()
 }

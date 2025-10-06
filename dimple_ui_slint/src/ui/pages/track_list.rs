@@ -21,9 +21,11 @@ pub struct TrackListController {
 impl TrackListController {
     pub fn new(app: &App) -> Result<Self> {
         let sql = "
-            SELECT Track.* 
+            SELECT DISTINCT Track.*
             FROM Track
+            LEFT JOIN TrackSource ON TrackSource.track_id = Track.id
             WHERE Track.save = TRUE
+               OR TrackSource.id IS NOT NULL
             ORDER BY Track.title ASC
         ";
         let ui = app.ui.clone();

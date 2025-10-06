@@ -116,6 +116,7 @@ impl SearchResultsController {
                 query_param.set(&query);
                 sub_clone.refresh();            
                 search_plugins(plugins_clone.clone(), library_clone.clone(), query.to_string());
+                // TODO doesn't get added to nav stack, which is annoying. Breaks back button.
                 ui_clone.upgrade_in_event_loop(move |ui| ui.set_page(Page::SearchResults)).unwrap();
             });
                 

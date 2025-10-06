@@ -59,7 +59,6 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
     // Read the tags from the file.
     let tags = LoftyTaggedMediaFile::new(path)?;
     let metadata = tags.metadata();
-    dbg!(&metadata);
     let mut track_metadata = metadata.track;
     if track_metadata.track.length_ms.is_none() {
         log::warn!("  No track length found {}, attempting to calculate", path.to_string_lossy());
