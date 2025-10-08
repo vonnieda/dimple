@@ -217,15 +217,17 @@ pub fn merge_release_group_release(txn: &DbTransaction, release_group: &ReleaseG
         WHERE Release.release_group_id = ?1
         AND (Release.title IS NULL OR Release.title COLLATE NOCASE = ?2)
         AND (?3 IS NULL OR Release.disambiguation IS NULL OR Release.disambiguation COLLATE NOCASE = ?3)
-        AND (?4 IS NULL OR Release.discogs_id IS NULL OR Release.discogs_id = ?4)
-        AND (?5 IS NULL OR Release.lastfm_id IS NULL OR Release.lastfm_id = ?5)
-        AND (?6 IS NULL OR Release.musicbrainz_id IS NULL OR Release.musicbrainz_id = ?6)
-        AND (?7 IS NULL OR Release.spotify_id IS NULL OR Release.spotify_id = ?7)
+        AND (?4 IS NULL OR Release.country IS NULL OR Release.country COLLATE NOCASE = ?4)
+        AND (?5 IS NULL OR Release.discogs_id IS NULL OR Release.discogs_id = ?5)
+        AND (?6 IS NULL OR Release.lastfm_id IS NULL OR Release.lastfm_id = ?6)
+        AND (?7 IS NULL OR Release.musicbrainz_id IS NULL OR Release.musicbrainz_id = ?7)
+        AND (?8 IS NULL OR Release.spotify_id IS NULL OR Release.spotify_id = ?8)
     ";
 
     let matched = txn.find::<Release, _>(&sql, (&release_group.id,
         &release.title,
         &release.disambiguation,
+        &release.country,
         &release.discogs_id,
         &release.lastfm_id,
         &release.musicbrainz_id,
@@ -711,7 +713,7 @@ mod tests {
             })?;
             Ok(())
         })?;
-        assert_eq!(Genre::list(&library).len(), 2);
+        assert_eq!(Genre::list(&library).len(), 1);
         Ok(())
     }   
 

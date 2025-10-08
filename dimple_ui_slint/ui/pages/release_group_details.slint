@@ -29,14 +29,14 @@ export global ReleaseGroupDetailsAdapter {
     in property <[LinkAdapter]> links: [{name: "Spotify"},{name: "Bandcamp"},{name: "Spotify"},{name: "Bandcamp"},];
     in property <[LinkAdapter]> artists: [{name: "First Artist Credit"},{name: "Second Artist Credit"},{name: "Third Artist Credit"},];
     in property <[[StandardListViewItem]]> track_items: [
-        [ { text: "1" }, { text: "Track 1" }, { text: "Artist Credit 1" }, { text: "3:22" } ],
-        [ { text: "2" }, { text: "Track 2" }, { text: "Artist Credit 1, Artist Credit 2" }, { text: "1:22" } ],
-        [ { text: "3" }, { text: "Track 3" }, { text: "Artist Credit 1" }, { text: "4:22" } ],
-        [ { text: "4" }, { text: "Track 4" }, { text: "Artist Credit 1, Artist Credit 2, Artist Credit 3" }, { text: "6:32" } ],
-        [ { text: "5" }, { text: "Track 5" }, { text: "Artist Credit 1" }, { text: "3:22" } ],
-        [ { text: "6" }, { text: "Track 6" }, { text: "Artist Credit 1" }, { text: "2:32" } ],
-        [ { text: "7" }, { text: "Track 7" }, { text: "Artist Credit 1" }, { text: "2:12" } ],
-        [ { text: "8" }, { text: "Track 8" }, { text: "Artist Credit 1" }, { text: "13:00" } ],
+        [ { text: "1" }, { text: "Track 1" }, { text: "Artist Credit 1" }, { text: "3:22" }, { text: "2" } ],
+        [ { text: "2" }, { text: "Track 2" }, { text: "Artist Credit 1, Artist Credit 2" }, { text: "1:22" }, { text: "1" } ],
+        [ { text: "3" }, { text: "Track 3" }, { text: "Artist Credit 1" }, { text: "4:22" }, { text: "0" } ],
+        [ { text: "4" }, { text: "Track 4" }, { text: "Artist Credit 1, Artist Credit 2, Artist Credit 3" }, { text: "6:32" }, { text: "3" } ],
+        [ { text: "5" }, { text: "Track 5" }, { text: "Artist Credit 1" }, { text: "3:22" }, { text: "1" } ],
+        [ { text: "6" }, { text: "Track 6" }, { text: "Artist Credit 1" }, { text: "2:32" }, { text: "2" } ],
+        [ { text: "7" }, { text: "Track 7" }, { text: "Artist Credit 1" }, { text: "2:12" }, { text: "0" } ],
+        [ { text: "8" }, { text: "Track 8" }, { text: "Artist Credit 1" }, { text: "13:00" }, { text: "1" } ],
     ];
     in property <[string]> track_keys;
 
@@ -214,10 +214,11 @@ export component ReleaseGroupDetails inherits ScrollView {
             // }
             table := BasicTableView {
                 columns: [
-                    { title: "#", horizontal_stretch: 0.10 },
-                    { title: "Title", horizontal_stretch: 0.40 },
-                    { title: "Artists", horizontal_stretch: 0.40 },
+                    { title: "#", horizontal_stretch: 0.08 },
+                    { title: "Title", horizontal_stretch: 0.36 },
+                    { title: "Artists", horizontal_stretch: 0.36 },
                     { title: "Length", horizontal_stretch: 0.10 },
+                    { title: "Sources", horizontal_stretch: 0.10 },
                     ];
                 rows: ReleaseGroupDetailsAdapter.track_items;
                 sort-ascending(index) => { ReleaseGroupDetailsAdapter.sort_table(index, true); }

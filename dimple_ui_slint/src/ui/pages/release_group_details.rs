@@ -18,6 +18,7 @@ use dimple_core::model::ModelBasics;
 use dimple_core::model::Release;
 use dimple_core::model::ReleaseGroup;
 use dimple_core::model::Track;
+use dimple_core::model::TrackSource;
 use dimple_core::plugins::plugins::Plugins;
 use futures_signals::signal::Mutable;
 use futures_signals::signal::SignalExt;
@@ -391,12 +392,18 @@ fn track_items(library: &Library, tracks: &[Track]) -> ModelRc<ModelRc<StandardL
         let length = track.length_ms
             .map(|ms| Duration::from_millis(ms))
             .map(format_length);
+
+        let source_count = library.query::<TrackSource, _>("
+            SELECT * FROM TrackSource WHERE track_id = ?1
+        ", (&track.id,)).len();
+
         row.push(track.position.unwrap_or_default().to_string().as_str().into()); // Track #
         row.push(track.title.clone().unwrap_or_default().as_str().into()); // Title
         let artists = track.artists(library);
         let artists_s = artists.iter().map(|a| a.name.clone().unwrap_or_default()).join(", ");
         row.push(artists_s.as_str().into()); // Artist
         row.push(length.unwrap_or_default().as_str().into()); // Length
+        row.push(source_count.to_string().as_str().into()); // Sources
         track_items.push(row.into());
     }
     track_items.into()

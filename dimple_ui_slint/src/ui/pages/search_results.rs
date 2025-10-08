@@ -165,7 +165,6 @@ fn update_results(app: &App, results: HashMap<String, Vec<SearchResult>>) {
     app.ui.upgrade_in_event_loop(move |ui| {
         let mut sections: Vec<CardSectionAdapter> = vec![];
 
-        // TODO DRY
         if let Some(artist_results) = results.get("Artist") {
             if !artist_results.is_empty() {
                 sections.push(CardSectionAdapter {

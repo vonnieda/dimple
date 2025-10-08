@@ -24,7 +24,6 @@ pub struct App {
     pub librarian: Librarian,
     pub artist_details_controller: Arc<RwLock<Option<pages::artist_details::ArtistDetailsController>>>,
     pub release_group_details_controller: Arc<RwLock<Option<pages::release_group_details::ReleaseGroupDetailsController>>>,
-    // pub release_details_controller: Arc<RwLock<Option<pages::release_details::ReleaseDetailsController>>>,
     pub genre_details_controller: Arc<RwLock<Option<pages::genre_details::GenreDetailsController>>>,
     pub track_details_controller: Arc<RwLock<Option<pages::track_details::TrackDetailsController>>>,
     pub queue_details_controller: Arc<RwLock<Option<pages::queue_details::QueueDetailsController>>>,
@@ -87,7 +86,6 @@ impl AppWindowController {
         // Create placeholders for detail controllers to break circular dependency
         let artist_details_controller = Arc::new(RwLock::new(None));
         let release_group_details_controller = Arc::new(RwLock::new(None));
-        // let release_details_controller = Arc::new(RwLock::new(None));
         let genre_details_controller = Arc::new(RwLock::new(None));
         let track_details_controller = Arc::new(RwLock::new(None));
         let queue_details_controller = Arc::new(RwLock::new(None));
@@ -112,9 +110,6 @@ impl AppWindowController {
         // Now create the real controllers and replace the placeholders
         let real_artist_controller = pages::artist_details::ArtistDetailsController::new(&app).unwrap();
         *artist_details_controller.write().unwrap() = Some(real_artist_controller);
-        
-        // let real_release_details_controller = pages::release_details::ReleaseDetailsController::new(&app).unwrap();
-        // *release_details_controller.write().unwrap() = Some(real_release_details_controller);
         
         let real_release_group_details_controller = pages::release_group_details::ReleaseGroupDetailsController::new(&app).unwrap();
         *release_group_details_controller.write().unwrap() = Some(real_release_group_details_controller);
