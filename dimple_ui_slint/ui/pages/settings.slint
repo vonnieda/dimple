@@ -24,6 +24,7 @@ export struct PluginAdapter {
 export global SettingsAdapter {
     in-out property <bool> offline;
     in-out property <bool> debug;
+    in-out property <bool> plugins_enabled;
     in-out property <bool> sidebar-open;
     in-out property <string> preferred-language;
     in-out property <int> preferred-language-index;
@@ -45,6 +46,7 @@ export global SettingsAdapter {
         "da - Danish", "fi - Finnish", "pl - Polish"];
     pure callback set_offline(bool);
     pure callback set_debug(bool);
+    pure callback set_plugins_enabled(bool);
     pure callback set_sidebar_open(bool);
     pure callback set_preferred_language(string);
     pure callback set_s3_endpoint(string);
@@ -114,6 +116,22 @@ component General inherits VerticalBox {
             checked: SettingsAdapter.debug;
             toggled => {
                 SettingsAdapter.set_debug(self.checked);
+            }
+        }
+    }
+
+    HorizontalBox {
+        alignment: start;
+        
+        Label {
+            text: "Plugins Enabled";
+            vertical-alignment: center;
+        }
+
+        Switch {
+            checked: SettingsAdapter.plugins_enabled;
+            toggled => {
+                SettingsAdapter.set_plugins_enabled(self.checked);
             }
         }
     }

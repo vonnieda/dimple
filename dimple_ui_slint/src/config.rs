@@ -71,6 +71,19 @@ impl Config {
         })
     }
 
+    pub fn plugins_enabled(&self) -> bool {
+        self.get_value("plugins_enabled") == Some("true".to_string())
+    }
+
+    pub fn set_plugins_enabled(&self, value: bool) {
+        self.set_value("plugins_enabled", if value {
+            Some("true".to_string())
+        }
+        else {
+            Some("false".to_string())
+        })
+    }
+
     pub fn debug(&self) -> bool {
         self.get_value("debug") == Some("true".to_string())
     }

@@ -361,6 +361,9 @@ impl ReleaseGroupDetailsController {
         Ok(())
     }
 
+    // TODO this needs to be better - it's super slow when navigating to a
+    // release. We should not need to get the release groups first. 
+    // I'm thiiiiis close to calling it album.
     pub fn navigate(&self, url: &str) {
         let url = Url::parse(url).unwrap();
         if url.as_str().starts_with("dimple://releasegroup/") {

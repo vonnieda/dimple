@@ -80,6 +80,7 @@ impl SettingsController {
                     match config_value.key.as_str() {
                         "offline" => ui.global::<SettingsAdapter>().set_offline(config_value.value == Some("true".to_string())),
                         "debug" => ui.global::<SettingsAdapter>().set_debug(config_value.value == Some("true".to_string())),
+                        "plugins_enabled" => ui.global::<SettingsAdapter>().set_plugins_enabled(config_value.value == Some("true".to_string())),
                         "sidebar_open" => ui.global::<SettingsAdapter>().set_sidebar_open(config_value.value == Some("true".to_string())),
                         "preferred_language" => {
                             let lang = config_value.value.unwrap_or_default();
@@ -113,6 +114,9 @@ impl SettingsController {
 
             let app = app_.clone();
             ui.global::<SettingsAdapter>().on_set_offline(move |v| app.config.set_offline(v));
+
+            let app = app_.clone();
+            ui.global::<SettingsAdapter>().on_set_plugins_enabled(move |v| app.config.set_plugins_enabled(v));
 
             let app = app_.clone();
             ui.global::<SettingsAdapter>().on_set_debug(move |v| app.config.set_debug(v));
