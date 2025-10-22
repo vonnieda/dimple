@@ -1,106 +1,33 @@
 import { HorizontalBox , VerticalBox} from "std-widgets.slint";
 import { CardAdapter } from "../components/card.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, Button} from "std-widgets.slint";
 import { LinkAdapter, Links, Link} from "../components/link.slint";
-import { HorizontalBox , VerticalBox} from "std-widgets.slint";
-import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, ComboBox, StandardListView} from "std-widgets.slint";
-import { CardAdapter } from "../components/card.slint";
-import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
 import { Styles, Navigator, AppState, Label, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
-import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
 import { Tag, TagList } from "../components/tag.slint";
 import { BorderImage } from "../components/border_image.slint";
-import { BasicTableView } from "../components/basic_table_view.slint";
 import { SettingsAdapter } from "settings.slint";
 import { CardGrid } from "../components/card_grid.slint";
 
 export global ReleaseGroupDetailsAdapter {
     in property <string> key;
-    in property <string> primary-type: "Album";
-    in property <[string]> secondary-types: ["Live"];
-    in property <string> date: "2024-05-01";
-    in property <CardAdapter> card: {
-                image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
-                title: {name: "Release Title"},
-            };
-    in property <string> disambiguation: "Disambiguation comment.";
-    in property <string> summary: "Artist bio or summary. Ex nostrud culpa id veniam aliqua aliqua ipsum. Velit do id amet labore mollit id cillum commodo Lorem proident labore eu. Incididunt minim irure culpa excepteur officia sit consequat est mollit. Ipsum anim anim sunt dolore. Laborum consequat deserunt laboris ullamco cillum. Ullamco deserunt ut quis dolore aliquip esse consequat velit amet. Nulla tempor veniam dolor amet occaecat adipisicing nulla laboris.\n\nQui non irure anim irure nisi nulla ex aliquip. Sit do irure esse magna sit do eiusmod. Anim commodo velit non enim nulla.\n\nAnim incididunt dolore nulla laboris eu mollit Lorem minim reprehenderit in quis magna mollit. Labore Lorem esse anim ipsum esse irure ipsum proident deserunt officia consequat sunt sit. Ex laborum ipsum laboris nisi proident. Nulla culpa est commodo dolor. Magna sint id et ut esse mollit qui elit voluptate ea.";
-    in property <[LinkAdapter]> genres: [{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},{name: "heavy metal"},{name: "hard rock"},{name: "acid rock"},];
-    in property <[LinkAdapter]> links: [{name: "Spotify"},{name: "Bandcamp"},{name: "Spotify"},{name: "Bandcamp"},];
-    in property <[LinkAdapter]> artists: [{name: "First Artist Credit"},{name: "Second Artist Credit"},{name: "Third Artist Credit"},];
-    in property <[[StandardListViewItem]]> track_items: [
-        [ { text: "1" }, { text: "Track 1" }, { text: "Artist Credit 1" }, { text: "3:22" }, { text: "2" } ],
-        [ { text: "2" }, { text: "Track 2" }, { text: "Artist Credit 1, Artist Credit 2" }, { text: "1:22" }, { text: "1" } ],
-        [ { text: "3" }, { text: "Track 3" }, { text: "Artist Credit 1" }, { text: "4:22" }, { text: "0" } ],
-        [ { text: "4" }, { text: "Track 4" }, { text: "Artist Credit 1, Artist Credit 2, Artist Credit 3" }, { text: "6:32" }, { text: "3" } ],
-        [ { text: "5" }, { text: "Track 5" }, { text: "Artist Credit 1" }, { text: "3:22" }, { text: "1" } ],
-        [ { text: "6" }, { text: "Track 6" }, { text: "Artist Credit 1" }, { text: "2:32" }, { text: "2" } ],
-        [ { text: "7" }, { text: "Track 7" }, { text: "Artist Credit 1" }, { text: "2:12" }, { text: "0" } ],
-        [ { text: "8" }, { text: "Track 8" }, { text: "Artist Credit 1" }, { text: "13:00" }, { text: "1" } ],
-    ];
-    in property <[string]> track_keys;
-
-    in property <[CardAdapter]> releases: [
-        {
-            image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
-            title: {name: "A Reign of Fish"},
-            sub-title: {name: "Epitaph Records • 2013-03-14"},
-        },
-        {
-            image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
-            title: {name: "A Reign of Fish"},
-            sub-title: {name: "Valve Records • 2013-03-14"},
-        },
-        {
-            image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
-            title: {name: "A Reign of Fish"},
-            sub-title: {name: "Deep Pressings • 2011-02-14"},
-        },
-        {
-            image: {image: @image-url("../../icons/phosphor/PNGs/regular/vinyl-record.png")},
-            title: {name: "A Reign of Fish"},
-            sub-title: {name: "CD Folk • 2014-03-14"},
-        },
-    ];
+    in property <string> primary-type;
+    in property <[string]> secondary-types;
+    in property <string> first-release-date;
+    in property <CardAdapter> card;
+    in property <string> disambiguation;
+    in property <string> summary;
+    in property <[LinkAdapter]> genres;
+    in property <[LinkAdapter]> links;
+    in property <[LinkAdapter]> artists;
+    in property <[CardAdapter]> releases;
     in property <string> dump;
     in property <bool> save;
 
     pure callback toggle_heart();
-
-    pure callback sort_table(column: int, ascending: bool);
 }
-
-component RowMenu inherits PopupMenu {
-    in property <string> key;
-
-    PopupMenuButton {
-        text: "Play Later";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
-        clicked => { AppState.play_later(key); }
-    }
-    PopupMenuButton {
-        text: "Play Next";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
-        clicked => { AppState.play_next(key); }
-    }
-    PopupMenuButton {
-        text: "Play Now";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
-        clicked => { AppState.play_now(key); }
-    }
-    PopupMenuButton {
-        text: "Details";
-        icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
-        clicked => { Navigator.navigate("dimple://track/" + key); }
-    }
-}    
 
 export component ReleaseGroupDetails inherits ScrollView {
     horizontal-scrollbar-policy: always-off;
-
-    in-out property <length> row-menu-x: 0;
-    in-out property <length> row-menu-y: 0;
-    in-out property <string> row-menu-key;
 
     VerticalBox {
         width: 100%;
@@ -150,12 +77,12 @@ export component ReleaseGroupDetails inherits ScrollView {
                     Button {
                         icon: ReleaseGroupDetailsAdapter.save ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg")
                             : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
-                        colorize-icon: true;                
+                        colorize-icon: true;
                         clicked => { ReleaseGroupDetailsAdapter.toggle_heart(); }
                     }
                 }
             }
-        
+
             VerticalBox {
                 alignment: start;
                 padding: 0;
@@ -163,7 +90,7 @@ export component ReleaseGroupDetails inherits ScrollView {
                 VerticalLayout {
                     PageTitle {
                         text: ReleaseGroupDetailsAdapter.card.title.name;
-                    }                    
+                    }
                     if ReleaseGroupDetailsAdapter.disambiguation != "": PageSubtitle {
                         text: ReleaseGroupDetailsAdapter.disambiguation;
                     }
@@ -182,7 +109,7 @@ export component ReleaseGroupDetails inherits ScrollView {
                 }
 
                 Label {
-                    text: "Released \{ReleaseGroupDetailsAdapter.date}";
+                    text: "First released \{ReleaseGroupDetailsAdapter.first-release-date}";
                     font-size: Styles.default-font-size * 1.1;
                 }
 
@@ -198,59 +125,25 @@ export component ReleaseGroupDetails inherits ScrollView {
             }
         }
 
-        // Tracks
-        VerticalBox {
-            alignment: start;
-            padding: 0;
-            row-menu := RowMenu {
-                x: row-menu-x;
-                y: row-menu-y;
-                key: row-menu-key;
-                width: self.preferred-width;
-                height: self.preferred-height;
-            }
-            // SectionTitle {
-            //     text: "Tracks";
-            // }
-            table := BasicTableView {
-                columns: [
-                    { title: "#", horizontal_stretch: 0.08 },
-                    { title: "Title", horizontal_stretch: 0.36 },
-                    { title: "Artists", horizontal_stretch: 0.36 },
-                    { title: "Length", horizontal_stretch: 0.10 },
-                    { title: "Sources", horizontal_stretch: 0.10 },
-                    ];
-                rows: ReleaseGroupDetailsAdapter.track_items;
-                sort-ascending(index) => { ReleaseGroupDetailsAdapter.sort_table(index, true); }
-                sort-descending(index) => { ReleaseGroupDetailsAdapter.sort_table(index, false); }
-                row-pointer-event(row, event, point) => {
-                    if event.button == PointerEventButton.right 
-                            && event.kind == PointerEventKind.down {
-                        row-menu-x = point.x;
-                        row-menu-y = point.y;
-                        row-menu-key = ReleaseGroupDetailsAdapter.track_keys[row];
-                        row-menu.show();
-                    }
-                    else if event.button == PointerEventButton.left 
-                            && row == table.current-row
-                            && event.kind == PointerEventKind.down {
-                        Navigator.navigate("dimple://track/" + ReleaseGroupDetailsAdapter.track_keys[row]);
-                    }
-                }
-            }
-        }
-
         if ReleaseGroupDetailsAdapter.releases.length > 0: VerticalBox {
             alignment: start;
             padding: 0;
             SectionTitle {
-                text: "All Versions";                
+                text: "Releases";
             }
             CardGrid {
                 cards: ReleaseGroupDetailsAdapter.releases;
             }
-        }     
-        
+        }
+
+        if ReleaseGroupDetailsAdapter.releases.length == 0: VerticalBox {
+            alignment: start;
+            padding: 0;
+            Label {
+                text: "No releases added yet.";
+            }
+        }
+
         if ReleaseGroupDetailsAdapter.links.length > 0: VerticalBox {
             alignment: start;
             padding: 0;
@@ -261,8 +154,8 @@ export component ReleaseGroupDetails inherits ScrollView {
                 url: link.url;
                 name: link.name;
             }
-        }     
-        
+        }
+
         if SettingsAdapter.debug: VerticalBox {
             alignment: start;
             padding: 0;
@@ -273,6 +166,6 @@ export component ReleaseGroupDetails inherits ScrollView {
                 text: ReleaseGroupDetailsAdapter.dump;
                 wrap: word-wrap;
             }
-        }        
+        }
     }
 }

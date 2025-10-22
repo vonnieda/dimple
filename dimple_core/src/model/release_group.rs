@@ -25,7 +25,7 @@ pub struct ReleaseGroup {
     pub save: bool,
     pub download: bool,
 
-    pub first_release_date: Option<String>,
+    pub first_release_date: Option<String>, // TODO date type
     pub primary_type: Option<ReleaseGroupPrimaryType>,
 
     pub discogs_id: Option<String>,

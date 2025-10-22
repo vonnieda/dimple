@@ -21,7 +21,7 @@ pub struct Release {
 
     pub barcode: Option<String>,
     pub country: Option<String>,
-    pub date: Option<String>,
+    pub date: Option<String>, // TODO date type
     pub packaging: Option<String>, // TODO enum
     pub status: Option<String>, // TODO enum
     pub quality: Option<String>, // TODO enum

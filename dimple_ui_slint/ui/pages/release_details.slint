@@ -1,0 +1,271 @@
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { CardAdapter } from "../components/card.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView} from "std-widgets.slint";
+import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
+import { HorizontalBox , VerticalBox} from "std-widgets.slint";
+import { StyleMetrics , ScrollView, ListView, StandardTableView, Button, ComboBox, StandardListView} from "std-widgets.slint";
+import { CardAdapter } from "../components/card.slint";
+import { LinkAdapter, Links, Link, LinkButtons} from "../components/link.slint";
+import { Styles, Navigator, AppState, Label, PageTitle, PageSubtitle, SectionTitle } from "../common.slint";
+import { PopupMenu, PopupMenuButton } from "../components/popup_menu.slint";
+import { Tag, TagList } from "../components/tag.slint";
+import { BorderImage } from "../components/border_image.slint";
+import { BasicTableView } from "../components/basic_table_view.slint";
+import { SettingsAdapter } from "settings.slint";
+import { CardGrid } from "../components/card_grid.slint";
+
+export global ReleaseDetailsAdapter {
+    in property <string> key;
+    in property <string> primary-type;
+    in property <[string]> secondary-types;
+    in property <string> date;
+    in property <CardAdapter> card;
+    in property <string> disambiguation;
+    in property <string> summary;
+    in property <[LinkAdapter]> genres;
+    in property <[LinkAdapter]> links;
+    in property <[LinkAdapter]> artists;
+    in property <[[StandardListViewItem]]> track_items;
+    in property <[string]> track_keys;
+    in property <[CardAdapter]> releases;
+    in property <string> dump;
+    in property <bool> save;
+
+    in property <string> barcode;
+    in property <string> country;
+    in property <string> packaging;
+    in property <string> status;
+    in property <string> quality;
+
+    pure callback toggle_heart();
+    pure callback sort_table(column: int, ascending: bool);
+}
+
+component RowMenu inherits PopupMenu {
+    in property <string> key;
+
+    PopupMenuButton {
+        text: "Play Later";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/list-plus.svg");
+        clicked => { AppState.play_later(key); }
+    }
+    PopupMenuButton {
+        text: "Play Next";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/queue.svg");
+        clicked => { AppState.play_next(key); }
+    }
+    PopupMenuButton {
+        text: "Play Now";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+        clicked => { AppState.play_now(key); }
+    }
+    PopupMenuButton {
+        text: "Details";
+        icon: @image-url("../../icons/phosphor/SVGs/regular/info.svg");
+        clicked => { Navigator.navigate("dimple://track/" + key); }
+    }
+}
+
+export component ReleaseDetails inherits ScrollView {
+    horizontal-scrollbar-policy: always-off;
+
+    in-out property <length> row-menu-x: 0;
+    in-out property <length> row-menu-y: 0;
+    in-out property <string> row-menu-key;
+
+    VerticalBox {
+        width: 100%;
+        alignment: start;
+        padding: 0;
+
+        HorizontalBox {
+            padding: 0;
+
+            VerticalLayout {
+                BorderImage {
+                    width: Styles.thumbnail-width-extra-large;
+                    height: Styles.thumbnail-width-extra-large;
+                    key: ReleaseDetailsAdapter.key;
+                    placeholder: @image-url("../../icons/phosphor/SVGs/regular/vinyl-record.svg");
+                }
+                HorizontalBox {
+                    padding-left: 0;
+                    padding-right: 0;
+                    alignment: space-between;
+                    Button {
+                        icon: @image-url("../../icons/phosphor/SVGs/regular/play.svg");
+                        colorize-icon: true;
+                        clicked => { AppState.play_now(ReleaseDetailsAdapter.key); }
+                    }
+                    menu-area := ContextMenuArea {
+                        Button {
+                            icon: @image-url("../../icons/phosphor/SVGs/regular/dots-three.svg");
+                            colorize-icon: true;
+                            clicked => { menu-area.show({ x: self.width / 2, y: self.height / 2 }); }
+                        }
+                        Menu {
+                            MenuItem {
+                                title: "Play Later";
+                                activated => { AppState.play_later(ReleaseDetailsAdapter.key); }
+                            }
+                            MenuItem {
+                                title: "Play Next";
+                                activated => { AppState.play_next(ReleaseDetailsAdapter.key); }
+                            }
+                            MenuItem {
+                                title: "Play Now";
+                                activated => { AppState.play_now(ReleaseDetailsAdapter.key); }
+                            }
+                        }
+                    }
+                    Button {
+                        icon: ReleaseDetailsAdapter.save ? @image-url("../../icons/phosphor/SVGs/fill/heart-fill.svg")
+                            : @image-url("../../icons/phosphor/SVGs/regular/heart.svg");
+                        colorize-icon: true;
+                        clicked => { ReleaseDetailsAdapter.toggle_heart(); }
+                    }
+                }
+            }
+
+            VerticalBox {
+                alignment: start;
+                padding: 0;
+
+                VerticalLayout {
+                    PageTitle {
+                        text: ReleaseDetailsAdapter.card.title.name;
+                    }
+                    if ReleaseDetailsAdapter.disambiguation != "": PageSubtitle {
+                        text: ReleaseDetailsAdapter.disambiguation;
+                    }
+                }
+
+                HorizontalLayout {
+                    Label {
+                        text: "\{ReleaseDetailsAdapter.primary-type} by ";
+                        font-size: Styles.default-font-size * 1.1;
+                    }
+                    Links {
+                        links: ReleaseDetailsAdapter.artists;
+                        height: self.preferred-height;
+                        font-size: Styles.default-font-size * 1.1;
+                    }
+                }
+
+                Label {
+                    text: "Released \{ReleaseDetailsAdapter.date}";
+                    font-size: Styles.default-font-size * 1.1;
+                }
+
+                // Label {
+                //     text: "Country \{ReleaseDetailsAdapter.country}";
+                //     font-size: Styles.default-font-size * 1.1;
+                // }
+
+                // Label {
+                //     text: "Barcode \{ReleaseDetailsAdapter.barcode}";
+                //     font-size: Styles.default-font-size * 1.1;
+                // }
+
+                // Label {
+                //     text: "Status \{ReleaseDetailsAdapter.status}";
+                //     font-size: Styles.default-font-size * 1.1;
+                // }
+
+                // Label {
+                //     text: "Packaging \{ReleaseDetailsAdapter.packaging}";
+                //     font-size: Styles.default-font-size * 1.1;
+                // }
+
+                // Label {
+                //     text: "Quality \{ReleaseDetailsAdapter.quality}";
+                //     font-size: Styles.default-font-size * 1.1;
+                // }
+
+                TagList {
+                    tags: ReleaseDetailsAdapter.genres;
+                    height: self.preferred-height;
+                }
+                if ReleaseDetailsAdapter.summary != "": Label {
+                    text: ReleaseDetailsAdapter.summary;
+                    wrap: word-wrap;
+                    font-family: Styles.text-block-font-family;
+                }
+            }
+        }
+
+        // Tracks
+        VerticalBox {
+            alignment: start;
+            padding: 0;
+            row-menu := RowMenu {
+                x: row-menu-x;
+                y: row-menu-y;
+                key: row-menu-key;
+                width: self.preferred-width;
+                height: self.preferred-height;
+            }
+            table := BasicTableView {
+                columns: [
+                    { title: "#", horizontal_stretch: 0.08 },
+                    { title: "Title", horizontal_stretch: 0.36 },
+                    { title: "Artists", horizontal_stretch: 0.36 },
+                    { title: "Length", horizontal_stretch: 0.10 },
+                    { title: "Sources", horizontal_stretch: 0.10 },
+                    ];
+                rows: ReleaseDetailsAdapter.track_items;
+                sort-ascending(index) => { ReleaseDetailsAdapter.sort_table(index, true); }
+                sort-descending(index) => { ReleaseDetailsAdapter.sort_table(index, false); }
+                row-pointer-event(row, event, point) => {
+                    if event.button == PointerEventButton.right
+                            && event.kind == PointerEventKind.down {
+                        row-menu-x = point.x;
+                        row-menu-y = point.y;
+                        row-menu-key = ReleaseDetailsAdapter.track_keys[row];
+                        row-menu.show();
+                    }
+                    else if event.button == PointerEventButton.left
+                            && row == table.current-row
+                            && event.kind == PointerEventKind.down {
+                        Navigator.navigate("dimple://track/" + ReleaseDetailsAdapter.track_keys[row]);
+                    }
+                }
+            }
+        }
+
+        if ReleaseDetailsAdapter.releases.length > 1: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "All Versions";
+            }
+            CardGrid {
+                cards: ReleaseDetailsAdapter.releases;
+            }
+        }
+
+        if ReleaseDetailsAdapter.links.length > 0: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "Links";
+            }
+            for link in ReleaseDetailsAdapter.links: Link {
+                url: link.url;
+                name: link.name;
+            }
+        }
+
+        if SettingsAdapter.debug: VerticalBox {
+            alignment: start;
+            padding: 0;
+            SectionTitle {
+                text: "Debug";
+            }
+            Text {
+                text: ReleaseDetailsAdapter.dump;
+                wrap: word-wrap;
+            }
+        }
+    }
+}

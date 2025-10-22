@@ -13,6 +13,7 @@ import { HomeAdapter } from "./pages/home.slint";
 import { PlayerBarAdapter, PlayerState } from "./player_bar.slint";
 import { ArtistDetails } from "pages/artist_details.slint";
 import { ReleaseGroupDetails, ReleaseGroupDetailsAdapter } from "pages/release_group_details.slint";
+import { ReleaseDetails, ReleaseDetailsAdapter } from "pages/release_details.slint";
 import { TrackDetails, TrackDetailsAdapter } from "pages/track_details.slint";
 import { TrackListAdapter } from "pages/track_list.slint";
 import { Home } from "pages/home.slint";
@@ -47,19 +48,19 @@ export { Navigator, Styles, AppState, TrackListAdapter,
     SettingsAdapter, TrackDetailsAdapter, QueueDetailsAdapter,
     PlaylistListAdapter, PluginAdapter, PlayerBarAdapter,
     ArtistDetailsAdapter, GenreDetailsAdapter, 
-    ReleaseListAdapter, HomeAdapter, SearchResultsAdapter, CardSectionAdapter, 
+    ReleaseListAdapter, HomeAdapter, SearchResultsAdapter, CardSectionAdapter,
     ArtistListAdapter, GenreListAdapter,
     LazyImageModel, LazyImageLoader,
-    ReleaseGroupDetailsAdapter
+    ReleaseGroupDetailsAdapter, ReleaseDetailsAdapter
 }
 
 export enum Page { Home, SearchResults,
     ArtistList, ArtistDetails,
-    ReleaseList,
+    ReleaseList, ReleaseGroupDetails, ReleaseDetails,
     TrackList, TrackDetails,
     PlaylistList, PlaylistDetails,
     Settings, GenreList, GenreDetails,
-    QueueDetails, HistoryList, ReleaseGroupDetails
+    QueueDetails, HistoryList
 }
 
 export component AppWindow inherits Window {
@@ -112,11 +113,12 @@ export component AppWindow inherits Window {
                 if page == Page.ArtistDetails: ArtistDetails {}
                 if page == Page.ReleaseList: ReleaseList {}
                 if page == Page.ReleaseGroupDetails: ReleaseGroupDetails {}
+                if page == Page.ReleaseDetails: ReleaseDetails {}
                 if page == Page.TrackList: TrackList {}
-                if page == Page.TrackDetails: TrackDetails {}  
+                if page == Page.TrackDetails: TrackDetails {}
                 if page == Page.GenreList: GenreList {}
                 if page == Page.GenreDetails: GenreDetails {}
-                if page == Page.PlaylistList: PlaylistList {}  
+                if page == Page.PlaylistList: PlaylistList {}
                 if page == Page.PlaylistDetails: PlaylistDetails {}
                 if page == Page.HistoryList: HistoryList {}
                 if page == Page.Settings: Settings {}
