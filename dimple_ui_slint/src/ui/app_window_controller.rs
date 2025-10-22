@@ -1,4 +1,4 @@
-use dimple_core::{librarian::Librarian, library::Library, player::{PlayWhen, Player, PlayerEvent}, plugins::plugins::Plugins};
+use dimple_core::{librarian::Librarian, library::Library, player::{PlayWhen, Player, PlayerEvent}, plugins::plugins::Plugins, tasks::Tasks};
 use dimple_db::Db;
 use std::{collections::VecDeque, env, path::Path, sync::{Arc, Mutex, RwLock}};
 
@@ -79,12 +79,14 @@ impl AppWindowController {
         let config = Config::new(Db::open(config_path.to_str().unwrap()).unwrap()).unwrap();
         let player = Player::new(Arc::new(library.clone()));
         let plugins = Plugins::new(cache_dir.to_str().unwrap());
+        let tasks = Tasks::new();
         plugins.add_default_plugins();
+        let _ = plugins.initialize(&library, &tasks);
         let librarian = Librarian::new(&library, &plugins);
         init_lazy_image_loader(&ui, &library, &plugins);
         let ui_weak = ui.as_weak();
-        // TODO look at this.
         // Create placeholders for detail controllers to break circular dependency
+        // TODO look at this.
         let artist_details_controller = Arc::new(RwLock::new(None));
         let release_group_details_controller = Arc::new(RwLock::new(None));
         let release_details_controller = Arc::new(RwLock::new(None));

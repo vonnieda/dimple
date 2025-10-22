@@ -53,6 +53,9 @@ pub use release_group::*;
 mod recording;
 pub use recording::*;
 
+mod task;
+pub use task::*;
+
 use crate::library::Library;
 
 // TODO rename EntityBasics, or maybe get rid of. library interface is fine

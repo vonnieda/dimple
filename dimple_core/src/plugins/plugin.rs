@@ -2,7 +2,7 @@ use std::path::Path;
 
 use anyhow::Result;
 
-use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, ReleaseGroup, Track, TrackSource}};
+use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, ReleaseGroup, Track, TrackSource}, tasks::Tasks};
 
 use super::plugins::Plugins;
 
@@ -19,6 +19,14 @@ pub trait Plugin: Send + Sync {
     
     fn set_configuration(&mut self, _config: &str) { 
 
+    }
+
+    fn initialize(&self, 
+        _plugins: &Plugins, 
+        _library: &Library,
+        _tasks: &Tasks) 
+        -> Result<()> {        
+        Ok(())
     }
 
     fn artist_metadata(&self, 

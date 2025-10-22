@@ -1,9 +1,7 @@
 use fractional_index::FractionalIndex;
 use serde::{Deserialize, Serialize};
 use crate::{library::Library, model::DimpleEntity};
-use crate::model::ModelBasics as _;
-
-use super::{ModelBasics as _, PlaylistItem, Track};
+use super::{PlaylistItem, Track};
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Playlist {
@@ -19,6 +17,8 @@ pub struct Playlist {
     pub musicbrainz_id: Option<String>,
     pub spotify_id: Option<String>,
     pub wikidata_id: Option<String>,
+
+    pub source_id: Option<String>,
 }
 
 impl Playlist {

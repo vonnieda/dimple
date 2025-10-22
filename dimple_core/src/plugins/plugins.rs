@@ -1,10 +1,9 @@
-use core::panic;
 use std::{sync::{Arc, RwLock}};
 
 use reqwest::blocking::Client;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{librarian::{self, ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, ReleaseGroup, Track}, plugins::{coverart_archive::CoverArtArchivePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, the_audio_db::TheAudioDbPlugin, wikidata::WikidataPlugin}};
+use crate::{librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, SearchResults, TrackMetadata}, library::Library, model::{Artist, Dimage, DimpleEntity, Release, ReleaseGroup, Track}, plugins::{coverart_archive::CoverArtArchivePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, the_audio_db::TheAudioDbPlugin, wikidata::WikidataPlugin}, tasks::Tasks};
 
 use super::{plugin::Plugin, USER_AGENT};
 
@@ -14,7 +13,6 @@ pub struct Plugins {
     plugins: Arc<RwLock<Vec<Arc<dyn Plugin>>>>,
     cache_dir: String,
 }
-
 
 impl Plugins {
     pub fn new(cache_dir: &str) -> Self {
@@ -35,6 +33,16 @@ impl Plugins {
         self.add_plugin(Arc::new(TheAudioDbPlugin::default()));
         self.add_plugin(Arc::new(FanartTvPlugin::default()));
         self.add_plugin(Arc::new(CoverArtArchivePlugin::default()));
+    }
+
+    pub fn initialize(&self, 
+        library: &Library,
+        tasks: &Tasks) 
+        -> anyhow::Result<()> {        
+        for plugin in self.plugins.read().unwrap().iter() {
+            let _ = plugin.initialize(self, library, tasks);
+        }
+        Ok(())
     }
 
     pub fn search(&self, library: &Library, query: &str) -> Vec<SearchResults> {
@@ -221,7 +229,7 @@ mod tests {
 
     use crate::{
         library::Library,
-        model::{Artist, ArtistRef, DimpleEntity, Track}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, wikidata::WikidataPlugin},
+        model::{Artist, ArtistRef, Track}, plugins::{example::ExamplePlugin, fanart_tv::FanartTvPlugin, lrclib::LrclibPlugin, musicbrainz::MusicBrainzPlugin, wikidata::WikidataPlugin},
     };
 
     use super::Plugins;
@@ -241,7 +249,7 @@ mod tests {
             title: Some("Master of Puppets".to_string()),
             ..Default::default()
         }).unwrap();
-        library.db.transaction(|t| ArtistRef::attach(t, &artist, &track.id));
+        library.db.transaction(|t| ArtistRef::attach(t, &artist, &track.id)).unwrap();
         // assert!(plugins.track_metadata(&library, &track).is_some());
     }
 

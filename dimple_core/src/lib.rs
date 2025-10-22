@@ -6,3 +6,6 @@ pub mod player;
 pub mod notifier;
 pub mod plugins;
 pub mod merge_rules;
+pub mod app;
+pub mod tasks;
+pub mod cache;
