@@ -9,3 +9,4 @@ pub mod merge_rules;
 pub mod app;
 pub mod tasks;
 pub mod cache;
+pub mod gen;

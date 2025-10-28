@@ -78,8 +78,8 @@ impl AppWindowController {
         let library = Library::open(library_path.to_str().unwrap());
         let config = Config::new(Db::open(config_path.to_str().unwrap()).unwrap()).unwrap();
         let player = Player::new(Arc::new(library.clone()));
-        let plugins = Plugins::new(cache_dir.to_str().unwrap());
         let tasks = Tasks::new();
+        let plugins = Plugins::new(cache_dir.to_str().unwrap());
         plugins.add_default_plugins();
         let _ = plugins.initialize(&library, &tasks);
         let librarian = Librarian::new(&library, &plugins);

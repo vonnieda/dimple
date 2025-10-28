@@ -109,7 +109,7 @@ impl ArtistDetailsController {
             JOIN ArtistRef ON ArtistRef.model_id = ReleaseGroup.id
             LEFT JOIN ReleaseGroupSecondaryTypeRef ON ReleaseGroupSecondaryTypeRef.release_group_id = ReleaseGroup.id
             WHERE ArtistRef.artist_id = ?
-            -- AND ReleaseGroupSecondaryTypeRef.id IS NULL
+            AND ReleaseGroupSecondaryTypeRef.id IS NULL
             ORDER BY ReleaseGroup.first_release_date DESC, ReleaseGroup.title ASC, ReleaseGroup.rowid
             ;
         ";

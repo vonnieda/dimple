@@ -1005,6 +1005,7 @@ dependencies = [
  "lru",
  "musicbrainz_rs",
  "playback-rs",
+ "rand 0.9.2",
  "rayon",
  "reqwest",
  "serde",

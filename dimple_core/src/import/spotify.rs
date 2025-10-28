@@ -37,7 +37,8 @@ fn import_streaming_history_audio(library: &Library, json_file: &DirEntry) {
         // There is a unique index on (source_type, source) so if we're
         // re-importing the same data we'll just update the existing row.
         // TODO no longer true since removing upsert, will blow up
-        library.save(&Scrobble {
+        // Okay, didn't blow up just duplicated everything.
+        let _ = library.save(&Scrobble {
             timestamp: DateTime::parse_from_rfc3339(&entry.ts.clone().unwrap()).unwrap().into(),
             scrobble_type: match entry.skipped {
                 Some(true) => "track_skipped",

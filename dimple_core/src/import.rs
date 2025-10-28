@@ -58,22 +58,21 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
 
     // Read the tags from the file.
     let tags = LoftyTaggedMediaFile::new(path)?;
-    let metadata = tags.metadata();
-    let mut track_metadata = metadata.track;
-    if track_metadata.track.length_ms.is_none() {
-        log::warn!("  No track length found {}, attempting to calculate", path.to_string_lossy());
+    let mut metadata = tags.metadata();
+    if metadata.track.track.length_ms.is_none() {
+        log::debug!("  No track length found {}, attempting to calculate", path.to_string_lossy());
         let symph = SymphoniaTaggedMediaFile::new(path)?;
         if let Some(length) = symph.track_metadata().track.length_ms {
-            track_metadata.track.length_ms = Some(length);
+            metadata.track.track.length_ms = Some(length);
         }
         else {
            return Err(anyhow!("Unable to find or calculate track length {}", path.to_string_lossy()))
         }
     }
 
-    let file_path = path.to_str().unwrap();
     // TODO Don't wanna read the whole file, just check modified unless forced.
     let file_content = Some(std::fs::read(path)?);
+    let file_path = path.to_str().unwrap();
     let track_source = library.db.transaction(|txn| {
         // Create or update a MediaFile by the file path.
         let mut media_file: MediaFile = txn
@@ -111,8 +110,8 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
         let release = librarian::merge_release_metadata(txn, &release, &metadata.release)?;
 
         // Resolve and merge the Track, scoped to the Release.
-        let track = librarian::merge_release_track(txn, &release, &track_metadata.track)?;
-        let track = librarian::merge_track_metadata(txn, &track, &track_metadata)?;
+        let track = librarian::merge_release_track(txn, &release, &metadata.track.track)?;
+        let track = librarian::merge_track_metadata(txn, &track, &metadata.track)?;
 
         // Update the TrackSource with the saved track_id and media_file_id.
         track_source.track_id = track.id.clone();
@@ -122,12 +121,17 @@ fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<Tr
         Ok(track_source)
     }).unwrap();
 
-    log::info!("Imported {} {}: {}", 
-        track_metadata.track.title.unwrap_or("(Unknown Title)".to_string()),
-        // track_metadata.release.unwrap().release.title.unwrap_or("(Unknown Release)".to_string()),
-        track_metadata.artists.iter().map(|f| f.artist.name.clone().unwrap_or("(Unknown Artist)".to_string()).to_string()).join(","),
+
+    let track = track_source.track(&library).unwrap();
+    let release = track.release(&library).unwrap();
+    let artists = track.artists(&library);
+    log::info!("Imported: {},{},{},{}",
+        artists.iter().map(|artist| artist.name.clone().unwrap_or("(Unknown Artist)".to_string()).to_string()).join(","),
+        release.title.unwrap_or("(Unknown Release)".to_string()),
+        track.title.unwrap_or("(Unknown Title)".to_string()),
         path.file_name().unwrap().to_str().unwrap(),
     );
+
     Ok(track_source)
 }
 
