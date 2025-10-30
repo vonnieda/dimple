@@ -10,3 +10,4 @@ pub mod app;
 pub mod tasks;
 pub mod cache;
 pub mod gen;
+pub mod config;
