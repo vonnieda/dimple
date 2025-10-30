@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf, sync::Arc, time::Duration};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -42,6 +42,11 @@ enum Commands {
     Releases,
     /// List all tracks in the library
     Tracks,
+    /// Search for artists, releases, or tracks
+    Search {
+        /// Search query
+        query: String,
+    },
     /// Toggle 'liked' status for a track
     Like {
         /// Track ID (UUID)
@@ -53,6 +58,11 @@ enum Commands {
     Add {
         /// Track ID (UUID)
         track_id: String,
+    },
+    /// Remove a track from the queue by position
+    Remove {
+        /// Position in the queue (1-based index)
+        position: usize,
     },
     /// Clear the play queue
     Clear,
@@ -71,28 +81,40 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Import { path } => {
+            if !path.exists() {
+                anyhow::bail!("Path does not exist: {}", path.display());
+            }
+
             println!(
                 "Library currently contains {} tracks.",
                 Track::list(&library).len()
             );
             println!("Importing {}...", path.display());
+
             library.import(
                 path.to_str()
-                    .context("Invalid path encoding")?,
+                    .with_context(|| format!("Invalid path encoding: {}", path.display()))?,
             );
+
             println!(
-                "Library now contains {} tracks, {} releases, {} artists.",
+                "Import complete. Library now contains {} tracks, {} releases, {} artists.",
                 Track::list(&library).len(),
                 Release::list(&library).len(),
                 Artist::list(&library).len()
             );
         }
         Commands::ImportSpotify { path } => {
+            if !path.exists() {
+                anyhow::bail!("Path does not exist: {}", path.display());
+            }
+
+            println!("Importing Spotify data from {}...", path.display());
             spotify::import(
                 &library,
                 path.to_str()
-                    .context("Invalid path encoding")?,
+                    .with_context(|| format!("Invalid path encoding: {}", path.display()))?,
             );
+            println!("Spotify import complete.");
         }
         Commands::Artists => {
             let artists = Artist::list(&library);
@@ -106,27 +128,49 @@ fn main() -> Result<()> {
             let tracks = Track::list(&library);
             print_tracks(&library, &tracks);
         }
+        Commands::Search { query } => {
+            search_library(&library, &query);
+        }
         Commands::Like { track_id } => {
-            let _track = Track::get(&library, &track_id)
-                .context("Track not found")?;
+            let _track = Track::get(&library, &track_id).with_context(|| {
+                format!("Track not found with ID: {}", track_id)
+            })?;
             // TODO: Implement like toggle functionality
             println!("Like toggle not yet implemented for track: {}", track_id);
         }
         Commands::Queue => {
             let tracks = player.queue().tracks(&library);
-            print_tracks(&library, &tracks);
+            print_queue(&library, &tracks);
         }
         Commands::Add { track_id } => {
-            let track = Track::get(&library, &track_id)
-                .context("Track not found")?;
+            let track = Track::get(&library, &track_id).with_context(|| {
+                format!("Track not found with ID: {}", track_id)
+            })?;
+
+            let track_title = track.title.clone().unwrap_or_else(|| "Unknown".to_string());
+            let artist = track.artist_name(&library).unwrap_or_else(|| "Unknown".to_string());
+
             player.queue().append(&library, &track.into());
+            println!("Added to queue: {} - {}", artist, track_title);
+
             let tracks = player.queue().tracks(&library);
-            print_tracks(&library, &tracks);
+            print_queue(&library, &tracks);
+        }
+        Commands::Remove { position } => {
+            let tracks = player.queue().tracks(&library);
+            if position == 0 || position > tracks.len() {
+                anyhow::bail!(
+                    "Invalid position {}. Queue has {} tracks (use 1-based index).",
+                    position,
+                    tracks.len()
+                );
+            }
+            // TODO: Implement actual queue removal - needs a method on queue
+            println!("Remove not yet implemented. Position: {}", position);
         }
         Commands::Clear => {
             player.queue().clear(&library);
-            let tracks = player.queue().tracks(&library);
-            print_tracks(&library, &tracks);
+            println!("Queue cleared.");
         }
         Commands::Play => {
             player.play();
@@ -161,12 +205,6 @@ fn init_logging() {
 fn initialize_library(root: Option<&std::path::Path>) -> Result<Arc<Library>> {
     let dirs = ProjectDirs::from("lol", "Dimple", "dimple_ui_slint")
         .context("Failed to determine project directories")?;
-
-    // Check for DIMPLE_ROOT env var if not provided as argument
-    let root_from_env = env::var("DIMPLE_ROOT")
-        .ok()
-        .map(PathBuf::from);
-    let root = root.or(root_from_env.as_deref());
 
     let (data_dir, config_dir, cache_dir) = if let Some(root) = root {
         (
@@ -265,4 +303,93 @@ fn print_tracks(library: &Library, tracks: &[Track]) {
     }
 
     println!("{table}");
+}
+
+fn print_queue(library: &Library, tracks: &[Track]) {
+    if tracks.is_empty() {
+        println!("Queue is empty.");
+        return;
+    }
+
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL);
+    table.set_header(vec!["#", "ID", "Artist", "Album", "Title"]);
+
+    for (i, track) in tracks.iter().enumerate() {
+        table.add_row(vec![
+            (i + 1).to_string(),
+            track.id.clone().unwrap_or_default(),
+            track.artist_name(library).unwrap_or_default(),
+            track.album_name(library).unwrap_or_default(),
+            track.title.clone().unwrap_or_default(),
+        ]);
+    }
+
+    println!("{table}");
+    println!("Total: {} track(s)", tracks.len());
+}
+
+fn search_library(library: &Library, query: &str) {
+    let query_lower = query.to_lowercase();
+
+    // Search artists
+    let artists: Vec<_> = Artist::list(library)
+        .into_iter()
+        .filter(|a| {
+            a.name
+                .as_ref()
+                .map(|n| n.to_lowercase().contains(&query_lower))
+                .unwrap_or(false)
+        })
+        .collect();
+
+    if !artists.is_empty() {
+        println!("\n=== Artists ({}) ===", artists.len());
+        print_artists(&artists);
+    }
+
+    // Search releases
+    let releases: Vec<_> = Release::list(library)
+        .into_iter()
+        .filter(|r| {
+            r.title
+                .as_ref()
+                .map(|t| t.to_lowercase().contains(&query_lower))
+                .unwrap_or(false)
+                || r.artist_name(library)
+                    .map(|n| n.to_lowercase().contains(&query_lower))
+                    .unwrap_or(false)
+        })
+        .collect();
+
+    if !releases.is_empty() {
+        println!("\n=== Releases ({}) ===", releases.len());
+        print_releases(library, &releases);
+    }
+
+    // Search tracks
+    let tracks: Vec<_> = Track::list(library)
+        .into_iter()
+        .filter(|t| {
+            t.title
+                .as_ref()
+                .map(|title| title.to_lowercase().contains(&query_lower))
+                .unwrap_or(false)
+                || t.artist_name(library)
+                    .map(|n| n.to_lowercase().contains(&query_lower))
+                    .unwrap_or(false)
+                || t.album_name(library)
+                    .map(|n| n.to_lowercase().contains(&query_lower))
+                    .unwrap_or(false)
+        })
+        .collect();
+
+    if !tracks.is_empty() {
+        println!("\n=== Tracks ({}) ===", tracks.len());
+        print_tracks(library, &tracks);
+    }
+
+    if artists.is_empty() && releases.is_empty() && tracks.is_empty() {
+        println!("No results found for '{}'", query);
+    }
 }
