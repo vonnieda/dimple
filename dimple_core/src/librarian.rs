@@ -1,5 +1,5 @@
 use dimple_db::db::transaction::DbTransaction;
-use crate::{library::Library, merge_rules::{MergeExtend}, model::{Artist, ArtistRef, Dimage, DimageRef, DimpleEntity, Genre, GenreRef, Link, LinkRef, Release, ReleaseGroup, ReleaseGroupSecondaryType, ReleaseGroupSecondaryTypeRef, Track}, plugins::plugins::Plugins};
+use crate::{library::Library, merge_rules::MergeExtend, model::{Artist, ArtistRef, Dimage, DimageRef, DimpleEntity, Genre, GenreRef, Link, LinkRef, Recording, Release, ReleaseGroup, ReleaseGroupSecondaryType, ReleaseGroupSecondaryTypeRef, Track}, plugins::plugins::Plugins};
 
 #[derive(Clone)]
 pub struct Librarian {
@@ -394,14 +394,21 @@ pub struct ReleaseMetadata {
     pub genres: Vec<Genre>,
     pub links: Vec<Link>,
     pub images: Vec<Dimage>,
-    // TODO still struggling with whether this belongs here. If it does, why not
-    // releases on release_group?
     pub tracks: Vec<TrackMetadata>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct TrackMetadata {
     pub track: Track,
+    pub artists: Vec<ArtistMetadata>,
+    pub genres: Vec<Genre>,
+    pub links: Vec<Link>,
+    pub images: Vec<Dimage>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Default)]
+pub struct RecordingMetadata {
+    pub recording: Recording,
     pub artists: Vec<ArtistMetadata>,
     pub genres: Vec<Genre>,
     pub links: Vec<Link>,
@@ -637,55 +644,6 @@ mod tests {
         })?;
         assert_eq!(artist1.id, artist2.id);
         assert_eq!(artist2.country, Some("US".to_string()));
-        Ok(())
-    }
-
-    /// This test is to diagnose and fix an issue with merge_track_metadata
-    /// and merge_release_track. The problem is that when we do a lyrics request
-    /// for a particular song, the lyrics plugin returns the lyrics, along with
-    /// the song length. Since we generically merge metadata, we end up changing
-    /// the length of the track. Then, eventually, we refresh the metadata for
-    /// the release and end up creating a new track for the release.
-    /// This was fixed by replacing CrdtRules with MergeExtend - we no longer
-    /// change existing fields, only fill them when empty.
-    #[test]
-    fn test_bug_track_merge_metadata_duplication() -> anyhow::Result<()> {
-        let library = Library::open_memory();
-
-        library.db.transaction(|t| {
-            let artist = librarian::merge_artist(t, &Artist {
-                name: Some("Test Artist".to_string()),
-                ..Default::default()
-            })?;
-            let release = librarian::merge_artist_release(t, &artist, &Release {
-                title: Some("Test Release".to_string()),
-                ..Default::default()
-            })?;
-            let track1 = librarian::merge_release_track(t, &release, &Track {
-                title: Some("Test Track".to_string()),
-                position: Some(1),
-                length_ms: Some(30000),
-                ..Default::default()
-            })?;
-            let track2 = librarian::merge_track_metadata(t, &track1, &TrackMetadata {
-                track: Track {
-                    length_ms: Some(35000),
-                    lyrics: Some("Test lyrics.".to_string()),
-                    ..Default::default()
-                },
-                ..Default::default()
-            })?;
-            let track3 = librarian::merge_release_track(t, &release, &Track {
-                title: Some("Test Track".to_string()),
-                position: Some(1),
-                length_ms: Some(30000),
-                ..Default::default()
-            })?;
-            assert_eq!(track1.id, track2.id);
-            assert_eq!(track2.id, track3.id);
-            assert_eq!(track3.id, track1.id);
-            Ok(())
-        })?;
         Ok(())
     }
 

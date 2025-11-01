@@ -38,8 +38,8 @@ impl Plugin for LrclibPlugin {
         let response: GetResponse = host.get(&url)?.json()?;
         Ok(Some(TrackMetadata {
             track: Track {
-                lyrics: response.plain_lyrics,
-                synchronized_lyrics: response.synced_lyrics,
+                // lyrics: response.plain_lyrics,
+                // synchronized_lyrics: response.synced_lyrics,
                 title: response.track_name,
                 length_ms: response.duration_s.map(|s| (s * 1000.) as u64),
                 ..Default::default()

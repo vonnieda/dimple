@@ -50,6 +50,7 @@ fn scan(path: &str) -> Vec<ScannedFile> {
     files
 }
 
+/// TODO I think import needs to deal in it's own metadata object.
 fn import_single_file(library: &Library, path: &Path, _force: bool) -> Result<TrackSource, anyhow::Error> {
     if !path.is_file() {
         return Err(anyhow::anyhow!("Path must be a file: {:?}", path));

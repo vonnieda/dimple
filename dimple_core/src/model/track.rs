@@ -4,8 +4,10 @@ use crate::library::Library;
 
 use super::{Artist, Dimage, Genre, Link, ModelBasics as _, Release};
 
-// // https://musicbrainz.org/doc/Track
-// // https://musicbrainz.org/ws/2/release/4d3ce256-ea71-44c5-8ce9-deb8f1e7dce4?inc=aliases%2Bartist-credits%2Blabels%2Bdiscids%2Brecordings&fmt=json
+// https://musicbrainz.org/doc/Track
+// https://musicbrainz.org/ws/2/release/4d3ce256-ea71-44c5-8ce9-deb8f1e7dce4?inc=aliases%2Bartist-credits%2Blabels%2Bdiscids%2Brecordings&fmt=json
+// https://musicbrainz.org/ws/2/release/4d3ce256-ea71-44c5-8ce9-deb8f1e7dce4?inc=artists+recordings&fmt=json
+// This entity is not visible to users on its own, only in the context of a release. It contains a link to a recording, a title, artist credit and position on its associated medium. 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Track {
     pub id: Option<String>,
@@ -16,13 +18,10 @@ pub struct Track {
     pub download: bool,
 
     pub release_id: Option<String>,
+    pub recording_id: Option<String>,
 
     pub position: Option<u32>,
     pub length_ms: Option<u64>,
-    pub lyrics: Option<String>,
-    // pub instrumental: Option<bool>;
-    // LRC format (https://en.wikipedia.org/wiki/LRC_(file_format))
-    pub synchronized_lyrics: Option<String>,
 
     pub discogs_id: Option<String>,
     pub lastfm_id: Option<String>,

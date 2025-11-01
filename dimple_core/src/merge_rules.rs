@@ -1,4 +1,4 @@
-use crate::model::{Artist, Dimage, Genre, Link, Release, ReleaseGroup, Track};
+use crate::model::{Artist, Dimage, Genre, Link, Recording, Release, ReleaseGroup, Track};
 
 pub trait MergeExtend {
     /// Extend the object by filling in missing values from the other object.
@@ -104,12 +104,33 @@ impl MergeExtend for Track {
             release_id: self.release_id.merge_extend(&other.release_id),
             position: self.position.merge_extend(&other.position),
             length_ms: self.length_ms.merge_extend(&other.length_ms),
-            lyrics: self.lyrics.merge_extend(&other.lyrics),
-            synchronized_lyrics: self.synchronized_lyrics.merge_extend(&other.synchronized_lyrics),
+            recording_id: self.recording_id.merge_extend(&other.recording_id),
             media_track_count: self.media_track_count.merge_extend(&other.media_track_count),
             media_position: self.media_position.merge_extend(&other.media_position),
             media_title: self.media_title.merge_extend(&other.media_title),
             media_format: self.media_format.merge_extend(&other.media_format),
+        }
+    }
+}
+
+impl MergeExtend for Recording {
+    fn merge_extend(&self, other: &Self) -> Self {
+        Recording {
+            id: self.id.merge_extend(&other.id),
+            title: self.title.merge_extend(&other.title),
+            disambiguation: self.disambiguation.merge_extend(&other.disambiguation),
+            summary: self.summary.merge_extend(&other.summary),
+            save: self.save,
+            download: self.download,
+            discogs_id: self.discogs_id.merge_extend(&other.discogs_id),
+            lastfm_id: self.lastfm_id.merge_extend(&other.lastfm_id),
+            musicbrainz_id: self.musicbrainz_id.merge_extend(&other.musicbrainz_id),
+            spotify_id: self.spotify_id.merge_extend(&other.spotify_id),
+            wikidata_id: self.wikidata_id.merge_extend(&other.wikidata_id),
+            length_ms: self.length_ms.merge_extend(&other.length_ms),
+            lyrics: self.lyrics.merge_extend(&other.lyrics),
+            synchronized_lyrics: self.synchronized_lyrics.merge_extend(&other.synchronized_lyrics),
+            first_release_date: self.first_release_date.merge_extend(&other.first_release_date),
         }
     }
 }

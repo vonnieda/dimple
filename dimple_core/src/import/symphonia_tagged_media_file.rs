@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use playback_rs::Hint;
 use symphonia::core::{formats::FormatOptions, io::MediaSourceStream, meta::{MetadataOptions, StandardTagKey, Tag, Visual}};
 
-use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, model::{Artist, Genre, Link, Release, Track}};
+use crate::{librarian::{ArtistMetadata, ReleaseMetadata, TrackMetadata}, model::{Artist, Genre, Link, Recording, Release, Track}};
 
 /// https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
@@ -147,16 +147,14 @@ impl SymphoniaTaggedMediaFile {
             position: self.tag(StandardTagKey::TrackNumber)
                 .and_then(|s| parse_n_of_m_tag(&s).0),
             length_ms: self.length_ms,        
-            lyrics: self.tag(StandardTagKey::Lyrics),
-            // TODO supported by some formats, find tags, Symphonia may have
-            // support in v0.6.
-            synchronized_lyrics: None,
 
             discogs_id: None,
             lastfm_id: None,
             musicbrainz_id: self.tag(StandardTagKey::MusicBrainzTrackId).or_else(|| self.tag(StandardTagKey::MusicBrainzReleaseTrackId)),
             spotify_id: None,
             wikidata_id: None,
+
+            recording_id: None,
 
             media_format: self.tag(StandardTagKey::MediaFormat),
             media_position: self.tag(StandardTagKey::DiscNumber)
@@ -166,6 +164,31 @@ impl SymphoniaTaggedMediaFile {
                 .and_then(|s| parse_n_of_m_tag(&s).0)
                 .or_else(|| self.tag(StandardTagKey::TrackNumber)
                     .and_then(|s| parse_n_of_m_tag(&s).1)),
+        }
+    }
+
+    pub fn recording(&self) -> Recording {
+        Recording {
+            id: None,
+            title: self.tag(StandardTagKey::TrackTitle),
+            disambiguation: None,
+            summary: None,
+            save: false,
+            download: false,
+    
+            length_ms: self.length_ms,        
+            lyrics: self.tag(StandardTagKey::Lyrics),
+            // TODO supported by some formats, find tags, Symphonia may have
+            // support in v0.6.
+            synchronized_lyrics: None,
+
+            first_release_date: None,
+
+            discogs_id: None,
+            lastfm_id: None,
+            musicbrainz_id: self.tag(StandardTagKey::MusicBrainzTrackId).or_else(|| self.tag(StandardTagKey::MusicBrainzReleaseTrackId)),
+            spotify_id: None,
+            wikidata_id: None,
         }
     }
 

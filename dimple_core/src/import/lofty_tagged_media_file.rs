@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use lofty::{file::TaggedFileExt, picture::PictureType, tag::{Accessor, ItemKey, Tag, TagExt}};
 
-use crate::{import::MediaFileMetadata, librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, TrackMetadata}, model::{dimage::DimageKind, Artist, Dimage, Genre, Link, Release, ReleaseGroup, Track}};
+use crate::{import::MediaFileMetadata, librarian::{ArtistMetadata, ReleaseGroupMetadata, ReleaseMetadata, TrackMetadata}, model::{Artist, Dimage, Genre, Link, Recording, Release, ReleaseGroup, Track, dimage::DimageKind}};
 
 /// https://picard-docs.musicbrainz.org/en/variables/tags_basic.html
 /// https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html
@@ -105,10 +105,19 @@ impl LoftyTaggedMediaFile {
             title: self.tags.title().map(Into::into),
             position: self.tags.track(),
             length_ms: self.tags.get_string(&ItemKey::Length).and_then(|l| u64::from_str_radix(l, 10).ok()),
-            lyrics: self.tags.get_string(&ItemKey::Lyrics).map(Into::into),
             musicbrainz_id: self.tags.get_string(&ItemKey::MusicBrainzTrackId).map(Into::into),
             media_position: self.tags.disk(),
             media_track_count: self.tags.track_total(),
+            ..Default::default()
+        }
+    }
+
+    fn recording(&self) -> Recording {
+        Recording {
+            title: self.tags.title().map(Into::into),
+            length_ms: self.tags.get_string(&ItemKey::Length).and_then(|l| u64::from_str_radix(l, 10).ok()),
+            lyrics: self.tags.get_string(&ItemKey::Lyrics).map(Into::into),
+            musicbrainz_id: self.tags.get_string(&ItemKey::MusicBrainzTrackId).map(Into::into),
             ..Default::default()
         }
     }
